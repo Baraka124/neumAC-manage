@@ -27,13 +27,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const { createApp, ref, reactive, computed, onMounted, watch, onUnmounted } = Vue;
         
         // ============ 2. CONFIGURATION ============
-        const CONFIG = {
-            API_BASE_URL: 'https://neumac.up.railway.app',
-            TOKEN_KEY: 'neumocare_token',
-            USER_KEY: 'neumocare_user',
-            APP_VERSION: '8.0',
-            DEBUG: window.location.hostname.includes('localhost')
-        };
+const CONFIG = {
+    API_BASE_URL: 'https://neumac-manage-back-end-production.up.railway.app',
+    TOKEN_KEY: 'neumocare_token',
+    USER_KEY: 'neumocare_user',
+    APP_VERSION: '8.0',
+    DEBUG: window.location.hostname.includes('localhost')
+};
         
         // ============ 3. ENHANCED UTILITIES ============
         class EnhancedUtils {
