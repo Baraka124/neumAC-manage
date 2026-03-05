@@ -1,6 +1,6 @@
 // ============ NEUMOCARE HOSPITAL MANAGEMENT SYSTEM v8.1 ============
 // UPDATED FOR UI ENHANCEMENTS - REAL DATA ONLY, NO PLACEHOLDERS
-// ===================================================================
+// ==================================================////=================
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 NeumoCare Hospital Management System v8.1 loading...');
