@@ -2778,6 +2778,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     recentAnnouncements,
                     activeAlertsCount,
                     currentTime,
+                     unitResidentsModal, 
                     currentTimeFormatted
                 };
             }
