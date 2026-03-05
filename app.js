@@ -28,7 +28,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // ============ 2. CONFIGURATION ============
 const CONFIG = {
-    API_BASE_URL: 'https://neumac-manage-back-end-production.up.railway.app',
+    API_BASE_URL: window.location.hostname.includes('localhost') 
+        ? 'http://localhost:3000' 
+        : 'https://neumac-manage-back-end-production.up.railway.app',
     TOKEN_KEY: 'neumocare_token',
     USER_KEY: 'neumocare_user',
     APP_VERSION: '8.0',
