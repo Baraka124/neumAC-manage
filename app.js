@@ -2124,7 +2124,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     } catch (error) { showToast('Error', error.message, 'error'); }
                     finally { saving.value = false; }
                 };
-const saveRotation = async () => {
+
+                const saveRotation = async () => {
     // ============ VALIDATION ============
     if (!rotationModal.form.resident_id) { 
         showToast('Error', 'Please select a resident', 'error'); 
@@ -2143,57 +2144,62 @@ const saveRotation = async () => {
         return; 
     }
 
-    // ============ DATE PARSING - HANDLES DD/MM/YYYY ============
+    // ============ DATE PARSING - CONVERT DD/MM/YYYY TO YYYY-MM-DD ============
     let startDate, endDate;
     
     try {
-        // Helper function to parse DD/MM/YYYY or YYYY-MM-DD
-        const parseDateInput = (dateStr, isEndDate = false) => {
-            // Check if it's DD/MM/YYYY format (e.g., "10/03/2026")
+        // Helper function to convert DD/MM/YYYY to YYYY-MM-DD
+        const convertToISO = (dateStr) => {
+            // If it's already YYYY-MM-DD, return as-is
+            if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                return dateStr;
+            }
+            
+            // Handle DD/MM/YYYY format
             if (typeof dateStr === 'string' && dateStr.includes('/')) {
                 const parts = dateStr.split('/');
                 if (parts.length === 3) {
                     const [day, month, year] = parts;
-                    // Create date in YYYY-MM-DD format for JavaScript
-                    const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                    return isEndDate 
-                        ? new Date(isoDate + 'T23:59:59')
-                        : new Date(isoDate + 'T00:00:00');
+                    // Validate that day, month, year are numbers
+                    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                        // Return in YYYY-MM-DD format
+                        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    }
                 }
             }
             
-            // Handle YYYY-MM-DD format
-            if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                return isEndDate 
-                    ? new Date(dateStr + 'T23:59:59')
-                    : new Date(dateStr + 'T00:00:00');
+            // Try parsing with Date object as fallback
+            const date = new Date(dateStr);
+            if (!isNaN(date.getTime())) {
+                return date.toISOString().split('T')[0];
             }
             
-            // Fallback to standard Date parsing
-            const date = new Date(dateStr);
-            if (isNaN(date.getTime())) {
-                throw new Error('Invalid date');
-            }
-            return date;
+            throw new Error('Invalid date format');
         };
 
-        startDate = parseDateInput(startDateStr, false);
-        endDate = parseDateInput(endDateStr, true);
+        // Convert to YYYY-MM-DD format
+        const startISO = convertToISO(startDateStr);
+        const endISO = convertToISO(endDateStr);
+        
+        // Create Date objects for validation
+        startDate = new Date(startISO + 'T00:00:00');
+        endDate = new Date(endISO + 'T23:59:59');
+        
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            throw new Error('Invalid date');
+        }
+        
+        // Store the ISO formatted dates for backend
+        rotationModal.form.start_date = startISO;
+        rotationModal.form.end_date = endISO;
 
-        // Format dates to YYYY-MM-DD for the backend
-        rotationModal.form.start_date = startDate.toISOString().split('T')[0];
-        rotationModal.form.end_date = endDate.toISOString().split('T')[0];
-
-        console.log('📅 Parsed dates:', {
+        console.log('📅 Date conversion:', {
             original: { start: startDateStr, end: endDateStr },
-            parsed: { 
-                start: rotationModal.form.start_date, 
-                end: rotationModal.form.end_date 
-            }
+            converted: { start: startISO, end: endISO }
         });
 
     } catch (error) {
-        showToast('Error', 'Invalid date format. Please use DD/MM/YYYY or YYYY-MM-DD', 'error');
+        showToast('Error', 'Invalid date format. Please use DD/MM/YYYY (e.g., 14/03/2026)', 'error');
         return;
     }
 
@@ -2213,13 +2219,7 @@ const saveRotation = async () => {
     const parseDate = (dateStr) => {
         if (!dateStr) return new Date(NaN);
         
-        // Handle DD/MM/YYYY for overlap check
-        if (typeof dateStr === 'string' && dateStr.includes('/')) {
-            const [day, month, year] = dateStr.split('/');
-            return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00`);
-        }
-        
-        // Handle YYYY-MM-DD
+        // Handle YYYY-MM-DD format
         if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
             return new Date(dateStr + 'T00:00:00');
         }
@@ -2258,7 +2258,7 @@ const saveRotation = async () => {
     saving.value = true;
     
     try {
-        // Prepare data for API - using YYYY-MM-DD format
+        // Prepare data for API - dates are already in YYYY-MM-DD format
         const rotationData = {
             rotation_id: rotationModal.form.rotation_id || EnhancedUtils.generateId('ROT'),
             resident_id: rotationModal.form.resident_id,
@@ -2270,7 +2270,7 @@ const saveRotation = async () => {
             rotation_status: (rotationModal.form.rotation_status || 'scheduled').toLowerCase()
         };
 
-        console.log('📤 Sending rotation data to backend:', rotationData);
+        console.log('📤 Sending to backend (YYYY-MM-DD):', rotationData);
 
         if (rotationModal.mode === 'add') {
             const result = await API.createRotation(rotationData);
@@ -2296,10 +2296,6 @@ const saveRotation = async () => {
             msg = 'Rotation dates conflict with existing schedule.';
         } else if (msg.includes('date')) {
             msg = 'Invalid date format. Please use DD/MM/YYYY.';
-        } else if (msg.includes('resident_id')) {
-            msg = 'Invalid resident selected. Please try again.';
-        } else if (msg.includes('training_unit_id')) {
-            msg = 'Invalid training unit selected. Please try again.';
         }
         
         showToast('Error', msg, 'error');
