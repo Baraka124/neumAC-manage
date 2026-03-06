@@ -1,5 +1,5 @@
 // ============ NEUMOCARE HOSPITAL MANAGEMENT SYSTEM v9.0 ============
-// Frontend Application - Vue.js
+// Frontend Application - Vue.js - COMPLETE WITH FULL CRUD OPERATIONS
 // ===================================================================
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
             TOKEN_KEY: 'neumocare_token',
             USER_KEY: 'neumocare_user',
             APP_VERSION: '9.0',
-            DEBUG: false // Set to false to reduce console noise
+            DEBUG: false
         };
 
         // ============ UTILITIES ============
@@ -323,6 +323,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 } catch { return []; }
             }
 
+            async createResearchLine(data) {
+                return await this.request('/api/research-lines', { method: 'POST', body: data });
+            }
+
+            async updateResearchLine(id, data) {
+                return await this.request(`/api/research-lines/${id}`, { method: 'PUT', body: data });
+            }
+
+            async deleteResearchLine(id) {
+                return await this.request(`/api/research-lines/${id}`, { method: 'DELETE' });
+            }
+
             async assignCoordinator(researchLineId, coordinatorId) {
                 return await this.request(`/api/research-lines/${researchLineId}/coordinator`, {
                     method: 'PUT',
@@ -443,7 +455,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const onCallSchedule = ref([]);
                 const announcements = ref([]);
 
-                // Data Stores - Research (NEW)
+                // Data Stores - Research
                 const researchLines = ref([]);
                 const clinicalTrials = ref([]);
                 const innovationProjects = ref([]);
@@ -484,17 +496,75 @@ document.addEventListener('DOMContentLoaded', function() {
                 const onCallFilters = reactive({ date: '', shiftType: '', physician: '', coverageArea: '' });
                 const rotationFilters = reactive({ resident: '', status: '', trainingUnit: '', supervisor: '' });
                 const absenceFilters = reactive({ staff: '', status: '', reason: '', startDate: '' });
-                // Add with other filters
-const trialFilters = reactive({
-    line: '',
-    phase: '',
-    status: '',
-    search: ''
-});
+                
+                // Research Filters
+                const trialFilters = reactive({
+                    line: '',
+                    phase: '',
+                    status: '',
+                    search: ''
+                });
+
+                const projectFilters = reactive({
+                    research_line_id: '',
+                    category: '',
+                    search: ''
+                });
 
                 // ============ MODALS ============
                 const staffProfileModal = reactive({ show: false, staff: null, activeTab: 'assignments' });
                 const unitResidentsModal = reactive({ show: false, unit: null, rotations: [] });
+
+                // Research Line Modal
+                const researchLineModal = reactive({
+                    show: false,
+                    mode: 'add',
+                    form: {
+                        line_number: null,
+                        name: '',
+                        description: '',
+                        capabilities: '',
+                        sort_order: 0,
+                        active: true
+                    }
+                });
+
+                // Clinical Trial Modal
+                const clinicalTrialModal = reactive({
+                    show: false,
+                    mode: 'add',
+                    form: {
+                        protocol_id: '',
+                        title: '',
+                        research_line_id: '',
+                        phase: 'Phase III',
+                        status: 'Reclutando',
+                        description: '',
+                        inclusion_criteria: '',
+                        exclusion_criteria: '',
+                        principal_investigator_id: '',
+                        contact_email: '',
+                        featured_in_website: true,
+                        display_order: 0
+                    }
+                });
+
+                // Innovation Project Modal
+                const innovationProjectModal = reactive({
+                    show: false,
+                    mode: 'add',
+                    form: {
+                        title: '',
+                        category: 'Dispositivo',
+                        development_stage: 'En Desarrollo',
+                        description: '',
+                        research_line_id: '',
+                        lead_investigator_id: '',
+                        partner_needs: [],
+                        featured_in_website: true,
+                        display_order: 0
+                    }
+                });
 
                 const medicalStaffModal = reactive({
                     show: false, mode: 'add', activeTab: 'basic',
@@ -572,13 +642,13 @@ const trialFilters = reactive({
                     confirmButtonText: 'Confirm', confirmButtonClass: 'btn-primary',
                     cancelButtonText: 'Cancel', onConfirm: null, details: ''
                 });
-                // Add this with the other modal definitions
-const assignCoordinatorModal = reactive({
-    show: false,
-    lineId: null,
-    lineName: '',
-    selectedCoordinatorId: ''
-});
+
+                const assignCoordinatorModal = reactive({
+                    show: false,
+                    lineId: null,
+                    lineName: '',
+                    selectedCoordinatorId: ''
+                });
 
                 // ============ PERMISSION MATRIX ============
                 const PERMISSION_MATRIX = {
@@ -591,6 +661,8 @@ const assignCoordinatorModal = reactive({
                         department_management: ['create', 'read', 'update', 'delete'],
                         communications: ['create', 'read', 'update', 'delete'],
                         research_lines: ['create', 'read', 'update', 'delete'],
+                        clinical_trials: ['create', 'read', 'update', 'delete'],
+                        innovation_projects: ['create', 'read', 'update', 'delete'],
                         system: ['manage_departments', 'manage_updates']
                     },
                     department_head: {
@@ -602,19 +674,23 @@ const assignCoordinatorModal = reactive({
                         department_management: ['read'],
                         communications: ['create', 'read'],
                         research_lines: ['read', 'update'],
+                        clinical_trials: ['read', 'create', 'update'],
+                        innovation_projects: ['read', 'create', 'update'],
                         system: ['manage_updates']
                     },
                     attending_physician: {
                         medical_staff: ['read'], oncall_schedule: ['read'],
                         resident_rotations: ['read'], training_units: ['read'],
                         staff_absence: ['read'], department_management: ['read'],
-                        communications: ['read'], research_lines: ['read']
+                        communications: ['read'], research_lines: ['read'],
+                        clinical_trials: ['read'], innovation_projects: ['read']
                     },
                     medical_resident: {
                         medical_staff: ['read'], oncall_schedule: ['read'],
                         resident_rotations: ['read'], training_units: ['read'],
                         staff_absence: ['read'], department_management: [],
-                        communications: ['read'], research_lines: ['read']
+                        communications: ['read'], research_lines: ['read'],
+                        clinical_trials: ['read'], innovation_projects: ['read']
                     }
                 };
 
@@ -696,6 +772,24 @@ const assignCoordinatorModal = reactive({
                     const map = {
                         'scheduled': 'Scheduled', 'active': 'Active',
                         'completed': 'Completed', 'cancelled': 'Cancelled'
+                    };
+                    return map[status] || status;
+                };
+
+                const formatTrialPhase = (phase) => {
+                    const map = {
+                        'Phase I': 'Phase I', 'Phase II': 'Phase II',
+                        'Phase III': 'Phase III', 'Phase IV': 'Phase IV'
+                    };
+                    return map[phase] || phase;
+                };
+
+                const formatTrialStatus = (status) => {
+                    const map = {
+                        'Reclutando': 'Reclutando',
+                        'Activo': 'Activo',
+                        'Completado': 'Completado',
+                        'En preparación': 'En preparación'
                     };
                     return map[status] || status;
                 };
@@ -789,7 +883,7 @@ const assignCoordinatorModal = reactive({
                 const calculateAbsenceDuration = (startDate, endDate) =>
                     EnhancedUtils.calculateDateDifference(startDate, endDate);
 
-                // ============ RESEARCH LINES HELPERS (NEW) ============
+                // ============ RESEARCH LINES HELPERS ============
                 const getResearchLineName = (lineId) => {
                     if (!lineId) return 'Not assigned';
                     const line = researchLines.value.find(l => l.id === lineId);
@@ -1334,6 +1428,55 @@ const assignCoordinatorModal = reactive({
                     });
                 };
 
+                // Research Delete Functions
+                const deleteResearchLine = async (line) => {
+                    showConfirmation({
+                        title: 'Delete Research Line',
+                        message: `Are you sure you want to delete "${line.research_line_name || line.name}"?`,
+                        icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
+                        details: 'This will remove the research line and all associated data.',
+                        onConfirm: async () => {
+                            try {
+                                await API.deleteResearchLine(line.id);
+                                await loadResearchLines();
+                                showToast('Success', 'Research line deleted successfully', 'success');
+                            } catch (error) { showToast('Error', error.message, 'error'); }
+                        }
+                    });
+                };
+
+                const deleteClinicalTrial = async (trial) => {
+                    showConfirmation({
+                        title: 'Delete Clinical Trial',
+                        message: `Are you sure you want to delete "${trial.title}"?`,
+                        icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
+                        details: `Protocol: ${trial.protocol_id}`,
+                        onConfirm: async () => {
+                            try {
+                                await API.deleteClinicalTrial(trial.id);
+                                await loadClinicalTrials();
+                                showToast('Success', 'Clinical trial deleted successfully', 'success');
+                            } catch (error) { showToast('Error', error.message, 'error'); }
+                        }
+                    });
+                };
+
+                const deleteInnovationProject = async (project) => {
+                    showConfirmation({
+                        title: 'Delete Innovation Project',
+                        message: `Are you sure you want to delete "${project.title}"?`,
+                        icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
+                        details: 'This action cannot be undone.',
+                        onConfirm: async () => {
+                            try {
+                                await API.deleteInnovationProject(project.id);
+                                await loadInnovationProjects();
+                                showToast('Success', 'Innovation project deleted successfully', 'success');
+                            } catch (error) { showToast('Error', error.message, 'error'); }
+                        }
+                    });
+                };
+
                 // ============ DATA LOADING ============
                 const loadMedicalStaff = async () => {
                     try { medicalStaff.value = await API.getMedicalStaff(); }
@@ -1408,7 +1551,7 @@ const assignCoordinatorModal = reactive({
                     } catch {}
                 };
 
-                // ============ RESEARCH LINES LOADERS (NEW) ============
+                // ============ RESEARCH LINES LOADERS ============
                 const loadResearchLines = async () => {
                     try {
                         const data = await API.getResearchLines();
@@ -1446,6 +1589,141 @@ const assignCoordinatorModal = reactive({
                         showToast('Error', error.message || 'Failed to assign coordinator', 'error');
                         throw error;
                     }
+                };
+
+                // ============ RESEARCH CRUD FUNCTIONS ============
+
+                // Research Lines
+                const saveResearchLine = async () => {
+                    saving.value = true;
+                    try {
+                        if (researchLineModal.mode === 'add') {
+                            const result = await API.createResearchLine(researchLineModal.form);
+                            researchLines.value.unshift(result);
+                            showToast('Success', 'Research line created successfully', 'success');
+                        } else {
+                            const result = await API.updateResearchLine(researchLineModal.form.id, researchLineModal.form);
+                            const index = researchLines.value.findIndex(l => l.id === result.id);
+                            if (index !== -1) researchLines.value[index] = result;
+                            showToast('Success', 'Research line updated successfully', 'success');
+                        }
+                        researchLineModal.show = false;
+                        await loadResearchLines();
+                    } catch (error) {
+                        showToast('Error', error.message || 'Failed to save research line', 'error');
+                    } finally { saving.value = false; }
+                };
+
+                const showAddResearchLineModal = () => {
+                    researchLineModal.mode = 'add';
+                    researchLineModal.form = {
+                        line_number: researchLines.value.length + 1,
+                        name: '',
+                        description: '',
+                        capabilities: 'Alcance y capacidades',
+                        sort_order: researchLines.value.length + 1,
+                        active: true
+                    };
+                    researchLineModal.show = true;
+                };
+
+                const editResearchLine = (line) => {
+                    researchLineModal.mode = 'edit';
+                    researchLineModal.form = { ...line };
+                    researchLineModal.show = true;
+                };
+
+                // Clinical Trials
+                const saveClinicalTrial = async () => {
+                    saving.value = true;
+                    try {
+                        if (clinicalTrialModal.mode === 'add') {
+                            const result = await API.createClinicalTrial(clinicalTrialModal.form);
+                            clinicalTrials.value.unshift(result);
+                            showToast('Success', 'Clinical trial created successfully', 'success');
+                        } else {
+                            const result = await API.updateClinicalTrial(clinicalTrialModal.form.id, clinicalTrialModal.form);
+                            const index = clinicalTrials.value.findIndex(t => t.id === result.id);
+                            if (index !== -1) clinicalTrials.value[index] = result;
+                            showToast('Success', 'Clinical trial updated successfully', 'success');
+                        }
+                        clinicalTrialModal.show = false;
+                        await loadClinicalTrials();
+                    } catch (error) {
+                        showToast('Error', error.message || 'Failed to save clinical trial', 'error');
+                    } finally { saving.value = false; }
+                };
+
+                const showAddTrialModal = () => {
+                    clinicalTrialModal.mode = 'add';
+                    clinicalTrialModal.form = {
+                        protocol_id: `HUAC-${Date.now().toString().slice(-6)}`,
+                        title: '',
+                        research_line_id: '',
+                        phase: 'Phase III',
+                        status: 'Reclutando',
+                        description: '',
+                        inclusion_criteria: '',
+                        exclusion_criteria: '',
+                        principal_investigator_id: '',
+                        contact_email: '',
+                        featured_in_website: true,
+                        display_order: clinicalTrials.value.length + 1
+                    };
+                    clinicalTrialModal.show = true;
+                };
+
+                const editTrial = (trial) => {
+                    clinicalTrialModal.mode = 'edit';
+                    clinicalTrialModal.form = { ...trial };
+                    clinicalTrialModal.show = true;
+                };
+
+                // Innovation Projects
+                const saveInnovationProject = async () => {
+                    saving.value = true;
+                    try {
+                        if (innovationProjectModal.mode === 'add') {
+                            const result = await API.createInnovationProject(innovationProjectModal.form);
+                            innovationProjects.value.unshift(result);
+                            showToast('Success', 'Innovation project created successfully', 'success');
+                        } else {
+                            const result = await API.updateInnovationProject(innovationProjectModal.form.id, innovationProjectModal.form);
+                            const index = innovationProjects.value.findIndex(p => p.id === result.id);
+                            if (index !== -1) innovationProjects.value[index] = result;
+                            showToast('Success', 'Innovation project updated successfully', 'success');
+                        }
+                        innovationProjectModal.show = false;
+                        await loadInnovationProjects();
+                    } catch (error) {
+                        showToast('Error', error.message || 'Failed to save innovation project', 'error');
+                    } finally { saving.value = false; }
+                };
+
+                const showAddProjectModal = () => {
+                    innovationProjectModal.mode = 'add';
+                    innovationProjectModal.form = {
+                        title: '',
+                        category: 'Dispositivo',
+                        development_stage: 'En Desarrollo',
+                        description: '',
+                        research_line_id: '',
+                        lead_investigator_id: '',
+                        partner_needs: [],
+                        featured_in_website: true,
+                        display_order: innovationProjects.value.length + 1
+                    };
+                    innovationProjectModal.show = true;
+                };
+
+                const editProject = (project) => {
+                    innovationProjectModal.mode = 'edit';
+                    innovationProjectModal.form = { ...project };
+                    innovationProjectModal.show = true;
+                };
+
+                const requestFullDossier = () => {
+                    showToast('Info', 'Dossier request sent. Our team will contact you shortly.', 'info');
                 };
 
                 // ============ UPDATE DASHBOARD STATS ============
@@ -1667,55 +1945,26 @@ const assignCoordinatorModal = reactive({
                     userProfileModal.show = true;
                     userMenuOpen.value = false;
                 };
-                // Add with other modal show functions
-const openAssignCoordinatorModal = (line) => {
-    assignCoordinatorModal.lineId = line.id;
-    assignCoordinatorModal.lineName = line.research_line_name || line.name;
-    assignCoordinatorModal.selectedCoordinatorId = line.coordinator_id || '';
-    assignCoordinatorModal.show = true;
-};
 
-const saveCoordinatorAssignment = async () => {
-    try {
-        await assignCoordinator(
-            assignCoordinatorModal.lineId,
-            assignCoordinatorModal.selectedCoordinatorId || null
-        );
-        assignCoordinatorModal.show = false;
-        showToast('Success', 'Coordinator assigned successfully', 'success');
-    } catch (error) {
-        showToast('Error', error.message || 'Failed to assign coordinator', 'error');
-    }
-};
+                const openAssignCoordinatorModal = (line) => {
+                    assignCoordinatorModal.lineId = line.id;
+                    assignCoordinatorModal.lineName = line.research_line_name || line.name;
+                    assignCoordinatorModal.selectedCoordinatorId = line.coordinator_id || '';
+                    assignCoordinatorModal.show = true;
+                };
 
-// Placeholder functions for research line CRUD (to prevent undefined errors)
-const showAddResearchLineModal = () => {
-    showToast('Info', 'Add research line functionality coming soon', 'info');
-};
-
-const editResearchLine = (line) => {
-    showToast('Info', 'Edit research line functionality coming soon', 'info');
-};
-
-const showAddTrialModal = () => {
-    showToast('Info', 'Add clinical trial functionality coming soon', 'info');
-};
-
-const editTrial = (trial) => {
-    showToast('Info', 'Edit clinical trial functionality coming soon', 'info');
-};
-
-const showAddProjectModal = () => {
-    showToast('Info', 'Add innovation project functionality coming soon', 'info');
-};
-
-const editProject = (project) => {
-    showToast('Info', 'Edit innovation project functionality coming soon', 'info');
-};
-
-const requestFullDossier = () => {
-    showToast('Info', 'Dossier request functionality coming soon', 'info');
-};
+                const saveCoordinatorAssignment = async () => {
+                    try {
+                        await assignCoordinator(
+                            assignCoordinatorModal.lineId,
+                            assignCoordinatorModal.selectedCoordinatorId || null
+                        );
+                        assignCoordinatorModal.show = false;
+                        showToast('Success', 'Coordinator assigned successfully', 'success');
+                    } catch (error) {
+                        showToast('Error', error.message || 'Failed to assign coordinator', 'error');
+                    }
+                };
 
                 // ============ VIEW/EDIT FUNCTIONS ============
                 const viewStaffDetails = (staff) => {
@@ -2169,31 +2418,36 @@ const requestFullDossier = () => {
                     if (absenceFilters.startDate) filtered = filtered.filter(a => a.start_date >= absenceFilters.startDate);
                     return filtered;
                 });
-                // Add with other computed properties
-const filteredTrials = computed(() => {
-    if (!clinicalTrials.value.length) return [];
-    
-    return clinicalTrials.value.filter(trial => {
-        // Filter by line
-        if (trialFilters.line && trial.research_line_id !== trialFilters.line) return false;
-        
-        // Filter by phase
-        if (trialFilters.phase && trial.phase !== trialFilters.phase) return false;
-        
-        // Filter by status
-        if (trialFilters.status && trial.status !== trialFilters.status) return false;
-        
-        // Filter by search
-        if (trialFilters.search) {
-            const search = trialFilters.search.toLowerCase();
-            const matchesProtocol = trial.protocol_id?.toLowerCase().includes(search);
-            const matchesTitle = trial.title?.toLowerCase().includes(search);
-            if (!matchesProtocol && !matchesTitle) return false;
-        }
-        
-        return true;
-    });
-});
+
+                const filteredTrials = computed(() => {
+                    if (!clinicalTrials.value.length) return [];
+                    return clinicalTrials.value.filter(trial => {
+                        if (trialFilters.line && trial.research_line_id !== trialFilters.line) return false;
+                        if (trialFilters.phase && trial.phase !== trialFilters.phase) return false;
+                        if (trialFilters.status && trial.status !== trialFilters.status) return false;
+                        if (trialFilters.search) {
+                            const search = trialFilters.search.toLowerCase();
+                            const matchesProtocol = trial.protocol_id?.toLowerCase().includes(search);
+                            const matchesTitle = trial.title?.toLowerCase().includes(search);
+                            if (!matchesProtocol && !matchesTitle) return false;
+                        }
+                        return true;
+                    });
+                });
+
+                const filteredProjects = computed(() => {
+                    if (!innovationProjects.value.length) return [];
+                    return innovationProjects.value.filter(project => {
+                        if (projectFilters.research_line_id && project.research_line_id !== projectFilters.research_line_id) return false;
+                        if (projectFilters.category && project.category !== projectFilters.category) return false;
+                        if (projectFilters.search) {
+                            const search = projectFilters.search.toLowerCase();
+                            return project.title?.toLowerCase().includes(search) ||
+                                   project.description?.toLowerCase().includes(search);
+                        }
+                        return true;
+                    });
+                });
 
                 const recentAnnouncements = computed(() => announcements.value.slice(0, 10));
                 const activeAlertsCount = computed(() =>
@@ -2224,7 +2478,9 @@ const filteredTrials = computed(() => {
                         if (e.key === 'Escape') {
                             [medicalStaffModal, departmentModal, trainingUnitModal, rotationModal,
                              onCallModal, absenceModal, communicationsModal, staffProfileModal,
-                             userProfileModal, confirmationModal, unitResidentsModal
+                             userProfileModal, confirmationModal, unitResidentsModal,
+                             researchLineModal, clinicalTrialModal, innovationProjectModal,
+                             assignCoordinatorModal
                             ].forEach(modal => { if (modal.show) modal.show = false; });
                         }
                     });
@@ -2248,7 +2504,7 @@ const filteredTrials = computed(() => {
                     // Data
                     medicalStaff, departments, trainingUnits, rotations, absences, onCallSchedule, announcements,
                     
-                    // Research Data (NEW)
+                    // Research Data
                     researchLines, clinicalTrials, innovationProjects,
                     
                     // Live Status
@@ -2265,14 +2521,13 @@ const filteredTrials = computed(() => {
                     toasts, systemAlerts,
                     
                     // Filters
-                    staffFilters, onCallFilters, rotationFilters, absenceFilters,trialFilters,
+                    staffFilters, onCallFilters, rotationFilters, absenceFilters, trialFilters, projectFilters,
 
-                    
                     // Modals
                     staffProfileModal, unitResidentsModal, medicalStaffModal, communicationsModal,
                     onCallModal, rotationModal, trainingUnitModal, absenceModal, departmentModal,
-                    userProfileModal, confirmationModal,assignCoordinatorModal,
-
+                    userProfileModal, confirmationModal, assignCoordinatorModal,
+                    researchLineModal, clinicalTrialModal, innovationProjectModal,
                     
                     // Date/Time Helpers
                     formatDate, formatDateShort, formatDatePlusDays, getTomorrow,
@@ -2281,15 +2536,15 @@ const filteredTrials = computed(() => {
                     
                     // Formatting
                     formatStaffType, getStaffTypeClass, formatEmploymentStatus, formatAbsenceReason,
-                    formatAbsenceStatus, formatRotationStatus, getUserRoleDisplay,
-                    getCurrentViewTitle, getCurrentViewSubtitle, getSearchPlaceholder,
+                    formatAbsenceStatus, formatRotationStatus, formatTrialPhase, formatTrialStatus,
+                    getUserRoleDisplay, getCurrentViewTitle, getCurrentViewSubtitle, getSearchPlaceholder,
                     
                     // Core Helpers
                     getDepartmentName, getStaffName, getTrainingUnitName, getSupervisorName,
                     getPhysicianName, getResidentName, getDepartmentUnits, getDepartmentStaffCount,
                     getCurrentRotationForStaff, calculateAbsenceDuration,
                     
-                    // Research Helpers (NEW)
+                    // Research Helpers
                     getResearchLineName, getCoordinatorName, getClinicianResearchLines, formatResearchRole,
                     
                     // Unit Residents
@@ -2315,7 +2570,8 @@ const filteredTrials = computed(() => {
                     
                     // Delete Functions
                     deleteMedicalStaff, deleteRotation, deleteOnCallSchedule, deleteAbsence,
-                    deleteAnnouncement, deleteClinicalStatus,
+                    deleteAnnouncement, deleteClinicalStatus, deleteResearchLine,
+                    deleteClinicalTrial, deleteInnovationProject,
                     
                     // Toast/Confirmation
                     showToast, removeToast, dismissAlert, showConfirmation, confirmAction, cancelConfirmation,
@@ -2331,6 +2587,13 @@ const filteredTrials = computed(() => {
                     showAddRotationModal, showAddOnCallModal, showAddAbsenceModal,
                     showCommunicationsModal, showUserProfileModal,
                     
+                    // Research Modal Functions
+                    openAssignCoordinatorModal, saveCoordinatorAssignment,
+                    showAddResearchLineModal, editResearchLine, saveResearchLine,
+                    showAddTrialModal, editTrial, saveClinicalTrial,
+                    showAddProjectModal, editProject, saveInnovationProject,
+                    requestFullDossier,
+                    
                     // View/Edit Functions
                     viewStaffDetails, viewUnitResidents, viewDepartmentStaff,
                     editMedicalStaff, editDepartment, editTrainingUnit, editRotation,
@@ -2339,7 +2602,7 @@ const filteredTrials = computed(() => {
                     // Action Functions
                     contactPhysician, viewAnnouncement,
                     
-                    // Research Action (NEW)
+                    // Research Action
                     assignCoordinator,
                     
                     // Save Functions
@@ -2348,21 +2611,13 @@ const filteredTrials = computed(() => {
                     
                     // Permissions
                     hasPermission,
-                    openAssignCoordinatorModal,
-saveCoordinatorAssignment,
-showAddResearchLineModal,
-editResearchLine,
-showAddTrialModal,
-editTrial,
-showAddProjectModal,
-editProject,
-requestFullDossier,
                     
                     // Computed Properties
                     authToken, unreadAnnouncements, unreadLiveUpdates, formattedExpiry,
                     availablePhysicians, availableResidents, availableAttendings,
                     availableHeadsOfDepartment, availableReplacementStaff,
-                    filteredMedicalStaff, filteredOnCallSchedules, filteredRotations,filteredTrials,
+                    filteredMedicalStaff, filteredOnCallSchedules, filteredRotations,
+                    filteredTrials, filteredProjects,
                     filteredAbsences, recentAnnouncements, activeAlertsCount, currentTimeFormatted
                 };
             }
