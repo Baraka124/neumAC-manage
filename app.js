@@ -2143,20 +2143,33 @@ const saveRotation = async () => {
         return; 
     }
 
-    // ============ DATE PARSING - STABLE VERSION ============
+    // ============ DATE PARSING - HANDLES DD/MM/YYYY ============
     let startDate, endDate;
     
     try {
-        // Helper function to parse date safely
-        const parseDateSafely = (dateStr, isEndDate = false) => {
-            // If it's already YYYY-MM-DD format
+        // Helper function to parse DD/MM/YYYY or YYYY-MM-DD
+        const parseDateInput = (dateStr, isEndDate = false) => {
+            // Check if it's DD/MM/YYYY format (e.g., "10/03/2026")
+            if (typeof dateStr === 'string' && dateStr.includes('/')) {
+                const parts = dateStr.split('/');
+                if (parts.length === 3) {
+                    const [day, month, year] = parts;
+                    // Create date in YYYY-MM-DD format for JavaScript
+                    const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    return isEndDate 
+                        ? new Date(isoDate + 'T23:59:59')
+                        : new Date(isoDate + 'T00:00:00');
+                }
+            }
+            
+            // Handle YYYY-MM-DD format
             if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
                 return isEndDate 
                     ? new Date(dateStr + 'T23:59:59')
                     : new Date(dateStr + 'T00:00:00');
             }
             
-            // Try to parse any date string
+            // Fallback to standard Date parsing
             const date = new Date(dateStr);
             if (isNaN(date.getTime())) {
                 throw new Error('Invalid date');
@@ -2164,15 +2177,23 @@ const saveRotation = async () => {
             return date;
         };
 
-        startDate = parseDateSafely(startDateStr, false);
-        endDate = parseDateSafely(endDateStr, true);
+        startDate = parseDateInput(startDateStr, false);
+        endDate = parseDateInput(endDateStr, true);
 
         // Format dates to YYYY-MM-DD for the backend
         rotationModal.form.start_date = startDate.toISOString().split('T')[0];
         rotationModal.form.end_date = endDate.toISOString().split('T')[0];
 
+        console.log('📅 Parsed dates:', {
+            original: { start: startDateStr, end: endDateStr },
+            parsed: { 
+                start: rotationModal.form.start_date, 
+                end: rotationModal.form.end_date 
+            }
+        });
+
     } catch (error) {
-        showToast('Error', 'Invalid date format. Please use YYYY-MM-DD', 'error');
+        showToast('Error', 'Invalid date format. Please use DD/MM/YYYY or YYYY-MM-DD', 'error');
         return;
     }
 
@@ -2191,10 +2212,18 @@ const saveRotation = async () => {
     // ============ OVERLAP CHECK ============
     const parseDate = (dateStr) => {
         if (!dateStr) return new Date(NaN);
-        // Handle YYYY-MM-DD format
+        
+        // Handle DD/MM/YYYY for overlap check
+        if (typeof dateStr === 'string' && dateStr.includes('/')) {
+            const [day, month, year] = dateStr.split('/');
+            return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00`);
+        }
+        
+        // Handle YYYY-MM-DD
         if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
             return new Date(dateStr + 'T00:00:00');
         }
+        
         return new Date(dateStr);
     };
 
@@ -2229,19 +2258,19 @@ const saveRotation = async () => {
     saving.value = true;
     
     try {
-        // Prepare data for API - ensure dates are in YYYY-MM-DD format
+        // Prepare data for API - using YYYY-MM-DD format
         const rotationData = {
             rotation_id: rotationModal.form.rotation_id || EnhancedUtils.generateId('ROT'),
             resident_id: rotationModal.form.resident_id,
             training_unit_id: rotationModal.form.training_unit_id,
             supervising_attending_id: rotationModal.form.supervising_attending_id || null,
-            start_date: rotationModal.form.start_date, // Already in YYYY-MM-DD
-            end_date: rotationModal.form.end_date,     // Already in YYYY-MM-DD
+            start_date: rotationModal.form.start_date, // Now in YYYY-MM-DD
+            end_date: rotationModal.form.end_date,     // Now in YYYY-MM-DD
             rotation_category: rotationModal.form.rotation_category || 'clinical_rotation',
             rotation_status: (rotationModal.form.rotation_status || 'scheduled').toLowerCase()
         };
 
-        console.log('📤 Sending rotation data:', rotationData); // For debugging
+        console.log('📤 Sending rotation data to backend:', rotationData);
 
         if (rotationModal.mode === 'add') {
             const result = await API.createRotation(rotationData);
@@ -2266,7 +2295,7 @@ const saveRotation = async () => {
         if (msg.includes('overlapping')) {
             msg = 'Rotation dates conflict with existing schedule.';
         } else if (msg.includes('date')) {
-            msg = 'Invalid date format. Please use YYYY-MM-DD.';
+            msg = 'Invalid date format. Please use DD/MM/YYYY.';
         } else if (msg.includes('resident_id')) {
             msg = 'Invalid resident selected. Please try again.';
         } else if (msg.includes('training_unit_id')) {
