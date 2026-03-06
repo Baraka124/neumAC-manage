@@ -1,15 +1,16 @@
+
 document.addEventListener('DOMContentLoaded', function() {
 
     try {
         if (typeof Vue === 'undefined') {
             document.body.innerHTML = `
                 <div style="padding: 40px; text-align: center; margin-top: 100px; color: #333;">
-                    <h2 style="color: #dc3545;">\u26a0\ufe0f Critical Error</h2>
+                    <h2 style="color: #dc3545;">⚠️ Critical Error</h2>
                     <p>Vue.js failed to load. Please refresh the page.</p>
                     <button onclick="window.location.reload()"
                             style="padding: 12px 24px; background: #007bff; color: white;
                                    border: none; border-radius: 6px; cursor: pointer; margin-top: 20px;">
-                        \ud83d\udd04 Refresh Page
+                        🔄 Refresh Page
                     </button>
                 </div>
             `;
@@ -20,25 +21,52 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // ============ 1. CONFIGURATION ============
         const CONFIG = {
-    API_BASE_URL: window.location.hostname.includes('localhost') 
-        ? 'http://localhost:3000' 
-        : 'https://neumac-manage-back-end-production.up.railway.app',  // This should be correct
-    TOKEN_KEY: 'neumocare_token',
-    USER_KEY: 'neumocare_user',
-    APP_VERSION: '8.2',
-    DEBUG: true
-};
+            API_BASE_URL: window.location.hostname.includes('localhost')
+                ? 'http://localhost:3000'
+                : 'https://neumac-manage-back-end-production.up.railway.app',
+            TOKEN_KEY: 'neumocare_token',
+            USER_KEY: 'neumocare_user',
+            APP_VERSION: '9.0',
+            DEBUG: true
+        };
 
+        // ============ 2. UTILITIES ============
         class EnhancedUtils {
             static formatDate(dateString) {
                 if (!dateString) return 'N/A';
                 try {
                     const date = new Date(dateString);
                     if (isNaN(date.getTime())) return dateString;
-                    return date.toLocaleDateString('en-US', {
-                        month: 'short', day: 'numeric', year: 'numeric'
+                    return date.toLocaleDateString('en-GB', {
+                        weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
                     });
                 } catch { return dateString; }
+            }
+
+            static formatDateShort(date) {
+                if (!date) return '';
+                try {
+                    const d = typeof date === 'string' ? new Date(date) : date;
+                    return d.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' });
+                } catch { return ''; }
+            }
+
+            static formatDatePlusDays(dateStr, days) {
+                if (!dateStr) return 'NA';
+                try {
+                    const d = new Date(dateStr);
+                    if (isNaN(d.getTime())) return 'NA';
+                    d.setDate(d.getDate() + days);
+                    return d.toLocaleDateString('en-GB', {
+                        weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
+                    });
+                } catch { return 'NA'; }
+            }
+
+            static getTomorrow() {
+                const d = new Date();
+                d.setDate(d.getDate() + 1);
+                return d;
             }
 
             static formatDateTime(dateString) {
@@ -54,11 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             static getInitials(name) {
                 if (!name || typeof name !== 'string') return '??';
-                return name.split(' ')
-                    .map(word => word[0])
-                    .join('')
-                    .toUpperCase()
-                    .substring(0, 2);
+                return name.split(' ').map(word => word[0]).join('').toUpperCase().substring(0, 2);
             }
 
             static ensureArray(data) {
@@ -111,20 +135,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
+        // ============ 3. API SERVICE ============
         class ApiService {
             constructor() {
                 this.token = localStorage.getItem(CONFIG.TOKEN_KEY) || null;
             }
 
             getHeaders() {
-                const headers = {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                };
+                const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
                 const token = localStorage.getItem(CONFIG.TOKEN_KEY);
-                if (token && token.trim()) {
-                    headers['Authorization'] = `Bearer ${token}`;
-                }
+                if (token && token.trim()) headers['Authorization'] = `Bearer ${token}`;
                 return headers;
             }
 
@@ -134,9 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const config = {
                         method: options.method || 'GET',
                         headers: this.getHeaders(),
-                        mode: 'cors',
-                        cache: 'no-cache',
-                        credentials: 'include'
+                        mode: 'cors', cache: 'no-cache', credentials: 'include'
                     };
                     if (options.body && typeof options.body === 'object') {
                         config.body = JSON.stringify(options.body);
@@ -156,13 +174,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         throw new Error(errorText);
                     }
                     const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        return await response.json();
-                    }
+                    if (contentType && contentType.includes('application/json')) return await response.json();
                     return await response.text();
                 } catch (error) {
                     if (error.message.includes('CORS') || error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                        throw new Error(`Cannot connect to server. Please check your network connection.`);
+                        throw new Error('Cannot connect to server. Please check your network connection.');
                     }
                     throw error;
                 }
@@ -193,8 +209,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 try { return EnhancedUtils.ensureArray(await this.request('/api/medical-staff')); }
                 catch { return []; }
             }
-            async createMedicalStaff(staffData) { return await this.request('/api/medical-staff', { method: 'POST', body: staffData }); }
-            async updateMedicalStaff(id, staffData) { return await this.request(`/api/medical-staff/${id}`, { method: 'PUT', body: staffData }); }
+            async createMedicalStaff(data) { return await this.request('/api/medical-staff', { method: 'POST', body: data }); }
+            async updateMedicalStaff(id, data) { return await this.request(`/api/medical-staff/${id}`, { method: 'PUT', body: data }); }
             async deleteMedicalStaff(id) { return await this.request(`/api/medical-staff/${id}`, { method: 'DELETE' }); }
 
             async getDepartments() {
@@ -234,11 +250,9 @@ document.addEventListener('DOMContentLoaded', function() {
             async getAbsences() {
                 try {
                     const response = await this.request('/api/absence-records');
-                    // Backend returns { success: true, data: [...], pagination: {} }
                     if (response && response.success && Array.isArray(response.data)) return response.data;
                     return EnhancedUtils.ensureArray(response);
-                }
-                catch { return []; }
+                } catch { return []; }
             }
             async createAbsence(data) { return await this.request('/api/absence-records', { method: 'POST', body: data }); }
             async updateAbsence(id, data) { return await this.request(`/api/absence-records/${id}`, { method: 'PUT', body: data }); }
@@ -281,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const app = createApp({
             setup() {
 
-                // \u2500\u2500 State \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── State ──────────────────────────────────────────────────────────
                 const currentUser = ref(null);
                 const loginForm = reactive({ email: '', password: '', remember_me: false });
                 const loginLoading = ref(false);
@@ -331,15 +345,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 const toasts = ref([]);
                 const systemAlerts = ref([]);
 
-                // \u2500\u2500 Filters \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Filters ────────────────────────────────────────────────────────
                 const staffFilters = reactive({ search: '', staffType: '', department: '', status: '' });
                 const onCallFilters = reactive({ date: '', shiftType: '', physician: '', coverageArea: '' });
                 const rotationFilters = reactive({ resident: '', status: '', trainingUnit: '', supervisor: '' });
                 const absenceFilters = reactive({ staff: '', status: '', reason: '', startDate: '' });
 
-                // \u2500\u2500 Modals \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Modals ─────────────────────────────────────────────────────────
                 const staffProfileModal = reactive({ show: false, staff: null, activeTab: 'assignments' });
-
                 const unitResidentsModal = reactive({ show: false, unit: null, rotations: [] });
 
                 const medicalStaffModal = reactive({
@@ -347,7 +360,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     form: {
                         full_name: '', staff_type: 'medical_resident', staff_id: '',
                         employment_status: 'active', professional_email: '', department_id: '',
-                        academic_degree: '', specialization: '', resident_year: '',
+                        academic_degree: '', specialization: '', training_year: '',
                         clinical_certificate: '', certificate_status: 'current'
                     }
                 });
@@ -419,7 +432,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     cancelButtonText: 'Cancel', onConfirm: null, details: ''
                 });
 
-                // \u2500\u2500 Permission Matrix \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Permission Matrix ──────────────────────────────────────────────
                 const PERMISSION_MATRIX = {
                     system_admin: {
                         medical_staff: ['create', 'read', 'update', 'delete'],
@@ -455,7 +468,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 };
 
-                // \u2500\u2500 Toast System \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Toast System ───────────────────────────────────────────────────
                 const showToast = (title, message, type = 'info', duration = 5000) => {
                     const icons = {
                         info: 'fas fa-info-circle', success: 'fas fa-check-circle',
@@ -471,7 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (index > -1) toasts.value.splice(index, 1);
                 };
 
-                // \u2500\u2500 Confirmation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Confirmation ───────────────────────────────────────────────────
                 const showConfirmation = (options) => { Object.assign(confirmationModal, { show: true, ...options }); };
 
                 const confirmAction = async () => {
@@ -484,7 +497,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const cancelConfirmation = () => { confirmationModal.show = false; };
 
-                // \u2500\u2500 Formatting \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Date / Time Helpers (new — used in HTML template) ──────────────
+                const formatDate = (dateString) => EnhancedUtils.formatDate(dateString);
+                const formatDateShort = (date) => EnhancedUtils.formatDateShort(date);
+                const formatDatePlusDays = (dateStr, days) => EnhancedUtils.formatDatePlusDays(dateStr, days);
+                const getTomorrow = () => EnhancedUtils.getTomorrow();
+                const formatTime = (dateString) => EnhancedUtils.formatTime(dateString);
+                const formatRelativeTime = (dateString) => EnhancedUtils.formatRelativeTime(dateString);
+                const formatTimeAgo = (dateString) => EnhancedUtils.formatRelativeTime(dateString);
+                const getInitials = (name) => EnhancedUtils.getInitials(name);
+
+                // ── Formatting ─────────────────────────────────────────────────────
                 const formatStaffType = (type) => {
                     const map = {
                         'medical_resident': 'Medical Resident', 'attending_physician': 'Attending Physician',
@@ -553,7 +576,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         'resident_rotations': 'Track and manage resident training rotations',
                         'training_units': 'Clinical training units and resident assignments',
                         'staff_absence': 'Track staff absences and coverage assignments',
-                        'department_management': 'Organizational structure and clinical units',
+                        'department_management': 'Organisational structure and clinical units',
                         'communications': 'Department announcements and capacity updates'
                     };
                     return map[currentView.value] || 'Hospital Management System';
@@ -573,28 +596,36 @@ document.addEventListener('DOMContentLoaded', function() {
                     return map[currentView.value] || 'Search across system...';
                 };
 
-                // \u2500\u2500 Data Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                const formatAudience = (audience) => {
+                    const audiences = {
+                        'all_staff': 'All Staff', 'medical_staff': 'Medical Staff',
+                        'residents': 'Residents', 'attendings': 'Attending Physicians'
+                    };
+                    return audiences[audience] || audience;
+                };
+
+                // ── Data Helpers ───────────────────────────────────────────────────
                 const getDepartmentName = (departmentId) => {
-                    if (!departmentId) return 'Not assigned';
+                    if (!departmentId) return null;
                     const dept = departments.value.find(d => d.id === departmentId);
-                    return dept ? dept.name : 'Unknown Department';
+                    return dept ? dept.name : null;
                 };
 
                 const getStaffName = (staffId) => {
-                    if (!staffId) return 'Not assigned';
+                    if (!staffId) return null;
                     const staff = medicalStaff.value.find(s => s.id === staffId);
-                    return staff ? staff.full_name : 'Unknown Staff';
+                    return staff ? staff.full_name : null;
                 };
 
                 const getTrainingUnitName = (unitId) => {
-                    if (!unitId) return 'Not assigned';
+                    if (!unitId) return null;
                     const unit = trainingUnits.value.find(u => u.id === unitId);
-                    return unit ? unit.unit_name : 'Unknown Unit';
+                    return unit ? unit.unit_name : null;
                 };
 
-                const getSupervisorName = (supervisorId) => getStaffName(supervisorId);
-                const getPhysicianName = (physicianId) => getStaffName(physicianId);
-                const getResidentName = (residentId) => getStaffName(residentId);
+                const getSupervisorName = (id) => getStaffName(id);
+                const getPhysicianName = (id) => getStaffName(id);
+                const getResidentName = (id) => getStaffName(id);
 
                 const getDepartmentUnits = (departmentId) =>
                     trainingUnits.value.filter(unit => unit.department_id === departmentId);
@@ -603,66 +634,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     medicalStaff.value.filter(staff => staff.department_id === departmentId).length;
 
                 const getCurrentRotationForStaff = (staffId) =>
-                    rotations.value.find(r => r.resident_id === staffId && r.rotation_status === 'active') || null;
+                    rotations.value.find(r =>
+                        r.resident_id === staffId &&
+                        r.rotation_status === 'active'
+                    ) || null;
 
                 const calculateAbsenceDuration = (startDate, endDate) =>
                     EnhancedUtils.calculateDateDifference(startDate, endDate);
 
-                // \u2500\u2500 Unit Residents Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-                const getUnitActiveRotationCount = (unitId) => {
-                    return rotations.value.filter(r =>
-                        r.training_unit_id === unitId &&
-                        (r.rotation_status === 'active' || r.rotation_status === 'scheduled')
-                    ).length;
-                };
-// Add these helper functions in your app.js (around line 600-700, with other helper functions)
-
-// Check if staff has any professional credentials to display
-const hasProfessionalCredentials = (staff) => {
-    return staff?.academic_degree || 
-           staff?.specialization || 
-           staff?.training_year || 
-           staff?.clinical_certificate || 
-           staff?.medical_license;
-};
-
-// Get upcoming on-call shifts for a staff member
-const getUpcomingOnCall = (staffId) => {
-    if (!staffId) return [];
-    const today = new Date().toISOString().split('T')[0];
-    return onCallSchedule.value.filter(s => 
-        (s.primary_physician_id === staffId || s.backup_physician_id === staffId) &&
-        s.duty_date > today
-    ).sort((a, b) => a.duty_date.localeCompare(b.duty_date));
-};
-
-// Get upcoming leave for a staff member
-// Get upcoming leave for a staff member
-const getUpcomingLeave = (staffId) => {
-    if (!staffId) return [];
-    const today = new Date().toISOString().split('T')[0];
-    return absences.value.filter(a =>   // ← CHANGED: absenceRecords → absences
-        a.staff_member_id === staffId && 
-        a.start_date > today &&
-        a.current_status !== 'cancelled'
-    ).sort((a, b) => a.start_date.localeCompare(b.start_date));
-};
-
-// Get rotation history for a resident
-const getRotationHistory = (staffId) => {
-    if (!staffId) return [];
-    return rotations.value.filter(r => 
-        r.resident_id === staffId && 
-        r.rotation_status !== 'active'
-    ).sort((a, b) => new Date(b.end_date) - new Date(a.end_date));
-};
+                // ── Days Helpers ───────────────────────────────────────────────────
                 const getDaysRemaining = (endDate) => {
                     if (!endDate) return 0;
                     const end = new Date(endDate);
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
-                    const diff = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
-                    return Math.max(0, diff);
+                    return Math.max(0, Math.ceil((end - today) / (1000 * 60 * 60 * 24)));
                 };
 
                 const getDaysUntilStart = (startDate) => {
@@ -670,11 +656,188 @@ const getRotationHistory = (staffId) => {
                     const start = new Date(startDate);
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
-                    const diff = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
-                    return Math.max(0, diff);
+                    return Math.max(0, Math.ceil((start - today) / (1000 * 60 * 60 * 24)));
                 };
 
-                // \u2500\u2500 NEUMAC UI Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Unit Residents Helpers ─────────────────────────────────────────
+                const getUnitActiveRotationCount = (unitId) =>
+                    rotations.value.filter(r =>
+                        r.training_unit_id === unitId &&
+                        (r.rotation_status === 'active' || r.rotation_status === 'scheduled')
+                    ).length;
+
+                // ── Staff Profile — Dynamic Activity Helpers ───────────────────────
+
+                // Returns true if staff has any credential data to display
+                const hasProfessionalCredentials = (staff) =>
+                    !!(staff?.academic_degree || staff?.specialization || staff?.training_year ||
+                       staff?.clinical_certificate || staff?.medical_license);
+
+                // On-call shifts for a staff member — upcoming only
+                const getUpcomingOnCall = (staffId) => {
+                    if (!staffId) return [];
+                    const today = new Date().toISOString().split('T')[0];
+                    return onCallSchedule.value.filter(s =>
+                        (s.primary_physician_id === staffId || s.backup_physician_id === staffId) &&
+                        s.duty_date >= today
+                    ).sort((a, b) => a.duty_date.localeCompare(b.duty_date));
+                };
+
+                // Planned leave for a staff member — upcoming only
+                const getUpcomingLeave = (staffId) => {
+                    if (!staffId) return [];
+                    const today = new Date().toISOString().split('T')[0];
+                    return absences.value.filter(a =>
+                        a.staff_member_id === staffId &&
+                        a.start_date >= today &&
+                        a.current_status !== 'cancelled'
+                    ).sort((a, b) => a.start_date.localeCompare(b.start_date));
+                };
+
+                // Past/completed rotations for a resident
+                const getRotationHistory = (staffId) => {
+                    if (!staffId) return [];
+                    return rotations.value.filter(r =>
+                        r.resident_id === staffId &&
+                        r.rotation_status !== 'active' &&
+                        r.rotation_status !== 'scheduled'
+                    ).sort((a, b) => new Date(b.end_date || b.rotation_end_date) - new Date(a.end_date || a.rotation_end_date));
+                };
+
+                // How many days left on the active rotation for a resident
+                const getRotationDaysLeft = (staffId) => {
+                    const rotation = getCurrentRotationForStaff(staffId);
+                    if (!rotation) return 0;
+                    const endDate = rotation.end_date || rotation.rotation_end_date;
+                    return getDaysRemaining(endDate);
+                };
+
+                // Is this staff member on call today?
+                const isOnCallToday = (staffId) => {
+                    const today = new Date().toISOString().split('T')[0];
+                    return onCallSchedule.value.some(s =>
+                        (s.primary_physician_id === staffId || s.backup_physician_id === staffId) &&
+                        s.duty_date === today
+                    );
+                };
+
+                const getOnCallShiftTime = (staffId) => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const schedule = onCallSchedule.value.find(s =>
+                        (s.primary_physician_id === staffId || s.backup_physician_id === staffId) &&
+                        s.duty_date === today);
+                    return schedule ? `${schedule.start_time} - ${schedule.end_time}` : null;
+                };
+
+                const getOnCallCoverage = (staffId) => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const schedule = onCallSchedule.value.find(s =>
+                        (s.primary_physician_id === staffId || s.backup_physician_id === staffId) &&
+                        s.duty_date === today);
+                    return schedule ? schedule.coverage_area : null;
+                };
+
+                const getCurrentUnit = (staffId) => {
+                    const rotation = getCurrentRotationForStaff(staffId);
+                    return rotation ? getTrainingUnitName(rotation.training_unit_id) : null;
+                };
+
+                const getCurrentActivityStatus = (staffId) => {
+                    if (isOnCallToday(staffId)) return 'oncall';
+                    return 'available';
+                };
+
+                const getRotationSupervisor = (staffId) => {
+                    const rotation = getCurrentRotationForStaff(staffId);
+                    return rotation?.supervising_attending_id
+                        ? getStaffName(rotation.supervising_attending_id)
+                        : null;
+                };
+
+                // ── Live Status Helpers ────────────────────────────────────────────
+                const getStatusLocation = (status) => {
+                    if (!status || !status.status_text) return 'Pulmonology Department';
+                    if (status.location) return status.location;
+                    if (status.department) return status.department;
+                    if (status.coverage_area) return status.coverage_area;
+                    const text = status.status_text.toLowerCase();
+                    if (text.includes('icu') || text.includes('intensive care')) return 'Respiratory ICU';
+                    if (text.includes('respiratory') || text.includes('pulmonology') || text.includes('lung')) return 'Pulmonology Department';
+                    if (text.includes('bronchoscopy') || text.includes('pft')) return 'Pulmonary Procedure Unit';
+                    if (text.includes('sleep') || text.includes('cpap') || text.includes('bipap')) return 'Sleep Medicine Lab';
+                    if (text.includes('ventilator') || text.includes('mech vent')) return 'Respiratory Therapy Unit';
+                    if (text.includes('asthma') || text.includes('copd')) return 'Chronic Airways Clinic';
+                    if (text.includes('tuberculosis') || text.includes('tb')) return 'TB/Respiratory Infections Unit';
+                    if (text.includes('er') || text.includes('emergency')) return 'Emergency Department';
+                    if (text.includes('ward') || text.includes('floor')) return 'General Ward';
+                    if (text.includes('surgery') || text.includes('thoracic')) return 'Thoracic Surgery';
+                    if (text.includes('consult') || text.includes('clinic')) return 'Consultation Clinic';
+                    if (text.includes('meeting') || text.includes('conference')) return 'Conference Room';
+                    return 'Pulmonology Department';
+                };
+
+                // recentStatuses — referenced in the live stats sidebar template
+                const recentStatuses = computed(() => clinicalStatusHistory.value);
+
+                const getRecentStatuses = () => clinicalStatusHistory.value;
+
+                const getStatusBadgeClass = (status) => {
+                    if (!status) return 'badge-gray';
+                    return isStatusExpired(status.expires_at) ? 'badge-warning' : 'badge-success';
+                };
+
+                const isStatusExpired = (expiresAt) => {
+                    if (!expiresAt) return true;
+                    try { return new Date() > new Date(expiresAt); }
+                    catch { return true; }
+                };
+
+                const calculateTimeRemaining = (expiryTime) => {
+                    if (!expiryTime) return 'N/A';
+                    try {
+                        const diff = new Date(expiryTime) - new Date();
+                        if (diff <= 0) return 'Expired';
+                        const hours = Math.floor(diff / (1000 * 60 * 60));
+                        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+                    } catch { return 'N/A'; }
+                };
+
+                const refreshStatus = () => {
+                    loadClinicalStatus();
+                    loadSystemStats();
+                    showToast('Status Refreshed', 'Live status updated', 'info');
+                };
+
+                const setQuickStatus = (status) => {
+                    quickStatus.value = status;
+                    switch (status) {
+                        case 'normal':
+                            communicationsModal.form.dailySummary = 'All systems normal. No critical issues.';
+                            Object.assign(communicationsModal.form.alerts, { erBusy: false, icuFull: false, wardFull: false, staffShortage: false });
+                            break;
+                        case 'busy':
+                            communicationsModal.form.dailySummary = 'ICU at high capacity. Please triage admissions.';
+                            communicationsModal.form.alerts.icuFull = true;
+                            break;
+                        case 'shortage':
+                            communicationsModal.form.dailySummary = 'Staff shortage affecting multiple areas.';
+                            communicationsModal.form.alerts.staffShortage = true;
+                            break;
+                        case 'equipment':
+                            communicationsModal.form.dailySummary = 'Equipment issues reported. Using backup systems.';
+                            break;
+                    }
+                };
+
+                const showCreateStatusModal = () => {
+                    liveStatsEditMode.value = true;
+                    newStatusText.value = '';
+                    selectedAuthorId.value = '';
+                    expiryHours.value = 8;
+                };
+
+                // ── UI Helpers ─────────────────────────────────────────────────────
                 const getShiftStatusClass = (shift) => {
                     if (!shift || !shift.raw) return 'neumac-status-oncall';
                     const now = new Date();
@@ -682,10 +845,10 @@ const getRotationHistory = (staffId) => {
                     if (shift.raw.duty_date === today) {
                         try {
                             if (shift.startTime && shift.endTime) {
-                                const currentTime = now.getHours() * 100 + now.getMinutes();
+                                const ct = now.getHours() * 100 + now.getMinutes();
                                 const start = parseInt(shift.startTime.replace(':', ''));
                                 const end = parseInt(shift.endTime.replace(':', ''));
-                                if (currentTime >= start && currentTime <= end) return 'neumac-status-critical';
+                                if (ct >= start && ct <= end) return 'neumac-status-critical';
                             }
                         } catch {}
                     }
@@ -698,11 +861,10 @@ const getRotationHistory = (staffId) => {
                     const today = now.toISOString().split('T')[0];
                     if (shift.raw.duty_date !== today) return false;
                     try {
-                        if (!shift.startTime || !shift.endTime) return false;
-                        const currentTime = now.getHours() * 100 + now.getMinutes();
+                        const ct = now.getHours() * 100 + now.getMinutes();
                         const start = parseInt(shift.startTime.replace(':', ''));
                         const end = parseInt(shift.endTime.replace(':', ''));
-                        return currentTime >= start && currentTime <= end;
+                        return ct >= start && ct <= end;
                     } catch { return false; }
                 };
 
@@ -759,157 +921,6 @@ const getRotationHistory = (staffId) => {
                     return 'fa-calendar-check';
                 };
 
-                // \u2500\u2500 Profile Functions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-                const getCurrentUnit = (staffId) => {
-                    const rotation = rotations.value.find(r =>
-                        r.resident_id === staffId && r.rotation_status === 'active');
-                    return rotation ? getTrainingUnitName(rotation.training_unit_id) : 'Not assigned';
-                };
-
-                const getCurrentWard = (staffId) => {
-                    const rotation = rotations.value.find(r =>
-                        r.resident_id === staffId && r.rotation_status === 'active');
-                    if (rotation && rotation.training_unit_id) {
-                        const unit = trainingUnits.value.find(u => u.id === rotation.training_unit_id);
-                        if (unit) return unit.unit_name;
-                    }
-                    return 'Not assigned';
-                };
-
-                const getCurrentActivityStatus = (staffId) => {
-                    const today = new Date().toISOString().split('T')[0];
-                    const onCall = onCallSchedule.value.find(s =>
-                        (s.primary_physician_id === staffId || s.backup_physician_id === staffId) &&
-                        s.duty_date === today);
-                    if (onCall) return 'oncall';
-                    return 'available';
-                };
-
-                const isOnCallToday = (staffId) => {
-                    const today = new Date().toISOString().split('T')[0];
-                    return onCallSchedule.value.some(s =>
-                        (s.primary_physician_id === staffId || s.backup_physician_id === staffId) &&
-                        s.duty_date === today);
-                };
-
-                const getOnCallShiftTime = (staffId) => {
-                    const today = new Date().toISOString().split('T')[0];
-                    const schedule = onCallSchedule.value.find(s =>
-                        (s.primary_physician_id === staffId || s.backup_physician_id === staffId) &&
-                        s.duty_date === today);
-                    return schedule ? `${schedule.start_time} - ${schedule.end_time}` : 'N/A';
-                };
-
-                const getOnCallCoverage = (staffId) => {
-                    const today = new Date().toISOString().split('T')[0];
-                    const schedule = onCallSchedule.value.find(s =>
-                        (s.primary_physician_id === staffId || s.backup_physician_id === staffId) &&
-                        s.duty_date === today);
-                    return schedule ? schedule.coverage_area : 'N/A';
-                };
-
-                const getRotationSupervisor = (staffId) => {
-                    const rotation = rotations.value.find(r =>
-                        r.resident_id === staffId && r.rotation_status === 'active');
-                    return rotation?.supervising_attending_id
-                        ? getStaffName(rotation.supervising_attending_id)
-                        : 'Not assigned';
-                };
-
-                const getRotationDaysLeft = (staffId) => {
-                    const rotation = rotations.value.find(r =>
-                        r.resident_id === staffId && r.rotation_status === 'active');
-                    if (rotation?.rotation_end_date) {
-                        return getDaysRemaining(rotation.rotation_end_date);
-                    }
-                    return 0;
-                };
-
-                // \u2500\u2500 Status Location Parser \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-                const getStatusLocation = (status) => {
-                    if (!status || !status.status_text) return 'Pulmonology Department';
-                    if (status.location) return status.location;
-                    if (status.department) return status.department;
-                    if (status.coverage_area) return status.coverage_area;
-                    const text = status.status_text.toLowerCase();
-                    if (text.includes('icu') || text.includes('intensive care')) return 'Respiratory ICU';
-                    if (text.includes('respiratory') || text.includes('pulmonology') || text.includes('lung')) return 'Pulmonology Department';
-                    if (text.includes('bronchoscopy') || text.includes('pft') || text.includes('pulmonary function')) return 'Pulmonary Procedure Unit';
-                    if (text.includes('sleep') || text.includes('cpap') || text.includes('bipap')) return 'Sleep Medicine Lab';
-                    if (text.includes('ventilator') || text.includes('mech vent') || text.includes('respiratory therapy')) return 'Respiratory Therapy Unit';
-                    if (text.includes('oxygen') || text.includes('o2') || text.includes('gas exchange')) return 'Oxygen Therapy Unit';
-                    if (text.includes('interstitial') || text.includes('ild') || text.includes('pulmonary fibrosis')) return 'Interstitial Lung Disease Clinic';
-                    if (text.includes('asthma') || text.includes('copd') || text.includes('chronic obstructive')) return 'Chronic Airways Clinic';
-                    if (text.includes('tuberculosis') || text.includes('tb') || text.includes('mycobacterium')) return 'TB/Respiratory Infections Unit';
-                    if (text.includes('er') || text.includes('emergency') || text.includes('triage')) return 'Emergency Department';
-                    if (text.includes('ward') || text.includes('floor') || text.includes('bed')) return 'General Ward';
-                    if (text.includes('surgery') || text.includes('operating room') || text.includes('thoracic')) return 'Thoracic Surgery';
-                    if (text.includes('consult') || text.includes('interconsult') || text.includes('clinic')) return 'Consultation Clinic';
-                    if (text.includes('cardiac') || text.includes('heart') || text.includes('echocardiogram')) return 'Cardiology';
-                    if (text.includes('radiology') || text.includes('x-ray') || text.includes('ct') || text.includes('mri')) return 'Radiology';
-                    if (text.includes('oncology') || text.includes('cancer') || text.includes('chemo')) return 'Oncology';
-                    if (text.includes('transplant') || text.includes('lung transplant')) return 'Transplant Unit';
-                    if (text.includes('rehab') || text.includes('rehabilitation')) return 'Pulmonary Rehabilitation';
-                    if (text.includes('meeting') || text.includes('conference') || text.includes('round')) return 'Conference Room';
-                    if (text.includes('call') || text.includes('on-call') || text.includes('schedule')) return 'On-call Office';
-                    return 'Pulmonology Department';
-                };
-
-                const getRecentStatuses = () => clinicalStatusHistory.value;
-                const formatTimeAgo = (dateString) => EnhancedUtils.formatRelativeTime(dateString);
-
-                // \u2500\u2500 Live Status \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-                const getStatusBadgeClass = (status) => {
-                    if (!status) return 'badge-gray';
-                    return isStatusExpired(status.expires_at) ? 'badge-warning' : 'badge-success';
-                };
-
-                const calculateTimeRemaining = (expiryTime) => {
-                    if (!expiryTime) return 'N/A';
-                    try {
-                        const diff = new Date(expiryTime) - new Date();
-                        if (diff <= 0) return 'Expired';
-                        const hours = Math.floor(diff / (1000 * 60 * 60));
-                        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                        return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-                    } catch { return 'N/A'; }
-                };
-
-                const refreshStatus = () => {
-                    loadClinicalStatus();
-                    loadSystemStats();
-                    showToast('Status Refreshed', 'Live status updated', 'info');
-                };
-
-                const setQuickStatus = (status) => {
-                    quickStatus.value = status;
-                    switch (status) {
-                        case 'normal':
-                            communicationsModal.form.dailySummary = 'All systems normal. No critical issues.';
-                            Object.assign(communicationsModal.form.alerts, { erBusy: false, icuFull: false, wardFull: false, staffShortage: false });
-                            break;
-                        case 'busy':
-                            communicationsModal.form.dailySummary = 'ICU at high capacity. Please triage admissions.';
-                            communicationsModal.form.alerts.icuFull = true;
-                            break;
-                        case 'shortage':
-                            communicationsModal.form.dailySummary = 'Staff shortage affecting multiple areas.';
-                            communicationsModal.form.alerts.staffShortage = true;
-                            break;
-                        case 'equipment':
-                            communicationsModal.form.dailySummary = 'Equipment issues reported. Using backup systems.';
-                            break;
-                    }
-                };
-
-                const formatAudience = (audience) => {
-                    const audiences = {
-                        'all_staff': 'All Staff', 'medical_staff': 'Medical Staff',
-                        'residents': 'Residents', 'attendings': 'Attending Physicians'
-                    };
-                    return audiences[audience] || audience;
-                };
-
                 const getPreviewCardClass = () => {
                     const t = absenceModal.form.absence_type;
                     if (t === 'planned') return 'planned';
@@ -930,35 +941,19 @@ const getRotationHistory = (staffId) => {
                 };
 
                 const getPreviewReasonText = () => formatAbsenceReason(absenceModal.form.absence_reason);
-
                 const getPreviewStatusClass = () => {
                     const t = absenceModal.form.absence_type;
                     if (t === 'planned') return 'status-planned';
                     if (t === 'unplanned') return 'status-unplanned';
                     return 'status-active';
                 };
-
                 const getPreviewStatusText = () => {
                     const t = absenceModal.form.absence_type;
                     return t === 'planned' ? 'Planned' : t === 'unplanned' ? 'Unplanned' : 'Active';
                 };
-
                 const updatePreview = () => {};
 
-                const isStatusExpired = (expiresAt) => {
-                    if (!expiresAt) return true;
-                    try { return new Date() > new Date(expiresAt); }
-                    catch { return true; }
-                };
-
-                const showCreateStatusModal = () => {
-                    liveStatsEditMode.value = true;
-                    newStatusText.value = '';
-                    selectedAuthorId.value = '';
-                    expiryHours.value = 8;
-                };
-
-                // \u2500\u2500 Clinical Status Loaders \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Clinical Status Loaders ────────────────────────────────────────
                 const loadClinicalStatus = async () => {
                     isLoadingStatus.value = true;
                     try {
@@ -1031,7 +1026,7 @@ const getRotationHistory = (staffId) => {
                     } finally { isLoadingStatus.value = false; }
                 };
 
-                // \u2500\u2500 Delete Functions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Delete Functions ───────────────────────────────────────────────
                 const deleteMedicalStaff = async (staff) => {
                     showConfirmation({
                         title: 'Delete Medical Staff',
@@ -1055,7 +1050,7 @@ const getRotationHistory = (staffId) => {
                         title: 'Delete Rotation',
                         message: 'Are you sure you want to delete this rotation?',
                         icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
-                        details: `Resident: ${getResidentName(rotation.resident_id)}`,
+                        details: `Resident: ${getResidentName(rotation.resident_id) || 'Unknown'}`,
                         onConfirm: async () => {
                             try {
                                 await API.deleteRotation(rotation.id);
@@ -1073,7 +1068,7 @@ const getRotationHistory = (staffId) => {
                         title: 'Delete On-Call Schedule',
                         message: 'Are you sure you want to delete this on-call schedule?',
                         icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
-                        details: `Physician: ${getPhysicianName(schedule.primary_physician_id)}`,
+                        details: `Physician: ${getPhysicianName(schedule.primary_physician_id) || 'Unknown'}`,
                         onConfirm: async () => {
                             try {
                                 await API.deleteOnCall(schedule.id);
@@ -1091,7 +1086,7 @@ const getRotationHistory = (staffId) => {
                         title: 'Delete Absence',
                         message: 'Are you sure you want to delete this absence record?',
                         icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
-                        details: `Staff: ${getStaffName(absence.staff_member_id)}`,
+                        details: `Staff: ${getStaffName(absence.staff_member_id) || 'Unknown'}`,
                         onConfirm: async () => {
                             try {
                                 await API.deleteAbsence(absence.id);
@@ -1136,7 +1131,7 @@ const getRotationHistory = (staffId) => {
                     });
                 };
 
-                // \u2500\u2500 Data Loading \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Data Loading ───────────────────────────────────────────────────
                 const loadMedicalStaff = async () => {
                     try { medicalStaff.value = await API.getMedicalStaff(); }
                     catch { showToast('Error', 'Failed to load medical staff', 'error'); }
@@ -1235,14 +1230,14 @@ const getRotationHistory = (staffId) => {
                     const nextWeek = new Date(todayDate.getTime() + 7 * 24 * 60 * 60 * 1000);
                     systemStats.value.endingThisWeek = rotations.value.filter(r => {
                         if (r.rotation_status !== 'active') return false;
-                        const end = new Date(r.rotation_end_date);
+                        const end = new Date(r.rotation_end_date || r.end_date);
                         return !isNaN(end.getTime()) && end >= todayDate && end <= nextWeek;
                     }).length;
 
                     const twoWeeks = new Date(todayDate.getTime() + 14 * 24 * 60 * 60 * 1000);
                     systemStats.value.startingNextWeek = rotations.value.filter(r => {
                         if (r.rotation_status !== 'scheduled') return false;
-                        const start = new Date(r.rotation_start_date);
+                        const start = new Date(r.rotation_start_date || r.start_date);
                         return !isNaN(start.getTime()) && start >= nextWeek && start <= twoWeeks;
                     }).length;
 
@@ -1264,13 +1259,14 @@ const getRotationHistory = (staffId) => {
                             loadTodaysOnCall(), loadAnnouncements(), loadClinicalStatus(), loadSystemStats()
                         ]);
                         await loadActiveMedicalStaff();
+                        await loadClinicalStatusHistory();
                         updateDashboardStats();
                         showToast('Success', 'System data loaded successfully', 'success');
                     } catch { showToast('Error', 'Failed to load some data', 'error'); }
                     finally { loading.value = false; }
                 };
 
-                // \u2500\u2500 Authentication \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Authentication ─────────────────────────────────────────────────
                 const handleLogin = async () => {
                     if (!loginForm.email || !loginForm.password) {
                         showToast('Error', 'Email and password are required', 'error');
@@ -1304,7 +1300,7 @@ const getRotationHistory = (staffId) => {
                     });
                 };
 
-                // \u2500\u2500 Navigation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Navigation ─────────────────────────────────────────────────────
                 const switchView = (view) => { currentView.value = view; mobileMenuOpen.value = false; };
                 const toggleStatsSidebar = () => { statsSidebarOpen.value = !statsSidebarOpen.value; };
                 const handleGlobalSearch = () => {};
@@ -1313,7 +1309,7 @@ const getRotationHistory = (staffId) => {
                     if (index > -1) systemAlerts.value.splice(index, 1);
                 };
 
-                // \u2500\u2500 Modal Show Functions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Modal Show Functions ───────────────────────────────────────────
                 const showAddMedicalStaffModal = () => {
                     medicalStaffModal.mode = 'add';
                     medicalStaffModal.activeTab = 'basic';
@@ -1405,10 +1401,10 @@ const getRotationHistory = (staffId) => {
                     userMenuOpen.value = false;
                 };
 
-                // \u2500\u2500 View / Edit Functions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── View / Edit Functions ──────────────────────────────────────────
                 const viewStaffDetails = (staff) => {
                     staffProfileModal.staff = staff;
-                    staffProfileModal.activeTab = 'assignments'; // Always start on Assignments tab
+                    staffProfileModal.activeTab = 'assignments';
                     staffProfileModal.show = true;
                 };
 
@@ -1422,13 +1418,18 @@ const getRotationHistory = (staffId) => {
                     unitResidentsModal.show = true;
                 };
 
-                const editMedicalStaff = (staff) => { medicalStaffModal.mode = 'edit'; medicalStaffModal.form = { ...staff }; medicalStaffModal.show = true; };
+                const editMedicalStaff = (staff) => {
+                    // Close profile modal first if open
+                    staffProfileModal.show = false;
+                    medicalStaffModal.mode = 'edit';
+                    medicalStaffModal.form = { ...staff };
+                    medicalStaffModal.show = true;
+                };
                 const editDepartment = (department) => { departmentModal.mode = 'edit'; departmentModal.form = { ...department }; departmentModal.show = true; };
                 const editTrainingUnit = (unit) => { trainingUnitModal.mode = 'edit'; trainingUnitModal.form = { ...unit }; trainingUnitModal.show = true; };
                 const editRotation = (rotation) => { rotationModal.mode = 'edit'; rotationModal.form = { ...rotation }; rotationModal.show = true; };
                 const editOnCallSchedule = (schedule) => {
                     onCallModal.mode = 'edit';
-                    // Normalize shift_type to backend-valid values
                     const rawShift = schedule.shift_type || 'primary_call';
                     const normalizedShift = (rawShift === 'primary' || rawShift === 'primary_call') ? 'primary_call' : 'backup_call';
                     onCallModal.form = {
@@ -1452,13 +1453,12 @@ const getRotationHistory = (staffId) => {
                         coverage_notes: absence.coverage_notes || '',
                         coverage_arranged: absence.coverage_arranged || false,
                         hod_notes: absence.hod_notes || '',
-                        // Read-only fields preserved for display, not sent to API
                         current_status: absence.current_status || null
                     };
                     absenceModal.show = true;
                 };
 
-                // \u2500\u2500 Save Functions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Save Functions ─────────────────────────────────────────────────
                 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
                 const saveMedicalStaff = async () => {
@@ -1598,7 +1598,6 @@ const getRotationHistory = (staffId) => {
                     const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
                     if (duration > 365) { showToast('Error', `Rotation cannot exceed 365 days. Current: ${duration}`, 'error'); return; }
 
-                    // Overlap check
                     const parseDate = (s) => {
                         if (!s) return new Date(NaN);
                         if (s.match(/^\d{4}-\d{2}-\d{2}$/)) return new Date(s + 'T00:00:00');
@@ -1667,10 +1666,6 @@ const getRotationHistory = (staffId) => {
                 const saveOnCallSchedule = async () => {
                     saving.value = true;
                     try {
-                        // Backend Joi schema fields: duty_date, shift_type (primary_call|backup_call),
-                        // start_time, end_time, primary_physician_id, backup_physician_id,
-                        // coverage_notes, schedule_id, created_by
-                        // coverage_area is NOT in backend schema - stored locally for display only
                         const onCallData = {
                             duty_date: onCallModal.form.duty_date,
                             shift_type: onCallModal.form.shift_type || 'primary_call',
@@ -1683,7 +1678,6 @@ const getRotationHistory = (staffId) => {
                         };
                         if (onCallModal.mode === 'add') {
                             const result = await API.createOnCall(onCallData);
-                            // Merge coverage_area back for local display (not sent to backend)
                             onCallSchedule.value.unshift({ ...result, coverage_area: onCallModal.form.coverage_area });
                             showToast('Success', 'On-call scheduled successfully', 'success');
                         } else {
@@ -1701,12 +1695,6 @@ const getRotationHistory = (staffId) => {
                 const saveAbsence = async () => {
                     saving.value = true;
                     try {
-                        // Backend Joi schema (absenceRecord): staff_member_id, absence_type (planned|unplanned),
-                        // absence_reason (vacation|conference|sick_leave|training|personal|other),
-                        // start_date, end_date, coverage_arranged (bool), covering_staff_id (uuid|null),
-                        // coverage_notes, hod_notes
-                        // NOTE: current_status is AUTO-CALCULATED by DB trigger — do NOT send it
-                        // NOTE: recorded_by is set from req.user.id by backend — do NOT send it
                         const absenceData = {
                             staff_member_id: absenceModal.form.staff_member_id,
                             absence_type: absenceModal.form.absence_type || 'planned',
@@ -1720,7 +1708,6 @@ const getRotationHistory = (staffId) => {
                         };
                         if (absenceModal.mode === 'add') {
                             const result = await API.createAbsence(absenceData);
-                            // Backend returns { success, data } — unwrap the data object
                             const record = result?.data || result;
                             absences.value.unshift(record);
                             showToast('Success', 'Absence recorded successfully', 'success');
@@ -1771,7 +1758,7 @@ const getRotationHistory = (staffId) => {
                     finally { saving.value = false; }
                 };
 
-                // \u2500\u2500 Action Functions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Action Functions ───────────────────────────────────────────────
                 const contactPhysician = (shift) => {
                     if (shift.contactInfo && shift.contactInfo !== 'No contact info') {
                         showToast('Contact Physician',
@@ -1790,7 +1777,7 @@ const getRotationHistory = (staffId) => {
                     showToast('Department Staff', `Viewing staff for ${department.name}`, 'info');
                 };
 
-                // \u2500\u2500 Permissions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Permissions ────────────────────────────────────────────────────
                 const hasPermission = (module, action = 'read') => {
                     const role = currentUser.value?.user_role;
                     if (!role) return false;
@@ -1800,7 +1787,7 @@ const getRotationHistory = (staffId) => {
                     return permissions.includes(action) || permissions.includes('*');
                 };
 
-                // \u2500\u2500 Computed \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Computed ───────────────────────────────────────────────────────
                 const authToken = computed(() => localStorage.getItem(CONFIG.TOKEN_KEY));
                 const unreadAnnouncements = computed(() => announcements.value.filter(a => !a.read).length);
                 const unreadLiveUpdates = computed(() => {
@@ -1851,7 +1838,6 @@ const getRotationHistory = (staffId) => {
                     if (onCallFilters.coverageArea) filtered = filtered.filter(s => s.coverage_area === onCallFilters.coverageArea);
                     return filtered;
                 });
-                // Add these computed/helper functions:
 
                 const filteredRotations = computed(() => {
                     let filtered = rotations.value;
@@ -1879,7 +1865,7 @@ const getRotationHistory = (staffId) => {
                     systemAlerts.value.filter(a => a.status === 'active' || !a.status).length);
                 const currentTimeFormatted = computed(() => EnhancedUtils.formatTime(currentTime.value));
 
-                // \u2500\u2500 Lifecycle \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Lifecycle ──────────────────────────────────────────────────────
                 onMounted(() => {
                     const token = localStorage.getItem(CONFIG.TOKEN_KEY);
                     const user = localStorage.getItem(CONFIG.USER_KEY);
@@ -1918,7 +1904,7 @@ const getRotationHistory = (staffId) => {
                     updateDashboardStats();
                 }, { deep: true });
 
-                // \u2500\u2500 Return \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Return ─────────────────────────────────────────────────────────
                 return {
                     // State
                     currentUser, loginForm, loginLoading, loading, saving, loadingSchedule, isLoadingStatus,
@@ -1926,7 +1912,8 @@ const getRotationHistory = (staffId) => {
                     // Data
                     medicalStaff, departments, trainingUnits, rotations, absences, onCallSchedule, announcements,
                     // Live Status
-                    clinicalStatus, newStatusText, selectedAuthorId, expiryHours, activeMedicalStaff, liveStatsEditMode,
+                    clinicalStatus, recentStatuses, newStatusText, selectedAuthorId, expiryHours,
+                    activeMedicalStaff, liveStatsEditMode,
                     // State
                     quickStatus, currentTime, getStatusLocation, getRecentStatuses,
                     // Dashboard
@@ -1939,12 +1926,15 @@ const getRotationHistory = (staffId) => {
                     staffProfileModal, unitResidentsModal, medicalStaffModal, communicationsModal,
                     onCallModal, rotationModal, trainingUnitModal, absenceModal, departmentModal,
                     userProfileModal, confirmationModal,
+                    // Date / Time (template-facing)
+                    formatDate, formatDateShort, formatDatePlusDays, getTomorrow,
+                    formatTime, formatRelativeTime, formatTimeAgo, getInitials,
+                    formatDateTime: EnhancedUtils.formatDateTime,
                     // Formatting
-                    formatDate: EnhancedUtils.formatDate, formatDateTime: EnhancedUtils.formatDateTime,
-                    formatTime: EnhancedUtils.formatTime, formatRelativeTime: EnhancedUtils.formatRelativeTime,
-                    getInitials: EnhancedUtils.getInitials, formatStaffType, getStaffTypeClass,
-                    formatEmploymentStatus, formatAbsenceReason, formatAbsenceStatus, formatRotationStatus,
+                    formatStaffType, getStaffTypeClass, formatEmploymentStatus,
+                    formatAbsenceReason, formatAbsenceStatus, formatRotationStatus,
                     getUserRoleDisplay, getCurrentViewTitle, getCurrentViewSubtitle, getSearchPlaceholder,
+                    formatAudience,
                     // Helpers
                     getDepartmentName, getStaffName, getTrainingUnitName, getSupervisorName,
                     getPhysicianName, getResidentName, getDepartmentUnits, getDepartmentStaffCount,
@@ -1954,17 +1944,18 @@ const getRotationHistory = (staffId) => {
                     // UI Helpers
                     getShiftStatusClass, isCurrentShift, getStaffTypeIcon, calculateCapacityPercent,
                     getCapacityDotClass, getMeterFillClass, getAbsenceReasonIcon, getScheduleIcon,
-                    // Profile
-getCurrentUnit, getCurrentWard, getCurrentActivityStatus,
-isOnCallToday, getOnCallShiftTime, getOnCallCoverage,
-getRotationSupervisor, getRotationDaysLeft, formatTimeAgo,
-hasProfessionalCredentials, getUpcomingOnCall, getUpcomingLeave, getRotationHistory,
+                    // Profile — dynamic activity
+                    getCurrentUnit, getCurrentActivityStatus,
+                    isOnCallToday, getOnCallShiftTime, getOnCallCoverage,
+                    getRotationSupervisor, getRotationDaysLeft,
+                    hasProfessionalCredentials, getUpcomingOnCall, getUpcomingLeave, getRotationHistory,
                     // Status
                     getStatusBadgeClass, calculateTimeRemaining, refreshStatus, setQuickStatus,
-                    formatAudience, getPreviewCardClass, getPreviewIcon, getPreviewReasonText,
+                    getPreviewCardClass, getPreviewIcon, getPreviewReasonText,
                     getPreviewStatusClass, getPreviewStatusText, updatePreview,
                     // Live Status
-                    loadClinicalStatus, loadActiveMedicalStaff, saveClinicalStatus, isStatusExpired, showCreateStatusModal,
+                    loadClinicalStatus, loadActiveMedicalStaff, saveClinicalStatus,
+                    isStatusExpired, showCreateStatusModal,
                     // Delete
                     deleteMedicalStaff, deleteRotation, deleteOnCallSchedule, deleteAbsence,
                     deleteAnnouncement, deleteClinicalStatus,
@@ -1978,7 +1969,7 @@ hasProfessionalCredentials, getUpcomingOnCall, getUpcomingLeave, getRotationHist
                     showAddMedicalStaffModal, showAddDepartmentModal, showAddTrainingUnitModal,
                     showAddRotationModal, showAddOnCallModal, showAddAbsenceModal,
                     showCommunicationsModal, showUserProfileModal,
-                    // View/Edit
+                    // View / Edit
                     viewStaffDetails, viewUnitResidents, viewDepartmentStaff,
                     editMedicalStaff, editDepartment, editTrainingUnit, editRotation,
                     editOnCallSchedule, editAbsence,
@@ -2004,12 +1995,12 @@ hasProfessionalCredentials, getUpcomingOnCall, getUpcomingLeave, getRotationHist
     } catch (error) {
         document.body.innerHTML = `
             <div style="padding: 40px; text-align: center; margin-top: 100px; color: #333; font-family: Arial, sans-serif;">
-                <h2 style="color: #dc3545;">\u26a0\ufe0f Application Error</h2>
+                <h2 style="color: #dc3545;">⚠️ Application Error</h2>
                 <p style="margin: 20px 0; color: #666;">The application failed to load properly. Please try refreshing the page.</p>
                 <button onclick="window.location.reload()"
                         style="padding: 12px 24px; background: #007bff; color: white;
                                border: none; border-radius: 6px; cursor: pointer; margin-top: 20px;">
-                    \ud83d\udd04 Refresh Page
+                    🔄 Refresh Page
                 </button>
             </div>
         `;
