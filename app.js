@@ -1,15 +1,20 @@
+// ============ NEUMOCARE HOSPITAL MANAGEMENT SYSTEM v9.0 ============
+// Frontend Application - Vue.js
+// ===================================================================
+
 document.addEventListener('DOMContentLoaded', function() {
 
     try {
+        // ============ VUE VALIDATION ============
         if (typeof Vue === 'undefined') {
             document.body.innerHTML = `
                 <div style="padding: 40px; text-align: center; margin-top: 100px; color: #333;">
-                    <h2 style="color: #dc3545;">\u26a0\ufe0f Critical Error</h2>
+                    <h2 style="color: #dc3545;">⚠️ Critical Error</h2>
                     <p>Vue.js failed to load. Please refresh the page.</p>
                     <button onclick="window.location.reload()"
                             style="padding: 12px 24px; background: #007bff; color: white;
                                    border: none; border-radius: 6px; cursor: pointer; margin-top: 20px;">
-                        \ud83d\udd04 Refresh Page
+                        🔄 Refresh Page
                     </button>
                 </div>
             `;
@@ -18,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const { createApp, ref, reactive, computed, onMounted, watch, onUnmounted } = Vue;
 
+        // ============ CONFIGURATION ============
         const CONFIG = {
             API_BASE_URL: window.location.hostname.includes('localhost')
                 ? 'http://localhost:3000'
@@ -25,9 +31,10 @@ document.addEventListener('DOMContentLoaded', function() {
             TOKEN_KEY: 'neumocare_token',
             USER_KEY: 'neumocare_user',
             APP_VERSION: '9.0',
-            DEBUG: true
+            DEBUG: false // Set to false to reduce console noise
         };
 
+        // ============ UTILITIES ============
         class EnhancedUtils {
             static formatDate(dateString) {
                 if (!dateString) return 'N/A';
@@ -112,8 +119,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 try {
                     const date = new Date(dateString);
                     const now = new Date();
-                    const diffMs = now - date;
-                    const diffMins = Math.floor(diffMs / 60000);
+                    const diffMins = Math.floor((now - date) / 60000);
                     if (diffMins < 1) return 'Just now';
                     if (diffMins < 60) return `${diffMins}m ago`;
                     if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
@@ -126,8 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const start = new Date(startDate);
                     const end = new Date(endDate);
                     if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
-                    const diffTime = Math.abs(end - start);
-                    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    return Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24));
                 } catch { return 0; }
             }
 
@@ -136,6 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
+        // ============ API SERVICE ============
         class ApiService {
             constructor() {
                 this.token = localStorage.getItem(CONFIG.TOKEN_KEY) || null;
@@ -193,6 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
+            // ===== AUTHENTICATION =====
             async login(email, password) {
                 try {
                     const data = await this.request('/api/auth/login', { method: 'POST', body: { email, password } });
@@ -214,6 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
+            // ===== MEDICAL STAFF =====
             async getMedicalStaff() {
                 try { return EnhancedUtils.ensureArray(await this.request('/api/medical-staff')); }
                 catch { return []; }
@@ -222,6 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
             async updateMedicalStaff(id, staffData) { return await this.request(`/api/medical-staff/${id}`, { method: 'PUT', body: staffData }); }
             async deleteMedicalStaff(id) { return await this.request(`/api/medical-staff/${id}`, { method: 'DELETE' }); }
 
+            // ===== DEPARTMENTS =====
             async getDepartments() {
                 try { return EnhancedUtils.ensureArray(await this.request('/api/departments')); }
                 catch { return []; }
@@ -229,6 +238,7 @@ document.addEventListener('DOMContentLoaded', function() {
             async createDepartment(data) { return await this.request('/api/departments', { method: 'POST', body: data }); }
             async updateDepartment(id, data) { return await this.request(`/api/departments/${id}`, { method: 'PUT', body: data }); }
 
+            // ===== TRAINING UNITS =====
             async getTrainingUnits() {
                 try { return EnhancedUtils.ensureArray(await this.request('/api/training-units')); }
                 catch { return []; }
@@ -236,6 +246,7 @@ document.addEventListener('DOMContentLoaded', function() {
             async createTrainingUnit(data) { return await this.request('/api/training-units', { method: 'POST', body: data }); }
             async updateTrainingUnit(id, data) { return await this.request(`/api/training-units/${id}`, { method: 'PUT', body: data }); }
 
+            // ===== ROTATIONS =====
             async getRotations() {
                 try { return EnhancedUtils.ensureArray(await this.request('/api/rotations')); }
                 catch { return []; }
@@ -244,6 +255,7 @@ document.addEventListener('DOMContentLoaded', function() {
             async updateRotation(id, data) { return await this.request(`/api/rotations/${id}`, { method: 'PUT', body: data }); }
             async deleteRotation(id) { return await this.request(`/api/rotations/${id}`, { method: 'DELETE' }); }
 
+            // ===== ON-CALL SCHEDULE =====
             async getOnCallSchedule() {
                 try { return EnhancedUtils.ensureArray(await this.request('/api/oncall')); }
                 catch { return []; }
@@ -256,10 +268,10 @@ document.addEventListener('DOMContentLoaded', function() {
             async updateOnCall(id, data) { return await this.request(`/api/oncall/${id}`, { method: 'PUT', body: data }); }
             async deleteOnCall(id) { return await this.request(`/api/oncall/${id}`, { method: 'DELETE' }); }
 
+            // ===== ABSENCE RECORDS =====
             async getAbsences() {
                 try {
                     const response = await this.request('/api/absence-records');
-                    // Backend returns { success: true, data: [...], pagination: {} }
                     if (response && response.success && Array.isArray(response.data)) return response.data;
                     return EnhancedUtils.ensureArray(response);
                 }
@@ -269,6 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
             async updateAbsence(id, data) { return await this.request(`/api/absence-records/${id}`, { method: 'PUT', body: data }); }
             async deleteAbsence(id) { return await this.request(`/api/absence-records/${id}`, { method: 'DELETE' }); }
 
+            // ===== ANNOUNCEMENTS =====
             async getAnnouncements() {
                 try { return EnhancedUtils.ensureArray(await this.request('/api/announcements')); }
                 catch { return []; }
@@ -277,6 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
             async updateAnnouncement(id, data) { return await this.request(`/api/announcements/${id}`, { method: 'PUT', body: data }); }
             async deleteAnnouncement(id) { return await this.request(`/api/announcements/${id}`, { method: 'DELETE' }); }
 
+            // ===== LIVE STATUS =====
             async getClinicalStatus() {
                 try { return await this.request('/api/live-status/current'); }
                 catch (error) { return { success: false, data: null, error: error.message }; }
@@ -289,6 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 catch { return []; }
             }
 
+            // ===== SYSTEM STATS =====
             async getSystemStats() {
                 try { return await this.request('/api/system-stats') || {}; }
                 catch {
@@ -299,34 +314,113 @@ document.addEventListener('DOMContentLoaded', function() {
                     };
                 }
             }
+
+            // ===== RESEARCH LINES =====
+            async getResearchLines() {
+                try {
+                    const response = await this.request('/api/research-lines');
+                    return response?.data || EnhancedUtils.ensureArray(response);
+                } catch { return []; }
+            }
+
+            async assignCoordinator(researchLineId, coordinatorId) {
+                return await this.request(`/api/research-lines/${researchLineId}/coordinator`, {
+                    method: 'PUT',
+                    body: { coordinator_id: coordinatorId }
+                });
+            }
+
+            // ===== CLINICAL TRIALS =====
+            async getClinicalTrialsForWebsite(filters = {}) {
+                try {
+                    const params = new URLSearchParams();
+                    if (filters.line) params.append('line', filters.line);
+                    if (filters.phase) params.append('phase', filters.phase);
+                    if (filters.status) params.append('status', filters.status);
+                    if (filters.search) params.append('search', filters.search);
+                    
+                    const query = params.toString() ? `?${params.toString()}` : '';
+                    const response = await this.request(`/api/clinical-trials/website${query}`);
+                    return response?.data || [];
+                } catch { return []; }
+            }
+
+            async getAllClinicalTrials() {
+                try {
+                    const response = await this.request('/api/clinical-trials');
+                    return response?.data || EnhancedUtils.ensureArray(response);
+                } catch { return []; }
+            }
+
+            async createClinicalTrial(data) {
+                return await this.request('/api/clinical-trials', { method: 'POST', body: data });
+            }
+
+            async updateClinicalTrial(id, data) {
+                return await this.request(`/api/clinical-trials/${id}`, { method: 'PUT', body: data });
+            }
+
+            async deleteClinicalTrial(id) {
+                return await this.request(`/api/clinical-trials/${id}`, { method: 'DELETE' });
+            }
+
+            // ===== INNOVATION PROJECTS =====
+            async getInnovationProjectsForWebsite() {
+                try {
+                    const response = await this.request('/api/innovation-projects/website');
+                    return response?.data || [];
+                } catch { return []; }
+            }
+
+            async getAllInnovationProjects() {
+                try {
+                    const response = await this.request('/api/innovation-projects');
+                    return response?.data || EnhancedUtils.ensureArray(response);
+                } catch { return []; }
+            }
+
+            async createInnovationProject(data) {
+                return await this.request('/api/innovation-projects', { method: 'POST', body: data });
+            }
+
+            async updateInnovationProject(id, data) {
+                return await this.request(`/api/innovation-projects/${id}`, { method: 'PUT', body: data });
+            }
+
+            async deleteInnovationProject(id) {
+                return await this.request(`/api/innovation-projects/${id}`, { method: 'DELETE' });
+            }
         }
 
         const API = new ApiService();
 
+        // ============ VUE APP ============
         const app = createApp({
             setup() {
-                // ── Count-up animation utility ─────────────────────────────────────
-const animateCountUp = (targetRef, endValue, duration = 600) => {
-    if (!endValue || endValue === 0) return;
-    const start = 0;
-    const startTime = performance.now();
-    const step = (currentTime) => {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        // Ease out cubic
-        const eased = 1 - Math.pow(1 - progress, 3);
-        targetRef.value = Math.round(start + (endValue - start) * eased);
-        if (progress < 1) requestAnimationFrame(step);
-        else targetRef.value = endValue;
-    };
-    requestAnimationFrame(step);
-};
+                // ============ ANIMATION UTILITIES ============
+                const animateCountUp = (targetRef, endValue, duration = 600) => {
+                    if (!endValue || endValue === 0) return;
+                    const start = 0;
+                    const startTime = performance.now();
+                    const step = (currentTime) => {
+                        const elapsed = currentTime - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        const eased = 1 - Math.pow(1 - progress, 3);
+                        targetRef.value = Math.round(start + (endValue - start) * eased);
+                        if (progress < 1) requestAnimationFrame(step);
+                        else targetRef.value = endValue;
+                    };
+                    requestAnimationFrame(step);
+                };
 
-                // \u2500\u2500 State \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ REACTIVE STATE ============
+                
+                // User State
                 const currentUser = ref(null);
                 const loginForm = reactive({ email: '', password: '', remember_me: false });
                 const loginLoading = ref(false);
 
+                // UI State
                 const currentView = ref('login');
                 const sidebarCollapsed = ref(false);
                 const mobileMenuOpen = ref(false);
@@ -334,11 +428,13 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                 const statsSidebarOpen = ref(false);
                 const globalSearchQuery = ref('');
 
+                // Loading States
                 const loading = ref(false);
                 const saving = ref(false);
                 const loadingSchedule = ref(false);
                 const isLoadingStatus = ref(false);
 
+                // Data Stores - Core
                 const medicalStaff = ref([]);
                 const departments = ref([]);
                 const trainingUnits = ref([]);
@@ -347,6 +443,12 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                 const onCallSchedule = ref([]);
                 const announcements = ref([]);
 
+                // Data Stores - Research (NEW)
+                const researchLines = ref([]);
+                const clinicalTrials = ref([]);
+                const innovationProjects = ref([]);
+
+                // Live Status
                 const clinicalStatus = ref(null);
                 const clinicalStatusHistory = ref([]);
                 const newStatusText = ref('');
@@ -355,9 +457,11 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                 const activeMedicalStaff = ref([]);
                 const liveStatsEditMode = ref(false);
 
+                // UI State
                 const quickStatus = ref('');
                 const currentTime = ref(new Date());
 
+                // Dashboard Stats
                 const systemStats = ref({
                     totalStaff: 0, activeAttending: 0, activeResidents: 0,
                     onCallNow: 0, inSurgery: 0, activeRotations: 0,
@@ -367,20 +471,22 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     nextShiftChange: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString()
                 });
 
+                // Today's Data
                 const todaysOnCall = ref([]);
                 const todaysOnCallCount = computed(() => todaysOnCall.value.length);
+                
+                // UI Components
                 const toasts = ref([]);
                 const systemAlerts = ref([]);
 
-                // \u2500\u2500 Filters \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ FILTERS ============
                 const staffFilters = reactive({ search: '', staffType: '', department: '', status: '' });
                 const onCallFilters = reactive({ date: '', shiftType: '', physician: '', coverageArea: '' });
                 const rotationFilters = reactive({ resident: '', status: '', trainingUnit: '', supervisor: '' });
                 const absenceFilters = reactive({ staff: '', status: '', reason: '', startDate: '' });
 
-                // \u2500\u2500 Modals \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ MODALS ============
                 const staffProfileModal = reactive({ show: false, staff: null, activeTab: 'assignments' });
-
                 const unitResidentsModal = reactive({ show: false, unit: null, rotations: [] });
 
                 const medicalStaffModal = reactive({
@@ -388,8 +494,8 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     form: {
                         full_name: '', staff_type: 'medical_resident', staff_id: '',
                         employment_status: 'active', professional_email: '', department_id: '',
-                        academic_degree: '', specialization: '', resident_year: '',
-                        clinical_certificate: '', certificate_status: 'current'
+                        academic_degree: '', specialization: '', training_year: '',
+                        clinical_certificate: '', certificate_status: ''
                     }
                 });
 
@@ -435,7 +541,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                 });
 
                 const absenceModal = reactive({
-                    show: false, mode: 'add', activeTab: 'basic',
+                    show: false, mode: 'add',
                     form: {
                         staff_member_id: '', absence_type: 'planned', absence_reason: 'vacation',
                         start_date: new Date().toISOString().split('T')[0],
@@ -460,7 +566,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     cancelButtonText: 'Cancel', onConfirm: null, details: ''
                 });
 
-                // \u2500\u2500 Permission Matrix \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ PERMISSION MATRIX ============
                 const PERMISSION_MATRIX = {
                     system_admin: {
                         medical_staff: ['create', 'read', 'update', 'delete'],
@@ -470,6 +576,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                         staff_absence: ['create', 'read', 'update', 'delete'],
                         department_management: ['create', 'read', 'update', 'delete'],
                         communications: ['create', 'read', 'update', 'delete'],
+                        research_lines: ['create', 'read', 'update', 'delete'],
                         system: ['manage_departments', 'manage_updates']
                     },
                     department_head: {
@@ -480,23 +587,24 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                         staff_absence: ['create', 'read', 'update'],
                         department_management: ['read'],
                         communications: ['create', 'read'],
+                        research_lines: ['read', 'update'],
                         system: ['manage_updates']
                     },
                     attending_physician: {
                         medical_staff: ['read'], oncall_schedule: ['read'],
                         resident_rotations: ['read'], training_units: ['read'],
                         staff_absence: ['read'], department_management: ['read'],
-                        communications: ['read']
+                        communications: ['read'], research_lines: ['read']
                     },
                     medical_resident: {
                         medical_staff: ['read'], oncall_schedule: ['read'],
                         resident_rotations: ['read'], training_units: ['read'],
                         staff_absence: ['read'], department_management: [],
-                        communications: ['read']
+                        communications: ['read'], research_lines: ['read']
                     }
                 };
 
-                // \u2500\u2500 Toast System \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ TOAST SYSTEM ============
                 const showToast = (title, message, type = 'info', duration = 5000) => {
                     const icons = {
                         info: 'fas fa-info-circle', success: 'fas fa-check-circle',
@@ -512,7 +620,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     if (index > -1) toasts.value.splice(index, 1);
                 };
 
-                // \u2500\u2500 Confirmation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ CONFIRMATION MODAL ============
                 const showConfirmation = (options) => { Object.assign(confirmationModal, { show: true, ...options }); };
 
                 const confirmAction = async () => {
@@ -525,7 +633,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
 
                 const cancelConfirmation = () => { confirmationModal.show = false; };
 
-                // ── Date / Time Helpers (template-facing) ─────────────────────────
+                // ============ DATE/TIME HELPERS ============
                 const formatDate = (dateString) => EnhancedUtils.formatDate(dateString);
                 const formatDateShort = (date) => EnhancedUtils.formatDateShort(date);
                 const formatDatePlusDays = (dateStr, days) => EnhancedUtils.formatDatePlusDays(dateStr, days);
@@ -535,7 +643,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                 const formatTimeAgo = (dateString) => EnhancedUtils.formatRelativeTime(dateString);
                 const getInitials = (name) => EnhancedUtils.getInitials(name);
 
-                // \u2500\u2500 Formatting \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ FORMATTING FUNCTIONS ============
                 const formatStaffType = (type) => {
                     const map = {
                         'medical_resident': 'Medical Resident', 'attending_physician': 'Attending Physician',
@@ -591,7 +699,9 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                         'dashboard': 'Dashboard Overview', 'medical_staff': 'Medical Staff Management',
                         'oncall_schedule': 'On-call Schedule', 'resident_rotations': 'Resident Rotations',
                         'training_units': 'Training Units', 'staff_absence': 'Staff Absence Management',
-                        'department_management': 'Department Management', 'communications': 'Communications Center'
+                        'department_management': 'Department Management', 'communications': 'Communications Center',
+                        'research_lines': 'Research Lines', 'clinical_trials': 'Clinical Trials',
+                        'innovation_projects': 'Innovation Projects'
                     };
                     return map[currentView.value] || 'NeumoCare Dashboard';
                 };
@@ -605,7 +715,10 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                         'training_units': 'Clinical training units and resident assignments',
                         'staff_absence': 'Track staff absences and coverage assignments',
                         'department_management': 'Organizational structure and clinical units',
-                        'communications': 'Department announcements and capacity updates'
+                        'communications': 'Department announcements and capacity updates',
+                        'research_lines': 'Research groups and coordinator assignments',
+                        'clinical_trials': 'Active clinical trials and studies',
+                        'innovation_projects': 'Innovation and development projects'
                     };
                     return map[currentView.value] || 'Hospital Management System';
                 };
@@ -619,12 +732,15 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                         'training_units': 'Search training units...',
                         'staff_absence': 'Search absences by staff member...',
                         'department_management': 'Search departments...',
-                        'communications': 'Search announcements...'
+                        'communications': 'Search announcements...',
+                        'research_lines': 'Search research lines...',
+                        'clinical_trials': 'Search trials by protocol or title...',
+                        'innovation_projects': 'Search innovation projects...'
                     };
                     return map[currentView.value] || 'Search across system...';
                 };
 
-                // \u2500\u2500 Data Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ DATA HELPERS ============
                 const getDepartmentName = (departmentId) => {
                     if (!departmentId) return 'Not assigned';
                     const dept = departments.value.find(d => d.id === departmentId);
@@ -659,7 +775,41 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                 const calculateAbsenceDuration = (startDate, endDate) =>
                     EnhancedUtils.calculateDateDifference(startDate, endDate);
 
-                // \u2500\u2500 Unit Residents Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ RESEARCH LINES HELPERS (NEW) ============
+                const getResearchLineName = (lineId) => {
+                    if (!lineId) return 'Not assigned';
+                    const line = researchLines.value.find(l => l.id === lineId);
+                    return line ? line.research_line_name || line.name : 'Unknown Research Line';
+                };
+
+                const getCoordinatorName = (line) => {
+                    if (!line) return 'Not assigned';
+                    return line.coordinator_name || (line.coordinator_id ? 'Coordinator assigned' : 'Not assigned');
+                };
+
+                const getClinicianResearchLines = (clinicianId) => {
+                    if (!clinicianId || !researchLines.value.length) return [];
+                    return researchLines.value
+                        .filter(l => l.coordinator_id === clinicianId)
+                        .map(line => ({
+                            line_number: line.line_number,
+                            name: line.research_line_name || line.name,
+                            role: 'Coordinador/a',
+                            coordinator: true
+                        }));
+                };
+
+                const formatResearchRole = (role) => {
+                    const roles = {
+                        'coordinator': 'Coordinador/a',
+                        'member': 'Miembro',
+                        'collaborator': 'Colaborador/a',
+                        'investigator': 'Investigador'
+                    };
+                    return roles[role] || role;
+                };
+
+                // ============ UNIT RESIDENTS HELPERS ============
                 const getUnitActiveRotationCount = (unitId) => {
                     return rotations.value.filter(r =>
                         r.training_unit_id === unitId &&
@@ -672,8 +822,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     const end = new Date(endDate);
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
-                    const diff = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
-                    return Math.max(0, diff);
+                    return Math.max(0, Math.ceil((end - today) / (1000 * 60 * 60 * 24)));
                 };
 
                 const getDaysUntilStart = (startDate) => {
@@ -681,11 +830,10 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     const start = new Date(startDate);
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
-                    const diff = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
-                    return Math.max(0, diff);
+                    return Math.max(0, Math.ceil((start - today) / (1000 * 60 * 60 * 24)));
                 };
 
-                // \u2500\u2500 NEUMAC UI Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ UI HELPERS ============
                 const getShiftStatusClass = (shift) => {
                     if (!shift || !shift.raw) return 'neumac-status-oncall';
                     const now = new Date();
@@ -770,7 +918,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     return 'fa-calendar-check';
                 };
 
-                // \u2500\u2500 Profile Functions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ PROFILE FUNCTIONS ============
                 const getCurrentUnit = (staffId) => {
                     const rotation = rotations.value.find(r =>
                         r.resident_id === staffId && r.rotation_status === 'active');
@@ -792,8 +940,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     const onCall = onCallSchedule.value.find(s =>
                         (s.primary_physician_id === staffId || s.backup_physician_id === staffId) &&
                         s.duty_date === today);
-                    if (onCall) return 'oncall';
-                    return 'available';
+                    return onCall ? 'oncall' : 'available';
                 };
 
                 const isOnCallToday = (staffId) => {
@@ -830,13 +977,11 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                 const getRotationDaysLeft = (staffId) => {
                     const rotation = rotations.value.find(r =>
                         r.resident_id === staffId && r.rotation_status === 'active');
-                    if (rotation?.rotation_end_date) {
-                        return getDaysRemaining(rotation.rotation_end_date);
-                    }
-                    return 0;
+                    return rotation?.rotation_end_date
+                        ? getDaysRemaining(rotation.rotation_end_date)
+                        : 0;
                 };
 
-                // ── Staff Profile — Dynamic Activity Helpers ──────────────────────
                 const getUpcomingOnCall = (staffId) => {
                     if (!staffId) return [];
                     const today = new Date().toISOString().split('T')[0];
@@ -872,8 +1017,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     !!(staff?.academic_degree || staff?.specialization || staff?.training_year ||
                        staff?.clinical_certificate || staff?.medical_license);
 
-
-                // \u2500\u2500 Status Location Parser \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ STATUS LOCATION PARSER ============
                 const getStatusLocation = (status) => {
                     if (!status || !status.status_text) return 'Pulmonology Department';
                     if (status.location) return status.location;
@@ -892,21 +1036,13 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     if (text.includes('er') || text.includes('emergency') || text.includes('triage')) return 'Emergency Department';
                     if (text.includes('ward') || text.includes('floor') || text.includes('bed')) return 'General Ward';
                     if (text.includes('surgery') || text.includes('operating room') || text.includes('thoracic')) return 'Thoracic Surgery';
-                    if (text.includes('consult') || text.includes('interconsult') || text.includes('clinic')) return 'Consultation Clinic';
-                    if (text.includes('cardiac') || text.includes('heart') || text.includes('echocardiogram')) return 'Cardiology';
-                    if (text.includes('radiology') || text.includes('x-ray') || text.includes('ct') || text.includes('mri')) return 'Radiology';
-                    if (text.includes('oncology') || text.includes('cancer') || text.includes('chemo')) return 'Oncology';
-                    if (text.includes('transplant') || text.includes('lung transplant')) return 'Transplant Unit';
-                    if (text.includes('rehab') || text.includes('rehabilitation')) return 'Pulmonary Rehabilitation';
-                    if (text.includes('meeting') || text.includes('conference') || text.includes('round')) return 'Conference Room';
-                    if (text.includes('call') || text.includes('on-call') || text.includes('schedule')) return 'On-call Office';
                     return 'Pulmonology Department';
                 };
 
                 const getRecentStatuses = () => clinicalStatusHistory.value;
-                // Computed alias — used by v-for="s in recentStatuses" in the sidebar template
                 const recentStatuses = computed(() => clinicalStatusHistory.value);
-                // \u2500\u2500 Live Status \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+                // ============ LIVE STATUS ============
                 const getStatusBadgeClass = (status) => {
                     if (!status) return 'badge-gray';
                     return isStatusExpired(status.expires_at) ? 'badge-warning' : 'badge-success';
@@ -1006,7 +1142,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     expiryHours.value = 8;
                 };
 
-                // \u2500\u2500 Clinical Status Loaders \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ CLINICAL STATUS LOADERS ============
                 const loadClinicalStatus = async () => {
                     isLoadingStatus.value = true;
                     try {
@@ -1079,7 +1215,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     } finally { isLoadingStatus.value = false; }
                 };
 
-                // \u2500\u2500 Delete Functions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ DELETE FUNCTIONS ============
                 const deleteMedicalStaff = async (staff) => {
                     showConfirmation({
                         title: 'Delete Medical Staff',
@@ -1184,7 +1320,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     });
                 };
 
-                // \u2500\u2500 Data Loading \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ DATA LOADING ============
                 const loadMedicalStaff = async () => {
                     try { medicalStaff.value = await API.getMedicalStaff(); }
                     catch { showToast('Error', 'Failed to load medical staff', 'error'); }
@@ -1258,33 +1394,72 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     } catch {}
                 };
 
-               const updateDashboardStats = () => {
-    const newTotalStaff = medicalStaff.value.length;
-    const newAttending = medicalStaff.value.filter(s =>
-        s.staff_type === 'attending_physician' && s.employment_status === 'active').length;
-    const newResidents = medicalStaff.value.filter(s =>
-        s.staff_type === 'medical_resident' && s.employment_status === 'active').length;
+                // ============ RESEARCH LINES LOADERS (NEW) ============
+                const loadResearchLines = async () => {
+                    try {
+                        const data = await API.getResearchLines();
+                        researchLines.value = data;
+                    } catch (error) {
+                        showToast('Error', 'Failed to load research lines', 'error');
+                    }
+                };
 
-    // Animate only on first load (when previous value was 0)
-    if (systemStats.value.totalStaff === 0 && newTotalStaff > 0) {
-        const totalRef = { value: 0 };
-        const attendingRef = { value: 0 };
-        const residentsRef = { value: 0 };
-        animateCountUp(totalRef,    newTotalStaff, 700);
-        animateCountUp(attendingRef, newAttending,  600);
-        animateCountUp(residentsRef, newResidents,  650);
-        // Sync back to systemStats reactively via watchers on the temp refs
-        const syncInterval = setInterval(() => {
-            systemStats.value.totalStaff     = totalRef.value;
-            systemStats.value.activeAttending = attendingRef.value;
-            systemStats.value.activeResidents = residentsRef.value;
-            if (totalRef.value >= newTotalStaff) clearInterval(syncInterval);
-        }, 16);
-    } else {
-        systemStats.value.totalStaff     = newTotalStaff;
-        systemStats.value.activeAttending = newAttending;
-        systemStats.value.activeResidents = newResidents;
-    }
+                const loadClinicalTrials = async () => {
+                    try {
+                        const data = await API.getAllClinicalTrials();
+                        clinicalTrials.value = data;
+                    } catch (error) {}
+                };
+
+                const loadInnovationProjects = async () => {
+                    try {
+                        const data = await API.getAllInnovationProjects();
+                        innovationProjects.value = data;
+                    } catch (error) {}
+                };
+
+                // ============ COORDINATOR ASSIGNMENT ============
+                const assignCoordinator = async (researchLineId, coordinatorId) => {
+                    try {
+                        const result = await API.assignCoordinator(researchLineId, coordinatorId);
+                        await loadResearchLines();
+                        showToast('Success', 
+                            coordinatorId ? 'Coordinator assigned successfully' : 'Coordinator removed',
+                            'success'
+                        );
+                        return result;
+                    } catch (error) {
+                        showToast('Error', error.message || 'Failed to assign coordinator', 'error');
+                        throw error;
+                    }
+                };
+
+                // ============ UPDATE DASHBOARD STATS ============
+                const updateDashboardStats = () => {
+                    const newTotalStaff = medicalStaff.value.length;
+                    const newAttending = medicalStaff.value.filter(s =>
+                        s.staff_type === 'attending_physician' && s.employment_status === 'active').length;
+                    const newResidents = medicalStaff.value.filter(s =>
+                        s.staff_type === 'medical_resident' && s.employment_status === 'active').length;
+
+                    if (systemStats.value.totalStaff === 0 && newTotalStaff > 0) {
+                        const totalRef = { value: 0 };
+                        const attendingRef = { value: 0 };
+                        const residentsRef = { value: 0 };
+                        animateCountUp(totalRef,    newTotalStaff, 700);
+                        animateCountUp(attendingRef, newAttending,  600);
+                        animateCountUp(residentsRef, newResidents,  650);
+                        const syncInterval = setInterval(() => {
+                            systemStats.value.totalStaff     = totalRef.value;
+                            systemStats.value.activeAttending = attendingRef.value;
+                            systemStats.value.activeResidents = residentsRef.value;
+                            if (totalRef.value >= newTotalStaff) clearInterval(syncInterval);
+                        }, 16);
+                    } else {
+                        systemStats.value.totalStaff     = newTotalStaff;
+                        systemStats.value.activeAttending = newAttending;
+                        systemStats.value.activeResidents = newResidents;
+                    }
 
                     const today = new Date().toISOString().split('T')[0];
                     systemStats.value.onLeaveStaff = absences.value.filter(absence => {
@@ -1324,22 +1499,27 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     systemStats.value.onCallNow = unique.size;
                 };
 
+                // ============ LOAD ALL DATA ============
                 const loadAllData = async () => {
                     loading.value = true;
                     try {
                         await Promise.all([
                             loadMedicalStaff(), loadDepartments(), loadTrainingUnits(),
                             loadRotations(), loadAbsences(), loadOnCallSchedule(),
-                            loadTodaysOnCall(), loadAnnouncements(), loadClinicalStatus(), loadSystemStats()
+                            loadTodaysOnCall(), loadAnnouncements(), loadClinicalStatus(), 
+                            loadSystemStats(), loadResearchLines(), loadClinicalTrials(),
+                            loadInnovationProjects()
                         ]);
                         await loadActiveMedicalStaff();
                         updateDashboardStats();
                         showToast('Success', 'System data loaded successfully', 'success');
-                    } catch { showToast('Error', 'Failed to load some data', 'error'); }
+                    } catch { 
+                        showToast('Error', 'Failed to load some data', 'error'); 
+                    }
                     finally { loading.value = false; }
                 };
 
-                // \u2500\u2500 Authentication \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ AUTHENTICATION ============
                 const handleLogin = async () => {
                     if (!loginForm.email || !loginForm.password) {
                         showToast('Error', 'Email and password are required', 'error');
@@ -1373,7 +1553,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     });
                 };
 
-                // \u2500\u2500 Navigation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ NAVIGATION ============
                 const switchView = (view) => { currentView.value = view; mobileMenuOpen.value = false; };
                 const toggleStatsSidebar = () => { statsSidebarOpen.value = !statsSidebarOpen.value; };
                 const handleGlobalSearch = () => {};
@@ -1382,7 +1562,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     if (index > -1) systemAlerts.value.splice(index, 1);
                 };
 
-                // \u2500\u2500 Modal Show Functions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ MODAL SHOW FUNCTIONS ============
                 const showAddMedicalStaffModal = () => {
                     medicalStaffModal.mode = 'add';
                     medicalStaffModal.activeTab = 'basic';
@@ -1474,10 +1654,10 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     userMenuOpen.value = false;
                 };
 
-                // \u2500\u2500 View / Edit Functions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ VIEW/EDIT FUNCTIONS ============
                 const viewStaffDetails = (staff) => {
                     staffProfileModal.staff = staff;
-                    staffProfileModal.activeTab = 'assignments'; // Always start on Assignments tab
+                    staffProfileModal.activeTab = 'assignments';
                     staffProfileModal.show = true;
                 };
 
@@ -1497,7 +1677,6 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                 const editRotation = (rotation) => { rotationModal.mode = 'edit'; rotationModal.form = { ...rotation }; rotationModal.show = true; };
                 const editOnCallSchedule = (schedule) => {
                     onCallModal.mode = 'edit';
-                    // Normalize shift_type to backend-valid values
                     const rawShift = schedule.shift_type || 'primary_call';
                     const normalizedShift = (rawShift === 'primary' || rawShift === 'primary_call') ? 'primary_call' : 'backup_call';
                     onCallModal.form = {
@@ -1521,13 +1700,12 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                         coverage_notes: absence.coverage_notes || '',
                         coverage_arranged: absence.coverage_arranged || false,
                         hod_notes: absence.hod_notes || '',
-                        // Read-only fields preserved for display, not sent to API
                         current_status: absence.current_status || null
                     };
                     absenceModal.show = true;
                 };
 
-                // \u2500\u2500 Save Functions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ SAVE FUNCTIONS ============
                 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
                 const saveMedicalStaff = async () => {
@@ -1667,7 +1845,6 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
                     if (duration > 365) { showToast('Error', `Rotation cannot exceed 365 days. Current: ${duration}`, 'error'); return; }
 
-                    // Overlap check
                     const parseDate = (s) => {
                         if (!s) return new Date(NaN);
                         if (s.match(/^\d{4}-\d{2}-\d{2}$/)) return new Date(s + 'T00:00:00');
@@ -1679,7 +1856,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     };
 
                     const newStart = parseDate(rotationModal.form.start_date);
-                    const newEnd = parseDate(rotationModal.form.rotation_end_date);
+                    const newEnd = parseDate(rotationModal.form.end_date);
                     newEnd.setHours(23, 59, 59, 999);
 
                     const excludeId = rotationModal.mode === 'edit' ? rotationModal.form.id : null;
@@ -1736,10 +1913,6 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                 const saveOnCallSchedule = async () => {
                     saving.value = true;
                     try {
-                        // Backend Joi schema fields: duty_date, shift_type (primary_call|backup_call),
-                        // start_time, end_time, primary_physician_id, backup_physician_id,
-                        // coverage_notes, schedule_id, created_by
-                        // coverage_area is NOT in backend schema - stored locally for display only
                         const onCallData = {
                             duty_date: onCallModal.form.duty_date,
                             shift_type: onCallModal.form.shift_type || 'primary_call',
@@ -1752,7 +1925,6 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                         };
                         if (onCallModal.mode === 'add') {
                             const result = await API.createOnCall(onCallData);
-                            // Merge coverage_area back for local display (not sent to backend)
                             onCallSchedule.value.unshift({ ...result, coverage_area: onCallModal.form.coverage_area });
                             showToast('Success', 'On-call scheduled successfully', 'success');
                         } else {
@@ -1770,12 +1942,6 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                 const saveAbsence = async () => {
                     saving.value = true;
                     try {
-                        // Backend Joi schema (absenceRecord): staff_member_id, absence_type (planned|unplanned),
-                        // absence_reason (vacation|conference|sick_leave|training|personal|other),
-                        // start_date, end_date, coverage_arranged (bool), covering_staff_id (uuid|null),
-                        // coverage_notes, hod_notes
-                        // NOTE: current_status is AUTO-CALCULATED by DB trigger — do NOT send it
-                        // NOTE: recorded_by is set from req.user.id by backend — do NOT send it
                         const absenceData = {
                             staff_member_id: absenceModal.form.staff_member_id,
                             absence_type: absenceModal.form.absence_type || 'planned',
@@ -1789,7 +1955,6 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                         };
                         if (absenceModal.mode === 'add') {
                             const result = await API.createAbsence(absenceData);
-                            // Backend returns { success, data } — unwrap the data object
                             const record = result?.data || result;
                             absences.value.unshift(record);
                             showToast('Success', 'Absence recorded successfully', 'success');
@@ -1840,7 +2005,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     finally { saving.value = false; }
                 };
 
-                // \u2500\u2500 Action Functions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ ACTION FUNCTIONS ============
                 const contactPhysician = (shift) => {
                     if (shift.contactInfo && shift.contactInfo !== 'No contact info') {
                         showToast('Contact Physician',
@@ -1859,7 +2024,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     showToast('Department Staff', `Viewing staff for ${department.name}`, 'info');
                 };
 
-                // \u2500\u2500 Permissions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ PERMISSIONS ============
                 const hasPermission = (module, action = 'read') => {
                     const role = currentUser.value?.user_role;
                     if (!role) return false;
@@ -1869,7 +2034,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     return permissions.includes(action) || permissions.includes('*');
                 };
 
-                // \u2500\u2500 Computed \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ COMPUTED PROPERTIES ============
                 const authToken = computed(() => localStorage.getItem(CONFIG.TOKEN_KEY));
                 const unreadAnnouncements = computed(() => announcements.value.filter(a => !a.read).length);
                 const unreadLiveUpdates = computed(() => {
@@ -1947,7 +2112,7 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     systemAlerts.value.filter(a => a.status === 'active' || !a.status).length);
                 const currentTimeFormatted = computed(() => EnhancedUtils.formatTime(currentTime.value));
 
-                // \u2500\u2500 Lifecycle \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ LIFECYCLE ============
                 onMounted(() => {
                     const token = localStorage.getItem(CONFIG.TOKEN_KEY);
                     const user = localStorage.getItem(CONFIG.USER_KEY);
@@ -1986,81 +2151,115 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
                     updateDashboardStats();
                 }, { deep: true });
 
-                // \u2500\u2500 Return \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ============ RETURN ============
                 return {
                     // State
                     currentUser, loginForm, loginLoading, loading, saving, loadingSchedule, isLoadingStatus,
                     currentView, sidebarCollapsed, mobileMenuOpen, userMenuOpen, statsSidebarOpen, globalSearchQuery,
+                    
                     // Data
                     medicalStaff, departments, trainingUnits, rotations, absences, onCallSchedule, announcements,
+                    
+                    // Research Data (NEW)
+                    researchLines, clinicalTrials, innovationProjects,
+                    
                     // Live Status
-                    clinicalStatus, recentStatuses, newStatusText, selectedAuthorId, expiryHours, activeMedicalStaff, liveStatsEditMode,
-                    // State
+                    clinicalStatus, recentStatuses, newStatusText, selectedAuthorId, expiryHours, 
+                    activeMedicalStaff, liveStatsEditMode,
+                    
+                    // UI State
                     quickStatus, currentTime, getStatusLocation, getRecentStatuses,
+                    
                     // Dashboard
                     systemStats, todaysOnCall, todaysOnCallCount,
-                    // UI
+                    
+                    // UI Components
                     toasts, systemAlerts,
+                    
                     // Filters
                     staffFilters, onCallFilters, rotationFilters, absenceFilters,
+                    
                     // Modals
                     staffProfileModal, unitResidentsModal, medicalStaffModal, communicationsModal,
                     onCallModal, rotationModal, trainingUnitModal, absenceModal, departmentModal,
                     userProfileModal, confirmationModal,
-                    // Date / Time (template-facing)
+                    
+                    // Date/Time Helpers
                     formatDate, formatDateShort, formatDatePlusDays, getTomorrow,
                     formatTime, formatRelativeTime, formatTimeAgo, getInitials,
                     formatDateTime: EnhancedUtils.formatDateTime,
+                    
                     // Formatting
-                    formatTime: EnhancedUtils.formatTime, formatRelativeTime: EnhancedUtils.formatRelativeTime,
-                    getInitials: EnhancedUtils.getInitials, formatStaffType, getStaffTypeClass,
-                    formatEmploymentStatus, formatAbsenceReason, formatAbsenceStatus, formatRotationStatus,
-                    getUserRoleDisplay, getCurrentViewTitle, getCurrentViewSubtitle, getSearchPlaceholder,
-                    // Helpers
+                    formatStaffType, getStaffTypeClass, formatEmploymentStatus, formatAbsenceReason,
+                    formatAbsenceStatus, formatRotationStatus, getUserRoleDisplay,
+                    getCurrentViewTitle, getCurrentViewSubtitle, getSearchPlaceholder,
+                    
+                    // Core Helpers
                     getDepartmentName, getStaffName, getTrainingUnitName, getSupervisorName,
                     getPhysicianName, getResidentName, getDepartmentUnits, getDepartmentStaffCount,
                     getCurrentRotationForStaff, calculateAbsenceDuration,
+                    
+                    // Research Helpers (NEW)
+                    getResearchLineName, getCoordinatorName, getClinicianResearchLines, formatResearchRole,
+                    
                     // Unit Residents
                     getUnitActiveRotationCount, getDaysRemaining, getDaysUntilStart,
+                    
                     // UI Helpers
                     getShiftStatusClass, isCurrentShift, getStaffTypeIcon, calculateCapacityPercent,
                     getCapacityDotClass, getMeterFillClass, getAbsenceReasonIcon, getScheduleIcon,
-                    // Profile
+                    
+                    // Profile Functions
                     getCurrentUnit, getCurrentWard, getCurrentActivityStatus,
                     isOnCallToday, getOnCallShiftTime, getOnCallCoverage,
                     getRotationSupervisor, getRotationDaysLeft,
                     hasProfessionalCredentials, getUpcomingOnCall, getUpcomingLeave, getRotationHistory,
-                    // Status
+                    
+                    // Status Functions
                     getStatusBadgeClass, calculateTimeRemaining, refreshStatus, setQuickStatus,
                     formatAudience, getPreviewCardClass, getPreviewIcon, getPreviewReasonText,
                     getPreviewStatusClass, getPreviewStatusText, updatePreview,
-                    // Live Status
+                    
+                    // Live Status Functions
                     loadClinicalStatus, loadActiveMedicalStaff, saveClinicalStatus, isStatusExpired, showCreateStatusModal,
-                    // Delete
+                    
+                    // Delete Functions
                     deleteMedicalStaff, deleteRotation, deleteOnCallSchedule, deleteAbsence,
                     deleteAnnouncement, deleteClinicalStatus,
-                    // Toast / Confirmation
+                    
+                    // Toast/Confirmation
                     showToast, removeToast, dismissAlert, showConfirmation, confirmAction, cancelConfirmation,
+                    
                     // Auth
                     handleLogin, handleLogout,
+                    
                     // Navigation
                     switchView, toggleStatsSidebar, handleGlobalSearch,
-                    // Modal Show
+                    
+                    // Modal Show Functions
                     showAddMedicalStaffModal, showAddDepartmentModal, showAddTrainingUnitModal,
                     showAddRotationModal, showAddOnCallModal, showAddAbsenceModal,
                     showCommunicationsModal, showUserProfileModal,
-                    // View/Edit
+                    
+                    // View/Edit Functions
                     viewStaffDetails, viewUnitResidents, viewDepartmentStaff,
                     editMedicalStaff, editDepartment, editTrainingUnit, editRotation,
                     editOnCallSchedule, editAbsence,
-                    // Action
+                    
+                    // Action Functions
                     contactPhysician, viewAnnouncement,
-                    // Save
+                    
+                    // Research Action (NEW)
+                    assignCoordinator,
+                    
+                    // Save Functions
                     saveMedicalStaff, saveDepartment, saveTrainingUnit, saveRotation,
                     saveOnCallSchedule, saveAbsence, saveCommunication, saveUserProfile,
+                    
                     // Permissions
                     hasPermission,
-                    // Computed
+                    
+                    // Computed Properties
                     authToken, unreadAnnouncements, unreadLiveUpdates, formattedExpiry,
                     availablePhysicians, availableResidents, availableAttendings,
                     availableHeadsOfDepartment, availableReplacementStaff,
@@ -2075,12 +2274,12 @@ const animateCountUp = (targetRef, endValue, duration = 600) => {
     } catch (error) {
         document.body.innerHTML = `
             <div style="padding: 40px; text-align: center; margin-top: 100px; color: #333; font-family: Arial, sans-serif;">
-                <h2 style="color: #dc3545;">\u26a0\ufe0f Application Error</h2>
+                <h2 style="color: #dc3545;">⚠️ Application Error</h2>
                 <p style="margin: 20px 0; color: #666;">The application failed to load properly. Please try refreshing the page.</p>
                 <button onclick="window.location.reload()"
                         style="padding: 12px 24px; background: #007bff; color: white;
                                border: none; border-radius: 6px; cursor: pointer; margin-top: 20px;">
-                    \ud83d\udd04 Refresh Page
+                    🔄 Refresh Page
                 </button>
             </div>
         `;
