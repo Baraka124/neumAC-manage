@@ -2124,103 +2124,160 @@ document.addEventListener('DOMContentLoaded', function() {
                     } catch (error) { showToast('Error', error.message, 'error'); }
                     finally { saving.value = false; }
                 };
+const saveRotation = async () => {
+    // ============ VALIDATION ============
+    if (!rotationModal.form.resident_id) { 
+        showToast('Error', 'Please select a resident', 'error'); 
+        return; 
+    }
+    if (!rotationModal.form.training_unit_id) { 
+        showToast('Error', 'Please select a training unit', 'error'); 
+        return; 
+    }
 
-                const saveRotation = async () => {
-                    if (!rotationModal.form.resident_id) { showToast('Error', 'Please select a resident', 'error'); return; }
-                    if (!rotationModal.form.training_unit_id) { showToast('Error', 'Please select a training unit', 'error'); return; }
+    const startDateStr = rotationModal.form.start_date;
+    const endDateStr = rotationModal.form.end_date;
+    
+    if (!startDateStr || !endDateStr) { 
+        showToast('Error', 'Please enter both start and end dates', 'error'); 
+        return; 
+    }
 
-                    const startDateStr = rotationModal.form.start_date;
-                    const endDateStr = rotationModal.form.end_date;
-                    if (!startDateStr || !endDateStr) { showToast('Error', 'Please enter both start and end dates', 'error'); return; }
+    // ============ DATE PARSING - STABLE VERSION ============
+    let startDate, endDate;
+    
+    try {
+        // Helper function to parse date safely
+        const parseDateSafely = (dateStr, isEndDate = false) => {
+            // If it's already YYYY-MM-DD format
+            if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                return isEndDate 
+                    ? new Date(dateStr + 'T23:59:59')
+                    : new Date(dateStr + 'T00:00:00');
+            }
+            
+            // Try to parse any date string
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) {
+                throw new Error('Invalid date');
+            }
+            return date;
+        };
 
-                    let startDate, endDate;
-                    try {
-                        const isDDMMYYYY = (s) => s.includes('/') && s.split('/')[0].length === 2;
-                        const parseInput = (s, eod = false) => {
-                            if (isDDMMYYYY(s)) {
-                                const [d, m, y] = s.split('/');
-                                return new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T${eod ? '23:59:59' : '00:00:00'}`);
-                            }
-                            return new Date(s);
-                        };
-                        startDate = parseInput(startDateStr, false);
-                        endDate = parseInput(endDateStr, true);
-                        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) throw new Error('Invalid date');
-                        rotationModal.form.start_date = startDate.toISOString().split('T')[0];
-                        rotationModal.form.end_date = endDate.toISOString().split('T')[0];
-                    } catch {
-                        showToast('Error', 'Invalid date format. Use YYYY-MM-DD or DD/MM/YYYY', 'error');
-                        return;
-                    }
+        startDate = parseDateSafely(startDateStr, false);
+        endDate = parseDateSafely(endDateStr, true);
 
-                    if (endDate <= startDate) { showToast('Error', 'End date must be after start date', 'error'); return; }
-                    const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-                    if (duration > 365) { showToast('Error', `Rotation cannot exceed 365 days. Current: ${duration}`, 'error'); return; }
+        // Format dates to YYYY-MM-DD for the backend
+        rotationModal.form.start_date = startDate.toISOString().split('T')[0];
+        rotationModal.form.end_date = endDate.toISOString().split('T')[0];
 
-                    const parseDate = (s) => {
-                        if (!s) return new Date(NaN);
-                        if (s.match(/^\d{4}-\d{2}-\d{2}$/)) return new Date(s + 'T00:00:00');
-                        if (s.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-                            const [d, m, y] = s.split('/');
-                            return new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T00:00:00`);
-                        }
-                        return new Date(s);
-                    };
+    } catch (error) {
+        showToast('Error', 'Invalid date format. Please use YYYY-MM-DD', 'error');
+        return;
+    }
 
-                    const newStart = parseDate(rotationModal.form.start_date);
-                    const newEnd = parseDate(rotationModal.form.end_date);
-                    newEnd.setHours(23, 59, 59, 999);
+    // ============ DATE VALIDATION ============
+    if (endDate <= startDate) { 
+        showToast('Error', 'End date must be after start date', 'error'); 
+        return; 
+    }
 
-                    const excludeId = rotationModal.mode === 'edit' ? rotationModal.form.id : null;
-                    const hasOverlap = rotations.value.some(r => {
-                        if (r.resident_id !== rotationModal.form.resident_id) return false;
-                        if (r.rotation_status === 'cancelled') return false;
-                        if (excludeId && r.id === excludeId) return false;
-                        const eStart = parseDate(r.rotation_start_date || r.start_date);
-                        const eEnd = parseDate(r.rotation_end_date || r.end_date);
-                        if (isNaN(eStart.getTime()) || isNaN(eEnd.getTime())) return false;
-                        eEnd.setHours(23, 59, 59, 999);
-                        return newStart <= eEnd && newEnd >= eStart;
-                    });
+    const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+    if (duration > 365) { 
+        showToast('Error', `Rotation cannot exceed 365 days. Current: ${duration} days`, 'error'); 
+        return; 
+    }
 
-                    if (hasOverlap) {
-                        showToast('Scheduling Conflict',
-                            `${getResidentName(rotationModal.form.resident_id)} already has a rotation during these dates.`,
-                            'error');
-                        return;
-                    }
+    // ============ OVERLAP CHECK ============
+    const parseDate = (dateStr) => {
+        if (!dateStr) return new Date(NaN);
+        // Handle YYYY-MM-DD format
+        if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            return new Date(dateStr + 'T00:00:00');
+        }
+        return new Date(dateStr);
+    };
 
-                    saving.value = true;
-                    try {
-                        const rotationData = {
-                            rotation_id: rotationModal.form.rotation_id || EnhancedUtils.generateId('ROT'),
-                            resident_id: rotationModal.form.resident_id,
-                            training_unit_id: rotationModal.form.training_unit_id,
-                            supervising_attending_id: rotationModal.form.supervising_attending_id || null,
-                            start_date: rotationModal.form.start_date,
-                            end_date: rotationModal.form.end_date,
-                            rotation_category: rotationModal.form.rotation_category || 'clinical_rotation',
-                            rotation_status: (rotationModal.form.rotation_status || 'scheduled').toLowerCase()
-                        };
-                        if (rotationModal.mode === 'add') {
-                            const result = await API.createRotation(rotationData);
-                            rotations.value.unshift(result);
-                            showToast('Success', 'Rotation scheduled successfully', 'success');
-                        } else {
-                            const result = await API.updateRotation(rotationModal.form.id, rotationData);
-                            const index = rotations.value.findIndex(r => r.id === result.id);
-                            if (index !== -1) rotations.value[index] = result;
-                            showToast('Success', 'Rotation updated successfully', 'success');
-                        }
-                        rotationModal.show = false;
-                        await loadRotations();
-                        updateDashboardStats();
-                    } catch (error) {
-                        let msg = error.message || 'Failed to save rotation';
-                        if (msg.includes('overlapping')) msg = 'Rotation dates conflict with existing schedule.';
-                        showToast('Error', msg, 'error');
-                    } finally { saving.value = false; }
-                };
+    const newStart = parseDate(rotationModal.form.start_date);
+    const newEnd = parseDate(rotationModal.form.end_date);
+    newEnd.setHours(23, 59, 59, 999);
+
+    const excludeId = rotationModal.mode === 'edit' ? rotationModal.form.id : null;
+    
+    const hasOverlap = rotations.value.some(r => {
+        if (r.resident_id !== rotationModal.form.resident_id) return false;
+        if (r.rotation_status === 'cancelled') return false;
+        if (excludeId && r.id === excludeId) return false;
+        
+        const eStart = parseDate(r.rotation_start_date || r.start_date);
+        const eEnd = parseDate(r.rotation_end_date || r.end_date);
+        
+        if (isNaN(eStart.getTime()) || isNaN(eEnd.getTime())) return false;
+        
+        eEnd.setHours(23, 59, 59, 999);
+        return newStart <= eEnd && newEnd >= eStart;
+    });
+
+    if (hasOverlap) {
+        showToast('Scheduling Conflict',
+            `${getResidentName(rotationModal.form.resident_id)} already has a rotation during these dates.`,
+            'error');
+        return;
+    }
+
+    // ============ SAVE ROTATION ============
+    saving.value = true;
+    
+    try {
+        // Prepare data for API - ensure dates are in YYYY-MM-DD format
+        const rotationData = {
+            rotation_id: rotationModal.form.rotation_id || EnhancedUtils.generateId('ROT'),
+            resident_id: rotationModal.form.resident_id,
+            training_unit_id: rotationModal.form.training_unit_id,
+            supervising_attending_id: rotationModal.form.supervising_attending_id || null,
+            start_date: rotationModal.form.start_date, // Already in YYYY-MM-DD
+            end_date: rotationModal.form.end_date,     // Already in YYYY-MM-DD
+            rotation_category: rotationModal.form.rotation_category || 'clinical_rotation',
+            rotation_status: (rotationModal.form.rotation_status || 'scheduled').toLowerCase()
+        };
+
+        console.log('📤 Sending rotation data:', rotationData); // For debugging
+
+        if (rotationModal.mode === 'add') {
+            const result = await API.createRotation(rotationData);
+            rotations.value.unshift(result);
+            showToast('Success', 'Rotation scheduled successfully', 'success');
+        } else {
+            const result = await API.updateRotation(rotationModal.form.id, rotationData);
+            const index = rotations.value.findIndex(r => r.id === result.id);
+            if (index !== -1) rotations.value[index] = result;
+            showToast('Success', 'Rotation updated successfully', 'success');
+        }
+        
+        rotationModal.show = false;
+        await loadRotations();
+        updateDashboardStats();
+        
+    } catch (error) {
+        console.error('❌ Rotation save error:', error);
+        let msg = error.message || 'Failed to save rotation';
+        
+        // User-friendly error messages
+        if (msg.includes('overlapping')) {
+            msg = 'Rotation dates conflict with existing schedule.';
+        } else if (msg.includes('date')) {
+            msg = 'Invalid date format. Please use YYYY-MM-DD.';
+        } else if (msg.includes('resident_id')) {
+            msg = 'Invalid resident selected. Please try again.';
+        } else if (msg.includes('training_unit_id')) {
+            msg = 'Invalid training unit selected. Please try again.';
+        }
+        
+        showToast('Error', msg, 'error');
+    } finally { 
+        saving.value = false; 
+    }
+};
 
                 const saveOnCallSchedule = async () => {
                     saving.value = true;
