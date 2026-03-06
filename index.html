@@ -166,6 +166,40 @@
                         </li>
                     </ul>
                 </div>
+                
+                <!-- ============ NEW: RESEARCH SECTION ============ -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title" v-if="!sidebarCollapsed">Research</div>
+                    <ul class="sidebar-menu">
+                        <li class="sidebar-menu-item">
+                            <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'research_lines' }"
+                               @click.prevent="switchView('research_lines'); mobileMenuOpen = false"
+                               v-if="hasPermission('research_lines', 'read')"
+                               :aria-current="currentView === 'research_lines' ? 'page' : null">
+                                <i class="fas fa-flask"></i>
+                                <span v-if="!sidebarCollapsed">Research Lines</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'clinical_trials' }"
+                               @click.prevent="switchView('clinical_trials'); mobileMenuOpen = false"
+                               v-if="hasPermission('research_lines', 'read')"
+                               :aria-current="currentView === 'clinical_trials' ? 'page' : null">
+                                <i class="fas fa-vial"></i>
+                                <span v-if="!sidebarCollapsed">Clinical Trials</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'innovation_projects' }"
+                               @click.prevent="switchView('innovation_projects'); mobileMenuOpen = false"
+                               v-if="hasPermission('research_lines', 'read')"
+                               :aria-current="currentView === 'innovation_projects' ? 'page' : null">
+                                <i class="fas fa-microscope"></i>
+                                <span v-if="!sidebarCollapsed">Innovation Projects</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </nav>
             <div class="sidebar-footer">
                 <div class="sidebar-user">
@@ -1077,6 +1111,194 @@
                     </div>
                 </div>
 
+                <!-- ============ NEW: RESEARCH LINES VIEW ============ -->
+                <div v-if="currentView === 'research_lines'">
+                    <div class="card mb-6">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-flask"></i> Research Lines</div>
+                            <button class="btn btn-primary" @click="showAddResearchLineModal" v-if="hasPermission('research_lines', 'create')">
+                                <i class="fas fa-plus"></i> Add Research Line
+                            </button>
+                        </div>
+                        
+                        <!-- Research Lines Grid -->
+                        <div class="research-lines-grid">
+                            <div v-for="line in researchLines" :key="line.id" class="research-line-card">
+                                <div class="research-line-header">
+                                    <div class="research-line-number">Línea {{ line.line_number }}</div>
+                                    <div class="research-line-actions">
+                                        <button class="btn-icon" @click="editResearchLine(line)" v-if="hasPermission('research_lines', 'update')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <h3 class="research-line-name">{{ line.research_line_name || line.name }}</h3>
+                                <p class="research-line-description">{{ line.description }}</p>
+                                
+                                <!-- Coordinator Section -->
+                                <div class="research-coordinator-section">
+                                    <div class="coordinator-label">Coordinador/a</div>
+                                    <div class="coordinator-info" v-if="line.coordinator_id">
+                                        <div class="coordinator-avatar">{{ getInitials(line.coordinator_name) }}</div>
+                                        <div>
+                                            <div class="coordinator-name">{{ line.coordinator_name }}</div>
+                                            <div class="coordinator-email">{{ line.coordinator_email }}</div>
+                                        </div>
+                                    </div>
+                                    <div v-else class="coordinator-empty">
+                                        <span>No asignado</span>
+                                        <button class="btn btn-sm btn-outline" @click="openAssignCoordinatorModal(line)" v-if="hasPermission('research_lines', 'update')">
+                                            <i class="fas fa-user-plus"></i> Asignar
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Capabilities -->
+                                <div class="research-capabilities">
+                                    <span class="capabilities-label">{{ line.capabilities }}</span>
+                                </div>
+                                
+                                <!-- Keywords/Tags -->
+                                <div class="research-keywords" v-if="line.keywords && line.keywords.length">
+                                    <span v-for="kw in line.keywords" :key="kw" class="keyword-tag">{{ kw }}</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Empty State -->
+                            <div v-if="researchLines.length === 0" class="col-span-full empty-state">
+                                <i class="fas fa-flask empty-state-icon"></i>
+                                <div class="empty-state-title">No research lines found</div>
+                                <div class="empty-state-description">Research lines organize your department's scientific focus areas</div>
+                                <button class="btn btn-primary btn-sm" @click="showAddResearchLineModal" v-if="hasPermission('research_lines', 'create')">
+                                    <i class="fas fa-plus"></i> Add First Research Line
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============ NEW: CLINICAL TRIALS VIEW ============ -->
+                <div v-if="currentView === 'clinical_trials'">
+                    <div class="card mb-6">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-vial"></i> Clinical Trials</div>
+                            <button class="btn btn-primary" @click="showAddTrialModal" v-if="hasPermission('research_lines', 'create')">
+                                <i class="fas fa-plus"></i> Add Trial
+                            </button>
+                        </div>
+                        
+                        <!-- Filters -->
+                        <div class="filter-bar">
+                            <select class="form-select" v-model="trialFilters.line">
+                                <option value="">All Lines</option>
+                                <option v-for="line in researchLines" :key="line.id" :value="line.id">{{ line.research_line_name || line.name }}</option>
+                            </select>
+                            <select class="form-select" v-model="trialFilters.phase">
+                                <option value="">All Phases</option>
+                                <option value="Phase I">Phase I</option>
+                                <option value="Phase II">Phase II</option>
+                                <option value="Phase III">Phase III</option>
+                                <option value="Phase IV">Phase IV</option>
+                            </select>
+                            <select class="form-select" v-model="trialFilters.status">
+                                <option value="">All Status</option>
+                                <option value="Reclutando">Reclutando</option>
+                                <option value="Activo">Activo</option>
+                                <option value="Completado">Completado</option>
+                            </select>
+                            <input type="text" class="form-control" v-model="trialFilters.search" placeholder="Search by protocol or title…">
+                        </div>
+                        
+                        <!-- Trials Table -->
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr><th>Protocolo</th><th>Título del Estudio</th><th>Línea</th><th>Fase</th><th>Estado</th><th>Actions</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="trial in filteredTrials" :key="trial.id">
+                                        <td class="font-mono">{{ trial.protocol_id }}</td>
+                                        <td>{{ trial.title }}</td>
+                                        <td>{{ getResearchLineName(trial.research_line_id) }}</td>
+                                        <td><span class="badge badge-info">{{ trial.phase }}</span></td>
+                                        <td><span class="status-indicator" :class="trial.status === 'Reclutando' ? 'status-active' : 'status-completed'">{{ trial.status }}</span></td>
+                                        <td>
+                                            <button class="btn-pill btn-pill-edit" @click="editTrial(trial)" v-if="hasPermission('research_lines', 'update')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="filteredTrials.length === 0">
+                                        <td colspan="6" class="empty-state">
+                                            <i class="fas fa-vial empty-state-icon"></i>
+                                            <div class="empty-state-title">No clinical trials found</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Note about full database -->
+                        <div class="trials-note">
+                            <i class="fas fa-info-circle"></i>
+                            <span>10 ensayos mostrados (muestra — base de datos completa próximamente). <a href="#" @click.prevent="requestFullDossier">Solicitar Dossier</a></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============ NEW: INNOVATION PROJECTS VIEW ============ -->
+                <div v-if="currentView === 'innovation_projects'">
+                    <div class="card mb-6">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-microscope"></i> Innovation Projects</div>
+                            <button class="btn btn-primary" @click="showAddProjectModal" v-if="hasPermission('research_lines', 'create')">
+                                <i class="fas fa-plus"></i> Add Project
+                            </button>
+                        </div>
+                        
+                        <!-- Projects Grid -->
+                        <div class="innovation-projects-grid">
+                            <div v-for="project in innovationProjects" :key="project.id" class="innovation-card">
+                                <div class="innovation-category" :class="project.category.toLowerCase().replace(' ', '-')">
+                                    {{ project.category }}
+                                </div>
+                                <h3 class="innovation-title">{{ project.title }}</h3>
+                                <div class="innovation-stage">
+                                    <span class="stage-badge">{{ project.development_stage }}</span>
+                                </div>
+                                <p class="innovation-description">{{ project.description }}</p>
+                                
+                                <div class="innovation-research-line">
+                                    <i class="fas fa-flask"></i>
+                                    <span>{{ getResearchLineName(project.research_line_id) }}</span>
+                                </div>
+                                
+                                <div class="innovation-needs" v-if="project.partner_needs && project.partner_needs.length">
+                                    <div class="needs-label">Necesidades del Socio:</div>
+                                    <div class="needs-tags">
+                                        <span v-for="need in project.partner_needs" :key="need" class="need-tag">{{ need }}</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="innovation-actions">
+                                    <button class="btn-pill btn-pill-edit" @click="editProject(project)" v-if="hasPermission('research_lines', 'update')">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div v-if="innovationProjects.length === 0" class="col-span-full empty-state">
+                                <i class="fas fa-microscope empty-state-icon"></i>
+                                <div class="empty-state-title">No innovation projects found</div>
+                                <div class="empty-state-description">Innovation projects showcase your department's cutting-edge research</div>
+                                <button class="btn btn-primary btn-sm" @click="showAddProjectModal" v-if="hasPermission('research_lines', 'create')">
+                                    <i class="fas fa-plus"></i> Add First Project
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div><!-- /content-area -->
         </main>
 
@@ -1086,9 +1308,6 @@
 
         <!-- ══════════════════════════════════════════════════════════
              STAFF PROFILE MODAL — Two column: static left | dynamic right
-             Clinical rules:
-               Resident  → Rotation + On-Call
-               Attending → On-Call ONLY (no rotation)
         ══════════════════════════════════════════════════════════ -->
         <div v-if="staffProfileModal.show" class="modal-overlay">
             <div class="modal-container modal-profile">
@@ -1206,6 +1425,21 @@
                             <div class="pdc pdc-full" v-else>
                                 <span class="pdc-key">Status</span>
                                 <span class="pdc-val pdc-na">No active rotation assigned</span>
+                            </div>
+                        </div>
+
+                        <!-- ── NEW: RESEARCH LINES (for all clinicians) ── -->
+                        <div class="profile-section" v-if="getClinicianResearchLines(staffProfileModal.staff.id).length">
+                            <div class="profile-section-head">
+                                <div class="psh-left"><i class="fas fa-flask"></i><h4>Research Lines</h4></div>
+                                <span class="sec-chip chip-active">{{ getClinicianResearchLines(staffProfileModal.staff.id).length }} líneas</span>
+                            </div>
+                            <div v-for="item in getClinicianResearchLines(staffProfileModal.staff.id)" :key="item.line_number" class="research-line-item">
+                                <div class="research-line-marker">L{{ item.line_number }}</div>
+                                <div class="research-line-details">
+                                    <span class="research-line-role">{{ item.role }}</span>
+                                    <span class="research-line-name">{{ item.name }}</span>
+                                </div>
                             </div>
                         </div>
 
@@ -1813,6 +2047,34 @@
                     <button class="btn btn-secondary" @click="cancelConfirmation">{{ confirmationModal.cancelButtonText || 'Cancel' }}</button>
                     <button class="btn" :class="confirmationModal.confirmButtonClass || 'btn-danger'" @click="confirmAction">
                         <i :class="confirmationModal.confirmButtonIcon || 'fas fa-check'"></i>{{ confirmationModal.confirmButtonText || 'Confirm' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW: ASSIGN COORDINATOR MODAL -->
+        <div v-if="assignCoordinatorModal.show" class="modal-overlay">
+            <div class="modal-container modal-sm">
+                <div class="modal-header">
+                    <div class="modal-title"><i class="fas fa-user-tie"></i> Assign Coordinator</div>
+                    <button class="modal-close" @click="assignCoordinatorModal.show = false"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-4">Assign coordinator for: <strong>{{ assignCoordinatorModal.lineName }}</strong></p>
+                    <div class="form-group">
+                        <label class="form-label">Select Coordinator</label>
+                        <select class="form-select" v-model="assignCoordinatorModal.selectedCoordinatorId">
+                            <option value="">— No coordinator assigned —</option>
+                            <option v-for="staff in availableAttendings" :key="staff.id" :value="staff.id">
+                                {{ staff.full_name }} ({{ staff.specialization || 'Attending' }})
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @click="assignCoordinatorModal.show = false">Cancel</button>
+                    <button class="btn btn-primary" @click="saveCoordinatorAssignment">
+                        <i class="fas fa-save"></i> Assign
                     </button>
                 </div>
             </div>
