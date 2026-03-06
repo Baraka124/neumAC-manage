@@ -484,6 +484,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 const onCallFilters = reactive({ date: '', shiftType: '', physician: '', coverageArea: '' });
                 const rotationFilters = reactive({ resident: '', status: '', trainingUnit: '', supervisor: '' });
                 const absenceFilters = reactive({ staff: '', status: '', reason: '', startDate: '' });
+                // Add with other filters
+const trialFilters = reactive({
+    line: '',
+    phase: '',
+    status: '',
+    search: ''
+});
 
                 // ============ MODALS ============
                 const staffProfileModal = reactive({ show: false, staff: null, activeTab: 'assignments' });
@@ -565,6 +572,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     confirmButtonText: 'Confirm', confirmButtonClass: 'btn-primary',
                     cancelButtonText: 'Cancel', onConfirm: null, details: ''
                 });
+                // Add this with the other modal definitions
+const assignCoordinatorModal = reactive({
+    show: false,
+    lineId: null,
+    lineName: '',
+    selectedCoordinatorId: ''
+});
 
                 // ============ PERMISSION MATRIX ============
                 const PERMISSION_MATRIX = {
@@ -1653,6 +1667,55 @@ document.addEventListener('DOMContentLoaded', function() {
                     userProfileModal.show = true;
                     userMenuOpen.value = false;
                 };
+                // Add with other modal show functions
+const openAssignCoordinatorModal = (line) => {
+    assignCoordinatorModal.lineId = line.id;
+    assignCoordinatorModal.lineName = line.research_line_name || line.name;
+    assignCoordinatorModal.selectedCoordinatorId = line.coordinator_id || '';
+    assignCoordinatorModal.show = true;
+};
+
+const saveCoordinatorAssignment = async () => {
+    try {
+        await assignCoordinator(
+            assignCoordinatorModal.lineId,
+            assignCoordinatorModal.selectedCoordinatorId || null
+        );
+        assignCoordinatorModal.show = false;
+        showToast('Success', 'Coordinator assigned successfully', 'success');
+    } catch (error) {
+        showToast('Error', error.message || 'Failed to assign coordinator', 'error');
+    }
+};
+
+// Placeholder functions for research line CRUD (to prevent undefined errors)
+const showAddResearchLineModal = () => {
+    showToast('Info', 'Add research line functionality coming soon', 'info');
+};
+
+const editResearchLine = (line) => {
+    showToast('Info', 'Edit research line functionality coming soon', 'info');
+};
+
+const showAddTrialModal = () => {
+    showToast('Info', 'Add clinical trial functionality coming soon', 'info');
+};
+
+const editTrial = (trial) => {
+    showToast('Info', 'Edit clinical trial functionality coming soon', 'info');
+};
+
+const showAddProjectModal = () => {
+    showToast('Info', 'Add innovation project functionality coming soon', 'info');
+};
+
+const editProject = (project) => {
+    showToast('Info', 'Edit innovation project functionality coming soon', 'info');
+};
+
+const requestFullDossier = () => {
+    showToast('Info', 'Dossier request functionality coming soon', 'info');
+};
 
                 // ============ VIEW/EDIT FUNCTIONS ============
                 const viewStaffDetails = (staff) => {
@@ -2106,6 +2169,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (absenceFilters.startDate) filtered = filtered.filter(a => a.start_date >= absenceFilters.startDate);
                     return filtered;
                 });
+                // Add with other computed properties
+const filteredTrials = computed(() => {
+    if (!clinicalTrials.value.length) return [];
+    
+    return clinicalTrials.value.filter(trial => {
+        // Filter by line
+        if (trialFilters.line && trial.research_line_id !== trialFilters.line) return false;
+        
+        // Filter by phase
+        if (trialFilters.phase && trial.phase !== trialFilters.phase) return false;
+        
+        // Filter by status
+        if (trialFilters.status && trial.status !== trialFilters.status) return false;
+        
+        // Filter by search
+        if (trialFilters.search) {
+            const search = trialFilters.search.toLowerCase();
+            const matchesProtocol = trial.protocol_id?.toLowerCase().includes(search);
+            const matchesTitle = trial.title?.toLowerCase().includes(search);
+            if (!matchesProtocol && !matchesTitle) return false;
+        }
+        
+        return true;
+    });
+});
 
                 const recentAnnouncements = computed(() => announcements.value.slice(0, 10));
                 const activeAlertsCount = computed(() =>
@@ -2177,12 +2265,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     toasts, systemAlerts,
                     
                     // Filters
-                    staffFilters, onCallFilters, rotationFilters, absenceFilters,
+                    staffFilters, onCallFilters, rotationFilters, absenceFilters,trialFilters,
+
                     
                     // Modals
                     staffProfileModal, unitResidentsModal, medicalStaffModal, communicationsModal,
                     onCallModal, rotationModal, trainingUnitModal, absenceModal, departmentModal,
-                    userProfileModal, confirmationModal,
+                    userProfileModal, confirmationModal,assignCoordinatorModal,
+
                     
                     // Date/Time Helpers
                     formatDate, formatDateShort, formatDatePlusDays, getTomorrow,
@@ -2258,12 +2348,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Permissions
                     hasPermission,
+                    openAssignCoordinatorModal,
+saveCoordinatorAssignment,
+showAddResearchLineModal,
+editResearchLine,
+showAddTrialModal,
+editTrial,
+showAddProjectModal,
+editProject,
+requestFullDossier,
                     
                     // Computed Properties
                     authToken, unreadAnnouncements, unreadLiveUpdates, formattedExpiry,
                     availablePhysicians, availableResidents, availableAttendings,
                     availableHeadsOfDepartment, availableReplacementStaff,
-                    filteredMedicalStaff, filteredOnCallSchedules, filteredRotations,
+                    filteredMedicalStaff, filteredOnCallSchedules, filteredRotations,filteredTrials,
                     filteredAbsences, recentAnnouncements, activeAlertsCount, currentTimeFormatted
                 };
             }
