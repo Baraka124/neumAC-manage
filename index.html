@@ -514,11 +514,16 @@
                                         <td colspan="6" class="text-center py-8"><i class="fas fa-spinner fa-spin"></i></td>
                                     </tr>
                                     <tr v-else-if="todaysOnCall.length === 0">
-                                        <td colspan="6" class="empty-state">
-                                            <i class="fas fa-phone-slash empty-state-icon"></i>
-                                            <div class="empty-state-title">No on-call scheduled today</div>
-                                        </td>
-                                    </tr>
+    <td colspan="6" class="empty-state">
+        <i class="fas fa-phone-slash empty-state-icon"></i>
+        <div class="empty-state-title">No on-call scheduled today</div>
+        <div class="empty-state-description">No physicians are scheduled for on-call coverage</div>
+        <button class="btn btn-primary btn-sm" @click="showAddOnCallModal" v-if="hasPermission('oncall_schedule', 'create')">
+            <i class="fas fa-plus"></i> Schedule First Shift
+        </button>
+    </td>
+</tr>
+                               
                                     <tr v-else v-for="shift in todaysOnCall" :key="shift.id" :class="'row-active'">
                                         <td>
                                             <div class="oncall-shift-cell">
@@ -600,8 +605,9 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="staff in filteredMedicalStaff" :key="staff.id"
-                                        :class="'row-' + staff.employment_status">
+                                   <tr v-for="staff in filteredMedicalStaff" :key="staff.id"
+    :class="'row-' + staff.employment_status"
+    @click="viewStaffDetails(staff)">
                                         <td>
                                             <div class="font-medium">{{ staff.full_name }}</div>
                                             <div class="text-xs text-gray-500">{{ staff.professional_email }}</div>
@@ -627,12 +633,21 @@
                                         </td>
                                     </tr>
                                     <tr v-if="filteredMedicalStaff.length === 0">
-                                        <td colspan="6" class="empty-state">
-                                            <i class="fas fa-user-md empty-state-icon"></i>
-                                            <div class="empty-state-title">No medical staff found</div>
-                                            <div class="empty-state-description">Adjust your search criteria</div>
-                                        </td>
-                                    </tr>
+    <td colspan="6" class="empty-state">
+        <i class="fas fa-user-md empty-state-icon"></i>
+        <div class="empty-state-title">No medical staff found</div>
+        <div class="empty-state-description">
+            <span v-if="staffFilters.search || staffFilters.staffType || staffFilters.department || staffFilters.status">
+                No results match your filters — try clearing them
+            </span>
+            <span v-else>Add your first staff member to get started</span>
+        </div>
+        <button v-if="!staffFilters.search && !staffFilters.staffType && !staffFilters.department && !staffFilters.status && hasPermission('medical_staff', 'create')"
+                class="btn btn-primary btn-sm" @click="showAddMedicalStaffModal">
+            <i class="fas fa-user-plus"></i> Add First Staff Member
+        </button>
+    </td>
+</tr>
                                 </tbody>
                             </table>
                         </div>
@@ -673,7 +688,10 @@
                                     <tr><th>Shift Period</th><th>Physician</th><th>Type</th><th>Coverage Area</th><th>Backup</th><th>Actions</th></tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="schedule in filteredOnCallSchedules" :key="schedule.id" class="row-active">
+                                    <tr v-for="schedule in filteredOnCallSchedules" :key="schedule.id" class="row-active"
+    @click="editOnCallSchedule(schedule)" v-if="hasPermission('oncall_schedule', 'update')">
+<tr v-for="schedule in filteredOnCallSchedules" :key="schedule.id" class="row-active"
+    v-else>
                                         <td>
                                             <div class="oncall-shift-cell">
                                                 <div class="oncall-shift-start">
@@ -704,12 +722,22 @@
                                             </button>
                                         </td>
                                     </tr>
-                                    <tr v-if="filteredOnCallSchedules.length === 0">
-                                        <td colspan="6" class="empty-state">
-                                            <i class="fas fa-phone-medical empty-state-icon"></i>
-                                            <div class="empty-state-title">No schedules found</div>
-                                        </td>
-                                    </tr>
+                                   <tr v-if="filteredOnCallSchedules.length === 0">
+    <td colspan="6" class="empty-state">
+        <i class="fas fa-phone-medical empty-state-icon"></i>
+        <div class="empty-state-title">No schedules found</div>
+        <div class="empty-state-description">
+            <span v-if="onCallFilters.date || onCallFilters.shiftType || onCallFilters.physician || onCallFilters.coverageArea">
+                No results match your filters
+            </span>
+            <span v-else>No on-call shifts have been scheduled yet</span>
+        </div>
+        <button v-if="!onCallFilters.date && !onCallFilters.shiftType && !onCallFilters.physician && !onCallFilters.coverageArea && hasPermission('oncall_schedule', 'create')"
+                class="btn btn-primary btn-sm" @click="showAddOnCallModal">
+            <i class="fas fa-plus"></i> Schedule First Shift
+        </button>
+    </td>
+</tr>
                                 </tbody>
                             </table>
                         </div>
@@ -753,7 +781,8 @@
                                 </thead>
                                 <tbody>
                                     <tr v-for="rotation in filteredRotations" :key="rotation.id"
-                                        :class="'row-' + rotation.rotation_status">
+    :class="'row-' + rotation.rotation_status"
+    @click="hasPermission('resident_rotations', 'update') && editRotation(rotation)">
                                         <td><div class="font-medium">{{ getResidentName(rotation.resident_id) }}</div></td>
                                         <td>{{ getTrainingUnitName(rotation.training_unit_id) }}</td>
                                         <td>
@@ -783,12 +812,22 @@
                                             </button>
                                         </td>
                                     </tr>
-                                    <tr v-if="filteredRotations.length === 0">
-                                        <td colspan="7" class="empty-state">
-                                            <i class="fas fa-calendar-alt empty-state-icon"></i>
-                                            <div class="empty-state-title">No rotations found</div>
-                                        </td>
-                                    </tr>
+                                  <tr v-if="filteredRotations.length === 0">
+    <td colspan="7" class="empty-state">
+        <i class="fas fa-calendar-alt empty-state-icon"></i>
+        <div class="empty-state-title">No rotations found</div>
+        <div class="empty-state-description">
+            <span v-if="rotationFilters.resident || rotationFilters.status || rotationFilters.trainingUnit || rotationFilters.supervisor">
+                No results match your filters
+            </span>
+            <span v-else>No resident rotations have been assigned yet</span>
+        </div>
+        <button v-if="!rotationFilters.resident && !rotationFilters.status && !rotationFilters.trainingUnit && !rotationFilters.supervisor && hasPermission('resident_rotations', 'create')"
+                class="btn btn-primary btn-sm" @click="showAddRotationModal">
+            <i class="fas fa-plus"></i> Add First Rotation
+        </button>
+    </td>
+</tr>
                                 </tbody>
                             </table>
                         </div>
@@ -838,10 +877,14 @@
                                     </button>
                                 </div>
                             </div>
-                            <div v-if="trainingUnits.length === 0" class="col-span-full empty-state">
-                                <i class="fas fa-hospital-user empty-state-icon"></i>
-                                <div class="empty-state-title">No training units found</div>
-                            </div>
+                      <div v-if="trainingUnits.length === 0" class="col-span-full empty-state">
+    <i class="fas fa-hospital-user empty-state-icon"></i>
+    <div class="empty-state-title">No training units found</div>
+    <div class="empty-state-description">Training units are the clinical areas where residents rotate</div>
+    <button class="btn btn-primary btn-sm" @click="showAddTrainingUnitModal" v-if="hasPermission('training_units', 'create')">
+        <i class="fas fa-plus"></i> Add First Unit
+    </button>
+</div>
                         </div>
                     </div>
                 </div>
@@ -878,7 +921,8 @@
                                 </thead>
                                 <tbody>
                                     <tr v-for="absence in filteredAbsences" :key="absence.id"
-                                        :class="absence.absence_type === 'unplanned' ? 'row-on_leave' : 'row-active'">
+    :class="absence.absence_type === 'unplanned' ? 'row-on_leave' : 'row-active'"
+    @click="hasPermission('staff_absence', 'update') && editAbsence(absence)">
                                         <td>
                                             <div class="font-medium">{{ getStaffName(absence.staff_member_id) }}</div>
                                         </td>
@@ -917,12 +961,22 @@
                                             </div>
                                         </td>
                                     </tr>
-                                    <tr v-if="filteredAbsences.length === 0">
-                                        <td colspan="8" class="empty-state">
-                                            <i class="fas fa-user-clock empty-state-icon"></i>
-                                            <div class="empty-state-title">No absences found</div>
-                                        </td>
-                                    </tr>
+                                <tr v-if="filteredAbsences.length === 0">
+    <td colspan="8" class="empty-state">
+        <i class="fas fa-user-clock empty-state-icon"></i>
+        <div class="empty-state-title">No absences found</div>
+        <div class="empty-state-description">
+            <span v-if="absenceFilters.staff || absenceFilters.reason || absenceFilters.startDate">
+                No results match your filters
+            </span>
+            <span v-else>No absence records have been logged</span>
+        </div>
+        <button v-if="!absenceFilters.staff && !absenceFilters.reason && !absenceFilters.startDate && hasPermission('staff_absence', 'create')"
+                class="btn btn-primary btn-sm" @click="showAddAbsenceModal">
+            <i class="fas fa-plus"></i> Record First Absence
+        </button>
+    </td>
+</tr>
                                 </tbody>
                             </table>
                         </div>
@@ -972,9 +1026,13 @@
                                 </div>
                             </div>
                             <div v-if="departments.length === 0" class="col-span-full empty-state">
-                                <i class="fas fa-sitemap empty-state-icon"></i>
-                                <div class="empty-state-title">No departments found</div>
-                            </div>
+    <i class="fas fa-sitemap empty-state-icon"></i>
+    <div class="empty-state-title">No departments found</div>
+    <div class="empty-state-description">Departments group your clinical staff and training units</div>
+    <button class="btn btn-primary btn-sm" @click="showAddDepartmentModal" v-if="hasPermission('system', 'manage_departments')">
+        <i class="fas fa-plus"></i> Add First Department
+    </button>
+</div>
                         </div>
                     </div>
                 </div>
@@ -1008,9 +1066,13 @@
                                 </div>
                             </div>
                             <div v-if="recentAnnouncements.length === 0" class="empty-state">
-                                <i class="fas fa-bullhorn empty-state-icon"></i>
-                                <div class="empty-state-title">No communications found</div>
-                            </div>
+    <i class="fas fa-bullhorn empty-state-icon"></i>
+    <div class="empty-state-title">No communications found</div>
+    <div class="empty-state-description">Keep your department informed with announcements</div>
+    <button class="btn btn-primary btn-sm" @click="showCommunicationsModal" v-if="hasPermission('communications', 'create')">
+        <i class="fas fa-plus"></i> Post First Announcement
+    </button>
+</div>
                         </div>
                     </div>
                 </div>
