@@ -1993,7 +1993,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Profile
                     getCurrentUnit, getCurrentWard, getCurrentActivityStatus,
                     isOnCallToday, getOnCallShiftTime, getOnCallCoverage,
-                    getRotationSupervisor, getRotationDaysLeft, formatTimeAgo,
+                    getRotationSupervisor, getRotationDaysLeft,
                     hasProfessionalCredentials, getUpcomingOnCall, getUpcomingLeave, getRotationHistory,
                     // Status
                     getStatusBadgeClass, calculateTimeRemaining, refreshStatus, setQuickStatus,
