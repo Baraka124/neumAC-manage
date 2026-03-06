@@ -890,8 +890,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const getRecentStatuses = () => clinicalStatusHistory.value;
                 // Computed alias — used by v-for="s in recentStatuses" in the sidebar template
                 const recentStatuses = computed(() => clinicalStatusHistory.value);
-                const formatTimeAgo = (dateString) => EnhancedUtils.formatRelativeTime(dateString);
-
                 // \u2500\u2500 Live Status \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
                 const getStatusBadgeClass = (status) => {
                     if (!status) return 'badge-gray';
