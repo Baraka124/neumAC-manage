@@ -1664,35 +1664,50 @@ function useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPag
         return { updates: updates.length, pending: pending.length }
       }
 
-      const updateRotationStatus = async (rotationId, newStatus, metadata = {}) => {
-        const rotation = rotations.value.find(r => r.id === rotationId)
-        if (!rotation) return
+      // 6.5.4 Update single rotation status
+const updateRotationStatus = async (rotationId, newStatus, metadata = {}) => {
+  const rotation = rotations.value.find(r => r.id === rotationId)
+  if (!rotation) return
 
-        try {
-          const updateData = {
-            ...rotation,
-            rotation_status: newStatus,
-            ...metadata
-          }
+  try {
+    // Ensure all string fields have at least empty string values
+    const updateData = {
+      id: rotation.id,
+      resident_id: rotation.resident_id,
+      training_unit_id: rotation.training_unit_id,
+      supervising_attending_id: rotation.supervising_attending_id || null,
+      start_date: rotation.start_date,
+      end_date: rotation.end_date,
+      rotation_category: rotation.rotation_category || 'clinical_rotation',
+      rotation_status: newStatus,
+      // Ensure these string fields are never null
+      clinical_notes: rotation.clinical_notes || '',
+      supervisor_evaluation: rotation.supervisor_evaluation || '',
+      goals: rotation.goals || '',
+      notes: rotation.notes || '',
+      rotation_id: rotation.rotation_id,
+      ...metadata
+    }
 
-          const result = await API.updateRotation(rotationId, updateData)
+    console.log('Sending rotation update:', updateData)
 
-          const idx = rotations.value.findIndex(r => r.id === rotationId)
-          if (idx !== -1) {
-            rotations.value[idx] = {
-              ...result,
-              start_date: Utils.normalizeDate(result.start_date),
-              end_date: Utils.normalizeDate(result.end_date)
-            }
-          }
+    const result = await API.updateRotation(rotationId, updateData)
 
-          return result
-        } catch (error) {
-          console.error('Failed to update rotation status:', error)
-          throw error
-        }
+    const idx = rotations.value.findIndex(r => r.id === rotationId)
+    if (idx !== -1) {
+      rotations.value[idx] = {
+        ...result,
+        start_date: Utils.normalizeDate(result.start_date),
+        end_date: Utils.normalizeDate(result.end_date)
       }
+    }
 
+    return result
+  } catch (error) {
+    console.error('Failed to update rotation status:', error)
+    throw error
+  }
+}
       const showActivationModal = () => {
         if (pendingActivations.value.length === 0) return
         activationModal.rotations = [...pendingActivations.value]
