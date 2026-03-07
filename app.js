@@ -2553,6 +2553,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
           // Rotations (includes auto-activation)
           ...rotationOps,
+          pendingActivations: rotationOps.pendingActivations,
+activationModal: rotationOps.activationModal,
+checkAndUpdateRotations: rotationOps.checkAndUpdateRotations,
+forceActivationCheck: rotationOps.forceActivationCheck,
+quickActivate: rotationOps.quickActivate,
+quickComplete: rotationOps.quickComplete,
 
           // Absences
           ...absenceOps,
