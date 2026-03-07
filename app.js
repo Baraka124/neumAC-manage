@@ -1127,12 +1127,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (staffFilters.residentCategory) f = f.filter(x => x.resident_category === staffFilters.residentCategory)
         return applySort(f, 'medical_staff')
       })
-      const existingSchedulesForDate = computed(() => {
-  if (!onCallModal.form.duty_date) return [];
-  return onCallSchedule.value.filter(s => 
-    Utils.normalizeDate(s.duty_date) === onCallModal.form.duty_date
-  );
-});
+
       const filteredMedicalStaff = computed(() => paginate(filteredMedicalStaffAll.value, 'medical_staff'))
       const staffTotalPages = computed(() => totalPages(filteredMedicalStaffAll.value, 'medical_staff'))
 
@@ -1379,24 +1374,39 @@ function useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPag
     }
   };
 
-  // ============ FILTERED COMPUTED ============
-  const filteredOnCallAll = computed(() => {
-    let f = onCallSchedule.value
-    if (onCallFilters.date) f = f.filter(s => Utils.normalizeDate(s.duty_date) === onCallFilters.date)
-    if (onCallFilters.shiftType) f = f.filter(s => s.shift_type === onCallFilters.shiftType)
-    if (onCallFilters.physician) f = f.filter(s => s.primary_physician_id === onCallFilters.physician || s.backup_physician_id === onCallFilters.physician)
-    if (onCallFilters.coverageArea) f = f.filter(s => s.coverage_area === onCallFilters.coverageArea)
-    if (onCallFilters.search) {
-      const q = onCallFilters.search.toLowerCase()
-      f = f.filter(s => getPhysicianName(s.primary_physician_id).toLowerCase().includes(q) || (s.coverage_area || '').toLowerCase().includes(q))
-    }
-    return applySort(f, 'oncall')
-  })
-  const filteredOnCallSchedules = computed(() => paginate(filteredOnCallAll.value, 'oncall'))
-  const oncallTotalPages = computed(() => totalPages(filteredOnCallAll.value, 'oncall'))
-  const todaysOnCallCount = computed(() => todaysOnCall.value.length)
+// ============ FILTERED COMPUTED ============
+const filteredOnCallAll = computed(() => {
+  let f = onCallSchedule.value
+  if (onCallFilters.date) f = f.filter(s => Utils.normalizeDate(s.duty_date) === onCallFilters.date)
+  if (onCallFilters.shiftType) f = f.filter(s => s.shift_type === onCallFilters.shiftType)
+  if (onCallFilters.physician) f = f.filter(s => s.primary_physician_id === onCallFilters.physician || s.backup_physician_id === onCallFilters.physician)
+  if (onCallFilters.coverageArea) f = f.filter(s => s.coverage_area === onCallFilters.coverageArea)
+  if (onCallFilters.search) {
+    const q = onCallFilters.search.toLowerCase()
+    f = f.filter(s => getPhysicianName(s.primary_physician_id).toLowerCase().includes(q) || (s.coverage_area || '').toLowerCase().includes(q))
+  }
+  return applySort(f, 'oncall')
+})
 
-  watch(onCallFilters, () => resetPage('oncall'), { deep: true })
+// Paginated results for display
+const filteredOnCallSchedules = computed(() => paginate(filteredOnCallAll.value, 'oncall'))
+
+// Pagination info
+const oncallTotalPages = computed(() => totalPages(filteredOnCallAll.value, 'oncall'))
+
+// Today's on-call count for dashboard
+const todaysOnCallCount = computed(() => todaysOnCall.value.length)
+
+// Watch filters to reset pagination
+watch(onCallFilters, () => resetPage('oncall'), { deep: true })
+
+// NEW: Existing schedules for the selected date (for duplicate checking in modal)
+const existingSchedulesForDate = computed(() => {
+  if (!onCallModal.form.duty_date) return [];
+  return onCallSchedule.value.filter(s => 
+    Utils.normalizeDate(s.duty_date) === Utils.normalizeDate(onCallModal.form.duty_date)
+  );
+})
 
   // ============ LOAD FUNCTIONS ============
   const loadOnCallSchedule = async () => {
