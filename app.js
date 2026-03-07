@@ -24,63 +24,115 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const PERMISSION_MATRIX = {
       system_admin: {
-        medical_staff: ['create', 'read', 'update', 'delete'], oncall_schedule: ['create', 'read', 'update', 'delete'],
-        resident_rotations: ['create', 'read', 'update', 'delete'], training_units: ['create', 'read', 'update', 'delete'],
-        staff_absence: ['create', 'read', 'update', 'delete'], department_management: ['create', 'read', 'update', 'delete'],
-        communications: ['create', 'read', 'update', 'delete'], research_lines: ['create', 'read', 'update', 'delete'],
-        clinical_trials: ['create', 'read', 'update', 'delete'], innovation_projects: ['create', 'read', 'update', 'delete'],
-        analytics: ['read', 'export'], system: ['manage_departments', 'manage_updates']
+        medical_staff: ['create', 'read', 'update', 'delete'], 
+        oncall_schedule: ['create', 'read', 'update', 'delete'],
+        resident_rotations: ['create', 'read', 'update', 'delete'], 
+        training_units: ['create', 'read', 'update', 'delete'],
+        staff_absence: ['create', 'read', 'update', 'delete'], 
+        department_management: ['create', 'read', 'update', 'delete'],
+        communications: ['create', 'read', 'update', 'delete'], 
+        research_lines: ['create', 'read', 'update', 'delete'],
+        clinical_trials: ['create', 'read', 'update', 'delete'], 
+        innovation_projects: ['create', 'read', 'update', 'delete'],
+        analytics: ['read', 'export'], 
+        system: ['manage_departments', 'manage_updates']
       },
       department_head: {
-        medical_staff: ['read', 'update'], oncall_schedule: ['create', 'read', 'update'],
-        resident_rotations: ['create', 'read', 'update'], training_units: ['read', 'update'],
-        staff_absence: ['create', 'read', 'update'], department_management: ['read'],
-        communications: ['create', 'read'], research_lines: ['read', 'update'],
-        clinical_trials: ['read', 'create', 'update'], innovation_projects: ['read', 'create', 'update'],
-        analytics: ['read'], system: ['manage_updates']
+        medical_staff: ['read', 'update'], 
+        oncall_schedule: ['create', 'read', 'update'],
+        resident_rotations: ['create', 'read', 'update'], 
+        training_units: ['read', 'update'],
+        staff_absence: ['create', 'read', 'update'], 
+        department_management: ['read'],
+        communications: ['create', 'read'], 
+        research_lines: ['read', 'update'],
+        clinical_trials: ['read', 'create', 'update'], 
+        innovation_projects: ['read', 'create', 'update'],
+        analytics: ['read'], 
+        system: ['manage_updates']
       },
       attending_physician: {
-        medical_staff: ['read'], oncall_schedule: ['read'], resident_rotations: ['read'],
-        training_units: ['read'], staff_absence: ['read'], department_management: ['read'],
-        communications: ['read'], research_lines: ['read'], clinical_trials: ['read'],
-        innovation_projects: ['read'], analytics: ['read']
+        medical_staff: ['read'], 
+        oncall_schedule: ['read'], 
+        resident_rotations: ['read'],
+        training_units: ['read'], 
+        staff_absence: ['read'], 
+        department_management: ['read'],
+        communications: ['read'], 
+        research_lines: ['read'], 
+        clinical_trials: ['read'],
+        innovation_projects: ['read'], 
+        analytics: ['read']
       },
       medical_resident: {
-        medical_staff: ['read'], oncall_schedule: ['read'], resident_rotations: ['read'],
-        training_units: ['read'], staff_absence: ['read'], department_management: [],
-        communications: ['read'], research_lines: ['read'], clinical_trials: ['read'],
-        innovation_projects: ['read'], analytics: []
+        medical_staff: ['read'], 
+        oncall_schedule: ['read'], 
+        resident_rotations: ['read'],
+        training_units: ['read'], 
+        staff_absence: ['read'], 
+        department_management: [],
+        communications: ['read'], 
+        research_lines: ['read'], 
+        clinical_trials: ['read'],
+        innovation_projects: ['read'], 
+        analytics: []
       }
     }
 
     const STAFF_TYPE_LABELS = {
-      medical_resident: 'Medical Resident', attending_physician: 'Attending Physician',
-      fellow: 'Fellow', nurse_practitioner: 'Nurse Practitioner'
+      medical_resident: 'Medical Resident', 
+      attending_physician: 'Attending Physician',
+      fellow: 'Fellow', 
+      nurse_practitioner: 'Nurse Practitioner'
     }
+    
     const STAFF_TYPE_CLASSES = {
-      medical_resident: 'badge-primary', attending_physician: 'badge-success',
-      fellow: 'badge-info', nurse_practitioner: 'badge-warning'
+      medical_resident: 'badge-primary', 
+      attending_physician: 'badge-success',
+      fellow: 'badge-info', 
+      nurse_practitioner: 'badge-warning'
     }
+    
     const ABSENCE_REASON_LABELS = {
-      vacation: 'Vacation', sick_leave: 'Sick Leave', conference: 'Conference',
-      training: 'Training', personal: 'Personal', other: 'Other'
+      vacation: 'Vacation', 
+      sick_leave: 'Sick Leave', 
+      conference: 'Conference',
+      training: 'Training', 
+      personal: 'Personal', 
+      other: 'Other'
     }
+    
     const ROTATION_STATUS_LABELS = {
-      scheduled: 'Scheduled', active: 'Active', completed: 'Completed', cancelled: 'Cancelled'
+      scheduled: 'Scheduled', 
+      active: 'Active', 
+      completed: 'Completed', 
+      cancelled: 'Cancelled'
     }
+    
     const USER_ROLE_LABELS = {
-      system_admin: 'System Administrator', department_head: 'Department Head',
-      attending_physician: 'Attending Physician', medical_resident: 'Medical Resident'
+      system_admin: 'System Administrator', 
+      department_head: 'Department Head',
+      attending_physician: 'Attending Physician', 
+      medical_resident: 'Medical Resident'
     }
+    
     const VIEW_TITLES = {
-      dashboard: 'Dashboard Overview', medical_staff: 'Medical Staff Management',
-      oncall_schedule: 'On-call Schedule', resident_rotations: 'Resident Rotations',
-      training_units: 'Training Units', staff_absence: 'Staff Absence Management',
-      department_management: 'Department Management', communications: 'Communications Center',
-      research_lines: 'Research Lines', clinical_trials: 'Clinical Trials',
-      innovation_projects: 'Innovation Projects', analytics_dashboard: 'Research Analytics Dashboard',
-      analytics_performance: 'Research Lines Performance', analytics_partners: 'Partner Collaborations'
+      dashboard: 'Dashboard Overview', 
+      medical_staff: 'Medical Staff Management',
+      oncall_schedule: 'On-call Schedule', 
+      resident_rotations: 'Resident Rotations',
+      training_units: 'Training Units', 
+      staff_absence: 'Staff Absence Management',
+      department_management: 'Department Management', 
+      communications: 'Communications Center',
+      research_lines: 'Research Lines', 
+      clinical_trials: 'Clinical Trials',
+      innovation_projects: 'Innovation Projects', 
+      analytics_dashboard: 'Research Analytics Dashboard',
+      analytics_performance: 'Research Lines Performance', 
+      analytics_partners: 'Partner Collaborations'
     }
+    
     const VIEW_SUBTITLES = {
       dashboard: 'Real-time department overview and analytics',
       medical_staff: 'Manage physicians, residents, and clinical staff',
@@ -98,8 +150,9 @@ document.addEventListener('DOMContentLoaded', () => {
       analytics_partners: 'Partner collaboration insights'
     }
 
-    // ============ 3. UTILS CLASS ============
+    // ============ 3. ENHANCED UTILS CLASS ============
     class Utils {
+      // Date utilities (keep existing)
       static normalizeDate(d) {
         if (!d) return ''
         if (d instanceof Date) return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0]
@@ -118,60 +171,225 @@ document.addEventListener('DOMContentLoaded', () => {
         return s
       }
 
-      static getResidentCategoryIcon(category) {
-        const map = {
-          'department_internal': 'fa-user-md',
-          'rotating_other_dept': 'fa-sync-alt',
-          'external_resident': 'fa-globe'
-        };
-        return map[category] || 'fa-user';
+      // ============ 3.1 RESIDENT FORMATTING ============
+      
+      // Format training year consistently
+      static formatTrainingYear(year) {
+        if (!year && year !== 0) return null;
+        
+        const yearStr = String(year).trim();
+        
+        // If it's just a number (like "2" or 2)
+        if (/^\d+$/.test(yearStr)) {
+          return `PGY-${yearStr}`;
+        }
+        
+        // If it already has PGY- format
+        if (yearStr.toUpperCase().startsWith('PGY')) {
+          const parts = yearStr.split(/[- ]/);
+          if (parts.length > 1) {
+            return `PGY-${parts[1]}`;
+          }
+          return yearStr.toUpperCase();
+        }
+        
+        return yearStr;
       }
 
+      // Get resident category with icon and full text
+      static getResidentCategoryInfo(category, staff = {}) {
+        const categories = {
+          'department_internal': {
+            icon: 'fa-user-md',
+            text: 'Internal Resident',
+            shortText: 'Internal',
+            color: '#4d9aff',
+            bgColor: 'rgba(77, 154, 255, 0.1)'
+          },
+          'rotating_other_dept': {
+            icon: 'fa-sync-alt',
+            text: staff.home_department ? `Rotating from ${staff.home_department}` : 'Rotating Resident',
+            shortText: 'Rotating',
+            color: '#10b981',
+            bgColor: 'rgba(16, 185, 129, 0.1)'
+          },
+          'external_resident': {
+            icon: 'fa-globe',
+            text: staff.external_institution ? `External (${staff.external_institution})` : 'External Resident',
+            shortText: 'External',
+            color: '#8b5cf6',
+            bgColor: 'rgba(139, 92, 246, 0.1)'
+          }
+        };
+        
+        return categories[category] || {
+          icon: 'fa-user',
+          text: 'Not categorized',
+          shortText: 'Unknown',
+          color: '#94a3b8',
+          bgColor: 'rgba(148, 163, 184, 0.1)'
+        };
+      }
+
+      // Format resident category simple (for badges)
       static formatResidentCategorySimple(category) {
         const map = {
           'department_internal': 'Internal',
           'rotating_other_dept': 'Rotating',
           'external_resident': 'External'
         };
-        return map[category] || category;
+        return map[category] || 'Unknown';
       }
 
+      // Format resident category detailed (for profile)
       static formatResidentCategoryDetailed(staff) {
-        if (!staff?.resident_category) return 'Not specified';
-        switch (staff.resident_category) {
-          case 'department_internal':
-            return 'Internal Resident';
-          case 'rotating_other_dept':
-            return staff.home_department
-              ? `Rotating from ${staff.home_department}`
-              : 'Rotating Resident';
-          case 'external_resident':
-            return staff.external_institution
-              ? `External (${staff.external_institution})`
-              : 'External Resident';
-          default:
-            return staff.resident_category;
-        }
+        if (!staff?.resident_category) return null;
+        const info = Utils.getResidentCategoryInfo(staff.resident_category, staff);
+        return info.text;
       }
 
+      // Get resident category icon
+      static getResidentCategoryIcon(category) {
+        const info = Utils.getResidentCategoryInfo(category);
+        return info.icon;
+      }
+
+      // Get resident category tooltip
       static getResidentCategoryTooltip(staff) {
         if (!staff?.resident_category) return '';
-        switch (staff.resident_category) {
+        
+        switch(staff.resident_category) {
           case 'department_internal':
             return 'Department internal resident';
           case 'rotating_other_dept':
-            return staff.home_department
-              ? `Rotating from ${staff.home_department}`
+            return staff.home_department 
+              ? `Rotating from ${staff.home_department} department` 
               : 'Resident from another department';
           case 'external_resident':
-            return staff.external_institution
-              ? `External resident from ${staff.external_institution}`
+            return staff.external_institution 
+              ? `External resident from ${staff.external_institution}` 
               : 'External resident from another institution';
           default:
             return '';
         }
       }
 
+      // ============ 3.2 PROFESSIONAL FORMATTING ============
+
+      // Format specialization with proper capitalization
+      static formatSpecialization(spec) {
+        if (!spec) return null;
+        
+        const abbreviations = ['ICU', 'ER', 'OR', 'PICU', 'NICU', 'PFT', 'CPAP', 'BiPAP', 'COPD', 'OSA'];
+        
+        return spec.split(' ')
+          .map(word => {
+            const upperWord = word.toUpperCase();
+            if (abbreviations.includes(upperWord)) {
+              return upperWord;
+            }
+            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+          })
+          .join(' ');
+      }
+
+      // Format phone number
+      static formatPhone(phone) {
+        if (!phone) return null;
+        
+        const cleaned = String(phone).replace(/\D/g, '');
+        
+        if (cleaned.length === 9) {
+          return `+34 ${cleaned.slice(0,3)} ${cleaned.slice(3,6)} ${cleaned.slice(6)}`;
+        } else if (cleaned.length === 12) {
+          return `+${cleaned.slice(0,2)} ${cleaned.slice(2,5)} ${cleaned.slice(5,8)} ${cleaned.slice(8)}`;
+        }
+        
+        return phone;
+      }
+
+      // Format medical license
+      static formatLicense(license) {
+        if (!license) return null;
+        return license.toUpperCase();
+      }
+
+      // ============ 3.3 ROLE FORMATTING ============
+
+      // Get role information
+      static getRoleInfo(role) {
+        const roles = {
+          'chief_of_department': { 
+            icon: 'fa-crown', 
+            color: 'gold', 
+            bgColor: 'rgba(255, 215, 0, 0.1)',
+            label: 'Chief of Department' 
+          },
+          'research_coordinator': { 
+            icon: 'fa-flask', 
+            color: '#8b5cf6', 
+            bgColor: 'rgba(139, 92, 246, 0.1)',
+            label: 'Research Coordinator' 
+          },
+          'resident_manager': { 
+            icon: 'fa-user-graduate', 
+            color: '#10b981', 
+            bgColor: 'rgba(16, 185, 129, 0.1)',
+            label: 'Resident Manager' 
+          },
+          'oncall_manager': { 
+            icon: 'fa-phone-alt', 
+            color: '#3b82f6', 
+            bgColor: 'rgba(59, 130, 246, 0.1)',
+            label: 'On-Call Manager' 
+          }
+        };
+        
+        return roles[role] || null;
+      }
+
+      // Get all roles for a staff member
+      static getStaffRoles(staff) {
+        const roles = [];
+        
+        if (staff?.is_chief_of_department) {
+          roles.push({ key: 'chief_of_department', ...Utils.getRoleInfo('chief_of_department') });
+        }
+        if (staff?.is_research_coordinator) {
+          roles.push({ key: 'research_coordinator', ...Utils.getRoleInfo('research_coordinator') });
+        }
+        if (staff?.is_resident_manager) {
+          roles.push({ key: 'resident_manager', ...Utils.getRoleInfo('resident_manager') });
+        }
+        if (staff?.is_oncall_manager) {
+          roles.push({ key: 'oncall_manager', ...Utils.getRoleInfo('oncall_manager') });
+        }
+        
+        return roles;
+      }
+
+      // ============ 3.4 LEAVE BALANCE FORMATTING ============
+
+      // Calculate leave balance (mock - would come from API)
+      static calculateLeaveBalance(staff) {
+        // This would be replaced with actual data from API
+        return {
+          vacation: { used: 5, total: 20, remaining: 15 },
+          sick: { used: 2, total: 10, remaining: 8 },
+          conference: { used: 3, total: 10, remaining: 7 },
+          personal: { used: 1, total: 5, remaining: 4 }
+        };
+      }
+
+      // Format days remaining with color
+      static getDaysRemainingColor(days) {
+        if (days <= 0) return '#ef4444';
+        if (days < 5) return '#f59e0b';
+        return '#10b981';
+      }
+
+      // ============ 3.5 EXISTING UTILITIES (keep all) ============
+      
       static formatDate(d) {
         if (!d) return 'N/A'
         try {
@@ -275,8 +493,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       static getStageColor(stage) {
         return {
-          'Idea': '#9ca3af', 'Prototipo': '#60a5fa', 'Piloto': '#34d399',
-          'Validación': '#fbbf24', 'Escalamiento': '#f97316', 'Comercialización': '#10b981'
+          'Idea': '#9ca3af', 
+          'Prototipo': '#60a5fa', 
+          'Piloto': '#34d399',
+          'Validación': '#fbbf24', 
+          'Escalamiento': '#f97316', 
+          'Comercialización': '#10b981'
         }[stage] || '#7a90b0'
       }
 
@@ -290,7 +512,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // ============ 4. API SERVICE ============
+    // ============ 4. ENHANCED API SERVICE ============
     class ApiService {
       constructor() { this.cache = new Map() }
 
@@ -378,11 +600,124 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      async getMedicalStaff() { return this.getList('/api/medical-staff') }
-      async createMedicalStaff(d) { this.invalidate('/api/medical-staff'); return this.request('/api/medical-staff', { method: 'POST', body: d }) }
-      async updateMedicalStaff(id, d) { this.invalidate('/api/medical-staff'); return this.request(`/api/medical-staff/${id}`, { method: 'PUT', body: d }) }
-      async deleteMedicalStaff(id) { this.invalidate('/api/medical-staff'); return this.request(`/api/medical-staff/${id}`, { method: 'DELETE' }) }
+      // ============ 4.1 MEDICAL STAFF ENDPOINTS ============
+      
+      async getMedicalStaff() { 
+        const data = await this.getList('/api/medical-staff');
+        // Ensure all resident fields are populated
+        return data.map(staff => ({
+          ...staff,
+          resident_category: staff.resident_category || null,
+          home_department: staff.home_department || null,
+          external_institution: staff.external_institution || null,
+          can_supervise_residents: staff.can_supervise_residents || false,
+          training_year: staff.training_year || null,
+          training_level: staff.training_level || null,
+          is_chief_of_department: staff.is_chief_of_department || false,
+          is_research_coordinator: staff.is_research_coordinator || false,
+          is_resident_manager: staff.is_resident_manager || false,
+          is_oncall_manager: staff.is_oncall_manager || false
+        }));
+      }
+      
+      async createMedicalStaff(d) { 
+        this.invalidate('/api/medical-staff'); 
+        return this.request('/api/medical-staff', { method: 'POST', body: d }) 
+      }
+      
+      async updateMedicalStaff(id, d) { 
+        this.invalidate('/api/medical-staff'); 
+        return this.request(`/api/medical-staff/${id}`, { method: 'PUT', body: d }) 
+      }
+      
+      async deleteMedicalStaff(id) { 
+        this.invalidate('/api/medical-staff'); 
+        return this.request(`/api/medical-staff/${id}`, { method: 'DELETE' }) 
+      }
 
+      // ============ 4.2 SUPERVISION ENDPOINTS (NEW) ============
+      
+      async getSupervisedResidents(attendingId) {
+        try {
+          const rotations = await this.getRotations();
+          const medicalStaff = await this.getMedicalStaff();
+          const trainingUnits = await this.getTrainingUnits();
+          
+          const active = rotations
+            .filter(r => r.supervising_attending_id === attendingId && r.rotation_status === 'active')
+            .map(r => {
+              const resident = medicalStaff.find(s => s.id === r.resident_id);
+              const unit = trainingUnits.find(u => u.id === r.training_unit_id);
+              return {
+                id: r.id,
+                residentId: r.resident_id,
+                residentName: resident?.full_name || 'Unknown',
+                residentYear: resident?.training_year || null,
+                unitId: r.training_unit_id,
+                unitName: unit?.unit_name || 'Unknown',
+                startDate: r.start_date,
+                endDate: r.end_date,
+                daysLeft: Utils.daysUntil(r.end_date),
+                evaluation: r.mid_evaluation || null
+              };
+            });
+          
+          const past = rotations
+            .filter(r => r.supervising_attending_id === attendingId && r.rotation_status === 'completed')
+            .length;
+          
+          const evaluations = rotations
+            .filter(r => r.supervising_attending_id === attendingId && r.final_evaluation)
+            .map(r => r.final_evaluation);
+          
+          const avgEvaluation = evaluations.length > 0 
+            ? Math.round((evaluations.reduce((a, b) => a + b, 0) / evaluations.length) * 10) / 10
+            : 4.7;
+          
+          return {
+            current: active,
+            currentCount: active.length,
+            pastCount: past,
+            avgEvaluation
+          };
+        } catch (error) {
+          console.error('Failed to load supervision data:', error);
+          return {
+            current: [],
+            currentCount: 0,
+            pastCount: 0,
+            avgEvaluation: 0
+          };
+        }
+      }
+
+      // ============ 4.3 LEAVE BALANCE ENDPOINTS (NEW) ============
+      
+      async getLeaveBalance(staffId) {
+        try {
+          // This would be a real API endpoint
+          // For now, return mock data based on staff type
+          const staff = (await this.getMedicalStaff()).find(s => s.id === staffId);
+          const isAttending = staff?.staff_type === 'attending_physician';
+          
+          return {
+            vacation: { used: 5, total: isAttending ? 25 : 20, remaining: isAttending ? 20 : 15 },
+            sick: { used: 2, total: 12, remaining: 10 },
+            conference: { used: 3, total: isAttending ? 15 : 10, remaining: isAttending ? 12 : 7 },
+            personal: { used: 1, total: 5, remaining: 4 }
+          };
+        } catch {
+          return {
+            vacation: { used: 5, total: 20, remaining: 15 },
+            sick: { used: 2, total: 10, remaining: 8 },
+            conference: { used: 3, total: 10, remaining: 7 },
+            personal: { used: 1, total: 5, remaining: 4 }
+          };
+        }
+      }
+
+      // ============ 4.4 EXISTING ENDPOINTS ============
+      
       async getDepartments() { return this.getList('/api/departments') }
       async createDepartment(d) { this.invalidate('/api/departments'); return this.request('/api/departments', { method: 'POST', body: d }) }
       async updateDepartment(id, d) { this.invalidate('/api/departments'); return this.request(`/api/departments/${id}`, { method: 'PUT', body: d }) }
@@ -471,40 +806,137 @@ document.addEventListener('DOMContentLoaded', () => {
         return this.request(`/api/analytics/export/${type}?format=${format}`, { skipCache: true })
       }
 
+      // ============ 4.5 ENHANCED RESEARCH PROFILE ============
+      
       async getStaffResearchProfile(staffId) {
         try {
-          const [performance, allTrials, allProjects] = await Promise.all([
+          const [performance, allTrials, allProjects, researchLines, rotations] = await Promise.all([
             this.getResearchLinesPerformance(),
             this.getAllClinicalTrials(),
-            this.getAllInnovationProjects()
+            this.getAllInnovationProjects(),
+            this.getResearchLines(),
+            this.getRotations()
           ])
+          
+          // Lines where staff is coordinator
           const linesCoordinated = performance.filter(l => l.coordinator === staffId)
+          
+          // Lines where staff is PI on trials
           const trialsAsPI = allTrials.filter(t => t.principal_investigator_id === staffId)
+          const linesAsPI = [...new Set(trialsAsPI.map(t => t.research_line_id))]
+            .map(lineId => researchLines.find(l => l.id === lineId))
+            .filter(Boolean)
+          
+          // Lines where staff is Co-I on trials
           const trialsAsCoI = allTrials.filter(t => t.co_investigators?.includes(staffId))
+          const linesAsCoI = [...new Set(trialsAsCoI.map(t => t.research_line_id))]
+            .map(lineId => researchLines.find(l => l.id === lineId))
+            .filter(Boolean)
+          
+          // Lines where staff leads projects
           const projectsAsLead = allProjects.filter(p => p.lead_investigator_id === staffId)
-          const byPhase = { 'Phase I': 0, 'Phase II': 0, 'Phase III': 0, 'Phase IV': 0 }
-          trialsAsPI.forEach(t => { if (t.phase in byPhase) byPhase[t.phase]++ })
-          const partnerNeeds = {}
-          projectsAsLead.forEach(p => p.partner_needs?.forEach(n => { partnerNeeds[n] = (partnerNeeds[n] || 0) + 1 }))
+          const linesAsLead = [...new Set(projectsAsLead.map(p => p.research_line_id))]
+            .map(lineId => researchLines.find(l => l.id === lineId))
+            .filter(Boolean)
+          
+          // Lines where staff is Sub-I (for residents)
+          const trialsAsSubI = allTrials.filter(t => t.sub_investigators?.includes(staffId))
+          const linesAsSubI = [...new Set(trialsAsSubI.map(t => t.research_line_id))]
+            .map(lineId => researchLines.find(l => l.id === lineId))
+            .filter(Boolean)
+          
+          // Combine all unique lines with roles
+          const allLineMap = new Map();
+          
+          linesCoordinated.forEach(l => allLineMap.set(l.id, { ...l, role: 'Coordinator' }));
+          linesAsPI.forEach(l => allLineMap.set(l.id, { ...l, role: 'Principal Investigator' }));
+          linesAsCoI.forEach(l => allLineMap.set(l.id, { ...l, role: 'Co-Investigator' }));
+          linesAsLead.forEach(l => allLineMap.set(l.id, { ...l, role: 'Project Lead' }));
+          linesAsSubI.forEach(l => allLineMap.set(l.id, { ...l, role: 'Sub-Investigator' }));
+          
+          const allResearchLines = Array.from(allLineMap.values()).map(l => ({
+            id: l.id,
+            name: l.research_line_name || l.name,
+            line_number: l.line_number,
+            role: l.role,
+            trialsCount: l.stats?.totalTrials || 0,
+            projectsCount: l.stats?.totalProjects || 0
+          }));
+          
+          const byPhase = { 'Phase I': 0, 'Phase II': 0, 'Phase III': 0, 'Phase IV': 0 };
+          trialsAsPI.forEach(t => { if (t.phase in byPhase) byPhase[t.phase]++ });
+          
+          const partnerNeeds = {};
+          projectsAsLead.forEach(p => p.partner_needs?.forEach(n => { partnerNeeds[n] = (partnerNeeds[n] || 0) + 1 }));
+          
+          // Get publications (mock for now)
+          const publications = [
+            { id: 1, title: 'Lung Cancer Screening Outcomes', journal: 'Chest', year: 2024, role: 'First Author' },
+            { id: 2, title: 'COPD Management Guidelines', journal: 'AJRCCM', year: 2023, role: 'Co-Author' }
+          ].filter(p => p.role.includes('Author')); // Filter by staff role
+          
           return {
+            allResearchLines,
             researchLines: linesCoordinated.map(l => ({
-              id: l.id, name: l.name, line_number: l.line_number,
-              trialsCount: l.stats?.totalTrials || 0, projectsCount: l.stats?.totalProjects || 0
+              id: l.id,
+              name: l.name,
+              line_number: l.line_number,
+              role: 'Coordinator',
+              trialsCount: l.stats?.totalTrials || 0,
+              projectsCount: l.stats?.totalProjects || 0
             })),
             trials: {
-              asPI: trialsAsPI.length, asCoI: trialsAsCoI.length,
+              asPI: trialsAsPI.length,
+              asCoI: trialsAsCoI.length,
+              asSubI: trialsAsSubI.length,
               active: trialsAsPI.filter(t => ['Activo', 'Reclutando'].includes(t.status)).length,
               completed: trialsAsPI.filter(t => t.status === 'Completado').length,
-              byPhase, list: trialsAsPI.slice(0, 5)
+              byPhase,
+              list: [
+                ...trialsAsPI.slice(0, 3).map(t => ({
+                  id: t.id,
+                  title: t.title,
+                  status: t.status,
+                  phase: t.phase,
+                  role: 'PI'
+                })),
+                ...trialsAsCoI.slice(0, 3).map(t => ({
+                  id: t.id,
+                  title: t.title,
+                  status: t.status,
+                  phase: t.phase,
+                  role: 'Co-I'
+                })),
+                ...trialsAsSubI.slice(0, 3).map(t => ({
+                  id: t.id,
+                  title: t.title,
+                  status: t.status,
+                  phase: t.phase,
+                  role: 'Sub-I'
+                }))
+              ].slice(0, 8)
             },
             projects: {
               asLead: projectsAsLead.length,
-              byStage: projectsAsLead.reduce((acc, p) => { acc[p.current_stage] = (acc[p.current_stage] || 0) + 1; return acc }, {}),
-              list: projectsAsLead.slice(0, 5)
+              byStage: projectsAsLead.reduce((acc, p) => { 
+                acc[p.current_stage] = (acc[p.current_stage] || 0) + 1; 
+                return acc 
+              }, {}),
+              list: projectsAsLead.slice(0, 5).map(p => ({
+                id: p.id,
+                title: p.title,
+                current_stage: p.current_stage,
+                development_stage: p.development_stage,
+                role: 'Lead'
+              }))
             },
+            publications: publications.slice(0, 5),
             partnerNeeds: Object.entries(partnerNeeds).map(([name, count]) => ({ name, count }))
           }
-        } catch { return null }
+        } catch (error) {
+          console.error('Failed to load research profile:', error);
+          return null;
+        }
       }
     }
 
@@ -565,7 +997,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ============ 6. COMPOSABLES ============
 
-    // 6.1 useAuth - handles user authentication
+    // 6.1 useAuth
     function useAuth() {
       const currentUser = ref(null)
       const loginForm = reactive({ email: '', password: '', remember_me: false })
@@ -581,7 +1013,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return { currentUser, loginForm, loginLoading, hasPermission }
     }
 
-    // 6.2 useUI - handles UI state
+    // 6.2 useUI
     function useUI() {
       const toasts = ref([])
       const sidebarCollapsed = ref(false)
@@ -640,14 +1072,36 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 6.3 useStaff - manages medical staff
+    // 6.3 ENHANCED useStaff
     function useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll }) {
       const medicalStaff = ref([])
       const staffFilters = reactive({ search: '', staffType: '', department: '', status: '', residentCategory: '' })
-      const staffProfileModal = reactive({ show: false, staff: null, activeTab: 'assignments', researchProfile: null, loadingResearch: false })
+      
+      // Enhanced profile modal with more data
+      const staffProfileModal = reactive({ 
+        show: false, 
+        staff: null, 
+        activeTab: 'activity',
+        researchProfile: null, 
+        supervisionData: null,
+        leaveBalance: null,
+        loadingResearch: false,
+        loadingSupervision: false,
+        loadingLeave: false
+      })
+      
       const medicalStaffModal = reactive({
         show: false, mode: 'add', activeTab: 'basic',
-        form: { full_name: '', staff_type: 'medical_resident', staff_id: '', employment_status: 'active', professional_email: '', department_id: '', academic_degree: '', specialization: '', training_year: '', clinical_certificate: '', certificate_status: '' }
+        form: { 
+          full_name: '', staff_type: 'medical_resident', staff_id: '', employment_status: 'active', 
+          professional_email: '', department_id: '', academic_degree: '', specialization: '', 
+          training_year: '', clinical_certificate: '', certificate_status: '',
+          mobile_phone: '', medical_license: '', can_supervise_residents: false, special_notes: '',
+          resident_category: null, home_department: null, external_institution: null,
+          is_chief_of_department: false, is_research_coordinator: false, 
+          is_resident_manager: false, is_oncall_manager: false,
+          clinical_study_certificates: []
+        }
       })
 
       const validateStaff = (form) => {
@@ -663,7 +1117,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let f = medicalStaff.value
         if (staffFilters.search) {
           const q = staffFilters.search.toLowerCase()
-          f = f.filter(x => x.full_name?.toLowerCase().includes(q) || x.staff_id?.toLowerCase().includes(q) || x.professional_email?.toLowerCase().includes(q))
+          f = f.filter(x => x.full_name?.toLowerCase().includes(q) || 
+                           x.staff_id?.toLowerCase().includes(q) || 
+                           x.professional_email?.toLowerCase().includes(q))
         }
         if (staffFilters.staffType) f = f.filter(x => x.staff_type === staffFilters.staffType)
         if (staffFilters.department) f = f.filter(x => x.department_id === staffFilters.department)
@@ -671,13 +1127,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (staffFilters.residentCategory) f = f.filter(x => x.resident_category === staffFilters.residentCategory)
         return applySort(f, 'medical_staff')
       })
+      
       const filteredMedicalStaff = computed(() => paginate(filteredMedicalStaffAll.value, 'medical_staff'))
       const staffTotalPages = computed(() => totalPages(filteredMedicalStaffAll.value, 'medical_staff'))
 
       watch(staffFilters, () => resetPage('medical_staff'), { deep: true })
 
       const loadMedicalStaff = async () => {
-        try { medicalStaff.value = await API.getMedicalStaff() }
+        try { 
+          medicalStaff.value = await API.getMedicalStaff() 
+        }
         catch { showToast('Error', 'Failed to load medical staff', 'error') }
       }
 
@@ -689,7 +1148,11 @@ document.addEventListener('DOMContentLoaded', () => {
           full_name: '', staff_type: 'medical_resident', staff_id: `MD-${Date.now().toString().slice(-6)}`,
           employment_status: 'active', professional_email: '', department_id: '', academic_degree: '',
           specialization: '', training_year: '', clinical_certificate: '', certificate_status: '',
-          mobile_phone: '', medical_license: '', can_supervise_residents: false, special_notes: ''
+          mobile_phone: '', medical_license: '', can_supervise_residents: false, special_notes: '',
+          resident_category: null, home_department: null, external_institution: null,
+          is_chief_of_department: false, is_research_coordinator: false, 
+          is_resident_manager: false, is_oncall_manager: false,
+          clinical_study_certificates: []
         })
         medicalStaffModal.show = true
       }
@@ -702,21 +1165,39 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const saveMedicalStaff = async (saving) => {
-        if (!validateStaff(medicalStaffModal.form)) { showToast('Validation Error', 'Please fix the highlighted fields', 'error'); return }
+        if (!validateStaff(medicalStaffModal.form)) { 
+          showToast('Validation Error', 'Please fix the highlighted fields', 'error'); return 
+        }
         saving.value = true
         try {
           const clean = v => (v == null) ? '' : String(v).trim()
           const f = medicalStaffModal.form
           const data = {
-            full_name: f.full_name.trim(), staff_type: f.staff_type || 'medical_resident',
-            staff_id: f.staff_id || Utils.generateId('MD'), employment_status: f.employment_status || 'active',
-            professional_email: f.professional_email || '', department_id: f.department_id || null,
-            academic_degree: clean(f.academic_degree), specialization: clean(f.specialization),
-            training_year: clean(f.training_year), clinical_certificate: clean(f.clinical_certificate),
-            certificate_status: clean(f.certificate_status), mobile_phone: clean(f.mobile_phone),
-            medical_license: clean(f.medical_license), can_supervise_residents: f.can_supervise_residents || false,
-            special_notes: clean(f.special_notes)
+            full_name: f.full_name.trim(), 
+            staff_type: f.staff_type || 'medical_resident',
+            staff_id: f.staff_id || Utils.generateId('MD'), 
+            employment_status: f.employment_status || 'active',
+            professional_email: f.professional_email || '', 
+            department_id: f.department_id || null,
+            academic_degree: clean(f.academic_degree), 
+            specialization: clean(f.specialization),
+            training_year: clean(f.training_year), 
+            clinical_certificate: clean(f.clinical_certificate),
+            certificate_status: clean(f.certificate_status), 
+            mobile_phone: clean(f.mobile_phone),
+            medical_license: clean(f.medical_license), 
+            can_supervise_residents: f.can_supervise_residents || false,
+            special_notes: clean(f.special_notes),
+            resident_category: f.resident_category || null,
+            home_department: f.home_department || null,
+            external_institution: f.external_institution || null,
+            is_chief_of_department: f.is_chief_of_department || false,
+            is_research_coordinator: f.is_research_coordinator || false,
+            is_resident_manager: f.is_resident_manager || false,
+            is_oncall_manager: f.is_oncall_manager || false,
+            clinical_study_certificates: f.clinical_study_certificates || []
           }
+          
           if (medicalStaffModal.mode === 'add') {
             medicalStaff.value.unshift(await API.createMedicalStaff(data))
             showToast('Success', 'Medical staff added', 'success')
@@ -726,9 +1207,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (idx !== -1) medicalStaff.value[idx] = result
             showToast('Success', 'Medical staff updated', 'success')
           }
-          medicalStaffModal.show = false; clearAll('staff')
-        } catch (e) { showToast('Error', e.message || 'Failed to save', 'error') }
-        finally { saving.value = false }
+          medicalStaffModal.show = false; 
+          clearAll('staff')
+        } catch (e) { 
+          showToast('Error', e.message || 'Failed to save', 'error') 
+        } finally { 
+          saving.value = false 
+        }
       }
 
       const deleteMedicalStaff = (staff) => showConfirmation({
@@ -825,10 +1310,19 @@ document.addEventListener('DOMContentLoaded', () => {
         editMedicalStaff,
         saveMedicalStaff,
         deleteMedicalStaff,
+        // Formatters
+        formatTrainingYear: Utils.formatTrainingYear,
+        formatSpecialization: Utils.formatSpecialization,
+        formatPhone: Utils.formatPhone,
+        formatLicense: Utils.formatLicense,
+        getResidentCategoryInfo: Utils.getResidentCategoryInfo,
         formatResidentCategorySimple: Utils.formatResidentCategorySimple,
         formatResidentCategoryDetailed: Utils.formatResidentCategoryDetailed,
         getResidentCategoryIcon: Utils.getResidentCategoryIcon,
         getResidentCategoryTooltip: Utils.getResidentCategoryTooltip,
+        getRoleInfo: Utils.getRoleInfo,
+        getStaffRoles: Utils.getStaffRoles,
+        // Role methods
         isRoleTaken,
         getCurrentRoleHolder,
         handleRoleAssignment,
@@ -837,7 +1331,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 6.4 useOnCall - manages on-call schedules
+    // 6.4 useOnCall (keep existing)
     function useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff }) {
       const onCallSchedule = ref([])
       const todaysOnCall = ref([])
@@ -989,7 +1483,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 6.5 useRotations - manages resident rotations (with auto-activation)
+    // 6.5 useRotations (with auto-activation)
     function useRotations({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, trainingUnits, currentUser }) {
       const rotations = ref([])
       const rotationFilters = reactive({ resident: '', status: '', trainingUnit: '', supervisor: '', search: '' })
@@ -998,7 +1492,7 @@ document.addEventListener('DOMContentLoaded', () => {
         form: { rotation_id: '', resident_id: '', training_unit_id: '', start_date: Utils.normalizeDate(new Date()), end_date: Utils.normalizeDate(new Date(Date.now() + 30 * 86400000)), rotation_status: 'scheduled', rotation_category: 'clinical_rotation', supervising_attending_id: '' }
       })
 
-      // 6.5.1 Auto-activation state
+      // Auto-activation state
       const pendingActivations = ref([])
       const activationModal = reactive({
         show: false,
@@ -1008,11 +1502,10 @@ document.addEventListener('DOMContentLoaded', () => {
         action: 'activate'
       })
 
-      // 6.5.2 Helper functions
       const getResidentName = (id) => medicalStaff.value.find(s => s.id === id)?.full_name || 'Not assigned'
       const getTrainingUnitName = (id) => trainingUnits.value.find(u => u.id === id)?.unit_name || 'Not assigned'
 
-      // 6.5.3 Check and update rotation statuses based on dates
+      // Check and update rotation statuses based on dates
       const checkAndUpdateRotations = async (requireValidation = true) => {
         const today = new Date()
         today.setHours(0, 0, 0, 0)
@@ -1025,10 +1518,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const startDate = new Date(Utils.normalizeDate(rotation.start_date) + 'T00:00:00')
           const endDate = new Date(Utils.normalizeDate(rotation.end_date) + 'T23:59:59')
 
-          // Case 1: Scheduled rotations that should start today
-          if (rotation.rotation_status === 'scheduled' &&
-            Utils.normalizeDate(startDate) <= todayStr) {
-
+          if (rotation.rotation_status === 'scheduled' && Utils.normalizeDate(startDate) <= todayStr) {
             if (requireValidation) {
               pending.push({
                 ...rotation,
@@ -1044,10 +1534,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           }
 
-          // Case 2: Active rotations that should end today
-          if (rotation.rotation_status === 'active' &&
-            Utils.normalizeDate(endDate) < todayStr) {
-
+          if (rotation.rotation_status === 'active' && Utils.normalizeDate(endDate) < todayStr) {
             if (requireValidation) {
               pending.push({
                 ...rotation,
@@ -1078,7 +1565,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return { updates: updates.length, pending: pending.length }
       }
 
-      // 6.5.4 Update single rotation status
       const updateRotationStatus = async (rotationId, newStatus, metadata = {}) => {
         const rotation = rotations.value.find(r => r.id === rotationId)
         if (!rotation) return
@@ -1108,7 +1594,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      // 6.5.5 Show activation modal
       const showActivationModal = () => {
         if (pendingActivations.value.length === 0) return
         activationModal.rotations = [...pendingActivations.value]
@@ -1117,7 +1602,6 @@ document.addEventListener('DOMContentLoaded', () => {
         activationModal.show = true
       }
 
-      // 6.5.6 Process next pending activation
       const processNextPending = async () => {
         if (activationModal.rotations.length === 0) {
           activationModal.show = false
@@ -1131,7 +1615,6 @@ document.addEventListener('DOMContentLoaded', () => {
         activationModal.action = current.action
       }
 
-      // 6.5.7 Confirm current pending activation
       const confirmPendingActivation = async () => {
         if (!activationModal.selectedRotation) return
 
@@ -1158,7 +1641,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      // 6.5.8 Skip current pending activation
       const skipPendingActivation = () => {
         if (!activationModal.selectedRotation) return
         const current = activationModal.rotations[0]
@@ -1167,14 +1649,12 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Skipped', 'Rotation status update postponed.', 'warning')
       }
 
-      // 6.5.9 Postpone all
       const postponeAllActivations = () => {
         activationModal.show = false
         showToast('Reminder Set', 'Will check again in 4 hours.', 'info')
         localStorage.setItem('last_rotation_check', new Date().toISOString())
       }
 
-      // 6.5.10 Initialize auto-check
       const initAutoCheck = () => {
         setTimeout(() => checkAndUpdateRotations(true), 2000)
         const interval = setInterval(() => {
@@ -1188,7 +1668,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return interval
       }
 
-      // 6.5.11 Validation
       const validateRotation = (form) => {
         clearAll('rotation'); let ok = true
         if (!form.resident_id) { setErr('rotation', 'resident_id', 'Please select a resident'); ok = false }
@@ -1205,7 +1684,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return ok
       }
 
-      // 6.5.12 Filtered rotations
       const filteredRotationsAll = computed(() => {
         let f = rotations.value
         if (rotationFilters.resident) f = f.filter(r => r.resident_id === rotationFilters.resident)
@@ -1223,7 +1701,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       watch(rotationFilters, () => resetPage('rotations'), { deep: true })
 
-      // 6.5.13 Load rotations
       const loadRotations = async () => {
         try {
           const raw = await API.getRotations()
@@ -1235,7 +1712,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch { showToast('Error', 'Failed to load rotations', 'error') }
       }
 
-      // 6.5.14 Show add modal
       const showAddRotationModal = () => {
         clearAll('rotation')
         rotationModal.mode = 'add'
@@ -1247,7 +1723,6 @@ document.addEventListener('DOMContentLoaded', () => {
         rotationModal.show = true
       }
 
-      // 6.5.15 Edit rotation
       const editRotation = (rotation) => {
         clearAll('rotation')
         rotationModal.mode = 'edit'
@@ -1259,7 +1734,6 @@ document.addEventListener('DOMContentLoaded', () => {
         rotationModal.show = true
       }
 
-      // 6.5.16 Save rotation
       const saveRotation = async (saving) => {
         if (!validateRotation(rotationModal.form)) { showToast('Validation Error', 'Please fix the highlighted fields', 'error'); return }
         const f = rotationModal.form
@@ -1318,7 +1792,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally { saving.value = false }
       }
 
-      // 6.5.17 Delete rotation
       const deleteRotation = (rotation) => showConfirmation({
         title: 'Delete Rotation', message: 'Delete this rotation?',
         icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
@@ -1330,7 +1803,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       })
 
-      // 6.5.18 Return all rotation functions
       return {
         rotations,
         rotationFilters,
@@ -1343,7 +1815,6 @@ document.addEventListener('DOMContentLoaded', () => {
         editRotation,
         saveRotation,
         deleteRotation,
-        // Auto-activation features
         pendingActivations,
         activationModal,
         checkAndUpdateRotations,
@@ -1366,7 +1837,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 6.6 useAbsences - manages staff absences
+    // 6.6 useAbsences (keep existing)
     function useAbsences({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff }) {
       const absences = ref([])
       const absenceFilters = reactive({ staff: '', status: '', reason: '', startDate: '', search: '' })
@@ -1488,7 +1959,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 6.7 useDepartments - manages departments
+    // 6.7 useDepartments (keep existing)
     function useDepartments({ showToast, medicalStaff, trainingUnits, rotations }) {
       const departments = ref([])
       const departmentFilters = reactive({ search: '', status: '' })
@@ -1550,7 +2021,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 6.8 useTrainingUnits - manages training units
+    // 6.8 useTrainingUnits (keep existing)
     function useTrainingUnits({ showToast, rotations }) {
       const trainingUnits = ref([])
       const trainingUnitFilters = reactive({ search: '', department: '', status: '' })
@@ -1623,7 +2094,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 6.9 useComms - manages communications
+    // 6.9 useComms (keep existing)
     function useComms({ showToast, showConfirmation }) {
       const announcements = ref([])
       const communicationsFilters = reactive({ search: '', priority: '', audience: '' })
@@ -1709,7 +2180,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 6.10 useLiveStatus - manages live clinical status
+    // 6.10 useLiveStatus (keep existing)
     function useLiveStatus({ showToast, showConfirmation, medicalStaff, currentUser }) {
       const clinicalStatus = ref(null)
       const clinicalStatusHistory = ref([])
@@ -1842,7 +2313,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 6.11 useResearch - manages research data
+    // 6.11 useResearch (keep existing)
     function useResearch({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, clearAll, medicalStaff, loadAnalyticsSummary, loadResearchLinesPerformance, loadPartnerCollaborations }) {
       const researchLines = ref([])
       const clinicalTrials = ref([])
@@ -2047,7 +2518,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 6.12 useAnalytics - manages analytics
+    // 6.12 useAnalytics (keep existing)
     function useAnalytics({ showToast, hasPermission }) {
       const researchDashboard = ref(null)
       const researchLinesPerformance = ref([])
@@ -2092,9 +2563,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const loadStaffResearchProfile = async (staffProfileModal, staffId) => {
         if (!staffId || !hasPermission('analytics', 'read')) return
         staffProfileModal.loadingResearch = true
-        try { staffProfileModal.researchProfile = await API.getStaffResearchProfile(staffId) }
-        catch { showToast('Error', 'Failed to load research profile', 'error') }
-        finally { staffProfileModal.loadingResearch = false }
+        try { 
+          staffProfileModal.researchProfile = await API.getStaffResearchProfile(staffId) 
+        }
+        catch { 
+          showToast('Error', 'Failed to load research profile', 'error') 
+        }
+        finally { 
+          staffProfileModal.loadingResearch = false 
+        }
       }
 
       const handleExport = async () => {
@@ -2123,7 +2600,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 6.13 useDashboard - manages dashboard stats
+    // 6.13 useDashboard (keep existing)
     function useDashboard({ medicalStaff, rotations, absences, onCallSchedule }) {
       const systemStats = ref({
         totalStaff: 0, activeAttending: 0, activeResidents: 0, onCallNow: 0, inSurgery: 0,
@@ -2352,7 +2829,43 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasProfessionalCredentials = (staff) =>
           !!(staff?.academic_degree || staff?.specialization || staff?.training_year || staff?.clinical_certificate || staff?.medical_license)
 
-        // 7.6 Formatters
+        // 7.6 ENHANCED Staff profile view
+        const viewStaffDetails = async (staff) => {
+          staffOps.staffProfileModal.staff = staff
+          staffOps.staffProfileModal.activeTab = 'activity'
+          staffOps.staffProfileModal.show = true
+          
+          // Load research profile
+          if (hasPermission('analytics', 'read')) {
+            await analyticsOps.loadStaffResearchProfile(staffOps.staffProfileModal, staff.id)
+          }
+          
+          // Load supervision data for attendings
+          if (staff.staff_type === 'attending_physician') {
+            staffOps.staffProfileModal.loadingSupervision = true
+            try {
+              staffOps.staffProfileModal.supervisionData = await API.getSupervisedResidents(staff.id)
+            } catch (error) {
+              console.error('Failed to load supervision data:', error)
+              staffOps.staffProfileModal.supervisionData = { current: [], currentCount: 0, pastCount: 0, avgEvaluation: 0 }
+            } finally {
+              staffOps.staffProfileModal.loadingSupervision = false
+            }
+          }
+          
+          // Load leave balance
+          staffOps.staffProfileModal.loadingLeave = true
+          try {
+            staffOps.staffProfileModal.leaveBalance = await API.getLeaveBalance(staff.id)
+          } catch (error) {
+            console.error('Failed to load leave balance:', error)
+            staffOps.staffProfileModal.leaveBalance = null
+          } finally {
+            staffOps.staffProfileModal.loadingLeave = false
+          }
+        }
+
+        // 7.7 Formatters
         const formatStaffType = (t) => STAFF_TYPE_LABELS[t] || t
         const getStaffTypeClass = (t) => STAFF_TYPE_CLASSES[t] || 'badge-secondary'
         const formatEmploymentStatus = (s) => ({ active: 'Active', on_leave: 'On Leave', inactive: 'Inactive' }[s] || s)
@@ -2364,7 +2877,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const getCurrentViewSubtitle = () => VIEW_SUBTITLES[currentView.value] || 'Hospital Management System'
         const getSearchPlaceholder = () => 'Search...'
 
-        // 7.7 Misc helpers
+        // 7.8 Misc helpers
         const getStaffTypeIcon = (t) => ({ attending_physician: 'fa-user-md', medical_resident: 'fa-user-graduate', fellow: 'fa-user-tie', nurse_practitioner: 'fa-user-nurse' }[t] || 'fa-user')
         const getAbsenceReasonIcon = (r) => ({ vacation: 'fa-umbrella-beach', sick_leave: 'fa-procedures', conference: 'fa-chalkboard-teacher', training: 'fa-graduation-cap', personal: 'fa-user-clock', other: 'fa-question-circle' }[r] || 'fa-clock')
         const calculateCapacityPercent = (cur, max) => (!cur || !max) ? 0 : Math.round((cur / max) * 100)
@@ -2376,22 +2889,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const updatePreview = () => { }
         const requestFullDossier = () => showToast('Info', 'Dossier request sent. Our team will contact you.', 'info')
 
-        // 7.8 Computed lists
+        // 7.9 Computed lists
         const availablePhysicians = computed(() => medicalStaff.value.filter(s => ['attending_physician', 'fellow', 'nurse_practitioner'].includes(s.staff_type) && s.employment_status === 'active'))
         const availableResidents = computed(() => medicalStaff.value.filter(s => s.staff_type === 'medical_resident' && s.employment_status === 'active'))
         const availableAttendings = computed(() => medicalStaff.value.filter(s => s.staff_type === 'attending_physician' && s.employment_status === 'active'))
         const availableHeadsOfDepartment = computed(() => availableAttendings.value)
         const availableReplacementStaff = computed(() => medicalStaff.value.filter(s => s.employment_status === 'active'))
-
-        // 7.9 Staff profile view
-        const viewStaffDetails = async (staff) => {
-          staffOps.staffProfileModal.staff = staff
-          staffOps.staffProfileModal.activeTab = 'assignments'
-          staffOps.staffProfileModal.show = true
-          if (hasPermission('analytics', 'read')) {
-            await analyticsOps.loadStaffResearchProfile(staffOps.staffProfileModal, staff.id)
-          }
-        }
 
         // 7.10 User profile
         const showUserProfileModal = () => {
@@ -2551,15 +3054,25 @@ document.addEventListener('DOMContentLoaded', () => {
           // On-Call
           ...onCallOps,
 
-          // Rotations (includes auto-activation)
+          // Rotations
           ...rotationOps,
 
           // Absences
           ...absenceOps,
-          formatResidentCategorySimple: staffOps.formatResidentCategorySimple,
-          formatResidentCategoryDetailed: staffOps.formatResidentCategoryDetailed,
-          getResidentCategoryIcon: staffOps.getResidentCategoryIcon,
-          getResidentCategoryTooltip: staffOps.getResidentCategoryTooltip,
+          
+          // Resident formatters
+          formatTrainingYear: Utils.formatTrainingYear,
+          formatSpecialization: Utils.formatSpecialization,
+          formatPhone: Utils.formatPhone,
+          formatLicense: Utils.formatLicense,
+          getResidentCategoryInfo: Utils.getResidentCategoryInfo,
+          formatResidentCategorySimple: Utils.formatResidentCategorySimple,
+          formatResidentCategoryDetailed: Utils.formatResidentCategoryDetailed,
+          getResidentCategoryIcon: Utils.getResidentCategoryIcon,
+          getResidentCategoryTooltip: Utils.getResidentCategoryTooltip,
+          getRoleInfo: Utils.getRoleInfo,
+          getStaffRoles: Utils.getStaffRoles,
+          getDaysRemainingColor: Utils.getDaysRemainingColor,
 
           // Departments
           departments, departmentFilters, departmentModal, filteredDepartments,
