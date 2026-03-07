@@ -1008,11 +1008,27 @@
                 <div v-if="currentView === 'resident_rotations'">
                     <div class="card mb-6">
                         <div class="card-header">
-                            <div class="card-title"><i class="fas fa-calendar-check"></i> Resident Rotations</div>
-                            <button class="btn btn-primary" @click="showAddRotationModal" v-if="hasPermission('resident_rotations', 'create')">
-                                <i class="fas fa-plus"></i> Add Rotation
-                            </button>
-                        </div>
+    <div class="card-title"><i class="fas fa-calendar-check"></i> Resident Rotations</div>
+    <div style="display: flex; gap: 8px;">
+        <!-- Check Pending button - shows count of pending rotations -->
+        <button class="btn btn-outline-primary" 
+                @click="rotationOps.forceActivationCheck" 
+                v-if="hasPermission('resident_rotations', 'update')"
+                style="position: relative;">
+            <i class="fas fa-sync-alt"></i> Check Pending
+            <!-- Show badge if there are pending rotations -->
+            <span v-if="rotationOps.pendingActivations?.length > 0" 
+                  style="position: absolute; top: -8px; right: -8px; background: var(--red); color: white; border-radius: 50%; min-width: 20px; height: 20px; font-size: 11px; display: flex; align-items: center; justify-content: center; padding: 0 4px;">
+                {{ rotationOps.pendingActivations.length }}
+            </span>
+        </button>
+        
+        <!-- Add Rotation button -->
+        <button class="btn btn-primary" @click="showAddRotationModal" v-if="hasPermission('resident_rotations', 'create')">
+            <i class="fas fa-plus"></i> Add Rotation
+        </button>
+    </div>
+</div>
                         <div class="filter-bar">
                             <select class="form-select" v-model="rotationFilters.resident">
                                 <option value="">All Residents</option>
@@ -1080,10 +1096,38 @@
                                             <span v-else class="na-value">NA</span>
                                         </td>
                                         <td>
-                                            <button class="btn-pill btn-pill-edit" @click="editRotation(rotation)" v-if="hasPermission('resident_rotations', 'update')">
-                                                <i class="fas fa-edit"></i> Edit
-                                            </button>
-                                        </td>
+    <div style="display: flex; gap: 4px; justify-content: flex-end;">
+        <!-- Edit button (always show for update permission) -->
+        <button class="btn-pill btn-pill-edit" @click="editRotation(rotation)" v-if="hasPermission('resident_rotations', 'update')" title="Edit rotation">
+            <i class="fas fa-edit"></i>
+        </button>
+        
+        <!-- Activate button - only for scheduled rotations -->
+        <button 
+            v-if="rotation.rotation_status === 'scheduled' && hasPermission('resident_rotations', 'update')" 
+            class="btn-pill" 
+            style="background: var(--blue); color: white; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 12px;"
+            @click.stop="rotationOps.quickActivate(rotation)"
+            title="Activate this rotation now (start date reached or manual override)">
+            <i class="fas fa-play" style="margin-right: 4px;"></i> Activate
+        </button>
+        
+        <!-- Complete button - only for active rotations -->
+        <button 
+            v-if="rotation.rotation_status === 'active' && hasPermission('resident_rotations', 'update')" 
+            class="btn-pill" 
+            style="background: var(--green); color: white; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 12px;"
+            @click.stop="rotationOps.quickComplete(rotation)"
+            title="Complete this rotation now (end date reached or manual override)">
+            <i class="fas fa-check" style="margin-right: 4px;"></i> Complete
+        </button>
+        
+        <!-- Delete button - for delete permission -->
+        <button class="btn-pill btn-pill-danger" @click.stop="deleteRotation(rotation)" v-if="hasPermission('resident_rotations', 'delete')" title="Delete rotation">
+            <i class="fas fa-trash"></i>
+        </button>
+    </div>
+</td>
                                     </tr>
                                     <tr v-if="filteredRotations.length === 0">
                                         <td colspan="7" class="empty-state">
@@ -2873,6 +2917,77 @@
                     <button class="btn btn-primary" @click="saveRotation" :disabled="saving">
                         <i class="fas fa-save" :class="{ 'fa-spinner fa-spin': saving }"></i> 
                         {{ saving ? 'Saving...' : (rotationModal.mode === 'add' ? 'Add Rotation' : 'Save Changes') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+                                                        <!-- MODAL: Rotation Activation (NEW) -->
+        <div v-if="rotationOps?.activationModal?.show" class="modal-overlay">
+            <div class="modal-container" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3>
+                        <i class="fas" :class="rotationOps.activationModal.action === 'activate' ? 'fa-play-circle' : 'fa-check-circle'"></i>
+                        {{ rotationOps.activationModal.action === 'activate' ? 'Activate Rotation' : 'Complete Rotation' }}
+                    </h3>
+                    <button class="modal-close" @click="rotationOps.activationModal.show = false">&times;</button>
+                </div>
+                
+                <div class="modal-body" v-if="rotationOps.activationModal.selectedRotation">
+                    <div class="alert alert-info" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #0c5460;">
+                        <i class="fas fa-info-circle"></i>
+                        {{ rotationOps.activationModal.selectedRotation.message }}
+                    </div>
+                    
+                    <div class="rotation-preview" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #dee2e6;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span><strong>Resident:</strong> {{ getResidentName(rotationOps.activationModal.selectedRotation.resident_id) }}</span>
+                            <span class="badge" :class="{
+                                'badge-primary': rotationOps.activationModal.action === 'activate',
+                                'badge-success': rotationOps.activationModal.action === 'complete'
+                            }">
+                                {{ rotationOps.activationModal.action === 'activate' ? 'Start Date Reached' : 'End Date Passed' }}
+                            </span>
+                        </div>
+                        <div><strong>Unit:</strong> {{ getTrainingUnitName(rotationOps.activationModal.selectedRotation.training_unit_id) }}</div>
+                        <div><strong>Dates:</strong> {{ formatDate(rotationOps.activationModal.selectedRotation.start_date) }} → {{ formatDate(rotationOps.activationModal.selectedRotation.end_date) }}</div>
+                        <div><strong>Duration:</strong> {{ calculateAbsenceDuration(rotationOps.activationModal.selectedRotation.start_date, rotationOps.activationModal.selectedRotation.end_date) }} days</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Notes (optional):</label>
+                        <textarea 
+                            v-model="rotationOps.activationModal.notes" 
+                            class="form-control" 
+                            rows="3"
+                            :placeholder="rotationOps.activationModal.action === 'activate' ? 'Add any notes about this rotation start...' : 'Add completion notes, feedback, or achievements...'"
+                        ></textarea>
+                    </div>
+                    
+                    <div class="info-box" style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-top: 15px; font-size: 13px;">
+                        <i class="fas fa-clock" style="margin-right: 8px;"></i>
+                        <small>
+                            {{ rotationOps.activationModal.rotations.length }} rotation{{ rotationOps.activationModal.rotations.length > 1 ? 's' : '' }} pending review.
+                            <span v-if="rotationOps.activationModal.rotations.length > 1">
+                                Next: {{ getResidentName(rotationOps.activationModal.rotations[1]?.resident_id) }}
+                            </span>
+                        </small>
+                    </div>
+                </div>
+                
+                <div class="modal-footer" style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button class="btn btn-secondary" @click="rotationOps.skipPendingActivation">
+                        <i class="fas fa-forward"></i> Skip for Now
+                    </button>
+                    <button class="btn btn-warning" @click="rotationOps.postponeAllActivations">
+                        <i class="fas fa-bell-slash"></i> Remind Later
+                    </button>
+                    <button 
+                        class="btn" 
+                        :class="rotationOps.activationModal.action === 'activate' ? 'btn-primary' : 'btn-success'"
+                        @click="rotationOps.confirmPendingActivation"
+                    >
+                        <i class="fas" :class="rotationOps.activationModal.action === 'activate' ? 'fa-play' : 'fa-check'"></i>
+                        {{ rotationOps.activationModal.action === 'activate' ? 'Activate Now' : 'Complete Now' }}
                     </button>
                 </div>
             </div>
