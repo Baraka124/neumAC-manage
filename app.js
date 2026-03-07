@@ -766,7 +766,7 @@ return {
   getResidentCategoryIcon: Utils.getResidentCategoryIcon,
   getResidentCategoryTooltip: Utils.getResidentCategoryTooltip
 }
-
+} 
   function useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff }) {
     const onCallSchedule = ref([])
     const todaysOnCall   = ref([])
