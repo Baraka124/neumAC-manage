@@ -395,7 +395,166 @@ a { color: var(--blue); text-decoration: none; }
   overflow-x: hidden;
   min-height: 0;        /* ← required for flexbox children to scroll */
 }
+/* Role Assignment Cards */
+.role-assignment-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 16px;
+    margin-bottom: 16px;
+}
 
+.role-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.role-header i {
+    color: var(--blue);
+    font-size: 16px;
+}
+
+.role-header h4 {
+    font-size: 14px;
+    font-weight: 600;
+    flex: 1;
+}
+
+.role-badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    background: var(--neutral-lt);
+    color: var(--neutral);
+}
+
+.role-badge.role-current {
+    background: var(--ok-lt);
+    color: var(--ok);
+}
+
+.role-current-holder {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    font-size: 12px;
+}
+
+.holder-label {
+    color: var(--text-3);
+    margin-right: 4px;
+}
+
+.holder-name {
+    font-weight: 600;
+    color: var(--text-1);
+}
+
+.holder-date {
+    color: var(--text-3);
+    font-size: 10px;
+    margin-left: 8px;
+}
+
+.role-assign-control {
+    padding: 4px 0;
+}
+
+.role-warning {
+    color: var(--warn);
+    font-size: 11px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.role-error {
+    color: var(--danger);
+    font-size: 11px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.roles-info-box {
+    background: var(--blue-lt);
+    border: 1px solid var(--blue-mid);
+    border-radius: var(--r);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--blue);
+}
+
+.roles-info-box i {
+    font-size: 14px;
+}
+
+/* Capabilities Grid */
+.capabilities-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 12px;
+}
+
+.capability-check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.capability-check input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+}
+
+/* Certificate Tags */
+.certificate-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.cert-tag {
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    color: var(--text-2);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--t);
+}
+
+.cert-tag:hover {
+    background: var(--blue-lt);
+    border-color: var(--blue-mid);
+}
+
+.cert-tag.active {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: white;
+}
 /* ----------------------------------------------------------------
    BREADCRUMB
 ---------------------------------------------------------------- */
