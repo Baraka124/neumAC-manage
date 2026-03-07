@@ -2697,9 +2697,9 @@
                                 <h4 class="preview-title">{{ communicationsModal.form.title || 'Title' }}</h4>
                                 <p class="preview-text">{{ communicationsModal.form.content || 'Content…' }}</p>
                                 <div class="preview-footer">
-                                    <div><i class="fas fa-users"></i> {{ formatAudience(communicationsModal.form.target_audience) || 'All Staff' }}</div>
-                                    <div><i class="fas fa-user"></i> {{ currentUser.full_name }}</div>
-                                </div>
+    <div><i class="fas fa-users"></i> {{ formatAudience(communicationsModal.form.target_audience) || 'All Staff' }}</div>
+    <div><i class="fas fa-user"></i> {{ currentUser?.full_name || 'User' }}</div>
+</div>
                             </div>
                         </div>
                         <div class="form-section">
