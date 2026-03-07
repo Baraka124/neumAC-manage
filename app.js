@@ -1127,7 +1127,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (staffFilters.residentCategory) f = f.filter(x => x.resident_category === staffFilters.residentCategory)
         return applySort(f, 'medical_staff')
       })
-      
+      const existingSchedulesForDate = computed(() => {
+  if (!onCallModal.form.duty_date) return [];
+  return onCallSchedule.value.filter(s => 
+    Utils.normalizeDate(s.duty_date) === onCallModal.form.duty_date
+  );
+});
       const filteredMedicalStaff = computed(() => paginate(filteredMedicalStaffAll.value, 'medical_staff'))
       const staffTotalPages = computed(() => totalPages(filteredMedicalStaffAll.value, 'medical_staff'))
 
