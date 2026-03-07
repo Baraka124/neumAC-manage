@@ -2,12 +2,78 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>neuMAC | Pulmonology Management System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Quick mobile improvements - add to existing CSS */
+        @media (max-width: 768px) {
+            .btn, .btn-pill, .action-btn, .modal-tab, .comms-tab {
+                min-height: 44px;
+                padding-top: 10px;
+                padding-bottom: 10px;
+            }
+            .filter-bar input, .filter-bar select, .form-control, .form-select {
+                min-height: 48px;
+                font-size: 16px;
+            }
+            .modal-close {
+                width: 44px;
+                height: 44px;
+            }
+            .table tbody td {
+                padding: 12px 8px;
+            }
+        }
+        
+        /* Validation styling */
+        .is-invalid {
+            border-color: var(--danger) !important;
+            background-color: var(--danger-lt) !important;
+        }
+        .has-error .form-label {
+            color: var(--danger);
+        }
+        .error-text {
+            color: var(--danger);
+            font-size: 11px;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .error-text i {
+            font-size: 10px;
+        }
+        .form-control:not(:placeholder-shown):valid:not(.is-invalid) {
+            border-color: var(--ok);
+            background-color: var(--ok-lt);
+        }
+        
+        /* Role tooltips */
+        [title] {
+            cursor: help;
+        }
+        
+        /* Compact loading states */
+        .text-center { text-align: center; }
+        .py-6 { padding-top: 24px; padding-bottom: 24px; }
+        .mb-2 { margin-bottom: 8px; }
+        .text-sm { font-size: 12px; }
+        .text-gray-400 { color: var(--text-4); }
+        
+        /* Resident category selector */
+        .category-option.selected div {
+            border-color: var(--blue);
+            background: var(--blue-lt);
+            box-shadow: 0 0 0 1px var(--blue);
+        }
+        .hidden { display: none; }
+        .mt-3 { margin-top: 12px; }
+    </style>
 </head>
 <body>
 <div id="app" v-cloak>
@@ -38,23 +104,84 @@
                 </div>
                 <p class="login-subtitle">Pulmonology Management System</p>
             </div>
+            
+            <!-- Error message display -->
+            <div v-if="loginError" class="login-error mb-4">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>{{ loginError }}</span>
+            </div>
+            
             <div class="form-group">
-                <label for="login-email" class="form-label">Email Address</label>
+                <label for="login-email" class="form-label">
+                    <i class="fas fa-envelope" style="margin-right: 4px;"></i> Email
+                </label>
                 <input type="email" id="login-email" class="form-control"
-                       v-model="loginForm.email" placeholder="admin@neumocare.org"
-                       required aria-required="true" name="email" autocomplete="email">
+                       v-model="loginForm.email" 
+                       placeholder="admin@neumocare.org"
+                       required aria-required="true" 
+                       name="email" autocomplete="email"
+                       :class="{ 'is-invalid': loginFieldErrors.email }"
+                       @input="clearLoginError('email')">
+                <small v-if="loginFieldErrors.email" class="error-text">
+                    <i class="fas fa-exclamation-circle"></i> {{ loginFieldErrors.email }}
+                </small>
             </div>
+            
             <div class="form-group">
-                <label for="login-password" class="form-label">Password</label>
-                <input type="password" id="login-password" class="form-control"
-                       v-model="loginForm.password" placeholder="••••••••"
-                       required aria-required="true" name="password" autocomplete="current-password">
+                <label for="login-password" class="form-label">
+                    <i class="fas fa-lock" style="margin-right: 4px;"></i> Password
+                </label>
+                <div class="password-input-wrapper" style="position: relative;">
+                    <input :type="showPassword ? 'text' : 'password'" 
+                           id="login-password" 
+                           class="form-control" style="padding-right: 40px;"
+                           v-model="loginForm.password" 
+                           placeholder="••••••••"
+                           required aria-required="true" 
+                           name="password" autocomplete="current-password"
+                           :class="{ 'is-invalid': loginFieldErrors.password }"
+                           @input="clearLoginError('password')">
+                    <button type="button" class="password-toggle" 
+                            @click="showPassword = !showPassword"
+                            style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-3); cursor: pointer;">
+                        <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                    </button>
+                </div>
+                <small v-if="loginFieldErrors.password" class="error-text">
+                    <i class="fas fa-exclamation-circle"></i> {{ loginFieldErrors.password }}
+                </small>
             </div>
+            
+            <div class="form-group flex items-center justify-between">
+                <label class="checkbox-label" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="checkbox" v-model="loginForm.remember_me" style="width: 16px; height: 16px;">
+                    <span style="font-size: 13px; color: var(--text-2);">Remember me</span>
+                </label>
+                <a href="#" class="forgot-password" @click.prevent="handleForgotPassword" 
+                   style="font-size: 13px; color: var(--blue);">
+                    Forgot?
+                </a>
+            </div>
+            
             <button class="btn btn-primary btn-lg w-100" @click="handleLogin"
                     :disabled="loginLoading">
-                <span v-if="loginLoading"><i class="fas fa-spinner fa-spin"></i> Authenticating...</span>
-                <span v-else><i class="fas fa-sign-in-alt"></i> Login</span>
+                <span v-if="loginLoading">
+                    <i class="fas fa-spinner fa-spin"></i> Authenticating...
+                </span>
+                <span v-else>
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </span>
             </button>
+            
+            <!-- Demo credentials hint -->
+            <div class="login-hint mt-4" style="text-align: center; padding-top: 16px; border-top: 1px solid var(--border);">
+                <p style="font-size: 12px; color: var(--text-3); margin-bottom: 4px;">
+                    <i class="fas fa-info-circle"></i> Demo access
+                </p>
+                <p style="font-size: 11px; color: var(--text-4);">
+                    admin@neumocare.org / any password
+                </p>
+            </div>
         </div>
     </div>
 
@@ -201,7 +328,7 @@
                     </ul>
                 </div>
 
-                <!-- ============ NEW: ANALYTICS SECTION ============ -->
+                <!-- Analytics Section -->
                 <div class="sidebar-section">
                     <div class="sidebar-section-title" v-if="!sidebarCollapsed">Analytics</div>
                     <ul class="sidebar-menu">
@@ -663,7 +790,7 @@
         <option value="nurse_practitioner">Nurse Practitioner</option>
     </select>
     
-    <!-- NEW: Resident Category Filter (only shows when Medical Resident selected) -->
+    <!-- Resident Category Filter -->
     <select v-if="staffFilters.staffType === 'medical_resident'" class="form-select" v-model="staffFilters.residentCategory">
         <option value="">All Residents</option>
         <option value="department_internal">🔵 Internal (Dept own)</option>
@@ -710,7 +837,7 @@
         <div class="text-xs text-gray-500">{{ staff.professional_email }}</div>
         <div v-if="staff.training_year" class="text-xs text-blue-600">{{ staff.training_year }}</div>
         
-        <!-- NEW: Resident Category Badge -->
+        <!-- Resident Category Badge -->
         <div v-if="staff.staff_type === 'medical_resident' && staff.resident_category" 
              class="resident-badge" 
              :class="'resident-' + staff.resident_category"
@@ -1873,9 +2000,13 @@
         <span class="pcr-key">License</span>
         <span :class="['pcr-val', !staffProfileModal.staff.medical_license && 'pcr-na']">{{ staffProfileModal.staff.medical_license || 'NA' }}</span>
     </div>
+    <div class="profile-cred-row">
+        <span class="pcr-key">Mobile</span>
+        <span :class="['pcr-val', !staffProfileModal.staff.mobile_phone && 'pcr-na']">{{ staffProfileModal.staff.mobile_phone || 'NA' }}</span>
+    </div>
 </div>
 
-<!-- NEW: Resident Information Section (only for residents) -->
+<!-- Resident Information Section (only for residents) -->
 <div v-if="staffProfileModal.staff.staff_type === 'medical_resident'" class="profile-resident-info" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08);">
     <div class="profile-creds-label">Resident Information</div>
     
@@ -2290,20 +2421,29 @@
         <div v-if="medicalStaffModal.show" class="modal-overlay">
             <div class="modal-container">
                 <div class="modal-header">
-                    <div class="modal-title"><i class="fas fa-user-md"></i>{{ medicalStaffModal.mode === 'add' ? 'Add Medical Staff' : 'Edit Medical Staff' }}</div>
+                    <div class="modal-title"><i class="fas fa-user-md"></i>{{ medicalStaffModal.mode === 'add' ? 'Add Staff' : 'Edit Staff' }}</div>
                     <button class="modal-close" @click="medicalStaffModal.show = false"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
                     <div class="modal-tabs">
                         <button class="modal-tab" :class="{ active: medicalStaffModal.activeTab === 'basic' }" @click="medicalStaffModal.activeTab = 'basic'"><i class="fas fa-user"></i> Basic</button>
                         <button class="modal-tab" :class="{ active: medicalStaffModal.activeTab === 'professional' }" @click="medicalStaffModal.activeTab = 'professional'"><i class="fas fa-graduation-cap"></i> Professional</button>
+                        <!-- Department Roles Tab -->
+                        <button class="modal-tab" :class="{ active: medicalStaffModal.activeTab === 'roles' }" @click="medicalStaffModal.activeTab = 'roles'">
+                            <i class="fas fa-user-tag"></i> Department Roles
+                        </button>
                     </div>
+                    
+                    <!-- Basic Tab -->
                     <div v-if="medicalStaffModal.activeTab === 'basic'" class="mt-6">
                         <div class="grid grid-cols-2 gap-4">
                             <div class="form-group" :class="{ 'has-error': fieldErrors.staff?.full_name }">
                                 <label class="form-label">Full Name *</label>
-                                <input type="text" class="form-control" v-model="medicalStaffModal.form.full_name" required @input="clearFieldError('staff', 'full_name')">
-                                <small v-if="fieldErrors.staff?.full_name" class="error-text">{{ fieldErrors.staff.full_name }}</small>
+                                <input type="text" class="form-control" v-model="medicalStaffModal.form.full_name" required @input="clearFieldError('staff', 'full_name')"
+                                       :class="{ 'is-invalid': fieldErrors.staff?.full_name }">
+                                <small v-if="fieldErrors.staff?.full_name" class="error-text">
+                                    <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.staff.full_name }}
+                                </small>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Staff Type *</label>
@@ -2324,11 +2464,26 @@
                             </div>
                             <div class="form-group" :class="{ 'has-error': fieldErrors.staff?.professional_email }">
                                 <label class="form-label">Professional Email *</label>
-                                <input type="email" class="form-control" v-model="medicalStaffModal.form.professional_email" required @input="clearFieldError('staff', 'professional_email')">
-                                <small v-if="fieldErrors.staff?.professional_email" class="error-text">{{ fieldErrors.staff.professional_email }}</small>
+                                <input type="email" class="form-control" v-model="medicalStaffModal.form.professional_email" required @input="clearFieldError('staff', 'professional_email')"
+                                       :class="{ 'is-invalid': fieldErrors.staff?.professional_email }">
+                                <small v-if="fieldErrors.staff?.professional_email" class="error-text">
+                                    <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.staff.professional_email }}
+                                </small>
+                            </div>
+                            <!-- Mobile Phone (missing) -->
+                            <div class="form-group">
+                                <label class="form-label">Mobile Phone</label>
+                                <input type="tel" class="form-control" v-model="medicalStaffModal.form.mobile_phone" placeholder="+34 123 456 789">
+                            </div>
+                            <!-- Medical License (missing) -->
+                            <div class="form-group">
+                                <label class="form-label">Medical License</label>
+                                <input type="text" class="form-control" v-model="medicalStaffModal.form.medical_license" placeholder="License number">
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Professional Tab -->
                     <div v-if="medicalStaffModal.activeTab === 'professional'" class="mt-6">
                         <div class="grid grid-cols-2 gap-4">
                             <div class="form-group"><label class="form-label">Academic Degree</label>
@@ -2338,50 +2493,94 @@
                                 </select>
                             </div>
                             <div class="form-group"><label class="form-label">Specialization</label><input type="text" class="form-control" v-model="medicalStaffModal.form.specialization"></div>
-                            <div v-if="medicalStaffModal.form.staff_type === 'medical_resident'" class="form-group"><label class="form-label">Resident Year</label>
+                            
+                            <!-- Resident Fields -->
+                            <div v-if="medicalStaffModal.form.staff_type === 'medical_resident'" class="form-group">
+                                <label class="form-label">Resident Year</label>
                                 <select class="form-select" v-model="medicalStaffModal.form.training_year">
                                     <option value="">Select Year</option>
                                     <option value="PGY-1">PGY-1</option><option value="PGY-2">PGY-2</option><option value="PGY-3">PGY-3</option><option value="PGY-4">PGY-4</option><option value="PGY-5">PGY-5</option>
                                 </select>
                             </div>
+                            
+                            <!-- Resident Category (missing) -->
+                            <div v-if="medicalStaffModal.form.staff_type === 'medical_resident'" class="form-group col-span-2">
+                                <label class="form-label">Resident Category</label>
+                                <div class="resident-category-selector" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px;">
+                                    <label class="category-option" :class="{ 'selected': medicalStaffModal.form.resident_category === 'department_internal' }">
+                                        <input type="radio" v-model="medicalStaffModal.form.resident_category" value="department_internal" class="hidden">
+                                        <div style="padding: 12px; border: 1px solid var(--border); border-radius: var(--r); text-align: center; cursor: pointer;">
+                                            <i class="fas fa-user-md" style="color: var(--blue); font-size: 16px; margin-bottom: 4px; display: block;"></i>
+                                            <span style="font-size: 11px; font-weight: 600;">Internal</span>
+                                        </div>
+                                    </label>
+                                    <label class="category-option" :class="{ 'selected': medicalStaffModal.form.resident_category === 'rotating_other_dept' }">
+                                        <input type="radio" v-model="medicalStaffModal.form.resident_category" value="rotating_other_dept" class="hidden">
+                                        <div style="padding: 12px; border: 1px solid var(--border); border-radius: var(--r); text-align: center; cursor: pointer;">
+                                            <i class="fas fa-sync-alt" style="color: var(--ok); font-size: 16px; margin-bottom: 4px; display: block;"></i>
+                                            <span style="font-size: 11px; font-weight: 600;">Rotating</span>
+                                        </div>
+                                    </label>
+                                    <label class="category-option" :class="{ 'selected': medicalStaffModal.form.resident_category === 'external_resident' }">
+                                        <input type="radio" v-model="medicalStaffModal.form.resident_category" value="external_resident" class="hidden">
+                                        <div style="padding: 12px; border: 1px solid var(--border); border-radius: var(--r); text-align: center; cursor: pointer;">
+                                            <i class="fas fa-globe" style="color: var(--purple); font-size: 16px; margin-bottom: 4px; display: block;"></i>
+                                            <span style="font-size: 11px; font-weight: 600;">External</span>
+                                        </div>
+                                    </label>
+                                </div>
+                                
+                                <!-- Conditional fields based on category -->
+                                <div v-if="medicalStaffModal.form.resident_category === 'rotating_other_dept'" class="mt-3">
+                                    <label class="form-label">Home Department</label>
+                                    <input type="text" class="form-control" v-model="medicalStaffModal.form.home_department" placeholder="e.g., Cardiology">
+                                </div>
+                                
+                                <div v-if="medicalStaffModal.form.resident_category === 'external_resident'" class="mt-3">
+                                    <label class="form-label">External Institution</label>
+                                    <input type="text" class="form-control" v-model="medicalStaffModal.form.external_institution" placeholder="e.g., University Hospital">
+                                </div>
+                            </div>
+                            
                             <div class="form-group"><label class="form-label">Clinical Certificate</label><input type="text" class="form-control" v-model="medicalStaffModal.form.clinical_certificate"></div>
                             <div class="form-group"><label class="form-label">Certificate Status</label>
                                 <select class="form-select" v-model="medicalStaffModal.form.certificate_status">
                                     <option value="current">Current</option><option value="expired">Expired</option>
                                 </select>
                             </div>
-                            <!-- Add to Professional tab, after Certificate Status -->
-<div class="form-group col-span-2">
-    <label class="form-label">Research Capabilities</label>
-    <div class="capabilities-grid">
-        <label class="capability-check">
-            <input type="checkbox" v-model="medicalStaffModal.form.can_be_pi">
-            <span>Can be Principal Investigator (PI)</span>
-        </label>
-        <label class="capability-check">
-            <input type="checkbox" v-model="medicalStaffModal.form.can_be_coi">
-            <span>Can be Co-Investigator</span>
-        </label>
-        <label class="capability-check">
-            <input type="checkbox" v-model="medicalStaffModal.form.can_supervise_residents">
-            <span>Can supervise residents in research</span>
-        </label>
-    </div>
-</div>
+                            
+                            <!-- Research Capabilities -->
+                            <div class="form-group col-span-2">
+                                <label class="form-label">Research Capabilities</label>
+                                <div class="capabilities-grid">
+                                    <label class="capability-check">
+                                        <input type="checkbox" v-model="medicalStaffModal.form.can_be_pi">
+                                        <span>Can be Principal Investigator (PI)</span>
+                                    </label>
+                                    <label class="capability-check">
+                                        <input type="checkbox" v-model="medicalStaffModal.form.can_be_coi">
+                                        <span>Can be Co-Investigator</span>
+                                    </label>
+                                    <label class="capability-check">
+                                        <input type="checkbox" v-model="medicalStaffModal.form.can_supervise_residents">
+                                        <span>Can supervise residents in research</span>
+                                    </label>
+                                </div>
+                            </div>
 
-<div class="form-group col-span-2">
-    <label class="form-label">Clinical Study Certificates</label>
-    <div class="certificate-tags">
-        <span v-for="cert in availableCertificates" :key="cert" 
-              class="cert-tag" 
-              :class="{ 'active': medicalStaffModal.form.clinical_study_certificates?.includes(cert) }"
-              @click="toggleCertificate(cert)">
-            {{ cert }}
-        </span>
-    </div>
-    <input type="text" class="form-control mt-2" v-model="medicalStaffModal.form.other_certificate" 
-           placeholder="Other certificate...">
-</div>
+                            <div class="form-group col-span-2">
+                                <label class="form-label">Clinical Study Certificates</label>
+                                <div class="certificate-tags">
+                                    <span v-for="cert in availableCertificates" :key="cert" 
+                                          class="cert-tag" 
+                                          :class="{ 'active': medicalStaffModal.form.clinical_study_certificates?.includes(cert) }"
+                                          @click="toggleCertificate(cert)">
+                                        {{ cert }}
+                                    </span>
+                                </div>
+                                <input type="text" class="form-control mt-2" v-model="medicalStaffModal.form.other_certificate" 
+                                       placeholder="Other certificate...">
+                            </div>
                             <div class="form-group"><label class="form-label">Department</label>
                                 <select class="form-select" v-model="medicalStaffModal.form.department_id">
                                     <option value="">Select Department</option>
@@ -2389,6 +2588,137 @@
                                 </select>
                             </div>
                         </div>
+                    </div>
+                    
+                    <!-- Roles Tab -->
+                    <div v-if="medicalStaffModal.activeTab === 'roles'" class="mt-6">
+                        <div class="roles-info-box mb-4">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Fixed positions - one person per role</span>
+                        </div>
+                        
+                        <!-- Loading state -->
+                        <div v-if="!medicalStaff || medicalStaff.length === 0" class="text-center py-6">
+                            <i class="fas fa-spinner fa-spin mb-2" style="color: var(--blue);"></i>
+                            <p class="text-sm text-gray-400">Loading staff...</p>
+                        </div>
+                        
+                        <template v-else>
+                            <!-- Chief of Department -->
+                            <div class="role-assignment-card">
+                                <div class="role-header">
+                                    <i class="fas fa-crown"></i>
+                                    <h4>Chief of Department</h4>
+                                    <span class="role-badge" :class="getCurrentRoleHolder('chief_of_department')?.id === medicalStaffModal.form.id ? 'role-current' : ''">
+                                        {{ getCurrentRoleHolder('chief_of_department') ? 'Assigned' : 'Available' }}
+                                    </span>
+                                </div>
+                                <div class="role-current-holder" v-if="getCurrentRoleHolder('chief_of_department')">
+                                    <span class="holder-label">Current holder:</span>
+                                    <span class="holder-name">{{ getCurrentRoleHolder('chief_of_department').full_name }}</span>
+                                    <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('chief_of_department').assigned_date) }}</span>
+                                </div>
+                                <div class="role-assign-control">
+                                    <label class="checkbox-label" 
+                                           :title="!medicalStaffModal.form.full_name ? 'Save staff first' : ''">
+                                        <input type="checkbox" 
+                                               v-model="medicalStaffModal.form.is_chief_of_department"
+                                               @change="handleRoleAssignment('chief_of_department', $event.target.checked)"
+                                               :disabled="(isRoleTaken('chief_of_department') && !medicalStaffModal.form.is_chief_of_department) || !medicalStaffModal.form.full_name">
+                                        Assign as Chief of Department
+                                    </label>
+                                    <p v-if="isRoleTaken('chief_of_department') && !medicalStaffModal.form.is_chief_of_department" class="role-warning">
+                                        ⚠️ Currently held by {{ getCurrentRoleHolder('chief_of_department').full_name }}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- Research Coordinator -->
+                            <div class="role-assignment-card">
+                                <div class="role-header">
+                                    <i class="fas fa-flask"></i>
+                                    <h4>Research Coordinator</h4>
+                                    <span class="role-badge" :class="getCurrentRoleHolder('research_coordinator')?.id === medicalStaffModal.form.id ? 'role-current' : ''">
+                                        {{ getCurrentRoleHolder('research_coordinator') ? 'Assigned' : 'Available' }}
+                                    </span>
+                                </div>
+                                <div class="role-current-holder" v-if="getCurrentRoleHolder('research_coordinator')">
+                                    <span class="holder-label">Current holder:</span>
+                                    <span class="holder-name">{{ getCurrentRoleHolder('research_coordinator').full_name }}</span>
+                                    <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('research_coordinator').assigned_date) }}</span>
+                                </div>
+                                <div class="role-assign-control">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" 
+                                               v-model="medicalStaffModal.form.is_research_coordinator"
+                                               @change="handleRoleAssignment('research_coordinator', $event.target.checked)"
+                                               :disabled="(isRoleTaken('research_coordinator') && !medicalStaffModal.form.is_research_coordinator) || !medicalStaffModal.form.full_name">
+                                        Assign as Research Coordinator
+                                    </label>
+                                    <p v-if="isRoleTaken('research_coordinator') && !medicalStaffModal.form.is_research_coordinator" class="role-warning">
+                                        ⚠️ Currently held by {{ getCurrentRoleHolder('research_coordinator').full_name }}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- Resident Manager -->
+                            <div class="role-assignment-card">
+                                <div class="role-header">
+                                    <i class="fas fa-user-graduate"></i>
+                                    <h4>Resident Manager</h4>
+                                    <span class="role-badge" :class="getCurrentRoleHolder('resident_manager')?.id === medicalStaffModal.form.id ? 'role-current' : ''">
+                                        {{ getCurrentRoleHolder('resident_manager') ? 'Assigned' : 'Available' }}
+                                    </span>
+                                </div>
+                                <div class="role-current-holder" v-if="getCurrentRoleHolder('resident_manager')">
+                                    <span class="holder-label">Current holder:</span>
+                                    <span class="holder-name">{{ getCurrentRoleHolder('resident_manager').full_name }}</span>
+                                    <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('resident_manager').assigned_date) }}</span>
+                                </div>
+                                <div class="role-assign-control">
+                                    <label class="checkbox-label" 
+                                           :title="medicalStaffModal.form.staff_type !== 'attending_physician' ? 'Attendings only' : ''">
+                                        <input type="checkbox" 
+                                               v-model="medicalStaffModal.form.is_resident_manager"
+                                               @change="handleRoleAssignment('resident_manager', $event.target.checked)"
+                                               :disabled="(isRoleTaken('resident_manager') && !medicalStaffModal.form.is_resident_manager) || medicalStaffModal.form.staff_type !== 'attending_physician' || !medicalStaffModal.form.full_name">
+                                        Assign as Resident Manager
+                                    </label>
+                                    <div v-if="medicalStaffModal.form.staff_type !== 'attending_physician'" class="role-error">
+                                        <i class="fas fa-exclamation-triangle"></i> Attendings only
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- On-Call Manager -->
+                            <div class="role-assignment-card">
+                                <div class="role-header">
+                                    <i class="fas fa-phone-alt"></i>
+                                    <h4>On-Call Manager</h4>
+                                    <span class="role-badge" :class="getCurrentRoleHolder('oncall_manager')?.id === medicalStaffModal.form.id ? 'role-current' : ''">
+                                        {{ getCurrentRoleHolder('oncall_manager') ? 'Assigned' : 'Available' }}
+                                    </span>
+                                </div>
+                                <div class="role-current-holder" v-if="getCurrentRoleHolder('oncall_manager')">
+                                    <span class="holder-label">Current holder:</span>
+                                    <span class="holder-name">{{ getCurrentRoleHolder('oncall_manager').full_name }}</span>
+                                    <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('oncall_manager').assigned_date) }}</span>
+                                </div>
+                                <div class="role-assign-control">
+                                    <label class="checkbox-label"
+                                           :title="medicalStaffModal.form.staff_type !== 'attending_physician' ? 'Attendings only' : ''">
+                                        <input type="checkbox" 
+                                               v-model="medicalStaffModal.form.is_oncall_manager"
+                                               @change="handleRoleAssignment('oncall_manager', $event.target.checked)"
+                                               :disabled="(isRoleTaken('oncall_manager') && !medicalStaffModal.form.is_oncall_manager) || medicalStaffModal.form.staff_type !== 'attending_physician' || !medicalStaffModal.form.full_name">
+                                        Assign as On-Call Manager
+                                    </label>
+                                    <div v-if="medicalStaffModal.form.staff_type !== 'attending_physician'" class="role-error">
+                                        <i class="fas fa-exclamation-triangle"></i> Attendings only
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -2412,8 +2742,11 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div class="form-group" :class="{ 'has-error': fieldErrors.oncall?.duty_date }">
                             <label class="form-label">Date *</label>
-                            <input type="date" class="form-control" v-model="onCallModal.form.duty_date" required @input="clearFieldError('oncall', 'duty_date')">
-                            <small v-if="fieldErrors.oncall?.duty_date" class="error-text">{{ fieldErrors.oncall.duty_date }}</small>
+                            <input type="date" class="form-control" v-model="onCallModal.form.duty_date" required @input="clearFieldError('oncall', 'duty_date')"
+                                   :class="{ 'is-invalid': fieldErrors.oncall?.duty_date }">
+                            <small v-if="fieldErrors.oncall?.duty_date" class="error-text">
+                                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.oncall.duty_date }}
+                            </small>
                         </div>
                         <div class="form-group"><label class="form-label">Shift Type *</label>
                             <select class="form-select" v-model="onCallModal.form.shift_type">
@@ -2422,11 +2755,14 @@
                         </div>
                         <div class="form-group" :class="{ 'has-error': fieldErrors.oncall?.primary_physician_id }">
                             <label class="form-label">Primary Physician *</label>
-                            <select class="form-select" v-model="onCallModal.form.primary_physician_id" required @change="clearFieldError('oncall', 'primary_physician_id')">
+                            <select class="form-select" v-model="onCallModal.form.primary_physician_id" required @change="clearFieldError('oncall', 'primary_physician_id')"
+                                    :class="{ 'is-invalid': fieldErrors.oncall?.primary_physician_id }">
                                 <option value="">Select Physician</option>
                                 <option v-for="p in availablePhysicians" :key="p.id" :value="p.id">{{ p.full_name }}</option>
                             </select>
-                            <small v-if="fieldErrors.oncall?.primary_physician_id" class="error-text">{{ fieldErrors.oncall.primary_physician_id }}</small>
+                            <small v-if="fieldErrors.oncall?.primary_physician_id" class="error-text">
+                                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.oncall.primary_physician_id }}
+                            </small>
                         </div>
                         <div class="form-group"><label class="form-label">Backup Physician</label>
                             <select class="form-select" v-model="onCallModal.form.backup_physician_id">
@@ -2436,13 +2772,19 @@
                         </div>
                         <div class="form-group" :class="{ 'has-error': fieldErrors.oncall?.start_time }">
                             <label class="form-label">Start Time *</label>
-                            <input type="time" class="form-control" v-model="onCallModal.form.start_time" required @input="clearFieldError('oncall', 'start_time')">
-                            <small v-if="fieldErrors.oncall?.start_time" class="error-text">{{ fieldErrors.oncall.start_time }}</small>
+                            <input type="time" class="form-control" v-model="onCallModal.form.start_time" required @input="clearFieldError('oncall', 'start_time')"
+                                   :class="{ 'is-invalid': fieldErrors.oncall?.start_time }">
+                            <small v-if="fieldErrors.oncall?.start_time" class="error-text">
+                                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.oncall.start_time }}
+                            </small>
                         </div>
                         <div class="form-group" :class="{ 'has-error': fieldErrors.oncall?.end_time }">
                             <label class="form-label">End Time *</label>
-                            <input type="time" class="form-control" v-model="onCallModal.form.end_time" required @input="clearFieldError('oncall', 'end_time')">
-                            <small v-if="fieldErrors.oncall?.end_time" class="error-text">{{ fieldErrors.oncall.end_time }}</small>
+                            <input type="time" class="form-control" v-model="onCallModal.form.end_time" required @input="clearFieldError('oncall', 'end_time')"
+                                   :class="{ 'is-invalid': fieldErrors.oncall?.end_time }">
+                            <small v-if="fieldErrors.oncall?.end_time" class="error-text">
+                                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.oncall.end_time }}
+                            </small>
                         </div>
                         <div class="form-group col-span-2"><label class="form-label">Coverage Area</label>
                             <select class="form-select" v-model="onCallModal.form.coverage_area">
@@ -2455,7 +2797,7 @@
                     <button class="btn btn-secondary" @click="onCallModal.show = false">Cancel</button>
                     <button class="btn btn-primary" @click="saveOnCallSchedule" :disabled="saving">
                         <i class="fas fa-save" :class="{ 'fa-spinner fa-spin': saving }"></i> 
-                        {{ saving ? 'Saving...' : (onCallModal.mode === 'add' ? 'Schedule' : 'Save') }}
+                        {{ saving ? 'Saving...' : (onCallModal.mode === 'add' ? 'Schedule' : 'Save Changes') }}
                     </button>
                 </div>
             </div>
@@ -2482,29 +2824,41 @@
                         </div>
                         <div class="form-group" :class="{ 'has-error': fieldErrors.rotation?.resident_id }">
                             <label class="form-label">Resident *</label>
-                            <select class="form-select" v-model="rotationModal.form.resident_id" required @change="clearFieldError('rotation', 'resident_id')">
+                            <select class="form-select" v-model="rotationModal.form.resident_id" required @change="clearFieldError('rotation', 'resident_id')"
+                                    :class="{ 'is-invalid': fieldErrors.rotation?.resident_id }">
                                 <option value="">Select Resident</option>
                                 <option v-for="r in availableResidents" :key="r.id" :value="r.id">{{ r.full_name }}</option>
                             </select>
-                            <small v-if="fieldErrors.rotation?.resident_id" class="error-text">{{ fieldErrors.rotation.resident_id }}</small>
+                            <small v-if="fieldErrors.rotation?.resident_id" class="error-text">
+                                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.rotation.resident_id }}
+                            </small>
                         </div>
                         <div class="form-group" :class="{ 'has-error': fieldErrors.rotation?.training_unit_id }">
                             <label class="form-label">Training Unit *</label>
-                            <select class="form-select" v-model="rotationModal.form.training_unit_id" required @change="clearFieldError('rotation', 'training_unit_id')">
+                            <select class="form-select" v-model="rotationModal.form.training_unit_id" required @change="clearFieldError('rotation', 'training_unit_id')"
+                                    :class="{ 'is-invalid': fieldErrors.rotation?.training_unit_id }">
                                 <option value="">Select Unit</option>
                                 <option v-for="u in trainingUnits" :key="u.id" :value="u.id">{{ u.unit_name }}</option>
                             </select>
-                            <small v-if="fieldErrors.rotation?.training_unit_id" class="error-text">{{ fieldErrors.rotation.training_unit_id }}</small>
+                            <small v-if="fieldErrors.rotation?.training_unit_id" class="error-text">
+                                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.rotation.training_unit_id }}
+                            </small>
                         </div>
                         <div class="form-group" :class="{ 'has-error': fieldErrors.rotation?.start_date }">
                             <label class="form-label">Start Date *</label>
-                            <input type="date" class="form-control" v-model="rotationModal.form.start_date" required @input="clearFieldError('rotation', 'start_date')">
-                            <small v-if="fieldErrors.rotation?.start_date" class="error-text">{{ fieldErrors.rotation.start_date }}</small>
+                            <input type="date" class="form-control" v-model="rotationModal.form.start_date" required @input="clearFieldError('rotation', 'start_date')"
+                                   :class="{ 'is-invalid': fieldErrors.rotation?.start_date }">
+                            <small v-if="fieldErrors.rotation?.start_date" class="error-text">
+                                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.rotation.start_date }}
+                            </small>
                         </div>
                         <div class="form-group" :class="{ 'has-error': fieldErrors.rotation?.end_date }">
                             <label class="form-label">End Date *</label>
-                            <input type="date" class="form-control" v-model="rotationModal.form.end_date" required @input="clearFieldError('rotation', 'end_date')">
-                            <small v-if="fieldErrors.rotation?.end_date" class="error-text">{{ fieldErrors.rotation.end_date }}</small>
+                            <input type="date" class="form-control" v-model="rotationModal.form.end_date" required @input="clearFieldError('rotation', 'end_date')"
+                                   :class="{ 'is-invalid': fieldErrors.rotation?.end_date }">
+                            <small v-if="fieldErrors.rotation?.end_date" class="error-text">
+                                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.rotation.end_date }}
+                            </small>
                         </div>
                         <div class="form-group col-span-2"><label class="form-label">Supervising Attending</label>
                             <select class="form-select" v-model="rotationModal.form.supervising_attending_id">
@@ -2518,7 +2872,7 @@
                     <button class="btn btn-secondary" @click="rotationModal.show = false">Cancel</button>
                     <button class="btn btn-primary" @click="saveRotation" :disabled="saving">
                         <i class="fas fa-save" :class="{ 'fa-spinner fa-spin': saving }"></i> 
-                        {{ saving ? 'Saving...' : (rotationModal.mode === 'add' ? 'Add Rotation' : 'Save') }}
+                        {{ saving ? 'Saving...' : (rotationModal.mode === 'add' ? 'Add Rotation' : 'Save Changes') }}
                     </button>
                 </div>
             </div>
@@ -2560,7 +2914,7 @@
                     <button class="btn btn-secondary" @click="trainingUnitModal.show = false">Cancel</button>
                     <button class="btn btn-primary" @click="saveTrainingUnit" :disabled="saving">
                         <i class="fas fa-save" :class="{ 'fa-spinner fa-spin': saving }"></i> 
-                        {{ saving ? 'Saving...' : (trainingUnitModal.mode === 'add' ? 'Add Unit' : 'Save') }}
+                        {{ saving ? 'Saving...' : (trainingUnitModal.mode === 'add' ? 'Add Unit' : 'Save Changes') }}
                     </button>
                 </div>
             </div>
@@ -2577,11 +2931,14 @@
                     <div class="space-y-4">
                         <div class="form-group" :class="{ 'has-error': fieldErrors.absence?.staff_member_id }">
                             <label class="form-label">Staff Member *</label>
-                            <select class="form-select" v-model="absenceModal.form.staff_member_id" required @change="clearFieldError('absence', 'staff_member_id')">
+                            <select class="form-select" v-model="absenceModal.form.staff_member_id" required @change="clearFieldError('absence', 'staff_member_id')"
+                                    :class="{ 'is-invalid': fieldErrors.absence?.staff_member_id }">
                                 <option value="">Select Staff Member</option>
                                 <option v-for="s in medicalStaff" :key="s.id" :value="s.id">{{ s.full_name }}</option>
                             </select>
-                            <small v-if="fieldErrors.absence?.staff_member_id" class="error-text">{{ fieldErrors.absence.staff_member_id }}</small>
+                            <small v-if="fieldErrors.absence?.staff_member_id" class="error-text">
+                                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.absence.staff_member_id }}
+                            </small>
                         </div>
                         <div class="form-group"><label class="form-label">Leave Type *</label>
                             <div class="toggle-row">
@@ -2592,13 +2949,19 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div class="form-group" :class="{ 'has-error': fieldErrors.absence?.start_date }">
                                 <label class="form-label">Start Date *</label>
-                                <input type="date" class="form-control" v-model="absenceModal.form.start_date" required @input="clearFieldError('absence', 'start_date')">
-                                <small v-if="fieldErrors.absence?.start_date" class="error-text">{{ fieldErrors.absence.start_date }}</small>
+                                <input type="date" class="form-control" v-model="absenceModal.form.start_date" required @input="clearFieldError('absence', 'start_date')"
+                                       :class="{ 'is-invalid': fieldErrors.absence?.start_date }">
+                                <small v-if="fieldErrors.absence?.start_date" class="error-text">
+                                    <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.absence.start_date }}
+                                </small>
                             </div>
                             <div class="form-group" :class="{ 'has-error': fieldErrors.absence?.end_date }">
                                 <label class="form-label">End Date *</label>
-                                <input type="date" class="form-control" v-model="absenceModal.form.end_date" required @input="clearFieldError('absence', 'end_date')">
-                                <small v-if="fieldErrors.absence?.end_date" class="error-text">{{ fieldErrors.absence.end_date }}</small>
+                                <input type="date" class="form-control" v-model="absenceModal.form.end_date" required @input="clearFieldError('absence', 'end_date')"
+                                       :class="{ 'is-invalid': fieldErrors.absence?.end_date }">
+                                <small v-if="fieldErrors.absence?.end_date" class="error-text">
+                                    <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.absence.end_date }}
+                                </small>
                             </div>
                         </div>
                         <div v-if="absenceModal.form.start_date && absenceModal.form.end_date" class="duration-preview">
@@ -2635,7 +2998,7 @@
                     <button class="btn btn-secondary" @click="absenceModal.show = false">Cancel</button>
                     <button class="btn btn-primary" @click="saveAbsence" :disabled="saving">
                         <i class="fas fa-save" :class="{ 'fa-spinner fa-spin': saving }"></i> 
-                        {{ saving ? 'Saving...' : (absenceModal.mode === 'add' ? 'Record' : 'Save') }}
+                        {{ saving ? 'Saving...' : (absenceModal.mode === 'add' ? 'Record' : 'Save Changes') }}
                     </button>
                 </div>
             </div>
@@ -2669,7 +3032,7 @@
                     <button class="btn btn-secondary" @click="departmentModal.show = false">Cancel</button>
                     <button class="btn btn-primary" @click="saveDepartment" :disabled="saving">
                         <i class="fas fa-save" :class="{ 'fa-spinner fa-spin': saving }"></i> 
-                        {{ saving ? 'Saving...' : (departmentModal.mode === 'add' ? 'Add' : 'Save') }}
+                        {{ saving ? 'Saving...' : (departmentModal.mode === 'add' ? 'Add' : 'Save Changes') }}
                     </button>
                 </div>
             </div>
@@ -2736,134 +3099,10 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @click="communicationsModal.show = false">Cancel</button>
-                    <button class="btn btn-primary" @click="saveCommunication"><i class="fas fa-paper-plane"></i> {{ communicationsModal.activeTab === 'announcement' ? 'Publish' : 'Update' }}</button>
+                    <button class="btn btn-primary" @click="saveCommunication(saving)"><i class="fas fa-paper-plane"></i> {{ communicationsModal.activeTab === 'announcement' ? 'Publish' : 'Update' }}</button>
                 </div>
             </div>
         </div>
-                                                <!-- NEW TAB: Department Roles -->
-<button class="modal-tab" :class="{ active: medicalStaffModal.activeTab === 'roles' }" @click="medicalStaffModal.activeTab = 'roles'">
-    <i class="fas fa-user-tag"></i> Department Roles
-</button>
-
-<!-- Roles Tab Content -->
-<div v-if="medicalStaffModal.activeTab === 'roles'" class="mt-6">
-    <div class="roles-info-box mb-4">
-        <i class="fas fa-info-circle"></i>
-        <span>Department roles are fixed positions - only one person can hold each role.</span>
-    </div>
-    
-    <!-- Chief of Department -->
-    <div class="role-assignment-card">
-        <div class="role-header">
-            <i class="fas fa-crown"></i>
-            <h4>Chief of Department</h4>
-            <span class="role-badge" :class="getCurrentRoleHolder('chief_of_department')?.id === medicalStaffModal.form.id ? 'role-current' : ''">
-                {{ getCurrentRoleHolder('chief_of_department') ? 'Assigned' : 'Available' }}
-            </span>
-        </div>
-        <div class="role-current-holder" v-if="getCurrentRoleHolder('chief_of_department')">
-            <span class="holder-label">Current holder:</span>
-            <span class="holder-name">{{ getCurrentRoleHolder('chief_of_department').full_name }}</span>
-            <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('chief_of_department').assigned_date) }}</span>
-        </div>
-        <div class="role-assign-control">
-            <label class="checkbox-label">
-                <input type="checkbox" 
-                       v-model="medicalStaffModal.form.is_chief_of_department"
-                       @change="handleRoleAssignment('chief_of_department', $event.target.checked)"
-                       :disabled="isRoleTaken('chief_of_department') && !medicalStaffModal.form.is_chief_of_department">
-                Assign as Chief of Department
-            </label>
-            <p v-if="isRoleTaken('chief_of_department') && !medicalStaffModal.form.is_chief_of_department" class="role-warning">
-                ⚠️ This role is currently held by {{ getCurrentRoleHolder('chief_of_department').full_name }}. Assigning will transfer the role.
-            </p>
-        </div>
-    </div>
-    
-    <!-- Research Coordinator -->
-    <div class="role-assignment-card">
-        <div class="role-header">
-            <i class="fas fa-flask"></i>
-            <h4>Research Coordinator</h4>
-            <span class="role-badge" :class="getCurrentRoleHolder('research_coordinator')?.id === medicalStaffModal.form.id ? 'role-current' : ''">
-                {{ getCurrentRoleHolder('research_coordinator') ? 'Assigned' : 'Available' }}
-            </span>
-        </div>
-        <div class="role-current-holder" v-if="getCurrentRoleHolder('research_coordinator')">
-            <span class="holder-label">Current holder:</span>
-            <span class="holder-name">{{ getCurrentRoleHolder('research_coordinator').full_name }}</span>
-            <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('research_coordinator').assigned_date) }}</span>
-        </div>
-        <div class="role-assign-control">
-            <label class="checkbox-label">
-                <input type="checkbox" 
-                       v-model="medicalStaffModal.form.is_research_coordinator"
-                       @change="handleRoleAssignment('research_coordinator', $event.target.checked)"
-                       :disabled="isRoleTaken('research_coordinator') && !medicalStaffModal.form.is_research_coordinator">
-                Assign as Research Coordinator
-            </label>
-            <p v-if="isRoleTaken('research_coordinator') && !medicalStaffModal.form.is_research_coordinator" class="role-warning">
-                ⚠️ This role is currently held by {{ getCurrentRoleHolder('research_coordinator').full_name }}. Assigning will transfer the role.
-            </p>
-        </div>
-    </div>
-    
-    <!-- Resident Manager -->
-    <div class="role-assignment-card">
-        <div class="role-header">
-            <i class="fas fa-user-graduate"></i>
-            <h4>Resident Manager</h4>
-            <span class="role-badge" :class="getCurrentRoleHolder('resident_manager')?.id === medicalStaffModal.form.id ? 'role-current' : ''">
-                {{ getCurrentRoleHolder('resident_manager') ? 'Assigned' : 'Available' }}
-            </span>
-        </div>
-        <div class="role-current-holder" v-if="getCurrentRoleHolder('resident_manager')">
-            <span class="holder-label">Current holder:</span>
-            <span class="holder-name">{{ getCurrentRoleHolder('resident_manager').full_name }}</span>
-            <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('resident_manager').assigned_date) }}</span>
-        </div>
-        <div class="role-assign-control">
-            <label class="checkbox-label">
-                <input type="checkbox" 
-                       v-model="medicalStaffModal.form.is_resident_manager"
-                       @change="handleRoleAssignment('resident_manager', $event.target.checked)"
-                       :disabled="isRoleTaken('resident_manager') && !medicalStaffModal.form.is_resident_manager">
-                Assign as Resident Manager
-            </label>
-            <div v-if="medicalStaffModal.form.staff_type !== 'attending_physician'" class="role-error">
-                <i class="fas fa-exclamation-triangle"></i> Only Attending Physicians can be Resident Manager
-            </div>
-        </div>
-    </div>
-    
-    <!-- On-Call Manager -->
-    <div class="role-assignment-card">
-        <div class="role-header">
-            <i class="fas fa-phone-alt"></i>
-            <h4>On-Call Manager</h4>
-            <span class="role-badge" :class="getCurrentRoleHolder('oncall_manager')?.id === medicalStaffModal.form.id ? 'role-current' : ''">
-                {{ getCurrentRoleHolder('oncall_manager') ? 'Assigned' : 'Available' }}
-            </span>
-        </div>
-        <div class="role-current-holder" v-if="getCurrentRoleHolder('oncall_manager')">
-            <span class="holder-label">Current holder:</span>
-            <span class="holder-name">{{ getCurrentRoleHolder('oncall_manager').full_name }}</span>
-            <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('oncall_manager').assigned_date) }}</span>
-        </div>
-        <div class="role-assign-control">
-            <label class="checkbox-label">
-                <input type="checkbox" 
-                       v-model="medicalStaffModal.form.is_oncall_manager"
-                       @change="handleRoleAssignment('oncall_manager', $event.target.checked)"
-                       :disabled="isRoleTaken('oncall_manager') && !medicalStaffModal.form.is_oncall_manager">
-                Assign as On-Call Manager
-            </label>
-            <div v-if="medicalStaffModal.form.staff_type !== 'attending_physician'" class="role-error">
-                <i class="fas fa-exclamation-triangle"></i> Only Attending Physicians can be On-Call Manager
-            </div>
-        </div>
-    </div>
-</div>
 
         <!-- MODAL: User Profile -->
         <div v-if="userProfileModal.show" class="modal-overlay">
@@ -2886,7 +3125,10 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @click="userProfileModal.show = false">Cancel</button>
-                    <button class="btn btn-primary" @click="saveUserProfile"><i class="fas fa-save"></i> Save</button>
+                    <button class="btn btn-primary" @click="saveUserProfile" :disabled="saving">
+                        <i class="fas fa-save" :class="{ 'fa-spinner fa-spin': saving }"></i> 
+                        {{ saving ? 'Saving...' : 'Save Changes' }}
+                    </button>
                 </div>
             </div>
         </div>
@@ -2895,7 +3137,7 @@
         <div v-if="confirmationModal.show" class="modal-overlay">
             <div class="modal-container modal-sm">
                 <div class="modal-header">
-                    <div class="modal-title"><i class="fas" :class="confirmationModal.icon || 'fa-question-circle'"></i>{{ confirmationModal.title || 'Confirm Action' }}</div>
+                    <div class="modal-title"><i class="fas" :class="confirmationModal.icon || 'fa-question-circle'"></i>{{ confirmationModal.title || 'Confirm' }}</div>
                     <button class="modal-close" @click="cancelConfirmation"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
@@ -2932,8 +3174,9 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @click="assignCoordinatorModal.show = false">Cancel</button>
-                    <button class="btn btn-primary" @click="saveCoordinatorAssignment">
-                        <i class="fas fa-save"></i> Assign
+                    <button class="btn btn-primary" @click="saveCoordinatorAssignment" :disabled="saving">
+                        <i class="fas fa-save" :class="{ 'fa-spinner fa-spin': saving }"></i> 
+                        {{ saving ? 'Saving...' : 'Assign' }}
                     </button>
                 </div>
             </div>
