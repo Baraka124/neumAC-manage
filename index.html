@@ -2350,6 +2350,38 @@
                                     <option value="current">Current</option><option value="expired">Expired</option>
                                 </select>
                             </div>
+                            <!-- Add to Professional tab, after Certificate Status -->
+<div class="form-group col-span-2">
+    <label class="form-label">Research Capabilities</label>
+    <div class="capabilities-grid">
+        <label class="capability-check">
+            <input type="checkbox" v-model="medicalStaffModal.form.can_be_pi">
+            <span>Can be Principal Investigator (PI)</span>
+        </label>
+        <label class="capability-check">
+            <input type="checkbox" v-model="medicalStaffModal.form.can_be_coi">
+            <span>Can be Co-Investigator</span>
+        </label>
+        <label class="capability-check">
+            <input type="checkbox" v-model="medicalStaffModal.form.can_supervise_residents">
+            <span>Can supervise residents in research</span>
+        </label>
+    </div>
+</div>
+
+<div class="form-group col-span-2">
+    <label class="form-label">Clinical Study Certificates</label>
+    <div class="certificate-tags">
+        <span v-for="cert in availableCertificates" :key="cert" 
+              class="cert-tag" 
+              :class="{ 'active': medicalStaffModal.form.clinical_study_certificates?.includes(cert) }"
+              @click="toggleCertificate(cert)">
+            {{ cert }}
+        </span>
+    </div>
+    <input type="text" class="form-control mt-2" v-model="medicalStaffModal.form.other_certificate" 
+           placeholder="Other certificate...">
+</div>
                             <div class="form-group"><label class="form-label">Department</label>
                                 <select class="form-select" v-model="medicalStaffModal.form.department_id">
                                     <option value="">Select Department</option>
@@ -2708,6 +2740,130 @@
                 </div>
             </div>
         </div>
+                                                <!-- NEW TAB: Department Roles -->
+<button class="modal-tab" :class="{ active: medicalStaffModal.activeTab === 'roles' }" @click="medicalStaffModal.activeTab = 'roles'">
+    <i class="fas fa-user-tag"></i> Department Roles
+</button>
+
+<!-- Roles Tab Content -->
+<div v-if="medicalStaffModal.activeTab === 'roles'" class="mt-6">
+    <div class="roles-info-box mb-4">
+        <i class="fas fa-info-circle"></i>
+        <span>Department roles are fixed positions - only one person can hold each role.</span>
+    </div>
+    
+    <!-- Chief of Department -->
+    <div class="role-assignment-card">
+        <div class="role-header">
+            <i class="fas fa-crown"></i>
+            <h4>Chief of Department</h4>
+            <span class="role-badge" :class="getCurrentRoleHolder('chief_of_department')?.id === medicalStaffModal.form.id ? 'role-current' : ''">
+                {{ getCurrentRoleHolder('chief_of_department') ? 'Assigned' : 'Available' }}
+            </span>
+        </div>
+        <div class="role-current-holder" v-if="getCurrentRoleHolder('chief_of_department')">
+            <span class="holder-label">Current holder:</span>
+            <span class="holder-name">{{ getCurrentRoleHolder('chief_of_department').full_name }}</span>
+            <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('chief_of_department').assigned_date) }}</span>
+        </div>
+        <div class="role-assign-control">
+            <label class="checkbox-label">
+                <input type="checkbox" 
+                       v-model="medicalStaffModal.form.is_chief_of_department"
+                       @change="handleRoleAssignment('chief_of_department', $event.target.checked)"
+                       :disabled="isRoleTaken('chief_of_department') && !medicalStaffModal.form.is_chief_of_department">
+                Assign as Chief of Department
+            </label>
+            <p v-if="isRoleTaken('chief_of_department') && !medicalStaffModal.form.is_chief_of_department" class="role-warning">
+                ⚠️ This role is currently held by {{ getCurrentRoleHolder('chief_of_department').full_name }}. Assigning will transfer the role.
+            </p>
+        </div>
+    </div>
+    
+    <!-- Research Coordinator -->
+    <div class="role-assignment-card">
+        <div class="role-header">
+            <i class="fas fa-flask"></i>
+            <h4>Research Coordinator</h4>
+            <span class="role-badge" :class="getCurrentRoleHolder('research_coordinator')?.id === medicalStaffModal.form.id ? 'role-current' : ''">
+                {{ getCurrentRoleHolder('research_coordinator') ? 'Assigned' : 'Available' }}
+            </span>
+        </div>
+        <div class="role-current-holder" v-if="getCurrentRoleHolder('research_coordinator')">
+            <span class="holder-label">Current holder:</span>
+            <span class="holder-name">{{ getCurrentRoleHolder('research_coordinator').full_name }}</span>
+            <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('research_coordinator').assigned_date) }}</span>
+        </div>
+        <div class="role-assign-control">
+            <label class="checkbox-label">
+                <input type="checkbox" 
+                       v-model="medicalStaffModal.form.is_research_coordinator"
+                       @change="handleRoleAssignment('research_coordinator', $event.target.checked)"
+                       :disabled="isRoleTaken('research_coordinator') && !medicalStaffModal.form.is_research_coordinator">
+                Assign as Research Coordinator
+            </label>
+            <p v-if="isRoleTaken('research_coordinator') && !medicalStaffModal.form.is_research_coordinator" class="role-warning">
+                ⚠️ This role is currently held by {{ getCurrentRoleHolder('research_coordinator').full_name }}. Assigning will transfer the role.
+            </p>
+        </div>
+    </div>
+    
+    <!-- Resident Manager -->
+    <div class="role-assignment-card">
+        <div class="role-header">
+            <i class="fas fa-user-graduate"></i>
+            <h4>Resident Manager</h4>
+            <span class="role-badge" :class="getCurrentRoleHolder('resident_manager')?.id === medicalStaffModal.form.id ? 'role-current' : ''">
+                {{ getCurrentRoleHolder('resident_manager') ? 'Assigned' : 'Available' }}
+            </span>
+        </div>
+        <div class="role-current-holder" v-if="getCurrentRoleHolder('resident_manager')">
+            <span class="holder-label">Current holder:</span>
+            <span class="holder-name">{{ getCurrentRoleHolder('resident_manager').full_name }}</span>
+            <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('resident_manager').assigned_date) }}</span>
+        </div>
+        <div class="role-assign-control">
+            <label class="checkbox-label">
+                <input type="checkbox" 
+                       v-model="medicalStaffModal.form.is_resident_manager"
+                       @change="handleRoleAssignment('resident_manager', $event.target.checked)"
+                       :disabled="isRoleTaken('resident_manager') && !medicalStaffModal.form.is_resident_manager">
+                Assign as Resident Manager
+            </label>
+            <div v-if="medicalStaffModal.form.staff_type !== 'attending_physician'" class="role-error">
+                <i class="fas fa-exclamation-triangle"></i> Only Attending Physicians can be Resident Manager
+            </div>
+        </div>
+    </div>
+    
+    <!-- On-Call Manager -->
+    <div class="role-assignment-card">
+        <div class="role-header">
+            <i class="fas fa-phone-alt"></i>
+            <h4>On-Call Manager</h4>
+            <span class="role-badge" :class="getCurrentRoleHolder('oncall_manager')?.id === medicalStaffModal.form.id ? 'role-current' : ''">
+                {{ getCurrentRoleHolder('oncall_manager') ? 'Assigned' : 'Available' }}
+            </span>
+        </div>
+        <div class="role-current-holder" v-if="getCurrentRoleHolder('oncall_manager')">
+            <span class="holder-label">Current holder:</span>
+            <span class="holder-name">{{ getCurrentRoleHolder('oncall_manager').full_name }}</span>
+            <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('oncall_manager').assigned_date) }}</span>
+        </div>
+        <div class="role-assign-control">
+            <label class="checkbox-label">
+                <input type="checkbox" 
+                       v-model="medicalStaffModal.form.is_oncall_manager"
+                       @change="handleRoleAssignment('oncall_manager', $event.target.checked)"
+                       :disabled="isRoleTaken('oncall_manager') && !medicalStaffModal.form.is_oncall_manager">
+                Assign as On-Call Manager
+            </label>
+            <div v-if="medicalStaffModal.form.staff_type !== 'attending_physician'" class="role-error">
+                <i class="fas fa-exclamation-triangle"></i> Only Attending Physicians can be On-Call Manager
+            </div>
+        </div>
+    </div>
+</div>
 
         <!-- MODAL: User Profile -->
         <div v-if="userProfileModal.show" class="modal-overlay">
