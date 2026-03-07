@@ -872,6 +872,7 @@ document.addEventListener('DOMContentLoaded', () => {
           professional_email: '', department_id: '', academic_degree: '', specialization: '', 
           training_year: '', clinical_certificate: '', certificate_status: '',
           mobile_phone: '', medical_license: '', can_supervise_residents: false, special_notes: '',
+          can_be_pi: false, can_be_coi: false, other_certificate: '',
           resident_category: null, home_department: null, external_institution: null,
           is_chief_of_department: false, is_research_coordinator: false, 
           is_resident_manager: false, is_oncall_manager: false, clinical_study_certificates: []
@@ -883,6 +884,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!form.full_name?.trim()) { setErr('staff', 'full_name', 'Full name is required'); ok = false }
         if (form.professional_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.professional_email)) {
           setErr('staff', 'professional_email', 'Invalid email address'); ok = false
+        }
+        if (form.staff_type === 'medical_resident' && !form.training_year?.trim()) {
+          setErr('staff', 'training_year', 'Training year is required for residents'); ok = false
         }
         return ok
       }
@@ -919,6 +923,7 @@ document.addEventListener('DOMContentLoaded', () => {
           employment_status: 'active', professional_email: '', department_id: '', academic_degree: '',
           specialization: '', training_year: '', clinical_certificate: '', certificate_status: '',
           mobile_phone: '', medical_license: '', can_supervise_residents: false, special_notes: '',
+          can_be_pi: false, can_be_coi: false, other_certificate: '',
           resident_category: null, home_department: null, external_institution: null,
           is_chief_of_department: false, is_research_coordinator: false, 
           is_resident_manager: false, is_oncall_manager: false, clinical_study_certificates: []
@@ -944,6 +949,8 @@ document.addEventListener('DOMContentLoaded', () => {
             training_year: clean(f.training_year), clinical_certificate: clean(f.clinical_certificate),
             certificate_status: clean(f.certificate_status), mobile_phone: clean(f.mobile_phone),
             medical_license: clean(f.medical_license), can_supervise_residents: f.can_supervise_residents || false,
+            can_be_pi: f.can_be_pi || false, can_be_coi: f.can_be_coi || false,
+            other_certificate: clean(f.other_certificate),
             special_notes: clean(f.special_notes), resident_category: f.resident_category || null,
             home_department: f.home_department || null, external_institution: f.external_institution || null,
             is_chief_of_department: f.is_chief_of_department || false, is_research_coordinator: f.is_research_coordinator || false,
@@ -2288,7 +2295,16 @@ document.addEventListener('DOMContentLoaded', () => {
           handleLogin, handleLogout,
           switchView, toggleStatsSidebar, handleGlobalSearch,
           sortState, sortBy, sortIcon, pagination,
-          goToPage: (view, page) => goToPage(view, page, []),
+          goToPage: (view, page) => {
+            const arrMap = {
+              medical_staff: staffOps.filteredMedicalStaffAll.value,
+              rotations:     rotationOps.filteredRotationsAll.value,
+              oncall:        onCallOps.filteredOnCallAll.value,
+              absences:      absenceOps.filteredAbsencesAll.value,
+              trials:        researchOps.filteredTrialsAll.value
+            }
+            goToPage(view, page, arrMap[view] || [])
+          },
           staffTotalPages: staffOps.staffTotalPages,
           rotationTotalPages: rotationOps.rotationTotalPages,
           oncallTotalPages: onCallOps.oncallTotalPages,
