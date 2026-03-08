@@ -2180,9 +2180,8 @@ const residentsWithRotations = computed(() => {
   )
 })
 
-        // Group on-call schedules by date for compact view
     // Group on-call schedules by date for compact view
-const groupedOnCallSchedules = computed(() => {
+        const groupedOnCallSchedules = computed(() => {
   const groups = {}
   
   onCallSchedule.value.forEach(shift => {
