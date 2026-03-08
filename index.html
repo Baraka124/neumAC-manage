@@ -732,13 +732,29 @@
                     </div>
                 </div>
 
-                <!-- ============ ON-CALL SCHEDULE VIEW ============ -->
+                <!-- ============ ON-CALL SCHEDULE VIEW (ENHANCED) ============ -->
                 <div v-if="currentView === 'oncall_schedule'">
                     <div class="card mb-6">
                         <div class="card-header">
                             <div class="card-title"><i class="fas fa-phone-medical"></i> On-call Schedule</div>
-                            <button class="btn btn-primary" @click="showAddOnCallModal" v-if="hasPermission('oncall_schedule', 'create')"><i class="fas fa-plus"></i> Add Schedule</button>
+                            <div class="header-actions" style="display: flex; gap: 12px; align-items: center;">
+                                <div class="view-toggle">
+                                    <button class="btn-pill" :class="{ active: onCallView === 'compact' }" 
+                                            @click="onCallView = 'compact'">
+                                        <i class="fas fa-compress-alt"></i> Compact
+                                    </button>
+                                    <button class="btn-pill" :class="{ active: onCallView === 'detailed' }" 
+                                            @click="onCallView = 'detailed'">
+                                        <i class="fas fa-table"></i> Detailed
+                                    </button>
+                                </div>
+                                <button class="btn btn-primary" @click="showAddOnCallModal" v-if="hasPermission('oncall_schedule', 'create')">
+                                    <i class="fas fa-plus"></i> Add Schedule
+                                </button>
+                            </div>
                         </div>
+
+                        <!-- Filter Bar -->
                         <div class="filter-bar">
                             <input type="date" class="form-control" v-model="onCallFilters.date">
                             <select class="form-select" v-model="onCallFilters.shiftType">
@@ -752,7 +768,64 @@
                             </select>
                             <input type="text" class="form-control" v-model="onCallFilters.search" placeholder="Search...">
                         </div>
-                        <div class="table-responsive">
+
+                        <!-- COMPACT STACK VIEW -->
+                        <div v-if="onCallView === 'compact'" class="oncall-stack">
+                            <div v-for="dateGroup in groupedOnCallSchedules" :key="dateGroup.date" class="oncall-date-group">
+                                <div class="oncall-date-header">
+                                    <span class="badge badge-info">{{ formatDate(dateGroup.date) }}</span>
+                                    <span class="text-xs text-gray-500">{{ dateGroup.dayOfWeek }}</span>
+                                    <span class="ml-auto text-xs text-gray-400">{{ dateGroup.shifts.length }} shift{{ dateGroup.shifts.length !== 1 ? 's' : '' }}</span>
+                                </div>
+                                
+                                <div v-for="shift in dateGroup.shifts" :key="shift.id" 
+                                     class="oncall-stack-row" 
+                                     :class="shift.shift_type === 'primary_call' ? 'primary' : 'backup'"
+                                     @click="editOnCallSchedule(shift)">
+                                    
+                                    <div class="oncall-time-badge">
+                                        {{ shift.start_time }} - {{ shift.end_time }}
+                                    </div>
+                                    
+                                    <div class="oncall-physician">
+                                        {{ getPhysicianName(shift.primary_physician_id) }}
+                                        <span class="oncall-type-badge">{{ shift.shift_type === 'primary_call' ? 'Primary' : 'Backup' }}</span>
+                                    </div>
+                                    
+                                    <div class="oncall-status-dot" :class="{ active: isShiftActive(shift) }"></div>
+                                    
+                                    <div class="oncall-actions" @click.stop>
+                                        <button class="btn-icon btn-sm" @click="editOnCallSchedule(shift)" 
+                                                v-if="hasPermission('oncall_schedule', 'update')" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn-icon btn-sm" @click="deleteOnCallSchedule(shift)" 
+                                                v-if="hasPermission('oncall_schedule', 'delete')" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Empty state for this date -->
+                                <div v-if="dateGroup.shifts.length === 0" class="oncall-stack-row" style="opacity:0.7;">
+                                    <div class="oncall-time-badge">No shifts</div>
+                                    <div class="oncall-physician">No on-call scheduled</div>
+                                    <button class="btn-pill btn-pill-primary btn-sm ml-auto" @click.stop="showAddOnCallModal(dateGroup.date)">
+                                        <i class="fas fa-plus"></i> Add
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Global empty state -->
+                            <div v-if="groupedOnCallSchedules.length === 0" class="empty-state">
+                                <i class="fas fa-phone-medical empty-state-icon"></i>
+                                <div class="empty-state-title">No schedules found</div>
+                                <div class="empty-state-description">No on-call shifts match your filters</div>
+                            </div>
+                        </div>
+
+                        <!-- DETAILED VIEW (EXISTING TABLE) -->
+                        <div v-else class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
@@ -789,10 +862,10 @@
                                             <i class="fas fa-phone-medical empty-state-icon"></i>
                                             <div class="empty-state-title">No schedules found</div>
                                             <div class="empty-state-description">
-                                                <span v-if="onCallFilters.date || onCallFilters.shiftType || onCallFilters.physician || onCallFilters.coverageArea">No results match your filters</span>
+                                                <span v-if="onCallFilters.date || onCallFilters.shiftType || onCallFilters.physician">No results match your filters</span>
                                                 <span v-else>No on-call shifts have been scheduled yet</span>
                                             </div>
-                                            <button v-if="!onCallFilters.date && !onCallFilters.shiftType && !onCallFilters.physician && !onCallFilters.coverageArea && hasPermission('oncall_schedule', 'create')"
+                                            <button v-if="!onCallFilters.date && !onCallFilters.shiftType && !onCallFilters.physician && hasPermission('oncall_schedule', 'create')"
                                                     class="btn btn-primary btn-sm" @click="showAddOnCallModal">
                                                 <i class="fas fa-plus"></i> Schedule First Shift
                                             </button>
@@ -809,19 +882,40 @@
                     </div>
                 </div>
 
-                <!-- ============ RESIDENT ROTATIONS VIEW ============ -->
+                <!-- ============ RESIDENT ROTATIONS VIEW (ENHANCED) ============ -->
                 <div v-if="currentView === 'resident_rotations'">
                     <div class="card mb-6">
                         <div class="card-header">
                             <div class="card-title"><i class="fas fa-calendar-check"></i> Resident Rotations</div>
-                            <div class="header-actions">
-                                <button class="btn btn-outline-primary btn-with-badge" @click="forceActivationCheck" v-if="hasPermission('resident_rotations', 'update')">
-                                    <i class="fas fa-sync-alt"></i> Check Pending
-                                    <span v-if="pendingActivations?.length > 0" class="badge badge-danger badge-sm">{{ pendingActivations.length }}</span>
-                                </button>
-                                <button class="btn btn-primary" @click="showAddRotationModal" v-if="hasPermission('resident_rotations', 'create')"><i class="fas fa-plus"></i> Add Rotation</button>
+                            <div class="header-actions" style="display: flex; gap: 12px; align-items: center;">
+                                <!-- View Toggle -->
+                                <div class="view-toggle">
+                                    <button class="btn-pill" :class="{ active: rotationView === 'compact' }" 
+                                            @click="rotationView = 'compact'">
+                                        <i class="fas fa-compress-alt"></i> Compact
+                                    </button>
+                                    <button class="btn-pill" :class="{ active: rotationView === 'detailed' }" 
+                                            @click="rotationView = 'detailed'">
+                                        <i class="fas fa-table"></i> Detailed
+                                    </button>
+                                    <button class="btn-pill" :class="{ active: rotationView === 'week' }" 
+                                            @click="rotationView = 'week'" v-if="hasPermission('analytics', 'read')">
+                                        <i class="fas fa-calendar-week"></i> Week
+                                    </button>
+                                </div>
+                                <div class="header-actions-right">
+                                    <button class="btn btn-outline-primary btn-with-badge" @click="forceActivationCheck" v-if="hasPermission('resident_rotations', 'update')">
+                                        <i class="fas fa-sync-alt"></i> Check Pending
+                                        <span v-if="pendingActivations?.length > 0" class="badge badge-danger badge-sm">{{ pendingActivations.length }}</span>
+                                    </button>
+                                    <button class="btn btn-primary" @click="showAddRotationModal" v-if="hasPermission('resident_rotations', 'create')">
+                                        <i class="fas fa-plus"></i> Add Rotation
+                                    </button>
+                                </div>
                             </div>
                         </div>
+
+                        <!-- Filter Bar -->
                         <div class="filter-bar">
                             <select class="form-select" v-model="rotationFilters.resident">
                                 <option value="">All Residents</option>
@@ -840,7 +934,97 @@
                             </select>
                             <input type="text" class="form-control" v-model="rotationFilters.search" placeholder="Search...">
                         </div>
-                        <div class="table-responsive">
+
+                        <!-- COMPACT VIEW (NEW) -->
+                        <div v-if="rotationView === 'compact'" class="compact-rotations-view">
+                            <div class="resident-rotation-summary">
+                                <div v-for="resident in residentsWithRotations" :key="resident.id" class="resident-row">
+                                    <div class="resident-info">
+                                        <div class="resident-name">{{ resident.full_name }}</div>
+                                        <div class="resident-year">{{ resident.training_year || 'PGY-?' }}</div>
+                                    </div>
+                                    
+                                    <div class="rotation-timeline-dots">
+                                        <!-- Completed/past rotations -->
+                                        <template v-for="(rotation, index) in resident.pastRotations">
+                                            <div class="rotation-dot completed"
+                                                 :data-tooltip="`${rotation.unitName} (${formatDate(rotation.start_date)} - ${formatDate(rotation.end_date)})`"
+                                                 @click="viewRotationDetails(rotation)"
+                                                 :key="rotation.id">
+                                                <span>{{ index + 1 }}</span>
+                                            </div>
+                                        </template>
+                                        
+                                        <!-- Current active rotation (highlighted) -->
+                                        <div v-if="resident.currentRotation" 
+                                             class="rotation-dot active-now"
+                                             :data-tooltip="`CURRENT: ${resident.currentRotation.unitName} (ends ${formatRelativeDate(resident.currentRotation.end_date)})`"
+                                             @click="viewRotationDetails(resident.currentRotation)">
+                                            <i class="fas fa-play"></i>
+                                        </div>
+                                        
+                                        <!-- Upcoming scheduled rotations -->
+                                        <template v-for="(rotation, index) in resident.upcomingRotations">
+                                            <div class="rotation-dot scheduled"
+                                                 :data-tooltip="`UPCOMING: ${rotation.unitName} (starts ${formatRelativeDate(rotation.start_date)})`"
+                                                 @click="viewRotationDetails(rotation)"
+                                                 :key="rotation.id">
+                                                <span>{{ resident.pastRotations.length + (resident.currentRotation ? 1 : 0) + index + 1 }}</span>
+                                            </div>
+                                        </template>
+                                        
+                                        <!-- Empty slots (shows available capacity) -->
+                                        <div v-for="n in resident.emptySlots" 
+                                             :key="'empty-'+n"
+                                             class="rotation-dot empty"
+                                             :data-tooltip="'Click to schedule new rotation'"
+                                             @click="showAddRotationModal(resident)">
+                                            <i class="fas fa-plus"></i>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="rotation-actions">
+                                        <button class="btn-pill btn-pill-view btn-sm" @click.stop="viewStaffDetails(resident)" 
+                                                :title="'View full profile'">
+                                            <i class="fas fa-user"></i>
+                                        </button>
+                                        <button class="btn-pill btn-pill-edit btn-sm" @click.stop="showAddRotationModal(resident)"
+                                                v-if="hasPermission('resident_rotations', 'create')" :title="'Add rotation'">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Empty state -->
+                                <div v-if="residentsWithRotations.length === 0" class="empty-state">
+                                    <i class="fas fa-calendar-alt empty-state-icon"></i>
+                                    <div class="empty-state-title">No residents found</div>
+                                    <div class="empty-state-description">No residents match your current filters</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- WEEK GRID VIEW (BONUS) -->
+                        <div v-else-if="rotationView === 'week'" class="rotation-week-grid">
+                            <div class="week-header">Resident</div>
+                            <div v-for="day in weekDays" :key="day" class="week-header">{{ day }}</div>
+                            
+                            <template v-for="resident in residentsWithRotations">
+                                <div class="week-resident-cell">{{ resident.full_name }}</div>
+                                <div v-for="day in 7" :key="day" class="week-day-cell">
+                                    <div v-for="rotation in getRotationsForDay(resident, day)" 
+                                         :key="rotation.id"
+                                         class="rotation-block"
+                                         :class="{ active: isRotationActive(rotation) }"
+                                         @click="viewRotationDetails(rotation)">
+                                        {{ rotation.unitName }}
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- DETAILED VIEW (EXISTING TABLE) -->
+                        <div v-else class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
@@ -891,10 +1075,10 @@
                                             <i class="fas fa-calendar-alt empty-state-icon"></i>
                                             <div class="empty-state-title">No rotations found</div>
                                             <div class="empty-state-description">
-                                                <span v-if="rotationFilters.resident || rotationFilters.status || rotationFilters.trainingUnit || rotationFilters.supervisor">No results match your filters</span>
+                                                <span v-if="rotationFilters.resident || rotationFilters.status || rotationFilters.trainingUnit">No results match your filters</span>
                                                 <span v-else>No resident rotations have been assigned yet</span>
                                             </div>
-                                            <button v-if="!rotationFilters.resident && !rotationFilters.status && !rotationFilters.trainingUnit && !rotationFilters.supervisor && hasPermission('resident_rotations', 'create')"
+                                            <button v-if="!rotationFilters.resident && !rotationFilters.status && !rotationFilters.trainingUnit && hasPermission('resident_rotations', 'create')"
                                                     class="btn btn-primary btn-sm" @click="showAddRotationModal">
                                                 <i class="fas fa-plus"></i> Add First Rotation
                                             </button>
@@ -961,7 +1145,6 @@
                 </div>
 
                 <!-- ============ STAFF ABSENCE VIEW ============ -->
-                <!-- BUG 14 FIX: absenceFilters.status dropdown added — was in app.js computed but had no HTML control -->
                 <div v-if="currentView === 'staff_absence'">
                     <div class="card mb-6">
                         <div class="card-header">
@@ -1905,7 +2088,6 @@
                             <div class="form-group col-span-2">
                                 <label class="form-label">Research Capabilities</label>
                                 <div class="capabilities-grid">
-                                    <!-- BUG 15 FIX: can_be_pi and can_be_coi wired to form state -->
                                     <label class="capability-check">
                                         <input type="checkbox" v-model="medicalStaffModal.form.can_be_pi">
                                         <span>Can be Principal Investigator (PI)</span>
@@ -2103,7 +2285,6 @@
         </div>
 
         <!-- ============ ADD/EDIT ROTATION MODAL ============ -->
-        <!-- BUG 10 FIX: rotation_category options corrected to match DB enum -->
         <div v-if="rotationModal.show" class="modal-overlay">
             <div class="modal-container">
                 <div class="modal-header">
@@ -2120,7 +2301,6 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">Category *</label>
-                            <!-- BUG 10 FIX: was research_rotation/vacation_rotation (not in DB); now matches DB CHECK constraint -->
                             <select class="form-select" v-model="rotationModal.form.rotation_category" required>
                                 <option value="clinical_rotation">Clinical Rotation</option>
                                 <option value="elective_rotation">Elective</option>
@@ -2583,7 +2763,8 @@
                 </div>
             </div>
         </div>
-<!-- ============ BUG 11 FIX: RESEARCH LINE MODAL (was entirely missing) ============ -->
+
+        <!-- ============ RESEARCH LINE MODAL ============ -->
         <div v-if="researchLineModal.show" class="modal-overlay">
             <div class="modal-container">
                 <div class="modal-header">
@@ -2659,7 +2840,7 @@
             </div>
         </div>
 
-        <!-- ============ BUG 11 FIX: CLINICAL TRIAL MODAL (was entirely missing) ============ -->
+        <!-- ============ CLINICAL TRIAL MODAL ============ -->
         <div v-if="clinicalTrialModal.show" class="modal-overlay">
             <div class="modal-container modal-wide">
                 <div class="modal-header">
@@ -2757,7 +2938,7 @@
             </div>
         </div>
 
-        <!-- ============ BUG 11 FIX: INNOVATION PROJECT MODAL (was entirely missing) ============ -->
+        <!-- ============ INNOVATION PROJECT MODAL ============ -->
         <div v-if="innovationProjectModal.show" class="modal-overlay">
             <div class="modal-container modal-wide">
                 <div class="modal-header">
