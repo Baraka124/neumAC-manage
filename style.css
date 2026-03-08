@@ -1,29 +1,14 @@
 /* ================================================================
-   NEUMOCARE — Clinical Precision Design System v9.0
-   ALL FIXES APPLIED:
+   NEUMOCARE — Clinical Precision Design System v10.0
+   ALL FIXES APPLIED + NEW COMPACT VIEWS FOR ROTATIONS & ON-CALL
 
-   MODAL FIXES (v8.1 → v9.0):
-   ─ Fix 1: modal-overlay uses align-items:flex-start so tall modals scroll
-   ─ Fix 2: modal-container margin:auto re-centers when short
-   ─ Fix 3: modal widths capped with min() to never exceed viewport
-   ─ Fix 4: profile-left uses clamp() instead of fixed 260px
-   ─ Fix 5: modal-body grids collapse to 1-col below 580px
-   ─ Fix 6: modal-container overflow:visible; modal-body scrolls
-   ─ Fix 7: mobile bottom-sheet modal-body min-height:0
-
-   UI/UX FIXES:
-   ─ Fix 8:  Stats sidebar toggle always visible, repositioned on mobile
-   ─ Fix 9:  Collapsed sidebar shows tooltip on hover via data-tooltip
-   ─ Fix 10: Filter bar — search input visually differentiated from selects
-   ─ Fix 11: Table rows have min-height; oncall-shift-cell has min-width
-   ─ Fix 12: Breadcrumb hidden on desktop (redundant), shown on mobile
-   ─ Fix 13: Empty states inside tables use tighter padding/font sizes
-   ─ Fix 14: Stat cards get cursor:pointer + full card click support
-   ─ Fix 15: Announcement unread state styles added
-   ─ Fix 16: Touch targets enlarged to ≥44px on mobile
-   ─ Fix 17: Skeleton loader styles added
-
-   Fonts: DM Sans (UI) · Instrument Serif (hero/display) · DM Mono (data)
+   FIXES INCLUDED:
+   ─ Modal fixes (1-7)
+   ─ UI/UX fixes (8-17)
+   ─ NEW: Compact rotation timeline dots
+   ─ NEW: Compact on-call stack view
+   ─ NEW: Week grid view
+   ─ NEW: View toggle pills
 ================================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500;600&display=swap');
@@ -1941,6 +1926,360 @@ textarea.form-control { min-height: 72px; resize: vertical; }
 .expiry-header { display: flex; align-items: center; gap: 5px; font-family: var(--font-data); font-size: var(--t-10); color: var(--p-muted); font-weight: 600; }
 .expiry-timer  { font-family: var(--font-display); font-size: 17px; font-weight: 400; color: var(--p-blue); }
 
+/* ============ NEW: COMPACT ROTATION VIEW STYLES ============ */
+.compact-rotations-view {
+  padding: 16px;
+}
+
+.resident-rotation-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.resident-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.resident-row:last-child {
+  border-bottom: none;
+}
+
+.resident-row:hover {
+  background: var(--blue-lt);
+}
+
+.resident-info {
+  min-width: 180px;
+  flex-shrink: 0;
+}
+
+.resident-name {
+  font-weight: 600;
+  color: var(--text-1);
+  font-size: 14px;
+}
+
+.resident-year {
+  font-size: var(--t-11);
+  color: var(--text-3);
+  font-family: var(--font-data);
+}
+
+.rotation-timeline-dots {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 200px;
+}
+
+.rotation-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--t-12);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  border: 2px solid transparent;
+  flex-shrink: 0;
+}
+
+.rotation-dot:hover {
+  transform: scale(1.15);
+  z-index: 10;
+  box-shadow: var(--shadow-md);
+}
+
+.rotation-dot:active {
+  transform: scale(0.95);
+}
+
+.rotation-dot.completed { 
+  background: var(--ok-lt); 
+  color: #065f46;
+  border-color: var(--ok-mid);
+}
+
+.rotation-dot.active-now { 
+  background: var(--blue); 
+  color: white;
+  box-shadow: 0 0 0 3px var(--blue-glow);
+  animation: pulse-active 2s infinite;
+}
+
+.rotation-dot.scheduled { 
+  background: var(--info-lt); 
+  color: #0369a1;
+  border-color: var(--blue-mid);
+}
+
+.rotation-dot.upcoming { 
+  background: #fef3c7; 
+  color: #854d0e;
+  border-color: #fcd34d;
+}
+
+.rotation-dot.empty {
+  background: transparent;
+  border: 2px dashed var(--border-2);
+  color: var(--text-3);
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.rotation-dot.empty:hover {
+  opacity: 1;
+  border-color: var(--blue);
+  color: var(--blue);
+  background: var(--blue-lt);
+}
+
+@keyframes pulse-active {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(45,122,255,0.2); }
+  50% { box-shadow: 0 0 0 6px rgba(45,122,255,0.1); }
+}
+
+/* Tooltip for rotation dots */
+.rotation-dot[data-tooltip] {
+  position: relative;
+}
+
+.rotation-dot[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: white;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  font-size: var(--t-11);
+  white-space: nowrap;
+  z-index: 100;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+  font-weight: 500;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.rotation-actions {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* View toggle pills */
+.view-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-2);
+  padding: 4px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+}
+
+.view-toggle .btn-pill {
+  padding: 6px 12px;
+  font-size: var(--t-12);
+  background: transparent;
+  border: none;
+  color: var(--text-2);
+}
+
+.view-toggle .btn-pill.active {
+  background: var(--surface);
+  color: var(--blue);
+  box-shadow: var(--shadow-xs);
+}
+
+/* ============ NEW: COMPACT ON-CALL STACK VIEW ============ */
+.oncall-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.oncall-date-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.oncall-date-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.oncall-date-header .badge {
+  font-size: var(--t-12);
+  padding: 4px 12px;
+}
+
+.oncall-stack-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t);
+  cursor: pointer;
+  flex-wrap: wrap;
+}
+
+.oncall-stack-row:last-child {
+  border-bottom: none;
+}
+
+.oncall-stack-row:hover {
+  background: var(--blue-lt);
+}
+
+.oncall-stack-row.primary {
+  border-left: 3px solid var(--blue);
+}
+
+.oncall-stack-row.backup {
+  border-left: 3px solid var(--neutral);
+  opacity: 0.9;
+}
+
+.oncall-time-badge {
+  font-family: var(--font-data);
+  font-size: var(--t-12);
+  font-weight: 600;
+  color: var(--text-2);
+  min-width: 100px;
+  background: var(--surface-2);
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  text-align: center;
+}
+
+.oncall-physician {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.oncall-type-badge {
+  font-size: var(--t-10);
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: var(--r-xs);
+  background: var(--surface-2);
+  color: var(--text-3);
+}
+
+.oncall-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--neutral);
+  transition: all var(--t);
+}
+
+.oncall-status-dot.active {
+  background: var(--ok);
+  box-shadow: 0 0 0 3px rgba(13,158,110,0.2);
+  animation: pulse-oncall 2s infinite;
+}
+
+@keyframes pulse-oncall {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(13,158,110,0.2); }
+  50% { box-shadow: 0 0 0 6px rgba(13,158,110,0.1); }
+}
+
+.oncall-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* ============ NEW: WEEK GRID VIEW ============ */
+.rotation-week-grid {
+  display: grid;
+  grid-template-columns: 200px repeat(7, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  margin: 16px;
+}
+
+.week-header {
+  background: var(--surface-2);
+  padding: 12px;
+  font-weight: 600;
+  text-align: center;
+  font-size: var(--t-12);
+  color: var(--text-2);
+}
+
+.week-resident-cell {
+  background: var(--surface);
+  padding: 12px;
+  font-weight: 600;
+  font-size: var(--t-13);
+}
+
+.week-day-cell {
+  background: var(--surface);
+  padding: 8px;
+  min-height: 80px;
+  position: relative;
+}
+
+.rotation-block {
+  background: var(--blue-lt);
+  border-left: 3px solid var(--blue);
+  padding: 6px;
+  margin: 2px 0;
+  font-size: var(--t-11);
+  border-radius: var(--r-xs);
+  cursor: pointer;
+  transition: var(--t);
+}
+
+.rotation-block:hover {
+  transform: translateX(2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.rotation-block.active {
+  background: var(--blue);
+  color: white;
+  border-left-color: white;
+}
+
 /* ----------------------------------------------------------------
    ANIMATIONS
 ---------------------------------------------------------------- */
@@ -2064,6 +2403,51 @@ textarea.form-control { min-height: 72px; resize: vertical; }
   }
   .btn-pill { min-height: 38px; padding: 8px 14px; }
   .sidebar-menu-link { min-height: 48px; }
+
+  /* Compact views mobile responsiveness */
+  .resident-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .resident-info {
+    width: 100%;
+  }
+  
+  .rotation-timeline-dots {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .rotation-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+  
+  .oncall-stack-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .oncall-time-badge {
+    width: 100%;
+  }
+  
+  .oncall-physician {
+    width: 100%;
+  }
+  
+  .oncall-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .rotation-week-grid {
+    grid-template-columns: 150px repeat(7, 1fr);
+    font-size: 11px;
+  }
 }
 
 /* FIX 5: modal grid collapse on narrow modals/viewports */
@@ -2114,6 +2498,23 @@ textarea.form-control { min-height: 72px; resize: vertical; }
     border-radius: var(--r) var(--r) 0 0;
     width: auto;
     padding: 10px 20px;
+  }
+
+  /* Compact views mobile */
+  .rotation-week-grid {
+    grid-template-columns: 120px repeat(7, 1fr);
+    font-size: 10px;
+  }
+
+  .rotation-dot {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+  }
+
+  .view-toggle .btn-pill {
+    padding: 4px 8px;
+    font-size: 11px;
   }
 }
 
