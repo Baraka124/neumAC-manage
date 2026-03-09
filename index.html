@@ -90,6 +90,9 @@
     <!-- ============ MAIN APPLICATION ============ -->
     <div v-else class="app-layout">
 
+        <!-- Mobile sidebar backdrop -->
+        <div class="sidebar-backdrop" :class="{ active: mobileMenuOpen }" @click="mobileMenuOpen = false"></div>
+
         <!-- Sidebar -->
         <aside class="sidebar" :class="{ 'sidebar-collapsed': sidebarCollapsed, 'mobile-open': mobileMenuOpen }"
                aria-label="Main navigation">
@@ -1365,10 +1368,12 @@
                                 <div class="research-coordinator-section">
                                     <div class="coordinator-label">Coordinador/a</div>
                                     <div class="coordinator-info" v-if="line.coordinator_id">
-                                        <div class="coordinator-avatar">{{ getInitials(line.coordinator_name) }}</div>
-                                        <div>
-                                            <div class="coordinator-name">{{ line.coordinator_name }}</div>
-                                            <div class="coordinator-email">{{ line.coordinator_email }}</div>
+                                        <div class="coordinator-chip">
+                                            <i class="fas fa-user-tie"></i>
+                                            <div>
+                                                <div class="coordinator-name">{{ line.coordinator_name }}</div>
+                                                <div class="coordinator-email" v-if="line.coordinator_email">{{ line.coordinator_email }}</div>
+                                            </div>
                                         </div>
                                     </div>
                                     <div v-else class="coordinator-empty">
