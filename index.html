@@ -1238,22 +1238,72 @@
                             </select>
                         </div>
                         <div class="training-units-grid">
-                            <div v-for="unit in filteredTrainingUnits" :key="unit.id" class="training-unit-card">
-                                <div class="training-unit-header">
-                                    <div class="training-unit-title"><i class="fas fa-clinic-medical"></i>{{ unit.unit_name }}</div>
+                            <div v-for="unit in filteredTrainingUnits" :key="unit.id" class="tuc">
+                                <!-- Card top: name + status -->
+                                <div class="tuc-head">
+                                    <div class="tuc-name-row">
+                                        <i class="fas fa-clinic-medical tuc-icon"></i>
+                                        <div class="tuc-name">{{ unit.unit_name }}</div>
+                                    </div>
                                     <span class="status-indicator" :class="'status-' + unit.unit_status">{{ unit.unit_status }}</span>
                                 </div>
-                                <div class="training-unit-stats">
-                                    <div class="training-unit-stat-row"><span class="training-unit-stat-label">Department</span><span>{{ getDepartmentName(unit.department_id) || 'NA' }}</span></div>
-                                    <div class="training-unit-stat-row"><span class="training-unit-stat-label">Capacity</span><span class="font-semibold">{{ unit.current_residents || 0 }}/{{ unit.maximum_residents }}</span></div>
-                                    <div class="training-unit-stat-row"><span class="training-unit-stat-label">Supervisor</span><span>{{ getSupervisorName(unit.supervisor_id) || 'NA' }}</span></div>
-                                    <div class="training-unit-stat-row" v-if="unit.specialty"><span class="training-unit-stat-label">Specialty</span><span>{{ unit.specialty }}</span></div>
+
+                                <!-- Meta row: dept + specialty -->
+                                <div class="tuc-meta">
+                                    <span class="tuc-meta-item"><i class="fas fa-sitemap"></i>{{ getDepartmentName(unit.department_id) || '—' }}</span>
+                                    <span v-if="unit.specialty" class="tuc-meta-item"><i class="fas fa-stethoscope"></i>{{ unit.specialty }}</span>
                                 </div>
-                                <div class="training-unit-actions">
-                                    <button class="btn-pill btn-pill-edit" @click="editTrainingUnit(unit)" v-if="hasPermission('training_units', 'update')"><i class="fas fa-edit"></i> Edit</button>
-                                    <button class="btn btn-primary btn-pill training-unit-action-btn" @click="viewUnitResidents(unit)">
-                                        <i class="fas fa-users"></i> Residents
-                                        <span v-if="getUnitActiveRotationCount(unit.id) > 0" class="unit-resident-badge">{{ getUnitActiveRotationCount(unit.id) }}</span>
+
+                                <!-- Occupancy bar -->
+                                <div class="tuc-occupancy">
+                                    <div class="tuc-occ-row">
+                                        <span class="tuc-occ-label">Occupancy</span>
+                                        <span class="tuc-occ-count"
+                                              :class="{
+                                                'tuc-occ-full': getUnitActiveRotationCount(unit.id) >= unit.maximum_residents,
+                                                'tuc-occ-warn': getUnitActiveRotationCount(unit.id) / unit.maximum_residents > 0.75 && getUnitActiveRotationCount(unit.id) < unit.maximum_residents
+                                              }">
+                                            {{ getUnitActiveRotationCount(unit.id) }}<span class="tuc-occ-max">/{{ unit.maximum_residents }}</span>
+                                        </span>
+                                    </div>
+                                    <div class="tuc-occ-bar">
+                                        <div class="tuc-occ-fill"
+                                             :class="{
+                                               'tuc-occ-fill--full': getUnitActiveRotationCount(unit.id) >= unit.maximum_residents,
+                                               'tuc-occ-fill--warn': getUnitActiveRotationCount(unit.id) / unit.maximum_residents > 0.75
+                                             }"
+                                             :style="{ width: Math.min(100, (getUnitActiveRotationCount(unit.id) / unit.maximum_residents) * 100) + '%' }">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Supervisor chip -->
+                                <div class="tuc-supervisor" v-if="unit.supervising_attending_id">
+                                    <i class="fas fa-user-md"></i>
+                                    <span>{{ getSupervisorName(unit.supervising_attending_id) }}</span>
+                                    <span class="tuc-sup-badge">Supervisor</span>
+                                </div>
+                                <div class="tuc-supervisor tuc-supervisor--empty" v-else>
+                                    <i class="fas fa-user-md"></i>
+                                    <span>No supervisor assigned</span>
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="tuc-actions">
+                                    <button class="tuc-btn tuc-btn--ghost" @click="viewUnitResidents(unit)" title="View residents">
+                                        <i class="fas fa-user-graduate"></i>
+                                        <span>Residents</span>
+                                        <span v-if="getUnitActiveRotationCount(unit.id) > 0" class="tuc-count-badge">{{ getUnitActiveRotationCount(unit.id) }}</span>
+                                    </button>
+                                    <button class="tuc-btn tuc-btn--ghost" @click="openUnitClinicians(unit)" title="Assign clinicians" v-if="hasPermission('training_units', 'update')">
+                                        <i class="fas fa-user-tie"></i>
+                                        <span>Clinicians</span>
+                                    </button>
+                                    <button class="tuc-btn tuc-btn--edit" @click="editTrainingUnit(unit)" v-if="hasPermission('training_units', 'update')" title="Edit unit">
+                                        <i class="fas fa-pen"></i>
+                                    </button>
+                                    <button class="tuc-btn tuc-btn--danger" @click="deleteTrainingUnit(unit)" v-if="hasPermission('training_units', 'delete')" title="Delete unit">
+                                        <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </div>
                             </div>
@@ -1869,6 +1919,27 @@
                             <div class="pd-row"><span class="pd-row-key">Specialty</span><span class="pd-row-val" :class="{'pd-row-na': !staffProfileModal.staff.specialization}">{{ formatSpecialization(staffProfileModal.staff.specialization) || '—' }}</span></div>
                             <div class="pd-row"><span class="pd-row-key">License</span><span class="pd-row-val" :class="{'pd-row-na': !staffProfileModal.staff.medical_license}">{{ formatLicense(staffProfileModal.staff.medical_license) || '—' }}</span></div>
                             <div class="pd-row"><span class="pd-row-key">Mobile</span><span class="pd-row-val" :class="{'pd-row-na': !staffProfileModal.staff.mobile_phone}">{{ formatPhone(staffProfileModal.staff.mobile_phone) || '—' }}</span></div>
+                            <!-- Clinical certificate — collected in form, now shown -->
+                            <div class="pd-row" v-if="staffProfileModal.staff.clinical_certificate">
+                                <span class="pd-row-key">Certificate</span>
+                                <span class="pd-row-val pd-row-cert">
+                                    {{ staffProfileModal.staff.clinical_certificate }}
+                                    <span class="pd-cert-status" :class="staffProfileModal.staff.certificate_status === 'current' ? 'pd-cert-current' : 'pd-cert-expired'">
+                                        <i class="fas" :class="staffProfileModal.staff.certificate_status === 'current' ? 'fa-check-circle' : 'fa-exclamation-circle'"></i>
+                                        {{ staffProfileModal.staff.certificate_status || 'unknown' }}
+                                    </span>
+                                </span>
+                            </div>
+                            <!-- Clinical study certificates (tag array) -->
+                            <div class="pd-row" v-if="staffProfileModal.staff.clinical_study_certificates?.length">
+                                <span class="pd-row-key">Study Certs</span>
+                                <span class="pd-row-val">
+                                    <div class="pd-cert-tags">
+                                        <span v-for="cert in staffProfileModal.staff.clinical_study_certificates" :key="cert" class="pd-cert-tag">{{ cert }}</span>
+                                        <span v-if="staffProfileModal.staff.other_certificate" class="pd-cert-tag pd-cert-tag--other">{{ staffProfileModal.staff.other_certificate }}</span>
+                                    </div>
+                                </span>
+                            </div>
                         </div>
                     </div>
 
@@ -1910,6 +1981,30 @@
                             <div v-for="role in getStaffRoles(staffProfileModal.staff)" :key="role.key" class="pd-role-item">
                                 <i :class="['fas', role.icon]" :style="{ color: role.color }"></i>
                                 <span>{{ role.label }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Research Capabilities — collected in form, always surfaced here -->
+                    <div v-if="staffProfileModal.staff.can_be_pi || staffProfileModal.staff.can_be_coi || staffProfileModal.staff.can_supervise_residents"
+                         class="pd-section" :class="{ 'pd-section--collapsed': staffProfileModal.collapsed?.capabilities }">
+                        <button class="pd-section-head" @click="toggleProfileSection('capabilities')">
+                            <span class="pd-section-icon"><i class="fas fa-flask"></i></span>
+                            <span class="pd-section-title">Research Capabilities</span>
+                            <i class="fas fa-chevron-down pd-section-chevron"></i>
+                        </button>
+                        <div class="pd-section-body">
+                            <div v-if="staffProfileModal.staff.can_be_pi" class="pd-capability-row">
+                                <span class="pd-cap-icon pd-cap-icon--pi"><i class="fas fa-crown"></i></span>
+                                <span class="pd-cap-label">Principal Investigator</span>
+                            </div>
+                            <div v-if="staffProfileModal.staff.can_be_coi" class="pd-capability-row">
+                                <span class="pd-cap-icon pd-cap-icon--coi"><i class="fas fa-user-friends"></i></span>
+                                <span class="pd-cap-label">Co-Investigator</span>
+                            </div>
+                            <div v-if="staffProfileModal.staff.can_supervise_residents" class="pd-capability-row">
+                                <span class="pd-cap-icon pd-cap-icon--sup"><i class="fas fa-chalkboard-teacher"></i></span>
+                                <span class="pd-cap-label">Resident Supervisor (Research)</span>
                             </div>
                         </div>
                     </div>
@@ -2755,8 +2850,24 @@
         <div v-if="trainingUnitModal.show" class="modal-overlay">
             <div class="modal-container">
                 <div class="modal-header">
-                    <div class="modal-title"><i class="fas fa-hospital-user"></i>{{ trainingUnitModal.mode === 'add' ? 'Add Training Unit' : 'Edit Training Unit' }}</div>
+                    <div class="modal-title">
+                        <i class="fas" :class="trainingUnitModal.mode === 'add' ? 'fa-plus-circle' : 'fa-clinic-medical'"></i>
+                        {{ trainingUnitModal.mode === 'add' ? 'New Training Unit' : 'Edit Training Unit' }}
+                    </div>
                     <button class="modal-close" @click="trainingUnitModal.show = false"><i class="fas fa-times"></i></button>
+                </div>
+                <div v-if="trainingUnitModal.mode === 'edit'" class="modal-edit-context">
+                    <div class="mec-icon role-icon--attending_physician"><i class="fas fa-clinic-medical"></i></div>
+                    <div class="mec-info">
+                        <div class="mec-name">{{ trainingUnitModal.form.unit_name }}</div>
+                        <div class="mec-meta">{{ trainingUnitModal.form.unit_code }} <span class="mec-sep">·</span>
+                            <span class="status-indicator" :class="'status-' + trainingUnitModal.form.unit_status">{{ trainingUnitModal.form.unit_status }}</span>
+                        </div>
+                    </div>
+                    <button class="mec-delete-btn" v-if="hasPermission('training_units', 'delete')"
+                            @click="deleteTrainingUnit(trainingUnitModal.form); trainingUnitModal.show = false">
+                        <i class="fas fa-trash-alt"></i> Delete
+                    </button>
                 </div>
                 <div class="modal-body">
                     <div class="grid grid-cols-2 gap-4">
@@ -3104,67 +3215,69 @@
             </div>
         </div>
 
-        <!-- ============ UNIT RESIDENTS MODAL ============ -->
+        <!-- ============ UNIT RESIDENTS MODAL — names only ============ -->
         <div v-if="unitResidentsModal.show" class="modal-overlay">
             <div class="modal-container modal-unit-residents">
                 <div class="modal-header">
                     <div class="modal-title">
                         <i class="fas fa-clinic-medical"></i>
                         <span>{{ unitResidentsModal.unit ? unitResidentsModal.unit.unit_name : '' }}</span>
-                        <span class="modal-title-badge">{{ unitResidentsModal.rotations.length }}/{{ unitResidentsModal.unit ? unitResidentsModal.unit.maximum_residents : '?' }} residents</span>
                     </div>
                     <button class="modal-close" @click="unitResidentsModal.show = false"><i class="fas fa-times"></i></button>
                 </div>
-                <div class="modal-body" style="padding:0;">
-                    <div class="unit-meta-strip" v-if="unitResidentsModal.unit">
-                        <div class="umc"><span class="umc-key">Department</span><span :class="['umc-val', !getDepartmentName(unitResidentsModal.unit.department_id) && 'umc-na']">{{ getDepartmentName(unitResidentsModal.unit.department_id) || 'NA' }}</span></div>
-                        <div class="umc">
-                            <span class="umc-key">Capacity</span>
-                            <div class="umc-capacity">
-                                <span class="umc-val">{{ unitResidentsModal.rotations.length }} / {{ unitResidentsModal.unit.maximum_residents }}</span>
-                                <div class="cap-bar">
-                                    <div class="cap-fill"
-                                         :class="{ 'cap-warn': unitResidentsModal.rotations.length / unitResidentsModal.unit.maximum_residents > 0.75, 'cap-full': unitResidentsModal.rotations.length >= unitResidentsModal.unit.maximum_residents }"
-                                         :style="{ width: Math.min(100, (unitResidentsModal.rotations.length / unitResidentsModal.unit.maximum_residents) * 100) + '%' }">
-                                    </div>
-                                </div>
+
+                <!-- Occupancy strip -->
+                <div class="urm-strip" v-if="unitResidentsModal.unit">
+                    <div class="urm-stat">
+                        <span class="urm-stat-val">{{ unitResidentsModal.rotations.length }}</span>
+                        <span class="urm-stat-key">Active</span>
+                    </div>
+                    <div class="urm-occ-bar-wrap">
+                        <div class="urm-occ-bar">
+                            <div class="urm-occ-fill"
+                                 :class="{ 'urm-occ-full': unitResidentsModal.rotations.length >= unitResidentsModal.unit.maximum_residents, 'urm-occ-warn': unitResidentsModal.rotations.length / unitResidentsModal.unit.maximum_residents > 0.75 }"
+                                 :style="{ width: Math.min(100, (unitResidentsModal.rotations.length / unitResidentsModal.unit.maximum_residents) * 100) + '%' }">
                             </div>
                         </div>
-                        <div class="umc"><span class="umc-key">Unit Supervisor</span><span :class="['umc-val', !unitResidentsModal.unit.supervisor_id && 'umc-na']">{{ unitResidentsModal.unit.supervisor_id ? getSupervisorName(unitResidentsModal.unit.supervisor_id) : 'NA' }}</span></div>
-                        <div class="umc"><span class="umc-key">Specialty</span><span :class="['umc-val', !unitResidentsModal.unit.specialty && 'umc-na']">{{ unitResidentsModal.unit.specialty || 'NA' }}</span></div>
-                        <div class="umc"><span class="umc-key">Status</span><span class="status-indicator" :class="'status-' + unitResidentsModal.unit.unit_status">{{ unitResidentsModal.unit.unit_status }}</span></div>
+                        <div class="urm-occ-label">{{ unitResidentsModal.rotations.length }}/{{ unitResidentsModal.unit.maximum_residents }} slots occupied</div>
                     </div>
-                    <div class="table-responsive" v-if="unitResidentsModal.rotations.length > 0">
-                        <table class="unit-residents-table">
-                            <thead><tr><th>Resident</th><th>Rotation Period</th><th>Days Left</th><th>Rotation Supervisor</th><th>Status</th></tr></thead>
-                            <tbody>
-                                <tr v-for="rotation in unitResidentsModal.rotations" :key="rotation.id" :class="'row-' + rotation.rotation_status">
-                                    <td>
-                                        <div class="font-medium">{{ getResidentName(rotation.resident_id) }}</div>
-                                        <div class="text-xs text-gray-500">{{ rotation.rotation_category || 'NA' }}</div>
-                                    </td>
-                                    <td class="rotation-dates-cell">
-                                        <span class="rd-start">{{ formatDate(rotation.start_date) }}</span>
-                                        <span class="rd-sep"> → </span>
-                                        <span class="rd-end">{{ formatDate(rotation.end_date) }}</span>
-                                    </td>
-                                    <td>
-                                        <template v-if="rotation.rotation_status === 'active'">
-                                            <span class="days-pill" :class="getDaysRemaining(rotation.end_date) <= 7 ? 'days-urgent' : ''">{{ getDaysRemaining(rotation.end_date) > 0 ? getDaysRemaining(rotation.end_date) + ' days' : 'Ending' }}</span>
-                                        </template>
-                                        <template v-else-if="rotation.rotation_status === 'scheduled'">
-                                            <span class="days-pill days-future">in {{ getDaysUntilStart(rotation.start_date) }} days</span>
-                                        </template>
-                                        <span v-else class="na-value">—</span>
-                                    </td>
-                                    <td>
-                                        <span v-if="rotation.supervising_attending_id"><i class="fas fa-user-md"></i>{{ getSupervisorName(rotation.supervising_attending_id) }}</span>
-                                        <span v-else class="na-value">NA</span>
-                                    </td>
-                                    <td><span class="status-indicator" :class="'status-' + rotation.rotation_status">{{ formatRotationStatus(rotation.rotation_status) }}</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="urm-stat">
+                        <span class="urm-stat-val">{{ unitResidentsModal.unit.maximum_residents - unitResidentsModal.rotations.length }}</span>
+                        <span class="urm-stat-key">Available</span>
+                    </div>
+                </div>
+
+                <div class="modal-body urm-body">
+                    <!-- Residents list — names only, clean -->
+                    <div v-if="unitResidentsModal.rotations.length > 0" class="urm-list">
+                        <div v-for="rotation in unitResidentsModal.rotations" :key="rotation.id"
+                             class="urm-row"
+                             @click="viewStaffDetails(medicalStaff.find(s => s.id === rotation.resident_id))"
+                             title="View profile">
+                            <div class="urm-avatar" :class="'role-icon--medical_resident'">
+                                <i class="fas fa-user-graduate"></i>
+                            </div>
+                            <div class="urm-info">
+                                <div class="urm-name">{{ getResidentName(rotation.resident_id) }}</div>
+                                <div class="urm-sub">
+                                    <span class="status-indicator" :class="'status-' + rotation.rotation_status">{{ formatRotationStatus(rotation.rotation_status) }}</span>
+                                    <span v-if="rotation.supervising_attending_id" class="urm-sup">
+                                        <i class="fas fa-user-md"></i> {{ getSupervisorName(rotation.supervising_attending_id) }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="urm-days" v-if="rotation.rotation_status === 'active'">
+                                <span class="urm-days-num" :class="{ 'urm-days-urgent': getDaysRemaining(rotation.end_date) <= 7 }">
+                                    {{ getDaysRemaining(rotation.end_date) }}
+                                </span>
+                                <span class="urm-days-lbl">days left</span>
+                            </div>
+                            <div class="urm-days" v-else-if="rotation.rotation_status === 'scheduled'">
+                                <span class="urm-days-num urm-days-future">in {{ getDaysUntilStart(rotation.start_date) }}</span>
+                                <span class="urm-days-lbl">days</span>
+                            </div>
+                            <i class="fas fa-chevron-right urm-chevron"></i>
+                        </div>
                     </div>
                     <div class="unit-empty" v-else>
                         <i class="fas fa-user-graduate"></i>
@@ -3174,7 +3287,60 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @click="unitResidentsModal.show = false">Close</button>
-                    <button class="btn btn-primary" @click="unitResidentsModal.show = false; showAddRotationModal()" v-if="hasPermission('resident_rotations', 'create')"><i class="fas fa-plus"></i> Add Rotation</button>
+                    <button class="btn btn-primary" @click="unitResidentsModal.show = false; showAddRotationModal()" v-if="hasPermission('resident_rotations', 'create')">
+                        <i class="fas fa-plus"></i> Add Rotation
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ UNIT CLINICIANS MODAL ============ -->
+        <div v-if="unitCliniciansModal.show" class="modal-overlay">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <div class="modal-title">
+                        <i class="fas fa-user-tie"></i>
+                        Clinicians — {{ unitCliniciansModal.unit?.unit_name }}
+                    </div>
+                    <button class="modal-close" @click="unitCliniciansModal.show = false"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <p class="ucm-hint">Select clinicians working in this unit. Then designate one as the unit supervisor.</p>
+                    <div class="ucm-list">
+                        <label v-for="s in unitCliniciansModal.allStaff" :key="s.id" class="ucm-row"
+                               :class="{ 'ucm-row--checked': unitCliniciansModal.clinicians.includes(s.id) }">
+                            <input type="checkbox"
+                                   :value="s.id"
+                                   :checked="unitCliniciansModal.clinicians.includes(s.id)"
+                                   @change="e => e.target.checked ? unitCliniciansModal.clinicians.push(s.id) : unitCliniciansModal.clinicians.splice(unitCliniciansModal.clinicians.indexOf(s.id), 1)"
+                                   class="ucm-check">
+                            <div class="ucm-avatar" :class="'role-icon--' + s.staff_type">
+                                <i class="fas" :class="s.staff_type === 'attending_physician' ? 'fa-user-md' : 'fa-stethoscope'"></i>
+                            </div>
+                            <div class="ucm-info">
+                                <div class="ucm-name">{{ s.full_name }}</div>
+                                <div class="ucm-type">{{ formatStaffType(s.staff_type) }}</div>
+                            </div>
+                            <!-- Supervisor radio — only visible when checked -->
+                            <div v-if="unitCliniciansModal.clinicians.includes(s.id)" class="ucm-sup-toggle">
+                                <label class="ucm-sup-label" :class="{ 'ucm-sup-active': unitCliniciansModal.supervisorId === s.id }">
+                                    <input type="radio" :value="s.id" v-model="unitCliniciansModal.supervisorId" class="hidden">
+                                    <i class="fas fa-shield-alt"></i>
+                                    <span>{{ unitCliniciansModal.supervisorId === s.id ? 'Supervisor' : 'Set as supervisor' }}</span>
+                                </label>
+                            </div>
+                        </label>
+                    </div>
+                    <div v-if="!unitCliniciansModal.allStaff?.length" class="empty-state" style="padding:24px 0">
+                        <i class="fas fa-user-md empty-state-icon" style="font-size:32px"></i>
+                        <div class="empty-state-title">No attending physicians or fellows found</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @click="unitCliniciansModal.show = false">Cancel</button>
+                    <button class="btn btn-primary" @click="saveUnitClinicians">
+                        <i class="fas fa-save"></i> Save Assignments
+                    </button>
                 </div>
             </div>
         </div>
