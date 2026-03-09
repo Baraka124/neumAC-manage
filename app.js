@@ -496,12 +496,21 @@ document.addEventListener('DOMContentLoaded', () => {
               localStorage.removeItem(CONFIG.USER_KEY)
               throw new Error('Session expired. Please login again.')
             }
-            const err = await res.text().catch(() => `HTTP ${res.status}`)
-            throw new Error(err)
+            let errMsg = `HTTP ${res.status}`
+            try {
+              const errText = await res.text()
+              try {
+                const errJson = JSON.parse(errText)
+                // Extract human-readable message from backend JSON error responses
+                errMsg = errJson.message || errJson.error || errText
+              } catch { errMsg = errText || errMsg }
+            } catch { /* keep HTTP status */ }
+            throw new Error(errMsg)
           }
           const ct = res.headers.get('content-type')
           const result = ct?.includes('application/json') ? await res.json() : await res.text()
           if (isGet && !options.skipCache) this.setCached(cacheKey, result)
+          else if (isGet && options.skipCache) this.cache.delete(cacheKey) // bust stale entry
           return result
         } catch (e) {
           if (e.message.includes('fetch') || e.message.includes('NetworkError'))
@@ -621,7 +630,13 @@ document.addEventListener('DOMContentLoaded', () => {
       async updateRotation(id, d) { this.invalidate('/api/rotations'); return this.request(`/api/rotations/${id}`, { method: 'PUT', body: d }) }
       async deleteRotation(id) { this.invalidate('/api/rotations'); return this.request(`/api/rotations/${id}`, { method: 'DELETE' }) }
 
-      async getOnCallSchedule() { return this.getList('/api/oncall') }
+      async getOnCallSchedule(params) {
+        if (params && Object.keys(params).length) {
+          const qs = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([,v]) => v != null))).toString()
+          return this.getList(`/api/oncall${qs ? '?' + qs : ''}`)
+        }
+        return this.getList('/api/oncall')
+      }
       async getOnCallToday() { return this.getList('/api/oncall/today') }
       async createOnCall(d) { this.invalidate('/api/oncall'); return this.request('/api/oncall', { method: 'POST', body: d }) }
       async updateOnCall(id, d) { this.invalidate('/api/oncall'); return this.request(`/api/oncall/${id}`, { method: 'PUT', body: d }) }
@@ -1104,8 +1119,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const checkExistingSchedule = async (date, shiftType, excludeId = null) => {
         try {
-          const schedules = await API.getOnCallSchedule({ start_date: date, end_date: date });
-          return schedules.filter(s => s.shift_type === shiftType && (!excludeId || s.id !== excludeId)).length > 0;
+          // Fetch fresh (skip cache) so we don't get false positives from stale data
+          const schedules = await API.request(`/api/oncall?start_date=${date}&end_date=${date}`, { skipCache: true });
+          const list = Array.isArray(schedules) ? schedules : (schedules?.data || []);
+          return list.filter(s => {
+            const sDate = Utils.normalizeDate(s.duty_date);
+            return sDate === date && s.shift_type === shiftType && (!excludeId || s.id !== excludeId);
+          }).length > 0;
         } catch (error) { console.error('Failed to check existing schedule:', error); return false; }
       };
 
@@ -1200,13 +1220,15 @@ document.addEventListener('DOMContentLoaded', () => {
             primary_physician_id: f.primary_physician_id, backup_physician_id: f.backup_physician_id || null,
             coverage_notes: f.coverage_notes || '', schedule_id: f.schedule_id || Utils.generateId('SCH')
           }
-          if (onCallModal.mode === 'add') {
-            const exists = await checkExistingSchedule(data.duty_date, data.shift_type);
-            if (exists) { showToast('Duplicate Schedule', `A ${data.shift_type === 'primary_call' ? 'primary' : 'backup'} shift already exists for this date.`, 'warning'); saving.value = false; return; }
-          }
-          if (onCallModal.mode === 'edit') {
-            const exists = await checkExistingSchedule(data.duty_date, data.shift_type, f.id);
-            if (exists) { showToast('Duplicate Schedule', `Another ${data.shift_type === 'primary_call' ? 'primary' : 'backup'} shift already exists for this date.`, 'warning'); saving.value = false; return; }
+          // Duplicate check: only enforce uniqueness for primary_call (one per day is a hard rule)
+          // float_physician, backup_call, weekend_coverage can legitimately have multiple per day
+          if (data.shift_type === 'primary_call') {
+            const excludeId = onCallModal.mode === 'edit' ? f.id : null
+            const exists = await checkExistingSchedule(data.duty_date, data.shift_type, excludeId);
+            if (exists) {
+              showToast('Duplicate Primary Call', `A primary on-call is already scheduled for ${Utils.formatDateShort(data.duty_date)}. Change the shift type or choose a different date.`, 'warning');
+              saving.value = false; return;
+            }
           }
           if (onCallModal.mode === 'add') {
             const result = await API.createOnCall(data);
@@ -1526,16 +1548,43 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) { setErr('rotation', 'start_date', 'Invalid date format'); showToast('Error', 'Invalid date format', 'error'); return }
         const duration = Math.ceil((endDate - startDate) / 86400000)
         if (duration > 365) { setErr('rotation', 'end_date', `Cannot exceed 365 days (current: ${duration})`); showToast('Error', 'Rotation cannot exceed 365 days', 'error'); return }
+
+        // Refresh rotations from server before doing local overlap check
+        // This prevents false conflicts from 5-min stale cache
+        API.invalidate('/api/rotations')
+        try {
+          const fresh = await API.request('/api/rotations', { skipCache: true })
+          const freshList = Utils.ensureArray(fresh)
+          if (freshList.length > 0) rotations.value = freshList.map(r => ({ ...r, start_date: Utils.normalizeDate(r.start_date), end_date: Utils.normalizeDate(r.end_date) }))
+        } catch { /* proceed with cached data */ }
+
         const excludeId = rotationModal.mode === 'edit' ? f.id : null
+        // Only active/scheduled rotations block new ones
+        // completed, terminated_early, cancelled do NOT block (allow backdated entries, re-use of slots)
+        const BLOCKING_STATUSES = ['scheduled', 'active', 'extended']
         const hasOverlap = rotations.value.some(r => {
-          if (r.resident_id !== f.resident_id || r.rotation_status === 'cancelled') return false
+          if (r.resident_id !== f.resident_id) return false
+          if (!BLOCKING_STATUSES.includes(r.rotation_status)) return false
           if (excludeId && r.id === excludeId) return false
           const eS = new Date(Utils.normalizeDate(r.start_date) + 'T00:00:00')
           const eE = new Date(Utils.normalizeDate(r.end_date) + 'T23:59:59')
           if (isNaN(eS.getTime()) || isNaN(eE.getTime())) return false
           return startDate <= eE && endDate >= eS
         })
-        if (hasOverlap) { setErr('rotation', 'start_date', 'Resident already has a rotation in this period'); showToast('Scheduling Conflict', `${getResidentName(f.resident_id)} already has a rotation during these dates.`, 'error'); return }
+        if (hasOverlap) {
+          const conflicting = rotations.value.find(r => {
+            if (r.resident_id !== f.resident_id || !BLOCKING_STATUSES.includes(r.rotation_status)) return false
+            if (excludeId && r.id === excludeId) return false
+            const eS = new Date(Utils.normalizeDate(r.start_date) + 'T00:00:00')
+            const eE = new Date(Utils.normalizeDate(r.end_date) + 'T23:59:59')
+            return startDate <= eE && endDate >= eS
+          })
+          const conflictUnit = conflicting ? getTrainingUnitName(conflicting.training_unit_id) : ''
+          const conflictDates = conflicting ? `${Utils.formatDateShort(conflicting.start_date)} – ${Utils.formatDateShort(conflicting.end_date)}` : ''
+          setErr('rotation', 'start_date', 'Dates overlap with an active or scheduled rotation')
+          showToast('Scheduling Conflict', `${getResidentName(f.resident_id)} already has a ${conflicting?.rotation_status || ''} rotation at ${conflictUnit} (${conflictDates}).`, 'error')
+          return
+        }
 
         saving.value = true
         try {
@@ -1558,10 +1607,12 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           rotationModal.show = false; clearAll('rotation')
         } catch (e) {
-          let msg = e.message || 'Failed to save rotation'
-          if (msg.includes('overlapping')) msg = 'Dates conflict with an existing rotation.'
-          if (msg.includes('date')) msg = 'Invalid date — check start and end dates.'
-          showToast('Error', msg, 'error')
+          const msg = e.message || 'Failed to save rotation'
+          if (msg.toLowerCase().includes('scheduling conflict') || msg.toLowerCase().includes('already has a rotation')) {
+            showToast('Scheduling Conflict', msg, 'error')
+          } else {
+            showToast('Error', msg, 'error')
+          }
         } finally { saving.value = false }
       }
 
@@ -1820,7 +1871,11 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Success', 'Absence updated', 'success')
           }
           absenceModal.show = false; clearAll('absence'); await loadAbsences()
-        } catch (e) { showToast('Error', e.message || 'Failed to save absence', 'error') }
+        } catch (e) {
+          let msg = e.message || 'Failed to save absence'
+          if (msg.includes('not found') && msg.includes('app_users')) msg = 'Your user account is not registered in the staff directory. Contact the system administrator.'
+          showToast('Error', msg, 'error')
+        }
         finally { saving.value = false }
       }
 
