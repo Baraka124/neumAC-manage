@@ -2276,6 +2276,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const viewStaffDetails = async (staff) => {
           staffOps.staffProfileModal.staff = staff; staffOps.staffProfileModal.activeTab = 'activity'; staffOps.staffProfileModal.show = true
           staffOps.staffProfileModal.collapsed = { credentials: false, resident: false, roles: false, research: false, leave: false, contact: false }
+          // Prevent body scroll while drawer is open
+          document.body.style.overflow = 'hidden'
           if (hasPermission('analytics', 'read')) await analyticsOps.loadStaffResearchProfile(staffOps.staffProfileModal, staff.id)
           if (staff.staff_type === 'attending_physician') {
             staffOps.staffProfileModal.loadingSupervision = true
@@ -2381,6 +2383,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         watch([medicalStaff, rotations, trainingUnits, absences], () => updateDashboardStats(), { deep: true })
+
+        // Restore body scroll when profile drawer closes
+        watch(() => staffOps.staffProfileModal.show, (val) => {
+          document.body.style.overflow = val ? 'hidden' : ''
+        })
 
         onMounted(() => {
           const token = localStorage.getItem(CONFIG.TOKEN_KEY)
