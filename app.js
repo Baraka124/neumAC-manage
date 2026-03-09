@@ -64,6 +64,19 @@ document.addEventListener('DOMContentLoaded', () => {
         innovation_projects: ['read'], 
         analytics: ['read']
       },
+      resident_manager: {
+        medical_staff: ['read'],
+        oncall_schedule: ['create', 'read', 'update', 'delete'],
+        resident_rotations: ['create', 'read', 'update', 'delete'],
+        training_units: ['create', 'read', 'update'],
+        staff_absence: ['create', 'read', 'update'],
+        department_management: ['read'],
+        communications: ['create', 'read'],
+        research_lines: ['read'],
+        clinical_trials: ['read'],
+        innovation_projects: ['read'],
+        analytics: ['read']
+      },
       medical_resident: {
         medical_staff: ['read'], 
         oncall_schedule: ['read'], 
@@ -880,7 +893,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const confirmAction = async () => {
         if (confirmationModal.onConfirm) {
-          try { await confirmationModal.onConfirm() } catch (e) { showToast('Error', e.message, 'error') }
+          try { await confirmationModal.onConfirm() } catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
         }
         confirmationModal.show = false
       }
@@ -1379,6 +1392,23 @@ document.addEventListener('DOMContentLoaded', () => {
       const getResidentName = (id) => medicalStaff.value.find(s => s.id === id)?.full_name || 'Not assigned'
       const getTrainingUnitName = (id) => trainingUnits.value.find(u => u.id === id)?.unit_name || 'Not assigned'
 
+      // Capacity info for the rotation modal — reactive to selected unit
+      const selectedUnitCapacity = computed(() => {
+        const unitId = rotationModal.form.training_unit_id
+        if (!unitId) return null
+        const unit = trainingUnits.value.find(u => u.id === unitId)
+        if (!unit) return null
+        // Count only active/scheduled rotations (not the one being edited)
+        const editId = rotationModal.mode === 'edit' ? rotationModal.form.id : null
+        const current = rotations.value.filter(r =>
+          r.training_unit_id === unitId &&
+          ['active', 'scheduled'].includes(r.rotation_status) &&
+          r.id !== editId
+        ).length
+        const max = unit.maximum_residents || 5
+        return { current, max, full: current >= max, warn: current / max >= 0.8, pct: Math.min(100, Math.round((current / max) * 100)) }
+      })
+
       const checkAndUpdateRotations = async (requireValidation = true) => {
         const today = new Date(); today.setHours(0, 0, 0, 0)
         const todayStr = Utils.normalizeDate(today)
@@ -1549,6 +1579,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const duration = Math.ceil((endDate - startDate) / 86400000)
         if (duration > 365) { setErr('rotation', 'end_date', `Cannot exceed 365 days (current: ${duration})`); showToast('Error', 'Rotation cannot exceed 365 days', 'error'); return }
 
+        // Lock the button immediately — prevents double-submit during the async refresh below
+        saving.value = true
+
         // Refresh rotations from server before doing local overlap check
         // This prevents false conflicts from 5-min stale cache
         API.invalidate('/api/rotations')
@@ -1586,7 +1619,6 @@ document.addEventListener('DOMContentLoaded', () => {
           return
         }
 
-        saving.value = true
         try {
           const data = {
             rotation_id: f.rotation_id || Utils.generateId('ROT'), resident_id: f.resident_id,
@@ -1757,7 +1789,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return {
         rotations, rotationFilters, rotationModal,
         filteredRotations, filteredRotationsAll, rotationTotalPages,
-        loadRotations, showAddRotationModal, editRotation, saveRotation, deleteRotation,
+        loadRotations, showAddRotationModal, editRotation, saveRotation, deleteRotation, selectedUnitCapacity,
         pendingActivations, activationModal, checkAndUpdateRotations, updateRotationStatus,
         confirmPendingActivation, skipPendingActivation, postponeAllActivations, initAutoCheck,
         forceActivationCheck: () => checkAndUpdateRotations(true),
@@ -1801,6 +1833,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return ok
       }
+
+      // Detect if selected staff member already has an overlapping absence record
+      const absenceOverlapWarning = computed(() => {
+        const f = absenceModal.form
+        if (!f.staff_member_id || !f.start_date || !f.end_date) return null
+        const editId = absenceModal.mode === 'edit' ? f.id : null
+        const newStart = Utils.normalizeDate(f.start_date)
+        const newEnd   = Utils.normalizeDate(f.end_date)
+        if (!newStart || !newEnd) return null
+        const overlap = absences.value.find(a => {
+          if (a.staff_member_id !== f.staff_member_id) return false
+          if (editId && a.id === editId) return false
+          if (a.current_status === 'cancelled') return false
+          const aS = Utils.normalizeDate(a.start_date)
+          const aE = Utils.normalizeDate(a.end_date)
+          return newStart <= aE && newEnd >= aS
+        })
+        if (!overlap) return null
+        return {
+          reason: ABSENCE_REASON_LABELS?.[overlap.absence_reason] || overlap.absence_reason,
+          start: Utils.formatDateShort(overlap.start_date),
+          end: Utils.formatDateShort(overlap.end_date),
+          status: overlap.current_status
+        }
+      })
 
       const filteredAbsencesAll = computed(() => {
         let f = absences.value
@@ -1891,7 +1948,7 @@ document.addEventListener('DOMContentLoaded', () => {
       })
 
       return {
-        absences, absenceFilters, absenceModal,
+        absences, absenceFilters, absenceModal, absenceOverlapWarning,
         filteredAbsences, filteredAbsencesAll, absenceTotalPages,
         loadAbsences, showAddAbsenceModal, editAbsence, saveAbsence, deleteAbsence
       }
@@ -1928,7 +1985,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (departmentModal.mode === 'add') { departments.value.unshift(await API.createDepartment(departmentModal.form)); showToast('Success', 'Department created', 'success') }
           else { const result = await API.updateDepartment(departmentModal.form.id, departmentModal.form); const idx = departments.value.findIndex(d => d.id === result.id); if (idx !== -1) departments.value[idx] = result; showToast('Success', 'Department updated', 'success') }
           departmentModal.show = false
-        } catch (e) { showToast('Error', e.message, 'error') }
+        } catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
         finally { saving.value = false }
       }
 
@@ -2048,7 +2105,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (trainingUnitModal.mode === 'add') { trainingUnits.value.unshift(await API.createTrainingUnit(data)); showToast('Success', 'Training unit created', 'success') }
           else { const result = await API.updateTrainingUnit(f.id, data); const idx = trainingUnits.value.findIndex(u => u.id === result.id); if (idx !== -1) trainingUnits.value[idx] = result; showToast('Success', 'Training unit updated', 'success') }
           trainingUnitModal.show = false
-        } catch (e) { showToast('Error', e.message, 'error') }
+        } catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
         finally { saving.value = false }
       }
 
@@ -2096,7 +2153,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Success', 'Announcement posted', 'success')
           } else { await saveClinicalStatus() }
           communicationsModal.show = false
-        } catch (e) { showToast('Error', e.message, 'error') }
+        } catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
         finally { saving.value = false }
       }
 
@@ -2585,7 +2642,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const saveUserProfile = async () => {
           saving.value = true
           try { currentUser.value.full_name = userProfileModal.form.full_name; currentUser.value.department_id = userProfileModal.form.department_id; localStorage.setItem(CONFIG.USER_KEY, JSON.stringify(currentUser.value)); userProfileModal.show = false; showToast('Success', 'Profile updated', 'success') }
-          catch (e) { showToast('Error', e.message, 'error') }
+          catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
           finally { saving.value = false }
         }
 
