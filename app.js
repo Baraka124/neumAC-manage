@@ -1929,7 +1929,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const saveUnitClinicians = async () => {
         const u = unitCliniciansModal.unit
-        await API.updateTrainingUnit(u.id, { ...u, clinician_ids: unitCliniciansModal.clinicians, supervising_attending_id: unitCliniciansModal.supervisorId })
+        // Send only the fields the API accepts — avoid spreading the full unit object
+        // which may have empty strings in required fields
+        const payload = {
+          unit_name: u.unit_name,
+          unit_code: u.unit_code || '',
+          department_id: u.department_id,
+          maximum_residents: u.maximum_residents,
+          unit_status: u.unit_status || 'active',
+          specialty: u.specialty || '',
+          location_building: u.location_building || '',
+          location_floor: u.location_floor || '',
+          description: u.description || '',
+          supervisor_id: unitCliniciansModal.supervisorId || null,
+          supervising_attending_id: unitCliniciansModal.supervisorId || null,
+          clinician_ids: unitCliniciansModal.clinicians,
+        }
+        await API.updateTrainingUnit(u.id, payload)
         const idx = trainingUnits.value.findIndex(x => x.id === u.id)
         if (idx !== -1) { trainingUnits.value[idx] = { ...trainingUnits.value[idx], clinician_ids: unitCliniciansModal.clinicians, supervising_attending_id: unitCliniciansModal.supervisorId } }
         unitCliniciansModal.show = false
