@@ -12,7 +12,7 @@
 <body>
 <div id="app" v-cloak>
 
-    <!-- ============ TOAST CONTAINER ===--======== -->
+    <!-- ============ TOAST CONTAINER ===-======== -->
     <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
              :class="['toast', `toast-${toast.type}`]"
@@ -474,12 +474,34 @@
                     </div>
                 </div>
                 <div class="navbar-right">
-                    <div class="search-container">
+                    <div class="search-container" style="position:relative;">
                         <div class="search-box">
                             <i class="fas fa-search search-icon"></i>
                             <input type="text" class="search-input" :placeholder="getSearchPlaceholder()"
-                                   v-model="globalSearchQuery" @keyup.enter="handleGlobalSearch"
+                                   v-model="globalSearchQuery"
+                                   @keyup="handleGlobalSearch"
+                                   @keyup.escape="clearSearch"
+                                   @blur="setTimeout(() => searchResultsOpen = false, 200)"
                                    aria-label="Search across system">
+                        </div>
+                        <!-- Live results dropdown -->
+                        <div v-if="searchResultsOpen && globalSearchQuery.length >= 2" class="search-results-dropdown">
+                            <template v-if="Object.keys(globalSearchResults).length">
+                                <div v-for="(items, group) in globalSearchResults" :key="group" class="search-results-group">
+                                    <div class="search-group-label">{{ group === 'staff' ? 'Medical Staff' : group === 'rotations' ? 'Rotations' : 'Research' }}</div>
+                                    <div v-for="item in items" :key="item.id" class="search-result-item" @mousedown="item.action">
+                                        <i class="fas" :class="item.icon"></i>
+                                        <div class="search-result-text">
+                                            <div class="search-result-name">{{ item.name }}</div>
+                                            <div class="search-result-meta">{{ item.meta }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                            <div v-else class="search-no-results">
+                                <i class="fas fa-search" style="opacity:.3;margin-right:6px"></i>
+                                No results for "{{ globalSearchQuery }}"
+                            </div>
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
@@ -720,7 +742,12 @@
                                                     }"></i>
                                                 </div>
                                                 <div class="staff-name-block">
-                                                    <div class="staff-name-primary">{{ staff.full_name }}</div>
+                                                    <div class="staff-name-primary">
+                                                        {{ staff.full_name }}
+                                                        <span v-if="!staff.professional_email || !staff.department_id" class="incomplete-flag">
+                                                            <i class="fas fa-exclamation"></i> Incomplete
+                                                        </span>
+                                                    </div>
                                                     <div v-if="staff.staff_type === 'medical_resident' && staff.resident_category" class="staff-name-sub">
                                                         <i class="fas" :class="getResidentCategoryIcon(staff.resident_category)" style="font-size:9px; opacity:.6"></i>
                                                         {{ formatResidentCategorySimple(staff.resident_category) }}
@@ -883,7 +910,15 @@
                         </div>
                         <!-- DETAILED VIEW (EXISTING TABLE) -->
                         <div v-else class="table-responsive">
-                            <table class="table table-striped">
+                            <table class="table table-striped table-oncall">
+                                <colgroup>
+                                    <col class="col-period">
+                                    <col class="col-physician">
+                                    <col class="col-type">
+                                    <col class="col-coverage">
+                                    <col class="col-backup">
+                                    <col class="col-actions">
+                                </colgroup>
                                 <thead>
                                     <tr>
                                         <th @click="sortBy('oncall', 'duty_date')">Shift Period <i class="fas" :class="sortIcon('oncall', 'duty_date')"></i></th>
@@ -893,7 +928,7 @@
                                 </thead>
                                 <tbody>
                                     <tr v-for="schedule in filteredOnCallSchedules" :key="schedule.id" class="row-active">
-                                        <td>
+                                        <td :data-label="'Shift Period'">
                                             <div class="oncall-shift-cell">
                                                 <div class="oncall-shift-start">
                                                     <span class="oncall-shift-label">From</span>
@@ -908,11 +943,18 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td><div class="font-medium">{{ getPhysicianName(schedule.primary_physician_id) }}</div></td>
-                                        <td><span class="badge" :class="schedule.shift_type === 'primary_call' ? 'badge-primary' : 'badge-secondary'">{{ schedule.shift_type === 'primary_call' ? 'Primary' : 'Backup' }}</span></td>
-                                        <td>{{ schedule.coverage_area || 'NA' }}</td>
-                                        <td><span v-if="schedule.backup_physician_id">{{ getPhysicianName(schedule.backup_physician_id) }}</span><span v-else class="na-value">NA</span></td>
-                                        <td><button class="btn-pill btn-pill-edit" @click="editOnCallSchedule(schedule)" v-if="hasPermission('oncall_schedule', 'update')"><i class="fas fa-edit"></i> Edit</button></td>
+                                        <td :data-label="'Physician'">
+                                            <div class="cell-primary">{{ getPhysicianName(schedule.primary_physician_id) }}</div>
+                                        </td>
+                                        <td :data-label="'Type'"><span class="badge" :class="schedule.shift_type === 'primary_call' ? 'badge-primary' : 'badge-secondary'">{{ schedule.shift_type === 'primary_call' ? 'Primary' : 'Backup' }}</span></td>
+                                        <td :data-label="'Coverage'">{{ schedule.coverage_area || '—' }}</td>
+                                        <td :data-label="'Backup'"><span v-if="schedule.backup_physician_id">{{ getPhysicianName(schedule.backup_physician_id) }}</span><span v-else class="na-value">—</span></td>
+                                        <td :data-label="'Actions'">
+                                            <div class="table-actions">
+                                                <button class="btn-pill btn-pill-edit" @click="editOnCallSchedule(schedule)" v-if="hasPermission('oncall_schedule', 'update')"><i class="fas fa-edit"></i></button>
+                                                <button class="btn-pill btn-pill-danger" @click.stop="deleteOnCallSchedule(schedule)" v-if="hasPermission('oncall_schedule', 'delete')" title="Delete shift"><i class="fas fa-trash"></i></button>
+                                            </div>
+                                        </td>
                                     </tr>
                                     <tr v-if="filteredOnCallSchedules.length === 0">
                                         <td colspan="6" class="empty-state">
@@ -1202,9 +1244,18 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <span v-if="rotation.rotation_status === 'active'" class="days-pill" :class="getDaysRemaining(rotation.end_date) <= 7 ? 'days-urgent' : ''">
-                                                {{ getDaysRemaining(rotation.end_date) > 0 ? getDaysRemaining(rotation.end_date) + ' days' : 'Ending' }}
-                                            </span>
+                                            <template v-if="rotation.rotation_status === 'active'">
+                                                <div class="rot-progress-wrap">
+                                                    <div class="rot-progress-bar">
+                                                        <div class="rot-progress-fill"
+                                                             :class="{ urgent: getRotationProgress(rotation).urgent, done: getRotationProgress(rotation).done }"
+                                                             :style="{ width: getRotationProgress(rotation).pct + '%' }"></div>
+                                                    </div>
+                                                    <div class="rot-days-label" :class="{ urgent: getRotationProgress(rotation).urgent }">
+                                                        {{ getRotationProgress(rotation).pct }}% · {{ getRotationProgress(rotation).label }}
+                                                    </div>
+                                                </div>
+                                            </template>
                                             <span v-else-if="rotation.rotation_status === 'scheduled'" class="days-pill days-future">in {{ getDaysUntilStart(rotation.start_date) }} days</span>
                                             <span v-else class="na-value">—</span>
                                         </td>
@@ -4037,6 +4088,25 @@
                 </div>
             </div>
         </div>
+
+        <!-- Mobile bottom navigation (shows on ≤1024px) -->
+        <nav class="mobile-bottom-nav" aria-label="Mobile navigation" v-if="currentUser">
+            <button class="mobile-nav-item" :class="{ active: currentView === 'dashboard' }" @click="switchView('dashboard')">
+                <i class="fas fa-chart-line"></i><span>Home</span>
+            </button>
+            <button class="mobile-nav-item" :class="{ active: currentView === 'medical_staff' }" @click="switchView('medical_staff')" v-if="hasPermission('medical_staff','read')">
+                <i class="fas fa-stethoscope"></i><span>Staff</span>
+            </button>
+            <button class="mobile-nav-item" :class="{ active: currentView === 'resident_rotations' }" @click="switchView('resident_rotations')" v-if="hasPermission('resident_rotations','read')">
+                <i class="fas fa-calendar-check"></i><span>Rotations</span>
+            </button>
+            <button class="mobile-nav-item" :class="{ active: currentView === 'oncall_schedule' }" @click="switchView('oncall_schedule')" v-if="hasPermission('oncall_schedule','read')">
+                <i class="fas fa-phone-medical"></i><span>On-call</span>
+            </button>
+            <button class="mobile-nav-item" :class="{ active: ['research_lines','clinical_trials','innovation_projects'].includes(currentView) }" @click="switchView('research_lines')" v-if="hasPermission('research_lines','read')">
+                <i class="fas fa-flask"></i><span>Research</span>
+            </button>
+        </nav>
 
     </div><!-- end app-layout -->
 
