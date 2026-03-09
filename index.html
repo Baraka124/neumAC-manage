@@ -1547,10 +1547,6 @@
                                     <div class="coordinator-label">Coordinador/a</div>
                                     <div class="coordinator-info" v-if="line.coordinator_id">
                                         <div class="coordinator-chip"><i class="fas fa-user-tie"></i><div><div class="coordinator-name">{{ line.coordinator_name }}</div><div class="coordinator-email" v-if="line.coordinator_email">{{ line.coordinator_email }}</div></div></div>
-                                        <div>
-                                            <div class="coordinator-name">{{ line.coordinator_name }}</div>
-                                            <div class="coordinator-email">{{ line.coordinator_email }}</div>
-                                        </div>
                                     </div>
                                     <div v-else class="coordinator-empty">
                                         <span>No asignado</span>
@@ -2813,6 +2809,15 @@
                                 <option v-for="u in trainingUnits" :key="u.id" :value="u.id">{{ u.unit_name }}</option>
                             </select>
                             <small v-if="fieldErrors.rotation?.training_unit_id" class="error-text"><i class="fas fa-exclamation-circle"></i> {{ fieldErrors.rotation.training_unit_id }}</small>
+                            <div v-if="selectedUnitCapacity" class="unit-capacity-hint" :class="{ 'unit-capacity-hint--full': selectedUnitCapacity.full, 'unit-capacity-hint--warn': selectedUnitCapacity.warn && !selectedUnitCapacity.full }">
+                                <div class="ucap-row">
+                                    <span v-if="selectedUnitCapacity.full"><i class="fas fa-ban"></i> Full — {{ selectedUnitCapacity.current }}/{{ selectedUnitCapacity.max }} residents</span>
+                                    <span v-else-if="selectedUnitCapacity.warn"><i class="fas fa-exclamation-triangle"></i> Nearly full — {{ selectedUnitCapacity.current }}/{{ selectedUnitCapacity.max }} residents</span>
+                                    <span v-else><i class="fas fa-check-circle"></i> {{ selectedUnitCapacity.current }}/{{ selectedUnitCapacity.max }} residents assigned</span>
+                                    <span class="ucap-pct">{{ selectedUnitCapacity.pct }}%</span>
+                                </div>
+                                <div class="ucap-bar-track"><div class="ucap-bar-fill" :style="{ width: selectedUnitCapacity.pct + '%' }"></div></div>
+                            </div>
                         </div>
                         <div class="form-group" :class="{ 'has-error': fieldErrors.rotation?.start_date }">
                             <label class="form-label">Start Date *</label>
@@ -2943,6 +2948,13 @@
                         <div v-if="absenceModal.form.start_date && absenceModal.form.end_date" class="duration-preview">
                             <span class="dp-label">Duration</span>
                             <span class="dp-value">{{ calculateAbsenceDuration(absenceModal.form.start_date, absenceModal.form.end_date) }} days</span>
+                        </div>
+                        <div v-if="absenceOverlapWarning" class="absence-overlap-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div>
+                                <strong>Overlapping absence exists</strong>
+                                <span>{{ absenceOverlapWarning.reason }} already recorded {{ absenceOverlapWarning.start }} – {{ absenceOverlapWarning.end }}</span>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Reason *</label>
