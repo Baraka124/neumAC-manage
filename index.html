@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>neuMAC | Pulmonology Management System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -82,7 +82,7 @@
             </button>
             <div class="login-hint mt-4">
                 <p><i class="fas fa-info-circle"></i> Demo access</p>
-                <p><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7213161f1b1c321c17071f1d111300175c1d0015">[email&#160;protected]</a> / any password</p>
+                <p><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bddcd9d0d4d3fdd3d8c8d0d2dedccfd893d2cfda">[email&#160;protected]</a> / any password</p>
             </div>
         </div>
     </div>
@@ -1368,12 +1368,10 @@
                                 <div class="research-coordinator-section">
                                     <div class="coordinator-label">Coordinador/a</div>
                                     <div class="coordinator-info" v-if="line.coordinator_id">
-                                        <div class="coordinator-chip">
-                                            <i class="fas fa-user-tie"></i>
-                                            <div>
-                                                <div class="coordinator-name">{{ line.coordinator_name }}</div>
-                                                <div class="coordinator-email" v-if="line.coordinator_email">{{ line.coordinator_email }}</div>
-                                            </div>
+                                        <div class="coordinator-chip"><i class="fas fa-user-tie"></i><div><div class="coordinator-name">{{ line.coordinator_name }}</div><div class="coordinator-email" v-if="line.coordinator_email">{{ line.coordinator_email }}</div></div></div>
+                                        <div>
+                                            <div class="coordinator-name">{{ line.coordinator_name }}</div>
+                                            <div class="coordinator-email">{{ line.coordinator_email }}</div>
                                         </div>
                                     </div>
                                     <div v-else class="coordinator-empty">
@@ -3045,7 +3043,6 @@
                 </div>
             </div>
         </div>
-        <!-- End Modals -->
 
     </div><!-- end app-layout -->
 
