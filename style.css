@@ -2798,3 +2798,247 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   .pd-schedule-grid { grid-template-columns: 1fr; }
   .pd-stat-row { grid-template-columns: repeat(3, 1fr); }
 }
+
+
+/* ================================================================
+   STAFF TABLE — AVATAR CHIP + CLEAN NAME CELL
+================================================================ */
+.staff-name-cell {
+  display: flex; align-items: center; gap: 10px;
+}
+.staff-avatar-chip {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 13px; font-weight: 400;
+  font-style: italic; color: white; letter-spacing: .01em;
+}
+.staff-avatar-chip.chip--active   { background: linear-gradient(135deg, #0d9e6e, #065f46); }
+.staff-avatar-chip.chip--on_leave { background: linear-gradient(135deg, #d97706, #92400e); }
+.staff-avatar-chip.chip--inactive { background: linear-gradient(135deg, #64748b, #334155); }
+
+.staff-name-block { min-width: 0; }
+.staff-name-primary { font-weight: 600; font-size: 14px; color: var(--text-1); white-space: nowrap; }
+.staff-name-sub {
+  font-family: var(--font-data); font-size: 10px; font-weight: 500;
+  color: var(--text-3); margin-top: 2px; display: flex; align-items: center; gap: 4px;
+}
+
+/* Rotation chip inside staff table */
+.staff-rotation-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 20px;
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  font-size: 11px; font-weight: 500; color: var(--blue);
+  max-width: 180px;
+}
+.src-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ok); flex-shrink: 0;
+  box-shadow: 0 0 5px rgba(13,158,110,.6);
+  animation: pulse-active 2s infinite;
+}
+.src-unit { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.src-dur  { font-family: var(--font-data); font-size: 10px; font-weight: 700; color: var(--blue); flex-shrink: 0; }
+
+/* ================================================================
+   ROTATION ORB SYSTEM — Premium clinical timeline
+================================================================ */
+
+/* Legend bar */
+.rot-legend {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  padding: 10px 18px; border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.rot-legend-item {
+  display: flex; align-items: center; gap: 5px;
+  font-family: var(--font-data); font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--text-3);
+}
+.rot-legend-item--note { margin-left: auto; font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 11px; color: var(--text-4); }
+.rot-legend-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+}
+.rot-legend-dot--active    { background: var(--blue); box-shadow: 0 0 6px var(--blue-glow); }
+.rot-legend-dot--scheduled { background: transparent; border: 2px solid var(--blue-mid); }
+.rot-legend-dot--done      { background: var(--ok-lt); border: 1.5px solid var(--ok-mid); }
+
+/* Row layout */
+.rot-compact { display: flex; flex-direction: column; }
+
+.rot-row {
+  display: flex; align-items: center; gap: 0;
+  padding: 11px 18px; border-bottom: 1px solid var(--border);
+  transition: background var(--t);
+}
+.rot-row:last-child { border-bottom: none; }
+.rot-row:hover { background: rgba(45,122,255,.03); }
+
+/* Who (left identity) */
+.rot-who {
+  display: flex; align-items: center; gap: 10px;
+  width: 200px; flex-shrink: 0; min-width: 0;
+}
+.rot-who-avatar {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--ink-3), var(--ink-2));
+  color: rgba(255,255,255,.85); display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 13px; font-style: italic;
+  border: 1.5px solid var(--border-2);
+}
+.rot-who-avatar--blue { background: linear-gradient(135deg, var(--blue), var(--ink-3)); }
+.rot-who-info { min-width: 0; }
+.rot-who-name { display: block; font-size: 13px; font-weight: 600; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rot-who-meta { display: block; font-family: var(--font-data); font-size: 10px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; margin-top: 1px; }
+
+/* Orb track */
+.rot-track {
+  flex: 1; display: flex; align-items: center;
+  gap: 6px; padding: 0 14px; flex-wrap: wrap; min-width: 0;
+}
+
+/* Connector between orb groups */
+.rot-connector {
+  color: var(--text-4); font-size: 18px; line-height: 1;
+  margin: 0 2px; flex-shrink: 0; user-select: none;
+}
+
+/* THE ORB — pill shape carrying clinical duration label */
+.rot-orb {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; height: 32px; padding: 0 10px;
+  border-radius: 16px; cursor: pointer;
+  transition: transform .16s ease, box-shadow .16s ease;
+  flex-shrink: 0; user-select: none;
+}
+.rot-orb:hover { transform: translateY(-2px); z-index: 20; }
+.rot-orb:active { transform: translateY(0) scale(.97); }
+
+.rot-orb-label {
+  font-family: var(--font-data); font-size: 11px; font-weight: 700;
+  letter-spacing: .04em; white-space: nowrap; line-height: 1;
+}
+
+/* Orb states */
+.rot-orb--done {
+  background: var(--surface-2); border: 1.5px solid var(--border-2);
+  color: var(--text-3);
+}
+.rot-orb--done:hover { background: var(--ok-lt); border-color: var(--ok-mid); color: #065f46; box-shadow: 0 4px 12px rgba(13,158,110,.15); }
+
+.rot-orb--active {
+  background: var(--blue); border: none; color: white;
+  box-shadow: 0 0 0 3px var(--blue-glow), 0 3px 10px rgba(45,122,255,.35);
+  animation: orb-pulse 2.5s ease-in-out infinite;
+  min-width: 52px; height: 36px; font-size: 12px;
+}
+@keyframes orb-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(45,122,255,.25), 0 3px 10px rgba(45,122,255,.3); }
+  50%       { box-shadow: 0 0 0 6px rgba(45,122,255,.12), 0 3px 14px rgba(45,122,255,.4); }
+}
+
+.rot-orb--scheduled {
+  background: transparent; border: 2px solid var(--blue-mid);
+  color: var(--blue);
+}
+.rot-orb--scheduled:hover { background: var(--blue-lt); box-shadow: 0 4px 12px rgba(45,122,255,.15); }
+
+.rot-orb--add {
+  background: transparent; border: 2px dashed var(--border-2);
+  color: var(--text-4); width: 32px; min-width: 32px; padding: 0;
+  font-size: 11px;
+}
+.rot-orb--add:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
+
+/* Rich tooltip — replaces CSS data-tooltip */
+.rot-orb-tooltip {
+  position: absolute; bottom: calc(100% + 10px); left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: var(--ink); border: 1px solid rgba(255,255,255,.1);
+  border-radius: var(--r); padding: 10px 12px;
+  min-width: 170px; max-width: 220px;
+  box-shadow: var(--shadow-lg); pointer-events: none;
+  opacity: 0; transition: opacity .18s ease, transform .18s ease;
+  z-index: 200; white-space: normal;
+}
+.rot-orb:hover .rot-orb-tooltip {
+  opacity: 1; transform: translateX(-50%) translateY(0);
+}
+.rot-orb-tooltip::after {
+  content: ''; position: absolute; top: 100%; left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent; border-top-color: var(--ink);
+}
+.rot-tt-unit  { font-size: 13px; font-weight: 600; color: white; margin-bottom: 4px; }
+.rot-tt-dates { font-family: var(--font-data); font-size: 11px; color: rgba(255,255,255,.55); margin-bottom: 4px; }
+.rot-tt-remaining { font-family: var(--font-data); font-size: 11px; font-weight: 700; color: var(--p-green); margin-bottom: 4px; }
+.rot-tt-tag {
+  display: inline-block; padding: 2px 8px; border-radius: 20px;
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; margin-top: 3px;
+}
+.rot-tt-tag--active    { background: rgba(45,122,255,.2); color: #7bbeff; }
+.rot-tt-tag--scheduled { background: rgba(45,122,255,.12); color: rgba(255,255,255,.5); }
+.rot-tt-tag--done      { background: rgba(13,158,110,.15); color: #6ee7b7; }
+
+.rot-nil { font-size: 12px; color: var(--text-4); font-style: italic; }
+
+/* Row quick action button */
+.rot-row-actions { flex-shrink: 0; margin-left: 8px; }
+.rot-action-btn {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-3); cursor: pointer; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--t);
+}
+.rot-action-btn:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+
+/* ================================================================
+   ON-CALL ORB VIEW
+================================================================ */
+.oncall-orb-view { display: flex; flex-direction: column; }
+
+.oc-row {
+  display: flex; align-items: center; gap: 0;
+  padding: 11px 18px; border-bottom: 1px solid var(--border);
+  transition: background var(--t);
+}
+.oc-row:last-child { border-bottom: none; }
+.oc-row:hover { background: rgba(45,122,255,.03); }
+
+/* On-call shift orb — more compact, day-labelled */
+.oc-orb {
+  position: relative;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 46px; height: 46px; border-radius: 10px;
+  cursor: pointer; transition: transform .16s ease, box-shadow .16s ease;
+  flex-shrink: 0; user-select: none; gap: 2px;
+}
+.oc-orb:hover { transform: translateY(-2px); z-index: 20; }
+.oc-orb:active { transform: scale(.96); }
+
+.oc-orb-day  { font-family: var(--font-data); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; line-height: 1; }
+.oc-orb-date { font-family: var(--font-data); font-size: 10px; font-weight: 700; line-height: 1; }
+
+.oc-orb--primary {
+  background: var(--blue-lt); border: 1.5px solid var(--blue-mid); color: var(--blue);
+}
+.oc-orb--backup {
+  background: var(--surface-2); border: 1.5px dashed var(--border-2); color: var(--text-3);
+}
+.oc-orb--today {
+  background: var(--blue) !important; border-color: var(--blue) !important; color: white !important;
+  box-shadow: 0 0 0 3px var(--blue-glow), 0 3px 10px rgba(45,122,255,.35);
+  animation: orb-pulse 2.5s ease-in-out infinite;
+}
+.oc-orb--past { opacity: .45; }
+
+/* Demo orbs for legend */
+.oc-orb-demo {
+  display: inline-block; width: 14px; height: 14px; border-radius: 3px;
+}
+.oc-orb-demo--primary  { background: var(--blue-lt); border: 1.5px solid var(--blue-mid); }
+.oc-orb-demo--backup   { background: var(--surface-2); border: 1.5px dashed var(--border-2); }
+.oc-orb-demo--today    { background: var(--blue); }
