@@ -1699,66 +1699,104 @@
                                 <i class="fas fa-hospital"></i> {{ getDepartmentName(staffProfileModal.staff.department_id) }}
                             </div>
                             <div :class="['profile-status-pill', staffProfileModal.staff.employment_status]">{{ formatEmploymentStatus(staffProfileModal.staff.employment_status) }}</div>
+                            <button v-if="hasPermission('medical_staff', 'update')" class="profile-edit-btn" @click="editMedicalStaff(staffProfileModal.staff)" title="Edit Profile">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
                         </div>
-                        <div class="profile-section">
-                            <div class="profile-section-head"><i class="fas fa-graduation-cap"></i><h4>Credentials</h4></div>
-                            <div class="profile-cred-row"><span class="pcr-key">Degree</span><span class="pcr-val" :class="{ 'pcr-na': !staffProfileModal.staff.academic_degree }">{{ staffProfileModal.staff.academic_degree || 'Not specified' }}</span></div>
-                            <div class="profile-cred-row"><span class="pcr-key">Specialization</span><span class="pcr-val" :class="{ 'pcr-na': !staffProfileModal.staff.specialization }">{{ formatSpecialization(staffProfileModal.staff.specialization) || 'Not specified' }}</span></div>
-                            <div class="profile-cred-row"><span class="pcr-key">License</span><span class="pcr-val" :class="{ 'pcr-na': !staffProfileModal.staff.medical_license }">{{ formatLicense(staffProfileModal.staff.medical_license) || 'Not registered' }}</span></div>
-                            <div class="profile-cred-row"><span class="pcr-key">Mobile</span><span class="pcr-val" :class="{ 'pcr-na': !staffProfileModal.staff.mobile_phone }">{{ formatPhone(staffProfileModal.staff.mobile_phone) || 'Not provided' }}</span></div>
-                        </div>
-                        <div v-if="staffProfileModal.staff.staff_type === 'medical_resident'" class="profile-section">
-                            <div class="profile-section-head"><i class="fas fa-user-graduate"></i><h4>Resident Information</h4></div>
-                            <div class="profile-cred-row">
-                                <span class="pcr-key">Category</span>
-                                <span class="pcr-val">
-                                    <template v-if="staffProfileModal.staff.resident_category">
-                                        <span class="resident-category-badge"
-                                              :style="{ background: getResidentCategoryInfo(staffProfileModal.staff.resident_category, staffProfileModal.staff).bgColor, color: getResidentCategoryInfo(staffProfileModal.staff.resident_category, staffProfileModal.staff).color }">
-                                            <i :class="['fas', getResidentCategoryInfo(staffProfileModal.staff.resident_category, staffProfileModal.staff).icon]"></i>
-                                            {{ getResidentCategoryInfo(staffProfileModal.staff.resident_category, staffProfileModal.staff).text }}
-                                        </span>
-                                    </template>
-                                    <span v-else class="pcr-na">Not categorized</span>
-                                </span>
+                        <div class="profile-section" :class="{ collapsed: staffProfileModal.collapsed?.credentials }">
+                            <div class="profile-section-head" @click="toggleProfileSection('credentials')">
+                                <i class="fas fa-graduation-cap"></i><h4>Credentials</h4>
+                                <i class="fas fa-chevron-down psh-chevron"></i>
                             </div>
-                            <div class="profile-cred-row"><span class="pcr-key">Training</span><span class="pcr-val" :class="{ 'pcr-na': !staffProfileModal.staff.training_year }">{{ formatTrainingYear(staffProfileModal.staff.training_year) || 'Not specified' }}</span></div>
-                            <div class="profile-cred-row" v-if="staffProfileModal.staff.resident_category === 'rotating_other_dept'"><span class="pcr-key">Home Dept</span><span class="pcr-val" :class="{ 'pcr-na': !staffProfileModal.staff.home_department }">{{ staffProfileModal.staff.home_department || 'Not specified' }}</span></div>
-                            <div class="profile-cred-row" v-if="staffProfileModal.staff.resident_category === 'external_resident'"><span class="pcr-key">Institution</span><span class="pcr-val" :class="{ 'pcr-na': !staffProfileModal.staff.external_institution }">{{ staffProfileModal.staff.external_institution || 'Not specified' }}</span></div>
-                        </div>
-                        <div v-if="getStaffRoles(staffProfileModal.staff).length > 0" class="profile-section">
-                            <div class="profile-section-head"><i class="fas fa-user-tag"></i><h4>Department Roles</h4></div>
-                            <div v-for="role in getStaffRoles(staffProfileModal.staff)" :key="role.key" class="profile-role-item">
-                                <i :class="['fas', role.icon]" :style="{ color: role.color }"></i><span>{{ role.label }}</span>
+                            <div class="profile-section-body">
+                                <div class="profile-cred-row"><span class="pcr-key">Degree</span><span class="pcr-val" :class="{ 'pcr-na': !staffProfileModal.staff.academic_degree }">{{ staffProfileModal.staff.academic_degree || 'Not specified' }}</span></div>
+                                <div class="profile-cred-row"><span class="pcr-key">Specialization</span><span class="pcr-val" :class="{ 'pcr-na': !staffProfileModal.staff.specialization }">{{ formatSpecialization(staffProfileModal.staff.specialization) || 'Not specified' }}</span></div>
+                                <div class="profile-cred-row"><span class="pcr-key">License</span><span class="pcr-val" :class="{ 'pcr-na': !staffProfileModal.staff.medical_license }">{{ formatLicense(staffProfileModal.staff.medical_license) || 'Not registered' }}</span></div>
+                                <div class="profile-cred-row"><span class="pcr-key">Mobile</span><span class="pcr-val" :class="{ 'pcr-na': !staffProfileModal.staff.mobile_phone }">{{ formatPhone(staffProfileModal.staff.mobile_phone) || 'Not provided' }}</span></div>
                             </div>
                         </div>
-                        <div v-if="staffProfileModal.researchProfile" class="profile-section">
-                            <div class="profile-section-head"><i class="fas fa-flask"></i><h4>Research Snapshot</h4></div>
-                            <div class="research-stats-grid">
-                                <div class="research-stat"><div class="stat-value">{{ staffProfileModal.researchProfile.trials?.asPI || 0 }}</div><div class="stat-label">Trials as PI</div></div>
-                                <div class="research-stat"><div class="stat-value">{{ staffProfileModal.researchProfile.trials?.asCoI || 0 }}</div><div class="stat-label">Trials as Co-I</div></div>
-                                <div class="research-stat"><div class="stat-value">{{ staffProfileModal.researchProfile.projects?.asLead || 0 }}</div><div class="stat-label">Projects Lead</div></div>
-                                <div class="research-stat"><div class="stat-value">{{ staffProfileModal.researchProfile.allResearchLines?.length || 0 }}</div><div class="stat-label">Research Lines</div></div>
+                        <div v-if="staffProfileModal.staff.staff_type === 'medical_resident'" class="profile-section" :class="{ collapsed: staffProfileModal.collapsed?.resident }">
+                            <div class="profile-section-head" @click="toggleProfileSection('resident')">
+                                <i class="fas fa-user-graduate"></i><h4>Resident Information</h4>
+                                <i class="fas fa-chevron-down psh-chevron"></i>
+                            </div>
+                            <div class="profile-section-body">
+                                <div class="profile-cred-row">
+                                    <span class="pcr-key">Category</span>
+                                    <span class="pcr-val">
+                                        <template v-if="staffProfileModal.staff.resident_category">
+                                            <span class="resident-category-badge"
+                                                  :style="{ background: getResidentCategoryInfo(staffProfileModal.staff.resident_category, staffProfileModal.staff).bgColor, color: getResidentCategoryInfo(staffProfileModal.staff.resident_category, staffProfileModal.staff).color }">
+                                                <i :class="['fas', getResidentCategoryInfo(staffProfileModal.staff.resident_category, staffProfileModal.staff).icon]"></i>
+                                                {{ getResidentCategoryInfo(staffProfileModal.staff.resident_category, staffProfileModal.staff).text }}
+                                            </span>
+                                        </template>
+                                        <span v-else class="pcr-na">Not categorized</span>
+                                    </span>
+                                </div>
+                                <div class="profile-cred-row"><span class="pcr-key">Training</span><span class="pcr-val" :class="{ 'pcr-na': !staffProfileModal.staff.training_year }">{{ formatTrainingYear(staffProfileModal.staff.training_year) || 'Not specified' }}</span></div>
+                                <div class="profile-cred-row" v-if="staffProfileModal.staff.resident_category === 'rotating_other_dept'"><span class="pcr-key">Home Dept</span><span class="pcr-val" :class="{ 'pcr-na': !staffProfileModal.staff.home_department }">{{ staffProfileModal.staff.home_department || 'Not specified' }}</span></div>
+                                <div class="profile-cred-row" v-if="staffProfileModal.staff.resident_category === 'external_resident'"><span class="pcr-key">Institution</span><span class="pcr-val" :class="{ 'pcr-na': !staffProfileModal.staff.external_institution }">{{ staffProfileModal.staff.external_institution || 'Not specified' }}</span></div>
                             </div>
                         </div>
-                        <div v-if="staffProfileModal.leaveBalance" class="profile-section">
-                            <div class="profile-section-head"><i class="fas fa-calendar-alt"></i><h4>Leave Balance</h4></div>
-                            <div v-for="(balance, type) in staffProfileModal.leaveBalance" :key="type" class="leave-balance-item">
-                                <div class="balance-header"><span class="balance-type">{{ type }}</span><span class="balance-days">{{ balance.remaining }} / {{ balance.total }} days</span></div>
-                                <div class="progress-bar"><div class="progress-fill" :style="{ width: (balance.used / balance.total * 100) + '%', background: getDaysRemainingColor(balance.remaining) }"></div></div>
+                        <div v-if="getStaffRoles(staffProfileModal.staff).length > 0" class="profile-section" :class="{ collapsed: staffProfileModal.collapsed?.roles }">
+                            <div class="profile-section-head" @click="toggleProfileSection('roles')">
+                                <i class="fas fa-user-tag"></i><h4>Department Roles</h4>
+                                <i class="fas fa-chevron-down psh-chevron"></i>
+                            </div>
+                            <div class="profile-section-body">
+                                <div v-for="role in getStaffRoles(staffProfileModal.staff)" :key="role.key" class="profile-role-item">
+                                    <i :class="['fas', role.icon]" :style="{ color: role.color }"></i><span>{{ role.label }}</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="profile-section">
-                            <div class="profile-section-head"><i class="fas fa-envelope"></i><h4>Contact</h4></div>
-                            <a :href="staffProfileModal.staff.professional_email ? 'mailto:' + staffProfileModal.staff.professional_email : '#'" class="profile-contact-btn" :class="{ disabled: !staffProfileModal.staff.professional_email }">
-                                <i class="fas fa-envelope"></i><span>{{ staffProfileModal.staff.professional_email || 'No email' }}</span>
-                            </a>
-                            <div class="profile-contact-btn" :class="{ disabled: !staffProfileModal.staff.mobile_phone }">
-                                <i class="fas fa-phone"></i><span>{{ formatPhone(staffProfileModal.staff.mobile_phone) || 'No phone' }}</span>
+                        <div v-if="staffProfileModal.researchProfile" class="profile-section" :class="{ collapsed: staffProfileModal.collapsed?.research }">
+                            <div class="profile-section-head" @click="toggleProfileSection('research')">
+                                <i class="fas fa-flask"></i><h4>Research Snapshot</h4>
+                                <i class="fas fa-chevron-down psh-chevron"></i>
+                            </div>
+                            <div class="profile-section-body">
+                                <div class="research-stats-grid">
+                                    <div class="research-stat"><div class="stat-value">{{ staffProfileModal.researchProfile.trials?.asPI || 0 }}</div><div class="stat-label">Trials as PI</div></div>
+                                    <div class="research-stat"><div class="stat-value">{{ staffProfileModal.researchProfile.trials?.asCoI || 0 }}</div><div class="stat-label">Trials as Co-I</div></div>
+                                    <div class="research-stat"><div class="stat-value">{{ staffProfileModal.researchProfile.projects?.asLead || 0 }}</div><div class="stat-label">Projects Lead</div></div>
+                                    <div class="research-stat"><div class="stat-value">{{ staffProfileModal.researchProfile.allResearchLines?.length || 0 }}</div><div class="stat-label">Research Lines</div></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="staffProfileModal.leaveBalance" class="profile-section" :class="{ collapsed: staffProfileModal.collapsed?.leave }">
+                            <div class="profile-section-head" @click="toggleProfileSection('leave')">
+                                <i class="fas fa-calendar-alt"></i><h4>Leave Balance</h4>
+                                <i class="fas fa-chevron-down psh-chevron"></i>
+                            </div>
+                            <div class="profile-section-body">
+                                <div v-for="(balance, type) in staffProfileModal.leaveBalance" :key="type" class="leave-balance-item">
+                                    <div class="balance-header"><span class="balance-type">{{ type }}</span><span class="balance-days">{{ balance.remaining }} / {{ balance.total }} days</span></div>
+                                    <div class="progress-bar"><div class="progress-fill" :style="{ width: (balance.used / balance.total * 100) + '%', background: getDaysRemainingColor(balance.remaining) }"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="profile-section" :class="{ collapsed: staffProfileModal.collapsed?.contact }">
+                            <div class="profile-section-head" @click="toggleProfileSection('contact')">
+                                <i class="fas fa-envelope"></i><h4>Contact</h4>
+                                <i class="fas fa-chevron-down psh-chevron"></i>
+                            </div>
+                            <div class="profile-section-body">
+                                <a :href="staffProfileModal.staff.professional_email ? 'mailto:' + staffProfileModal.staff.professional_email : '#'" class="profile-contact-btn" :class="{ disabled: !staffProfileModal.staff.professional_email }">
+                                    <i class="fas fa-envelope"></i><span>{{ staffProfileModal.staff.professional_email || 'No email' }}</span>
+                                </a>
+                                <div class="profile-contact-btn" :class="{ disabled: !staffProfileModal.staff.mobile_phone }">
+                                    <i class="fas fa-phone"></i><span>{{ formatPhone(staffProfileModal.staff.mobile_phone) || 'No phone' }}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="profile-right">
+                        <div class="profile-context-strip">
+                            <span class="pcs-name">{{ staffProfileModal.staff.full_name }}</span>
+                            <span class="pcs-sep">·</span>
+                            <span class="pcs-tab">{{ staffProfileModal.activeTab.charAt(0).toUpperCase() + staffProfileModal.activeTab.slice(1) }}</span>
+                        </div>
                         <div class="profile-tabs">
                             <button class="profile-tab" :class="{ active: staffProfileModal.activeTab === 'activity' }" @click="staffProfileModal.activeTab = 'activity'"><i class="fas fa-calendar-alt"></i> Activity</button>
                             <button class="profile-tab" :class="{ active: staffProfileModal.activeTab === 'research' }" @click="staffProfileModal.activeTab = 'research'" v-if="hasPermission('analytics', 'read')"><i class="fas fa-flask"></i> Research</button>
@@ -1784,31 +1822,32 @@
                                 </template>
                                 <div v-else class="empty-state small"><i class="fas fa-info-circle"></i> No active rotation</div>
                             </div>
-                            <div class="activity-card">
+                            <div class="activity-card" v-if="getUpcomingOnCall(staffProfileModal.staff.id).length > 0 || isOnCallToday(staffProfileModal.staff.id)">
                                 <div class="card-header"><h4><i class="fas fa-phone-medical"></i> On-Call Shifts</h4>
                                     <span v-if="isOnCallToday(staffProfileModal.staff.id)" class="badge badge-danger">On Call Today</span>
                                     <span v-else-if="getUpcomingOnCall(staffProfileModal.staff.id).length" class="badge badge-info">{{ getUpcomingOnCall(staffProfileModal.staff.id).length }} upcoming</span>
                                 </div>
-                                <div v-if="getUpcomingOnCall(staffProfileModal.staff.id).length > 0" class="upcoming-shifts">
+                                <div class="upcoming-shifts">
                                     <div v-for="shift in getUpcomingOnCall(staffProfileModal.staff.id).slice(0, 3)" :key="shift.id" class="shift-item">
                                         <div class="shift-info"><div class="shift-date">{{ formatDate(shift.duty_date) }}</div><div class="shift-time">{{ shift.start_time }} - {{ shift.end_time }}</div></div>
                                         <span class="badge" :class="shift.shift_type === 'primary_call' ? 'badge-primary' : 'badge-secondary'">{{ shift.shift_type === 'primary_call' ? 'Primary' : 'Backup' }}</span>
                                     </div>
                                     <div v-if="getUpcomingOnCall(staffProfileModal.staff.id).length > 3" class="more-indicator">+ {{ getUpcomingOnCall(staffProfileModal.staff.id).length - 3 }} more</div>
                                 </div>
-                                <div v-else class="empty-state small"><i class="fas fa-calendar-times"></i> No upcoming shifts</div>
                             </div>
-                            <div class="activity-card">
+                            <div class="activity-card" v-if="getUpcomingLeave(staffProfileModal.staff.id).length > 0 || staffProfileModal.staff.employment_status === 'on_leave'">
                                 <div class="card-header"><h4><i class="fas fa-calendar-minus"></i> Upcoming Leave</h4>
                                     <span v-if="staffProfileModal.staff.employment_status === 'on_leave'" class="badge badge-warning">On Leave Now</span>
                                 </div>
-                                <div v-if="getUpcomingLeave(staffProfileModal.staff.id).length > 0" class="upcoming-leave">
+                                <div class="upcoming-leave">
                                     <div v-for="leave in getUpcomingLeave(staffProfileModal.staff.id).slice(0, 3)" :key="leave.id" class="leave-item">
                                         <div class="leave-info"><div class="leave-dates">{{ formatDate(leave.start_date) }} - {{ formatDate(leave.end_date) }}</div><div class="leave-reason">{{ formatAbsenceReason(leave.absence_reason) }}</div></div>
                                         <span class="badge" :class="leave.absence_type === 'planned' ? 'badge-info' : 'badge-warning'">{{ leave.absence_type }}</span>
                                     </div>
                                 </div>
-                                <div v-else class="empty-state small"><i class="fas fa-check-circle"></i> No upcoming leave</div>
+                            </div>
+                            <div class="activity-nil-row" v-if="!getUpcomingOnCall(staffProfileModal.staff.id).length && !isOnCallToday(staffProfileModal.staff.id) && !getUpcomingLeave(staffProfileModal.staff.id).length && staffProfileModal.staff.employment_status !== 'on_leave'">
+                                <i class="fas fa-check-circle"></i> No upcoming shifts or leave scheduled
                             </div>
                             <div v-if="staffProfileModal.staff.staff_type === 'medical_resident'" class="activity-card">
                                 <div class="card-header"><h4><i class="fas fa-history"></i> Rotation History</h4><span class="badge badge-secondary">{{ getRotationHistory(staffProfileModal.staff.id).length }} completed</span></div>
@@ -1926,7 +1965,6 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @click="staffProfileModal.show = false"><i class="fas fa-times"></i> Close</button>
-                    <button class="btn btn-primary" @click="editMedicalStaff(staffProfileModal.staff)" v-if="hasPermission('medical_staff', 'update')"><i class="fas fa-edit"></i> Edit Profile</button>
                 </div>
             </div>
         </div>
