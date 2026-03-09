@@ -1929,28 +1929,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const saveUnitClinicians = async () => {
         const u = unitCliniciansModal.unit
-        // Build payload — omit fields the API rejects when empty (specialty, location_*)
-        // Only include them if they have an actual value
+        // Backend Joi schema for trainingUnit only accepts these exact fields:
+        // unit_name (req), unit_code (req), department_id (req),
+        // supervising_attending_id (optional uuid), maximum_residents, unit_status,
+        // specialty / location_building / location_floor (optional — NO empty strings allowed)
+        // stripUnknown:true means anything else (clinician_ids, supervisor_id etc) is silently dropped.
+        // Clinician assignment is NOT supported by the current backend schema — we save supervisor only.
         const payload = {
           unit_name: u.unit_name,
-          unit_code: u.unit_code || '',
+          unit_code: u.unit_code,
           department_id: u.department_id,
-          maximum_residents: u.maximum_residents,
+          maximum_residents: u.maximum_residents || 5,
           unit_status: u.unit_status || 'active',
-          description: u.description || '',
-          supervisor_id: unitCliniciansModal.supervisorId || null,
-          supervising_attending_id: unitCliniciansModal.supervisorId || null,
-          clinician_ids: unitCliniciansModal.clinicians,
         }
-        // Only include optional string fields if they have a non-empty value
+        // supervising_attending_id: only send if it's a real UUID (not empty string)
+        if (unitCliniciansModal.supervisorId) {
+          payload.supervising_attending_id = unitCliniciansModal.supervisorId
+        }
+        // optional string fields: only include when non-empty (Joi rejects empty strings)
         if (u.specialty)          payload.specialty          = u.specialty
         if (u.location_building)  payload.location_building  = u.location_building
         if (u.location_floor)     payload.location_floor     = u.location_floor
+
         await API.updateTrainingUnit(u.id, payload)
+
+        // Update local state — track supervisor change immediately
         const idx = trainingUnits.value.findIndex(x => x.id === u.id)
-        if (idx !== -1) { trainingUnits.value[idx] = { ...trainingUnits.value[idx], clinician_ids: unitCliniciansModal.clinicians, supervising_attending_id: unitCliniciansModal.supervisorId } }
+        if (idx !== -1) {
+          trainingUnits.value[idx] = {
+            ...trainingUnits.value[idx],
+            supervising_attending_id: unitCliniciansModal.supervisorId || null,
+            supervisor_id: unitCliniciansModal.supervisorId || null,
+          }
+        }
         unitCliniciansModal.show = false
-        showToast('Saved', 'Clinician assignments updated', 'success')
+        showToast('Saved', 'Supervisor assignment updated', 'success')
       }
 
       const viewUnitResidents = (unit, allRotations) => {
@@ -1963,7 +1976,20 @@ document.addEventListener('DOMContentLoaded', () => {
         saving.value = true
         try {
           const f = trainingUnitModal.form
-          const data = { unit_name: f.unit_name, unit_code: f.unit_code, department_id: f.department_id, supervisor_id: f.supervising_attending_id || null, maximum_residents: f.maximum_residents, unit_status: f.unit_status, description: f.specialty || '' }
+          // Exact fields from backend Joi trainingUnit schema — nothing more, nothing less
+          // supervisor_id / description are NOT in schema (stripped by stripUnknown:true)
+          // supervising_attending_id IS in schema and maps to supervisor_id in POST handler
+          const data = {
+            unit_name: f.unit_name,
+            unit_code: f.unit_code,
+            department_id: f.department_id,
+            maximum_residents: f.maximum_residents || 5,
+            unit_status: f.unit_status || 'active',
+          }
+          if (f.supervising_attending_id) data.supervising_attending_id = f.supervising_attending_id
+          if (f.specialty)         data.specialty         = f.specialty
+          if (f.location_building) data.location_building = f.location_building
+          if (f.location_floor)    data.location_floor    = f.location_floor
           if (trainingUnitModal.mode === 'add') { trainingUnits.value.unshift(await API.createTrainingUnit(data)); showToast('Success', 'Training unit created', 'success') }
           else { const result = await API.updateTrainingUnit(f.id, data); const idx = trainingUnits.value.findIndex(u => u.id === result.id); if (idx !== -1) trainingUnits.value[idx] = result; showToast('Success', 'Training unit updated', 'success') }
           trainingUnitModal.show = false
