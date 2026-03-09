@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
       CACHE_TTL: 300000
     }
 
-    // ============ 2. CONSTANTS ==-==-=-=======
+    // ============ 2. CONSTANTS ====-========
     const ROLES = {
       ADMIN: 'system_admin',
       HEAD: 'department_head',
@@ -1171,6 +1171,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const oncallTotalPages = computed(() => totalPages(filteredOnCallAll.value, 'oncall'))
       const todaysOnCallCount = computed(() => todaysOnCall.value.length)
 
+      // Groups ALL on-call schedules by physician for the compact orb view
+      const staffWithOnCallOrbs = computed(() => {
+        const map = {}
+        ;(onCallSchedule.value || []).forEach(shift => {
+          const id = shift.primary_physician_id
+          if (!id) return
+          if (!map[id]) map[id] = { id, name: medicalStaff.value.find(s => s.id === id)?.full_name || 'Unknown', shifts: [] }
+          map[id].shifts.push(shift)
+        })
+        return Object.values(map).sort((a, b) => a.name.localeCompare(b.name))
+      })
+
       watch(onCallFilters, () => resetPage('oncall'), { deep: true })
 
       const existingSchedulesForDate = computed(() => {
@@ -1337,7 +1349,8 @@ document.addEventListener('DOMContentLoaded', () => {
         editOnCallSchedule, saveOnCallSchedule, deleteOnCallSchedule, contactPhysician,
         // NEW compact view properties
         groupedOnCallSchedules,
-        isShiftActive
+        isShiftActive,
+        staffWithOnCallOrbs
       }
     }
 
