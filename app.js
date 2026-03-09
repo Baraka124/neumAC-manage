@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const { createApp, ref, reactive, computed, onMounted, watch, onUnmounted } = Vue
 
-    // ============ 1. CONFIGURATION ===========-=
+    // ============ 1. CONFIGURATION ============
     const CONFIG = {
       API_BASE_URL: window.location.hostname.includes('localhost')
         ? 'http://localhost:3000'
@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
       CACHE_TTL: 300000
     }
 
-    // ============ 2. CONSTANTS ====-========
+    // ============ 2. CONSTANTS ============
     const ROLES = {
       ADMIN: 'system_admin',
       HEAD: 'department_head',
@@ -151,14 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============ 3. ENHANCED UTILS CLASS ============
-    const PROJECT_STAGES_DATA = [
-      { key: 'Idea',             label: 'Idea',            icon: 'fa-lightbulb',    color: '#94a3b8', bg: 'rgba(148,163,184,.12)', step: 1 },
-      { key: 'Prototipo',        label: 'Prototipo',       icon: 'fa-cube',         color: '#60a5fa', bg: 'rgba(96,165,250,.12)',  step: 2 },
-      { key: 'Piloto',           label: 'Piloto',          icon: 'fa-play-circle',  color: '#34d399', bg: 'rgba(52,211,153,.12)',  step: 3 },
-      { key: 'Validación',       label: 'Validación',      icon: 'fa-check-double', color: '#fbbf24', bg: 'rgba(251,191,36,.12)',  step: 4 },
-      { key: 'Escalamiento',     label: 'Escalamiento',    icon: 'fa-chart-line',   color: '#f97316', bg: 'rgba(249,115,22,.12)',  step: 5 },
-      { key: 'Comercialización', label: 'Comercialización',icon: 'fa-rocket',       color: '#10b981', bg: 'rgba(16,185,129,.12)',  step: 6 }
-    ]
     class Utils {
       // Date utilities
       static normalizeDate(d) {
@@ -295,7 +287,18 @@ document.addEventListener('DOMContentLoaded', () => {
         };
       }
 
-      static getDaysRemainingColor(days) {
+      static toProperName(name) {
+        if (!name) return ''
+        const honorifics = ['Dr', 'Dr.', 'Prof', 'Prof.', 'Mr', 'Mr.', 'Mrs', 'Mrs.', 'Ms', 'Ms.']
+        return name.trim().split(/\s+/).map((word, i) => {
+          const upper = word.toUpperCase(); const lower = word.toLowerCase()
+          const noPoint = word.replace('.', '')
+          if (honorifics.some(h => h.toUpperCase() === upper || h.toUpperCase() === noPoint.toUpperCase()))
+            return word.charAt(0).toUpperCase() + lower.slice(1)
+          return word.charAt(0).toUpperCase() + lower.slice(1)
+        }).join(' ')
+      }
+
         if (days <= 0) return '#ef4444';
         if (days < 5) return '#f59e0b';
         return '#10b981';
@@ -404,31 +407,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return { 'Phase I': '#4d9aff', 'Phase II': '#00e5a0', 'Phase III': '#ffbe3d', 'Phase IV': '#ff5566' }[phase] || '#7a90b0'
       }
 
-      static getStageConfig(stage) {
-        return PROJECT_STAGES_DATA.find(s => s.key === stage) || { key: stage, label: stage, icon: 'fa-circle', color: '#7a90b0', bg: 'rgba(122,144,176,.1)', step: 0 }
-      }
       static getStageColor(stage) {
-        return Utils.getStageConfig(stage).color
+        return {
+          'Idea': '#9ca3af', 'Prototipo': '#60a5fa', 'Piloto': '#34d399',
+          'Validación': '#fbbf24', 'Escalamiento': '#f97316', 'Comercialización': '#10b981'
+        }[stage] || '#7a90b0'
       }
 
       static getTomorrow() {
         const d = new Date(); d.setDate(d.getDate() + 1); return d
-      }
-
-      static formatClinicalDuration(startDate, endDate) {
-        if (!startDate || !endDate) return 'N/A'
-        try {
-          const s = new Date(Utils.normalizeDate(startDate) + 'T00:00:00')
-          const e = new Date(Utils.normalizeDate(endDate) + 'T00:00:00')
-          const days = Math.round((e - s) / 86400000)
-          if (days < 0) return 'N/A'
-          if (days < 7) return `${days}d`
-          const weeks = Math.floor(days / 7)
-          const rem = days % 7
-          if (weeks < 5) return rem > 0 ? `${weeks}w ${rem}d` : `${weeks}w`
-          const months = Math.round(days / 30.44)
-          return `${months}mo`
-        } catch { return 'N/A' }
       }
 
       static getInitials(name) {
@@ -697,69 +684,48 @@ document.addEventListener('DOMContentLoaded', () => {
             this.getAllInnovationProjects(), this.getResearchLines(), this.getRotations()
           ])
           
-          // FIX 1: Use researchLines (UUID match) not performance (name string) for coordinator detection
-          const linesCoordinated = researchLines.filter(l => l.coordinator_id === staffId)
+          const linesCoordinated = performance.filter(l => l.coordinator_id === staffId || l.coordinator === staffId)
           const trialsAsPI = allTrials.filter(t => t.principal_investigator_id === staffId)
           const linesAsPI = [...new Set(trialsAsPI.map(t => t.research_line_id))].map(lineId => researchLines.find(l => l.id === lineId)).filter(Boolean)
-          const trialsAsCoI = allTrials.filter(t => t.co_investigators?.includes(staffId))
+          const trialsAsCoI = allTrials.filter(t => 
+            t.co_investigators?.includes(staffId) || t.co_investigator_id === staffId
+          )
           const linesAsCoI = [...new Set(trialsAsCoI.map(t => t.research_line_id))].map(lineId => researchLines.find(l => l.id === lineId)).filter(Boolean)
           const projectsAsLead = allProjects.filter(p => p.lead_investigator_id === staffId)
           const linesAsLead = [...new Set(projectsAsLead.map(p => p.research_line_id))].map(lineId => researchLines.find(l => l.id === lineId)).filter(Boolean)
           const trialsAsSubI = allTrials.filter(t => t.sub_investigators?.includes(staffId))
           const linesAsSubI = [...new Set(trialsAsSubI.map(t => t.research_line_id))].map(lineId => researchLines.find(l => l.id === lineId)).filter(Boolean)
           
-          // FIX 2: Build a roles-array map so a staff member can show multiple roles per line
-          const allLineRolesMap = new Map();
-          const addLineRole = (line, role) => {
-            const key = line.id;
-            if (!allLineRolesMap.has(key)) allLineRolesMap.set(key, { ...line, roles: [] });
-            allLineRolesMap.get(key).roles.push(role);
-          };
-          linesCoordinated.forEach(l => addLineRole(l, 'Coordinator'));
-          linesAsPI.forEach(l => addLineRole(l, 'Principal Investigator'));
-          linesAsCoI.forEach(l => addLineRole(l, 'Co-Investigator'));
-          linesAsLead.forEach(l => addLineRole(l, 'Project Lead'));
-          linesAsSubI.forEach(l => addLineRole(l, 'Sub-Investigator'));
+          const allLineMap = new Map();
+          linesCoordinated.forEach(l => allLineMap.set(l.id, { ...l, role: 'Coordinator' }));
+          linesAsPI.forEach(l => allLineMap.set(l.id, { ...l, role: 'Principal Investigator' }));
+          linesAsCoI.forEach(l => allLineMap.set(l.id, { ...l, role: 'Co-Investigator' }));
+          linesAsLead.forEach(l => allLineMap.set(l.id, { ...l, role: 'Project Lead' }));
+          linesAsSubI.forEach(l => allLineMap.set(l.id, { ...l, role: 'Sub-Investigator' }));
           
-          // Find matching perf data for counts
-          const perfMap = new Map(performance.map(p => [p.id, p]));
-          const allResearchLines = Array.from(allLineRolesMap.values()).map(l => {
-            const perf = perfMap.get(l.id);
-            return {
-              id: l.id, name: l.research_line_name || l.name, line_number: l.line_number,
-              roles: l.roles, role: l.roles[0], // primary role for badge colour
-              trialsCount: perf?.stats?.totalTrials || l.stats?.totalTrials || 0,
-              projectsCount: perf?.stats?.totalProjects || l.stats?.totalProjects || 0
-            };
-          });
+          const allResearchLines = Array.from(allLineMap.values()).map(l => ({
+            id: l.id, name: l.research_line_name || l.name, line_number: l.line_number,
+            role: l.role, trialsCount: l.stats?.totalTrials || 0, projectsCount: l.stats?.totalProjects || 0
+          }));
           
           const byPhase = { 'Phase I': 0, 'Phase II': 0, 'Phase III': 0, 'Phase IV': 0 };
           trialsAsPI.forEach(t => { if (t.phase in byPhase) byPhase[t.phase]++ });
           const partnerNeeds = {};
           projectsAsLead.forEach(p => p.partner_needs?.forEach(n => { partnerNeeds[n] = (partnerNeeds[n] || 0) + 1 }));
           
-          // FIX 4: active count includes trials where staff is any role (PI or Co-I)
-          const allActiveTrials = new Set([
-            ...trialsAsPI.filter(t => ['Activo', 'Reclutando'].includes(t.status)).map(t => t.id),
-            ...trialsAsCoI.filter(t => ['Activo', 'Reclutando'].includes(t.status)).map(t => t.id)
-          ]);
-          
           return {
             allResearchLines,
-            // FIX: expose coordinator info at top level for banner display
-            isCoordinator: linesCoordinated.length > 0,
-            coordinatorLines: linesCoordinated.map(l => ({ id: l.id, name: l.research_line_name || l.name, line_number: l.line_number })),
-            researchLines: linesCoordinated.map(l => ({ id: l.id, name: l.research_line_name || l.name, line_number: l.line_number, role: 'Coordinator', trialsCount: l.stats?.totalTrials || 0, projectsCount: l.stats?.totalProjects || 0 })),
+            researchLines: linesCoordinated.map(l => ({ id: l.id, name: l.name, line_number: l.line_number, role: 'Coordinator', trialsCount: l.stats?.totalTrials || 0, projectsCount: l.stats?.totalProjects || 0 })),
             trials: {
               asPI: trialsAsPI.length, asCoI: trialsAsCoI.length, asSubI: trialsAsSubI.length,
-              active: allActiveTrials.size,
+              active: trialsAsPI.filter(t => ['Activo', 'Reclutando'].includes(t.status)).length,
               completed: trialsAsPI.filter(t => t.status === 'Completado').length, byPhase,
               list: [...trialsAsPI.slice(0, 3).map(t => ({ id: t.id, title: t.title, status: t.status, phase: t.phase, role: 'PI' })), ...trialsAsCoI.slice(0, 3).map(t => ({ id: t.id, title: t.title, status: t.status, phase: t.phase, role: 'Co-I' })), ...trialsAsSubI.slice(0, 3).map(t => ({ id: t.id, title: t.title, status: t.status, phase: t.phase, role: 'Sub-I' }))].slice(0, 8)
             },
             projects: {
               asLead: projectsAsLead.length,
-              byStage: projectsAsLead.reduce((acc, p) => { const stage = p.current_stage || p.development_stage; acc[stage] = (acc[stage] || 0) + 1; return acc }, {}),
-              list: projectsAsLead.slice(0, 5).map(p => ({ id: p.id, title: p.title, current_stage: p.current_stage || p.development_stage, role: 'Lead' }))
+              byStage: projectsAsLead.reduce((acc, p) => { acc[p.current_stage] = (acc[p.current_stage] || 0) + 1; return acc }, {}),
+              list: projectsAsLead.slice(0, 5).map(p => ({ id: p.id, title: p.title, current_stage: p.current_stage, development_stage: p.development_stage, role: 'Lead' }))
             },
             publications: [],
             partnerNeeds: Object.entries(partnerNeeds).map(([name, count]) => ({ name, count }))
@@ -880,7 +846,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const confirmAction = async () => {
         if (confirmationModal.onConfirm) {
-          try { await confirmationModal.onConfirm() } catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
+          try { await confirmationModal.onConfirm() } catch (e) { showToast('Error', e.message, 'error') }
         }
         confirmationModal.show = false
       }
@@ -989,7 +955,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const clean = v => (v == null) ? '' : String(v).trim()
           const f = medicalStaffModal.form
           const data = {
-            full_name: f.full_name.trim(), staff_type: f.staff_type || 'medical_resident',
+            full_name: Utils.toProperName(f.full_name), staff_type: f.staff_type || 'medical_resident',
             staff_id: f.staff_id || Utils.generateId('MD'), employment_status: f.employment_status || 'active',
             professional_email: f.professional_email || '', department_id: f.department_id || null,
             academic_degree: clean(f.academic_degree), specialization: clean(f.specialization),
@@ -1114,6 +1080,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!form.primary_physician_id) { setErr('oncall', 'primary_physician_id', 'Please select a physician'); ok = false }
         if (!form.start_time) { setErr('oncall', 'start_time', 'Start time is required'); ok = false }
         if (!form.end_time) { setErr('oncall', 'end_time', 'End time is required'); ok = false }
+        if (!form.coverage_area) { setErr('oncall', 'coverage_area', 'Coverage area is required'); ok = false }
+        if (form.backup_physician_id && form.backup_physician_id === form.primary_physician_id) {
+          setErr('oncall', 'backup_physician_id', 'Backup physician cannot be the same as the primary physician'); ok = false
+        }
         return ok
       }
 
@@ -1213,6 +1183,7 @@ document.addEventListener('DOMContentLoaded', () => {
             duty_date: Utils.normalizeDate(f.duty_date), shift_type: f.shift_type || 'primary_call',
             start_time: f.start_time || '08:00', end_time: f.end_time || '17:00',
             primary_physician_id: f.primary_physician_id, backup_physician_id: f.backup_physician_id || null,
+            coverage_area: f.coverage_area || 'general',
             coverage_notes: f.coverage_notes || '', schedule_id: f.schedule_id || Utils.generateId('SCH')
           }
           if (onCallModal.mode === 'add') {
@@ -1325,22 +1296,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const getResidentName = (id) => medicalStaff.value.find(s => s.id === id)?.full_name || 'Not assigned'
       const getTrainingUnitName = (id) => trainingUnits.value.find(u => u.id === id)?.unit_name || 'Not assigned'
-
-      // Capacity info for rotation modal — reactive to selected unit
-      const selectedUnitCapacity = computed(() => {
-        const unitId = rotationModal.form.training_unit_id
-        if (!unitId) return null
-        const unit = trainingUnits.value.find(u => u.id === unitId)
-        if (!unit) return null
-        const editId = rotationModal.mode === 'edit' ? rotationModal.form.id : null
-        const current = rotations.value.filter(r =>
-          r.training_unit_id === unitId &&
-          ['active', 'scheduled'].includes(r.rotation_status) &&
-          r.id !== editId
-        ).length
-        const max = unit.maximum_residents || 5
-        return { current, max, full: current >= max, warn: current / max >= 0.8, pct: Math.min(100, Math.round((current / max) * 100)) }
-      })
 
       const checkAndUpdateRotations = async (requireValidation = true) => {
         const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -1477,10 +1432,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const loadRotations = async () => {
         try {
           const raw = await API.getRotations()
-          rotations.value = raw.map(r => ({
-            ...r, start_date: Utils.normalizeDate(r.start_date || r.rotation_start_date),
-            end_date: Utils.normalizeDate(r.end_date || r.rotation_end_date)
-          }))
+          const todayStr = Utils.normalizeDate(new Date())
+          rotations.value = raw.map(r => {
+            const start = Utils.normalizeDate(r.start_date || r.rotation_start_date)
+            const end = Utils.normalizeDate(r.end_date || r.rotation_end_date)
+            let status = (r.rotation_status || 'scheduled').toLowerCase()
+            // Correct stale statuses based on real dates
+            if (status === 'active' && start > todayStr) status = 'scheduled'
+            if (status === 'active' && end < todayStr) status = 'completed'
+            if (status === 'scheduled' && start <= todayStr && end >= todayStr) status = 'active'
+            return { ...r, start_date: start, end_date: end, rotation_status: status }
+          })
         } catch { showToast('Error', 'Failed to load rotations', 'error') }
       }
 
@@ -1511,45 +1473,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) { setErr('rotation', 'start_date', 'Invalid date format'); showToast('Error', 'Invalid date format', 'error'); return }
         const duration = Math.ceil((endDate - startDate) / 86400000)
         if (duration > 365) { setErr('rotation', 'end_date', `Cannot exceed 365 days (current: ${duration})`); showToast('Error', 'Rotation cannot exceed 365 days', 'error'); return }
-
-        // Lock button immediately — prevents double-submit during async refresh below
-        saving.value = true
-
-        // Refresh from server before overlap check to avoid stale-cache false conflicts
-        API.invalidate('/api/rotations')
-        try {
-          const fresh = await API.request('/api/rotations', { skipCache: true })
-          const freshList = Utils.ensureArray(fresh)
-          if (freshList.length > 0) rotations.value = freshList.map(r => ({ ...r, start_date: Utils.normalizeDate(r.start_date), end_date: Utils.normalizeDate(r.end_date) }))
-        } catch { /* proceed with cached data */ }
-
         const excludeId = rotationModal.mode === 'edit' ? f.id : null
-        // Only scheduled/active/extended block new slots — completed/cancelled do NOT
-        const BLOCKING_STATUSES = ['scheduled', 'active', 'extended']
         const hasOverlap = rotations.value.some(r => {
-          if (r.resident_id !== f.resident_id) return false
-          if (!BLOCKING_STATUSES.includes(r.rotation_status)) return false
+          if (r.resident_id !== f.resident_id || r.rotation_status === 'cancelled') return false
           if (excludeId && r.id === excludeId) return false
           const eS = new Date(Utils.normalizeDate(r.start_date) + 'T00:00:00')
           const eE = new Date(Utils.normalizeDate(r.end_date) + 'T23:59:59')
           if (isNaN(eS.getTime()) || isNaN(eE.getTime())) return false
           return startDate <= eE && endDate >= eS
         })
-        if (hasOverlap) {
-          const conflicting = rotations.value.find(r => {
-            if (r.resident_id !== f.resident_id || !BLOCKING_STATUSES.includes(r.rotation_status)) return false
-            if (excludeId && r.id === excludeId) return false
-            const eS = new Date(Utils.normalizeDate(r.start_date) + 'T00:00:00')
-            const eE = new Date(Utils.normalizeDate(r.end_date) + 'T23:59:59')
-            return startDate <= eE && endDate >= eS
-          })
-          const conflictUnit = conflicting ? getTrainingUnitName(conflicting.training_unit_id) : ''
-          const conflictDates = conflicting ? `${Utils.formatDateShort(conflicting.start_date)} – ${Utils.formatDateShort(conflicting.end_date)}` : ''
-          setErr('rotation', 'start_date', 'Dates overlap with an active or scheduled rotation')
-          showToast('Scheduling Conflict', `${getResidentName(f.resident_id)} already has a ${conflicting?.rotation_status || ''} rotation at ${conflictUnit} (${conflictDates}).`, 'error')
-          saving.value = false; return
-        }
+        if (hasOverlap) { setErr('rotation', 'start_date', 'Resident already has a rotation in this period'); showToast('Scheduling Conflict', `${getResidentName(f.resident_id)} already has a rotation during these dates.`, 'error'); return }
 
+        saving.value = true
         try {
           const data = {
             rotation_id: f.rotation_id || Utils.generateId('ROT'), resident_id: f.resident_id,
@@ -1665,72 +1600,19 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const viewRotationDetails = (rotation) => {
-        if (!rotation) return
-        // Enrich rotation with display-friendly fields expected by the detail sheet
-        const resident  = medicalStaff.value.find(s => s.id === rotation.resident_id)
-        const supervisor = medicalStaff.value.find(s => s.id === rotation.supervising_attending_id)
-        const startD = new Date(Utils.normalizeDate(rotation.start_date) + 'T00:00:00')
-        const endD   = new Date(Utils.normalizeDate(rotation.end_date)   + 'T00:00:00')
-        const today  = new Date(); today.setHours(0,0,0,0)
-        const daysTotal = Math.max(1, Math.round((endD - startD) / 86400000))
-        const daysLeft  = Math.max(0, Math.round((endD - today)  / 86400000))
-        rotationViewModal.rotation = {
-          ...rotation,
-          unitName:         rotation.unitName || getTrainingUnitName(rotation.training_unit_id),
-          residentName:     resident?.full_name   || rotation.residentName || 'Unknown',
-          supervisorName:   supervisor?.full_name || rotation.supervisorName || '—',
-          daysTotal,
-          daysLeft,
-          clinicalDuration: Utils.formatClinicalDuration(rotation.start_date, rotation.end_date)
+        // Find the resident and open their profile
+        const resident = medicalStaff.value.find(s => s.id === rotation.resident_id)
+        if (resident && window.viewStaffDetails) {
+          window.viewStaffDetails(resident)
+        } else {
+          console.log('View rotation for:', rotation)
         }
-        rotationViewModal.show = true
-      }
-
-      // ============ [NEW] Rotation detail sheet modal ============
-      const rotationViewModal = reactive({ show: false, rotation: null })
-
-      // ============ [NEW] Week view ============
-      const weekOffset = ref(0)
-
-      const getWeekDayLabel = (dayIndex) => {
-        const today = new Date()
-        const monday = new Date(today)
-        monday.setDate(today.getDate() - today.getDay() + 1 + weekOffset.value * 7)
-        const d = new Date(monday)
-        d.setDate(monday.getDate() + dayIndex - 1)
-        const isToday = d.toDateString() === today.toDateString()
-        return {
-          dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
-          dayNum: d.getDate(),
-          isToday,
-          date: Utils.normalizeDate(d)
-        }
-      }
-
-      const getWeekRangeLabel = () => {
-        const today = new Date()
-        const monday = new Date(today)
-        monday.setDate(today.getDate() - today.getDay() + 1 + weekOffset.value * 7)
-        const sunday = new Date(monday)
-        sunday.setDate(monday.getDate() + 6)
-        const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        return `${fmt(monday)} – ${fmt(sunday)}, ${sunday.getFullYear()}`
-      }
-
-      const isFirstDayOfRotation = (rotation, dayIndex) => {
-        const { date } = getWeekDayLabel(dayIndex)
-        return Utils.normalizeDate(rotation.start_date) === date
-      }
-
-      const isLastDayOfRotation = (rotation, dayIndex) => {
-        const { date } = getWeekDayLabel(dayIndex)
-        return Utils.normalizeDate(rotation.end_date) === date
       }
 
       return {
         rotations, rotationFilters, rotationModal,
         filteredRotations, filteredRotationsAll, rotationTotalPages,
-        loadRotations, showAddRotationModal, editRotation, saveRotation, deleteRotation, selectedUnitCapacity,
+        loadRotations, showAddRotationModal, editRotation, saveRotation, deleteRotation,
         pendingActivations, activationModal, checkAndUpdateRotations, updateRotationStatus,
         confirmPendingActivation, skipPendingActivation, postponeAllActivations, initAutoCheck,
         forceActivationCheck: () => checkAndUpdateRotations(true),
@@ -1740,14 +1622,7 @@ document.addEventListener('DOMContentLoaded', () => {
         residentsWithRotations,
         isRotationActive,
         getRotationsForDay,
-        viewRotationDetails,
-        // Week view
-        rotationViewModal,
-        weekOffset,
-        getWeekDayLabel,
-        getWeekRangeLabel,
-        isFirstDayOfRotation,
-        isLastDayOfRotation
+        viewRotationDetails
       }
     }
 
@@ -1774,31 +1649,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return ok
       }
-
-      // Warn if this staff member already has a non-cancelled overlapping absence
-      const absenceOverlapWarning = computed(() => {
-        const f = absenceModal.form
-        if (!f.staff_member_id || !f.start_date || !f.end_date) return null
-        const editId = absenceModal.mode === 'edit' ? f.id : null
-        const newStart = Utils.normalizeDate(f.start_date)
-        const newEnd   = Utils.normalizeDate(f.end_date)
-        if (!newStart || !newEnd) return null
-        const overlap = absences.value.find(a => {
-          if (a.staff_member_id !== f.staff_member_id) return false
-          if (editId && a.id === editId) return false
-          if (a.current_status === 'cancelled') return false
-          const aS = Utils.normalizeDate(a.start_date)
-          const aE = Utils.normalizeDate(a.end_date)
-          return newStart <= aE && newEnd >= aS
-        })
-        if (!overlap) return null
-        return {
-          reason: ABSENCE_REASON_LABELS?.[overlap.absence_reason] || overlap.absence_reason,
-          start: Utils.formatDateShort(overlap.start_date),
-          end: Utils.formatDateShort(overlap.end_date),
-          status: overlap.current_status
-        }
-      })
 
       const filteredAbsencesAll = computed(() => {
         let f = absences.value
@@ -1885,7 +1735,7 @@ document.addEventListener('DOMContentLoaded', () => {
       })
 
       return {
-        absences, absenceFilters, absenceModal, absenceOverlapWarning,
+        absences, absenceFilters, absenceModal,
         filteredAbsences, filteredAbsencesAll, absenceTotalPages,
         loadAbsences, showAddAbsenceModal, editAbsence, saveAbsence, deleteAbsence
       }
@@ -1922,7 +1772,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (departmentModal.mode === 'add') { departments.value.unshift(await API.createDepartment(departmentModal.form)); showToast('Success', 'Department created', 'success') }
           else { const result = await API.updateDepartment(departmentModal.form.id, departmentModal.form); const idx = departments.value.findIndex(d => d.id === result.id); if (idx !== -1) departments.value[idx] = result; showToast('Success', 'Department updated', 'success') }
           departmentModal.show = false
-        } catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
+        } catch (e) { showToast('Error', e.message, 'error') }
         finally { saving.value = false }
       }
 
@@ -1932,12 +1782,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============ 6.8 useTrainingUnits ============
-    function useTrainingUnits({ showToast, showConfirmation, rotations }) {
+    function useTrainingUnits({ showToast, rotations }) {
       const trainingUnits = ref([])
       const trainingUnitFilters = reactive({ search: '', department: '', status: '' })
       const trainingUnitModal = reactive({ show: false, mode: 'add', form: { unit_name: '', unit_code: '', department_id: '', maximum_residents: 10, unit_status: 'active', specialty: '', supervising_attending_id: '' } })
       const unitResidentsModal = reactive({ show: false, unit: null, rotations: [] })
-      const unitCliniciansModal = reactive({ show: false, unit: null, clinicians: [], supervisorId: '', allStaff: [] })
 
       const filteredTrainingUnits = computed(() => {
         let f = trainingUnits.value
@@ -1957,52 +1806,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const showAddTrainingUnitModal = () => { trainingUnitModal.mode = 'add'; Object.assign(trainingUnitModal.form, { unit_name: '', unit_code: '', department_id: '', maximum_residents: 10, unit_status: 'active', specialty: '', supervising_attending_id: '' }); trainingUnitModal.show = true }
       const editTrainingUnit = (u) => { trainingUnitModal.mode = 'edit'; trainingUnitModal.form = { ...u }; trainingUnitModal.show = true }
 
-      const deleteTrainingUnit = (unit) => showConfirmation({
-        title: 'Delete Training Unit', icon: 'fa-trash',
-        message: `Delete "${unit.unit_name}"? All rotation assignments to this unit will be affected.`,
-        confirmButtonText: 'Delete Unit', confirmButtonClass: 'btn-danger',
-        onConfirm: async () => {
-          await API.deleteTrainingUnit(unit.id)
-          trainingUnits.value = trainingUnits.value.filter(u => u.id !== unit.id)
-          showToast('Deleted', `${unit.unit_name} removed`, 'success')
-        }
-      })
-
-      const openUnitClinicians = (unit, allStaff) => {
-        unitCliniciansModal.unit = unit
-        unitCliniciansModal.clinicians = (unit.clinician_ids || []).slice()
-        unitCliniciansModal.supervisorId = unit.supervising_attending_id || ''
-        unitCliniciansModal.allStaff = allStaff.filter(s => ['attending_physician','fellow'].includes(s.staff_type))
-        unitCliniciansModal.show = true
-      }
-
-      const saveUnitClinicians = async () => {
-        const u = unitCliniciansModal.unit
-        // Backend Joi schema: unit_name, unit_code, department_id (req), supervising_attending_id (opt uuid),
-        // maximum_residents, unit_status, specialty/location_building/location_floor (opt — no empty strings).
-        // stripUnknown:true drops anything else silently.
-        const payload = {
-          unit_name: u.unit_name, unit_code: u.unit_code, department_id: u.department_id,
-          maximum_residents: u.maximum_residents || 5, unit_status: u.unit_status || 'active',
-        }
-        if (unitCliniciansModal.supervisorId) payload.supervising_attending_id = unitCliniciansModal.supervisorId
-        if (u.specialty)         payload.specialty         = u.specialty
-        if (u.location_building) payload.location_building = u.location_building
-        if (u.location_floor)    payload.location_floor    = u.location_floor
-
-        await API.updateTrainingUnit(u.id, payload)
-        const idx = trainingUnits.value.findIndex(x => x.id === u.id)
-        if (idx !== -1) {
-          trainingUnits.value[idx] = {
-            ...trainingUnits.value[idx],
-            supervising_attending_id: unitCliniciansModal.supervisorId || null,
-            supervisor_id: unitCliniciansModal.supervisorId || null,
-          }
-        }
-        unitCliniciansModal.show = false
-        showToast('Saved', 'Supervisor assignment updated', 'success')
-      }
-
       const viewUnitResidents = (unit, allRotations) => {
         unitResidentsModal.unit = unit
         unitResidentsModal.rotations = allRotations.filter(r => r.training_unit_id === unit.id && ['active', 'scheduled'].includes(r.rotation_status))
@@ -2013,23 +1816,15 @@ document.addEventListener('DOMContentLoaded', () => {
         saving.value = true
         try {
           const f = trainingUnitModal.form
-          // Exact fields from backend Joi trainingUnit schema — nothing more, nothing less
-          const data = {
-            unit_name: f.unit_name, unit_code: f.unit_code, department_id: f.department_id,
-            maximum_residents: f.maximum_residents || 5, unit_status: f.unit_status || 'active',
-          }
-          if (f.supervising_attending_id) data.supervising_attending_id = f.supervising_attending_id
-          if (f.specialty)         data.specialty         = f.specialty
-          if (f.location_building) data.location_building = f.location_building
-          if (f.location_floor)    data.location_floor    = f.location_floor
+          const data = { unit_name: f.unit_name, unit_code: f.unit_code, department_id: f.department_id, supervisor_id: f.supervising_attending_id || null, maximum_residents: f.maximum_residents, unit_status: f.unit_status, description: f.specialty || '' }
           if (trainingUnitModal.mode === 'add') { trainingUnits.value.unshift(await API.createTrainingUnit(data)); showToast('Success', 'Training unit created', 'success') }
           else { const result = await API.updateTrainingUnit(f.id, data); const idx = trainingUnits.value.findIndex(u => u.id === result.id); if (idx !== -1) trainingUnits.value[idx] = result; showToast('Success', 'Training unit updated', 'success') }
           trainingUnitModal.show = false
-        } catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
+        } catch (e) { showToast('Error', e.message, 'error') }
         finally { saving.value = false }
       }
 
-      return { trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits, getUnitActiveRotationCount, loadTrainingUnits, showAddTrainingUnitModal, editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians, viewUnitResidents, saveTrainingUnit }
+      return { trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, filteredTrainingUnits, getUnitActiveRotationCount, loadTrainingUnits, showAddTrainingUnitModal, editTrainingUnit, viewUnitResidents, saveTrainingUnit }
     }
 
     // ============ 6.9 useComms ============
@@ -2073,7 +1868,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Success', 'Announcement posted', 'success')
           } else { await saveClinicalStatus() }
           communicationsModal.show = false
-        } catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
+        } catch (e) { showToast('Error', e.message, 'error') }
         finally { saving.value = false }
       }
 
@@ -2192,12 +1987,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const innovationProjects = ref([])
       const researchLineFilters = reactive({ search: '', active: '' })
       const trialFilters = reactive({ line: '', phase: '', status: '', search: '' })
-      const projectFilters = reactive({ research_line_id: '', category: '', stage: '', funding_status: '', search: '' })
+      const projectFilters = reactive({ research_line_id: '', category: '', search: '' })
 
       const researchLineModal = reactive({ show: false, mode: 'add', form: { line_number: null, name: '', description: '', capabilities: 'Alcance y capacidades', sort_order: 0, active: true } })
-      const clinicalTrialModal = reactive({ show: false, mode: 'add', form: { protocol_id: '', title: '', research_line_id: '', phase: 'Phase III', status: 'Reclutando', description: '', inclusion_criteria: '', exclusion_criteria: '', principal_investigator_id: '', co_investigators: [], sub_investigators: [], contact_email: '', featured_in_website: true, display_order: 0, start_date: '', end_date: '' } })
-      const trialDetailModal = reactive({ show: false, trial: null })
-      const innovationProjectModal = reactive({ show: false, mode: 'add', form: { title: '', category: 'Dispositivo', current_stage: 'Idea', description: '', clinical_rationale: '', research_line_id: '', lead_investigator_id: '', co_investigators: [], partner_needs: [], partner_found: false, partner_name: '', funding_status: 'not_applicable', keywords: [], keywordsInput: '', featured_in_website: true, display_order: 0 } })
+      const clinicalTrialModal = reactive({ show: false, mode: 'add', form: { protocol_id: '', title: '', research_line_id: '', phase: 'Phase III', status: 'Reclutando', description: '', inclusion_criteria: '', exclusion_criteria: '', principal_investigator_id: '', co_investigator_id: '', contact_email: '', featured_in_website: true, display_order: 0 } })
+      const innovationProjectModal = reactive({ show: false, mode: 'add', form: { title: '', category: 'Dispositivo', development_stage: 'En Desarrollo', description: '', research_line_id: '', lead_investigator_id: '', partner_needs: [], featured_in_website: true, display_order: 0 } })
       const assignCoordinatorModal = reactive({ show: false, lineId: null, lineName: '', selectedCoordinatorId: '' })
 
       const getResearchLineName = (id) => { if (!id) return 'Not assigned'; const l = researchLines.value.find(l => l.id === id); return l ? (l.research_line_name || l.name) : 'Unknown' }
@@ -2225,9 +2019,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let f = innovationProjects.value
         if (projectFilters.research_line_id) f = f.filter(p => p.research_line_id === projectFilters.research_line_id)
         if (projectFilters.category) f = f.filter(p => p.category === projectFilters.category)
-        if (projectFilters.stage) f = f.filter(p => (p.current_stage || p.development_stage) === projectFilters.stage)
-        if (projectFilters.funding_status) f = f.filter(p => (p.funding_status || 'not_applicable') === projectFilters.funding_status)
-        if (projectFilters.search) { const q = projectFilters.search.toLowerCase(); f = f.filter(p => p.title?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q) || (Array.isArray(p.keywords) && p.keywords.some(k => k.toLowerCase().includes(q)))) }
+        if (projectFilters.search) { const q = projectFilters.search.toLowerCase(); f = f.filter(p => p.title?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q)) }
         return f
       })
 
@@ -2237,83 +2029,43 @@ document.addEventListener('DOMContentLoaded', () => {
       const loadClinicalTrials = async () => { try { clinicalTrials.value = await API.getAllClinicalTrials() } catch { } }
       const loadInnovationProjects = async () => { try { innovationProjects.value = await API.getAllInnovationProjects() } catch { } }
 
-      const showAddResearchLineModal = () => { clearAll('research'); researchLineModal.mode = 'add'; Object.assign(researchLineModal.form, { line_number: researchLines.value.length + 1, name: '', description: '', capabilities: '', sort_order: researchLines.value.length + 1, active: true, keywords: [], keywordsInput: '' }); researchLineModal.show = true }
-      const showAddTrialModal = () => { clinicalTrialModal.mode = 'add'; Object.assign(clinicalTrialModal.form, { protocol_id: `HUAC-${Date.now().toString().slice(-6)}`, title: '', research_line_id: '', phase: 'Phase III', status: 'Reclutando', description: '', inclusion_criteria: '', exclusion_criteria: '', principal_investigator_id: '', co_investigators: [], sub_investigators: [], contact_email: '', featured_in_website: true, display_order: clinicalTrials.value.length + 1, start_date: '', end_date: '' }); clinicalTrialModal.show = true }
-      const showAddProjectModal = () => { innovationProjectModal.mode = 'add'; Object.assign(innovationProjectModal.form, { title: '', category: 'Dispositivo', current_stage: 'Idea', description: '', clinical_rationale: '', research_line_id: '', lead_investigator_id: '', co_investigators: [], partner_needs: [], partner_found: false, partner_name: '', funding_status: 'not_applicable', keywords: [], keywordsInput: '', featured_in_website: true, display_order: innovationProjects.value.length + 1 }); innovationProjectModal.show = true }
+      const showAddResearchLineModal = () => { clearAll('research'); researchLineModal.mode = 'add'; Object.assign(researchLineModal.form, { line_number: researchLines.value.length + 1, name: '', description: '', capabilities: 'Alcance y capacidades', sort_order: researchLines.value.length + 1, active: true }); researchLineModal.show = true }
+      const showAddTrialModal = () => { clinicalTrialModal.mode = 'add'; Object.assign(clinicalTrialModal.form, { protocol_id: `HUAC-${Date.now().toString().slice(-6)}`, title: '', research_line_id: '', phase: 'Phase III', status: 'Reclutando', description: '', inclusion_criteria: '', exclusion_criteria: '', principal_investigator_id: '', co_investigator_id: '', contact_email: '', featured_in_website: true, display_order: clinicalTrials.value.length + 1 }); clinicalTrialModal.show = true }
+      const showAddProjectModal = () => { innovationProjectModal.mode = 'add'; Object.assign(innovationProjectModal.form, { title: '', category: 'Dispositivo', development_stage: 'En Desarrollo', description: '', research_line_id: '', lead_investigator_id: '', partner_needs: [], featured_in_website: true, display_order: innovationProjects.value.length + 1 }); innovationProjectModal.show = true }
 
       const openAssignCoordinatorModal = (line) => { assignCoordinatorModal.lineId = line.id; assignCoordinatorModal.lineName = line.research_line_name || line.name; assignCoordinatorModal.selectedCoordinatorId = line.coordinator_id || ''; assignCoordinatorModal.show = true }
-      const editResearchLine = (l) => { researchLineModal.mode = 'edit'; researchLineModal.form = { ...l, keywordsInput: Array.isArray(l.keywords) ? l.keywords.join(', ') : (l.keywordsInput || '') }; researchLineModal.show = true }
-      const editTrial = (t) => { clinicalTrialModal.mode = 'edit'; clinicalTrialModal.form = { ...t, end_date: t.end_date || t.estimated_end_date || '', co_investigators: Array.isArray(t.co_investigators) ? [...t.co_investigators] : (t.co_investigator_id ? [t.co_investigator_id] : []), sub_investigators: Array.isArray(t.sub_investigators) ? [...t.sub_investigators] : (t.sub_investigator_id ? [t.sub_investigator_id] : []) }; clinicalTrialModal.show = true }
-      const editProject = (p) => { innovationProjectModal.mode = 'edit'; const coI = Array.isArray(p.co_investigators) && p.co_investigators.length ? p.co_investigators : (Array.isArray(p.co_leads) ? p.co_leads : []); const kws = Array.isArray(p.keywords) && p.keywords.length ? p.keywords : (Array.isArray(p.tags) ? p.tags : []); innovationProjectModal.form = { ...p, current_stage: p.current_stage || p.development_stage || 'Idea', partner_needs: Array.isArray(p.partner_needs) ? [...p.partner_needs] : [], co_investigators: [...coI], keywords: [...kws], keywordsInput: kws.length ? kws.join(', ') : '', partner_found: p.partner_found || false, partner_name: p.partner_name || '', funding_status: p.funding_status || 'not_applicable', clinical_rationale: p.clinical_rationale || '' }; innovationProjectModal.show = true }
-      const viewTrial = (t) => { trialDetailModal.trial = t; trialDetailModal.show = true }
+      const editResearchLine = (l) => { researchLineModal.mode = 'edit'; researchLineModal.form = { ...l }; researchLineModal.show = true }
+      const editTrial = (t) => { clinicalTrialModal.mode = 'edit'; clinicalTrialModal.form = { ...t }; clinicalTrialModal.show = true }
+      const editProject = (p) => { innovationProjectModal.mode = 'edit'; innovationProjectModal.form = { ...p }; innovationProjectModal.show = true }
 
       const saveResearchLine = async (saving) => {
-        // Normalise: HTML form uses research_line_name, JS defaults use name — backend DB stores 'name'
-        const f = researchLineModal.form
-        const lineName = (f.research_line_name || f.name || '').trim()
-        if (!lineName) { showToast('Validation Error', 'Research line name is required', 'error'); return }
+        if (!researchLineModal.form.name?.trim()) { showToast('Validation Error', 'Research line name is required', 'error'); return }
         saving.value = true
         try {
-          // FIX 14: Parse keywords from comma-separated string into array
-          const keywords = f.keywordsInput ? f.keywordsInput.split(',').map(k => k.trim()).filter(Boolean) : (Array.isArray(f.keywords) ? f.keywords : [])
-          // FIX 15: Never send the placeholder text as capabilities
-          const capabilities = (f.capabilities && f.capabilities !== 'Alcance y capacidades') ? f.capabilities : ''
-          const payload = { ...f, name: lineName, keywords, capabilities }
-          delete payload.research_line_name // backend only knows 'name'
-          delete payload.keywordsInput
-          // These come from the view join — not writable columns on research_lines table
-          delete payload.coordinator_name
-          delete payload.coordinator_email
-          delete payload.coordinator_type
-          delete payload.full_name
-          delete payload.professional_email
-          if (researchLineModal.mode === 'add') { researchLines.value.unshift(await API.createResearchLine(payload)); showToast('Success', 'Research line created', 'success') }
-          else { const result = await API.updateResearchLine(f.id, payload); const idx = researchLines.value.findIndex(l => l.id === result.id); if (idx !== -1) researchLines.value[idx] = result; showToast('Success', 'Research line updated', 'success') }
+          if (researchLineModal.mode === 'add') { researchLines.value.unshift(await API.createResearchLine(researchLineModal.form)); showToast('Success', 'Research line created', 'success') }
+          else { const result = await API.updateResearchLine(researchLineModal.form.id, researchLineModal.form); const idx = researchLines.value.findIndex(l => l.id === result.id); if (idx !== -1) researchLines.value[idx] = result; showToast('Success', 'Research line updated', 'success') }
           researchLineModal.show = false; await loadResearchLines(); loadAnalyticsSummary()
-        } catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
+        } catch (e) { showToast('Error', e.message || 'Failed to save research line', 'error') }
         finally { saving.value = false }
       }
 
       const saveClinicalTrial = async (saving) => {
-        const f = clinicalTrialModal.form
-        // FIX 8: date relationship validation
-        if (f.start_date && f.end_date && f.end_date < f.start_date) { showToast('Validation Error', 'End date cannot be before start date', 'error'); return }
         saving.value = true
         try {
-          const payload = { ...f }
-          // Mirror end_date → estimated_end_date so both DB columns stay in sync
-          if (payload.end_date) payload.estimated_end_date = payload.end_date
-          delete payload.co_investigator_id // legacy field
-          delete payload.sub_investigator_id // legacy field
-          if (clinicalTrialModal.mode === 'add') { clinicalTrials.value.unshift(await API.createClinicalTrial(payload)); showToast('Success', 'Clinical trial created', 'success') }
-          else { const result = await API.updateClinicalTrial(payload.id, payload); const idx = clinicalTrials.value.findIndex(t => t.id === result.id); if (idx !== -1) clinicalTrials.value[idx] = result; showToast('Success', 'Clinical trial updated', 'success') }
+          if (clinicalTrialModal.mode === 'add') { clinicalTrials.value.unshift(await API.createClinicalTrial(clinicalTrialModal.form)); showToast('Success', 'Clinical trial created', 'success') }
+          else { const result = await API.updateClinicalTrial(clinicalTrialModal.form.id, clinicalTrialModal.form); const idx = clinicalTrials.value.findIndex(t => t.id === result.id); if (idx !== -1) clinicalTrials.value[idx] = result; showToast('Success', 'Clinical trial updated', 'success') }
           clinicalTrialModal.show = false; await loadClinicalTrials(); loadAnalyticsSummary()
-        } catch (e) { showToast('Error', e?.message || 'Failed to save trial', 'error') }
+        } catch (e) { showToast('Error', e.message || 'Failed to save trial', 'error') }
         finally { saving.value = false }
       }
 
       const saveInnovationProject = async (saving) => {
-        const f = innovationProjectModal.form
-        if (!f.title?.trim()) { showToast('Validation Error', 'Project title is required', 'error'); return }
         saving.value = true
         try {
-          const payload = { ...f }
-          // Parse keywords from comma-separated string into array
-          payload.keywords = f.keywordsInput ? f.keywordsInput.split(',').map(k => k.trim()).filter(Boolean) : (Array.isArray(f.keywords) ? f.keywords : [])
-          delete payload.keywordsInput
-          // Mirror to legacy DB column aliases
-          payload.co_leads = payload.co_investigators
-          payload.tags = payload.keywords
-          // Stage normalisation
-          if (!payload.current_stage && payload.development_stage) payload.current_stage = payload.development_stage
-          delete payload.development_stage
-          // Partner logic: if partner found, no longer need partner_needs list
-          if (payload.partner_found) payload.partner_needs = []
-          else payload.partner_name = ''
-          if (innovationProjectModal.mode === 'add') { innovationProjects.value.unshift(await API.createInnovationProject(payload)); showToast('Success', 'Innovation project created', 'success') }
-          else { const result = await API.updateInnovationProject(payload.id, payload); const idx = innovationProjects.value.findIndex(p => p.id === result.id); if (idx !== -1) innovationProjects.value[idx] = result; showToast('Success', 'Innovation project updated', 'success') }
+          if (innovationProjectModal.mode === 'add') { innovationProjects.value.unshift(await API.createInnovationProject(innovationProjectModal.form)); showToast('Success', 'Innovation project created', 'success') }
+          else { const result = await API.updateInnovationProject(innovationProjectModal.form.id, innovationProjectModal.form); const idx = innovationProjects.value.findIndex(p => p.id === result.id); if (idx !== -1) innovationProjects.value[idx] = result; showToast('Success', 'Innovation project updated', 'success') }
           innovationProjectModal.show = false; await loadInnovationProjects(); loadAnalyticsSummary(); loadPartnerCollaborations()
-        } catch (e) { showToast('Error', e?.message || 'Failed to save project', 'error') }
+        } catch (e) { showToast('Error', e.message || 'Failed to save project', 'error') }
         finally { saving.value = false }
       }
 
@@ -2326,7 +2078,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const deleteClinicalTrial = (trial) => showConfirmation({ title: 'Delete Trial', message: `Delete "${trial.title}"?`, icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger', details: `Protocol: ${trial.protocol_id}`, onConfirm: async () => { await API.deleteClinicalTrial(trial.id); await loadClinicalTrials(); showToast('Success', 'Trial deleted', 'success'); loadAnalyticsSummary() } })
       const deleteInnovationProject = (project) => showConfirmation({ title: 'Delete Project', message: `Delete "${project.title}"?`, icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger', onConfirm: async () => { await API.deleteInnovationProject(project.id); await loadInnovationProjects(); showToast('Success', 'Project deleted', 'success'); loadAnalyticsSummary(); loadPartnerCollaborations() } })
 
-      return { researchLines, clinicalTrials, innovationProjects, researchLineFilters, trialFilters, projectFilters, researchLineModal, clinicalTrialModal, innovationProjectModal, assignCoordinatorModal, trialDetailModal, filteredResearchLines, filteredTrials, filteredTrialsAll, filteredProjects, trialTotalPages, getResearchLineName, getClinicianResearchLines, loadResearchLines, loadClinicalTrials, loadInnovationProjects, showAddResearchLineModal, showAddTrialModal, showAddProjectModal, openAssignCoordinatorModal, editResearchLine, editTrial, editProject, viewTrial, saveResearchLine, saveClinicalTrial, saveInnovationProject, saveCoordinatorAssignment, deleteResearchLine, deleteClinicalTrial, deleteInnovationProject }
+      return { researchLines, clinicalTrials, innovationProjects, researchLineFilters, trialFilters, projectFilters, researchLineModal, clinicalTrialModal, innovationProjectModal, assignCoordinatorModal, filteredResearchLines, filteredTrials, filteredTrialsAll, filteredProjects, trialTotalPages, getResearchLineName, getClinicianResearchLines, loadResearchLines, loadClinicalTrials, loadInnovationProjects, showAddResearchLineModal, showAddTrialModal, showAddProjectModal, openAssignCoordinatorModal, editResearchLine, editTrial, editProject, saveResearchLine, saveClinicalTrial, saveInnovationProject, saveCoordinatorAssignment, deleteResearchLine, deleteClinicalTrial, deleteInnovationProject }
     }
 
     // ============ 6.12 useAnalytics ============
@@ -2488,7 +2240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const { fieldErrors, setErr, clearErr: clearFieldError, clearAll } = makeValidation(['rotation', 'staff', 'absence', 'oncall', 'research'])
 
         const deptOps = useDepartments({ showToast, medicalStaff: ref([]), trainingUnits: ref([]), rotations: ref([]) })
-        const tuOps = useTrainingUnits({ showToast, showConfirmation: () => {}, rotations: ref([]) })
+        const tuOps = useTrainingUnits({ showToast, rotations: ref([]) })
 
         const staffOps = useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll })
         const { medicalStaff } = staffOps
@@ -2499,22 +2251,16 @@ document.addEventListener('DOMContentLoaded', () => {
           showToast, medicalStaff, trainingUnits: tuOps.trainingUnits, rotations: ref([])
         })
 
+        const { trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, filteredTrainingUnits,
+          getUnitActiveRotationCount, loadTrainingUnits, showAddTrainingUnitModal, editTrainingUnit, viewUnitResidents, saveTrainingUnit } = useTrainingUnits({
+          showToast, rotations: ref([])
+        })
+
         const onCallOps = useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff })
         const { onCallSchedule } = onCallOps
 
-        // useTrainingUnits needs a stub here so trainingUnits ref is available for rotationOps
-        const { trainingUnits: _tuStub } = useTrainingUnits({ showToast, showConfirmation: () => {}, rotations: ref([]) })
-
-        const rotationOps = useRotations({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, trainingUnits: _tuStub, currentUser })
+        const rotationOps = useRotations({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, trainingUnits, currentUser })
         const { rotations } = rotationOps
-
-        // Full useTrainingUnits with real rotations ref (now declared above)
-        const { trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal,
-          filteredTrainingUnits, getUnitActiveRotationCount, loadTrainingUnits, showAddTrainingUnitModal,
-          editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians,
-          viewUnitResidents, saveTrainingUnit } = useTrainingUnits({
-          showToast, showConfirmation, rotations
-        })
 
         const absenceOps = useAbsences({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff })
         const { absences } = absenceOps
@@ -2552,24 +2298,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const getCurrentRotationSupervisor = (staffId) => { const r = getCurrentRotationForStaff(staffId); return r?.supervising_attending_id ? getStaffName(r.supervising_attending_id) : 'Not assigned' }
         const hasProfessionalCredentials = (staff) => !!(staff?.academic_degree || staff?.specialization || staff?.training_year || staff?.clinical_certificate || staff?.medical_license)
 
-        const toggleProfileSection = (key) => {
-          if (!staffOps.staffProfileModal.collapsed) staffOps.staffProfileModal.collapsed = {}
-          staffOps.staffProfileModal.collapsed[key] = !staffOps.staffProfileModal.collapsed[key]
-        }
-
         const viewStaffDetails = async (staff) => {
           staffOps.staffProfileModal.staff = staff; staffOps.staffProfileModal.activeTab = 'activity'; staffOps.staffProfileModal.show = true
-          if (hasPermission('analytics', 'read')) await analyticsOps.loadStaffResearchProfile(staffOps.staffProfileModal, staff.id)
-          if (staff.staff_type === 'attending_physician') {
-            staffOps.staffProfileModal.loadingSupervision = true
-            try { staffOps.staffProfileModal.supervisionData = await API.getSupervisedResidents(staff.id) }
-            catch { staffOps.staffProfileModal.supervisionData = { current: [], currentCount: 0, pastCount: 0, avgEvaluation: 0 } }
-            finally { staffOps.staffProfileModal.loadingSupervision = false }
-          }
+          staffOps.staffProfileModal.loadingResearch = true
+          staffOps.staffProfileModal.loadingSupervision = true
           staffOps.staffProfileModal.loadingLeave = true
-          try { staffOps.staffProfileModal.leaveBalance = await API.getLeaveBalance(staff.id) }
-          catch { staffOps.staffProfileModal.leaveBalance = null }
-          finally { staffOps.staffProfileModal.loadingLeave = false }
+
+          const loadResearch = hasPermission('analytics', 'read')
+            ? analyticsOps.loadStaffResearchProfile(staffOps.staffProfileModal, staff.id)
+            : Promise.resolve()
+
+          const loadSupervision = staff.staff_type === 'attending_physician'
+            ? API.getSupervisedResidents(staff.id)
+                .then(data => { staffOps.staffProfileModal.supervisionData = data })
+                .catch(() => { staffOps.staffProfileModal.supervisionData = { current: [], currentCount: 0, pastCount: 0, avgEvaluation: 0 } })
+                .finally(() => { staffOps.staffProfileModal.loadingSupervision = false })
+            : Promise.resolve().then(() => { staffOps.staffProfileModal.loadingSupervision = false })
+
+          const loadLeave = API.getLeaveBalance(staff.id)
+            .then(data => { staffOps.staffProfileModal.leaveBalance = data })
+            .catch(() => { staffOps.staffProfileModal.leaveBalance = null })
+            .finally(() => { staffOps.staffProfileModal.loadingLeave = false })
+
+          await Promise.all([loadResearch, loadSupervision, loadLeave])
         }
 
         const formatStaffType = (t) => STAFF_TYPE_LABELS[t] || t
@@ -2608,7 +2359,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const saveUserProfile = async () => {
           saving.value = true
           try { currentUser.value.full_name = userProfileModal.form.full_name; currentUser.value.department_id = userProfileModal.form.department_id; localStorage.setItem(CONFIG.USER_KEY, JSON.stringify(currentUser.value)); userProfileModal.show = false; showToast('Success', 'Profile updated', 'success') }
-          catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
+          catch (e) { showToast('Error', e.message, 'error') }
           finally { saving.value = false }
         }
 
@@ -2676,7 +2427,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           document.addEventListener('keydown', (e) => {
             if (e.key !== 'Escape') return
-            const modals = [staffOps.medicalStaffModal, staffOps.staffProfileModal, departmentModal, trainingUnitModal, unitResidentsModal, unitCliniciansModal, rotationOps.rotationModal, rotationOps.rotationViewModal, onCallOps.onCallModal, absenceOps.absenceModal, commsOps.communicationsModal, userProfileModal, ui.confirmationModal, researchOps.researchLineModal, researchOps.clinicalTrialModal, researchOps.innovationProjectModal, researchOps.assignCoordinatorModal, analyticsOps.exportModal, rotationOps.activationModal]
+            const modals = [staffOps.medicalStaffModal, staffOps.staffProfileModal, departmentModal, trainingUnitModal, unitResidentsModal, rotationOps.rotationModal, onCallOps.onCallModal, absenceOps.absenceModal, commsOps.communicationsModal, userProfileModal, ui.confirmationModal, researchOps.researchLineModal, researchOps.clinicalTrialModal, researchOps.innovationProjectModal, researchOps.assignCoordinatorModal, analyticsOps.exportModal, rotationOps.activationModal]
             modals.forEach(m => { if (m.show) m.show = false })
           })
 
@@ -2701,11 +2452,9 @@ document.addEventListener('DOMContentLoaded', () => {
           departments, departmentFilters, departmentModal, filteredDepartments,
           getDepartmentName, getDepartmentUnits, getDepartmentStaffCount,
           loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment, viewDepartmentStaff,
-          trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits,
+          trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, filteredTrainingUnits,
           getUnitActiveRotationCount, loadTrainingUnits, showAddTrainingUnitModal,
-          editTrainingUnit, deleteTrainingUnit, saveTrainingUnit,
-          openUnitClinicians: (unit) => openUnitClinicians(unit, medicalStaff.value),
-          saveUnitClinicians,
+          editTrainingUnit, saveTrainingUnit,
           viewUnitResidents: (unit) => viewUnitResidents(unit, rotations.value),
           ...commsOps,
           saveCommunication: (sv) => commsOps.saveCommunication(sv ?? saving, liveOps.saveClinicalStatus),
@@ -2735,7 +2484,7 @@ document.addEventListener('DOMContentLoaded', () => {
           absenceTotalPages: absenceOps.absenceTotalPages,
           trialTotalPages: researchOps.trialTotalPages,
           fieldErrors, clearFieldError: (form, field) => clearFieldError(form, field),
-          viewStaffDetails, toggleProfileSection, showUserProfileModal, saveUserProfile,
+          viewStaffDetails, showUserProfileModal, saveUserProfile,
           getStaffName, getSupervisorName, getPhysicianName, getResidentName, getTrainingUnitName,
           calculateAbsenceDuration, getDaysRemaining, getDaysUntilStart,
           getCurrentRotationForStaff, isOnCallToday, getUpcomingOnCall,
@@ -2751,7 +2500,6 @@ document.addEventListener('DOMContentLoaded', () => {
           formatDatePlusDays: (d, n) => Utils.formatDatePlusDays(d, n),
           formatRelativeDate: (d) => Utils.formatRelativeDate(d),
           formatTime: (d) => Utils.formatTime(d),
-          formatClinicalDuration: (s, e) => Utils.formatClinicalDuration(s, e),
           formatRelativeTime: (d) => Utils.formatRelativeTime(d),
           formatTimeAgo: (d) => Utils.formatRelativeTime(d),
           getInitials: (n) => Utils.getInitials(n),
@@ -2759,31 +2507,8 @@ document.addEventListener('DOMContentLoaded', () => {
           getStaffTypeIcon, getAbsenceReasonIcon, calculateCapacityPercent,
           getPreviewCardClass, getPreviewIcon, getPreviewReasonText,
           getPreviewStatusClass, getPreviewStatusText, updatePreview, requestFullDossier,
-          getPhaseColor: Utils.getPhaseColor, getStageColor: Utils.getStageColor, getStageConfig: Utils.getStageConfig, PROJECT_STAGES: PROJECT_STAGES_DATA, formatPercentage: Utils.formatPercentage,
+          getPhaseColor: Utils.getPhaseColor, getStageColor: Utils.getStageColor, formatPercentage: Utils.formatPercentage,
           availablePhysicians, availableResidents, availableAttendings, availableHeadsOfDepartment, availableReplacementStaff,
-          // FIX 11: Partner needs options with an "Other" escape hatch handled in template
-          availablePartnerNeeds: ['Financiación', 'Distribución', 'Fabricación', 'Software', 'Regulatorio', 'Ensayos clínicos', 'Licencia de tecnología', 'Co-desarrollo'],
-          togglePartnerNeed: (need) => {
-            const arr = researchOps.innovationProjectModal.form.partner_needs
-            const idx = arr.indexOf(need)
-            if (idx === -1) arr.push(need); else arr.splice(idx, 1)
-          },
-          // FIX 5: toggle helpers for co_investigators and sub_investigators arrays
-          toggleCoInvestigator: (id) => {
-            const arr = researchOps.clinicalTrialModal.form.co_investigators
-            const idx = arr.indexOf(id)
-            if (idx === -1) arr.push(id); else arr.splice(idx, 1)
-          },
-          toggleSubInvestigator: (id) => {
-            const arr = researchOps.clinicalTrialModal.form.sub_investigators
-            const idx = arr.indexOf(id)
-            if (idx === -1) arr.push(id); else arr.splice(idx, 1)
-          },
-          toggleProjectCoInvestigator: (id) => {
-            const arr = researchOps.innovationProjectModal.form.co_investigators
-            const idx = arr.indexOf(id)
-            if (idx === -1) arr.push(id); else arr.splice(idx, 1)
-          },
           saveMedicalStaff: () => staffOps.saveMedicalStaff(saving),
           saveDepartment: () => saveDepartment(saving),
           saveTrainingUnit: () => saveTrainingUnit(saving),
@@ -2798,15 +2523,8 @@ document.addEventListener('DOMContentLoaded', () => {
           onCallView,
           residentsWithRotations: rotationOps.residentsWithRotations,
           groupedOnCallSchedules: onCallOps.groupedOnCallSchedules,
-          staffWithOnCallOrbs: onCallOps.staffWithOnCallOrbs,
           weekDays,
           getRotationsForDay: rotationOps.getRotationsForDay,
-          rotationViewModal: rotationOps.rotationViewModal,
-          weekOffset: rotationOps.weekOffset,
-          getWeekDayLabel: rotationOps.getWeekDayLabel,
-          getWeekRangeLabel: rotationOps.getWeekRangeLabel,
-          isFirstDayOfRotation: rotationOps.isFirstDayOfRotation,
-          isLastDayOfRotation: rotationOps.isLastDayOfRotation,
           isRotationActive: rotationOps.isRotationActive,
           isShiftActive: onCallOps.isShiftActive,
           viewRotationDetails: rotationOps.viewRotationDetails
