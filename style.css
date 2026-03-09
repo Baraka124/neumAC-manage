@@ -3617,3 +3617,151 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .form-label-required::after {
   content: ' *'; color: var(--danger); font-size: 11px;
 }
+
+
+/* ================================================================
+   HIERARCHY & ICON SIZE PASS  —  NeumoCaré v4
+   Icons recede, text leads. Clear heading structure.
+================================================================ */
+
+/* ── Role icons — smaller, supportive not competing ──────────── */
+.staff-role-icon {
+  width: 30px !important; height: 30px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+}
+
+/* Rotation row avatar — smaller */
+.rot-who-avatar {
+  width: 30px !important; height: 30px !important;
+  border-radius: 8px !important;
+  font-size: 11px !important;
+}
+
+/* Week grid resident icon — smaller */
+.week-resident-icon {
+  width: 24px !important; height: 24px !important;
+  border-radius: 6px !important;
+  font-size: 10px !important;
+}
+
+/* On-call compact icons */
+.oc-row .rot-who-avatar {
+  width: 30px !important; height: 30px !important;
+  font-size: 11px !important;
+}
+
+/* pd-card icons in drawer */
+.pd-card-icon {
+  width: 22px !important; height: 22px !important;
+  font-size: 10px !important;
+}
+
+/* Table action buttons — icons only, tighter */
+.table-actions .btn i,
+.table-actions .btn-pill i { font-size: 11px !important; }
+
+/* Card-level icons (card-title i) — slightly smaller */
+.card-title i { font-size: 13px !important; }
+
+/* ── Name / primary text — larger, more presence ─────────────── */
+.staff-name-primary { font-size: 15px !important; }
+.staff-name-sub     { font-size: 11px !important; }
+
+/* Table body text bump */
+.table tbody td { font-size: 13px !important; }
+
+/* Rotation row names */
+.rot-who-name { font-size: 14px !important; }
+.rot-who-meta { font-size: 10px !important; }
+
+/* ── Heading hierarchy — clear 3-tier system ─────────────────── */
+
+/* TIER 1: View/section title — displayed above the card  */
+/* (card-title inside card-header) */
+.card-title {
+  font-family: var(--font-display) !important;
+  font-size: 18px !important;
+  font-style: italic !important;
+  font-weight: 400 !important;
+  letter-spacing: -.015em !important;
+  color: var(--text-1) !important;
+}
+
+/* TIER 2: Sub-section headings inside cards (pd-card-title, section heads) */
+.pd-card-title {
+  font-size: 13px !important; font-weight: 700 !important;
+  font-family: var(--font-ui) !important; font-style: normal !important;
+}
+
+/* TIER 3: Labels / meta — mono caps, small */
+/* Already handled by form-label, pd-section-title etc */
+
+/* Dashboard heading — keep serif, slightly larger */
+.dashboard-header h2 {
+  font-size: 26px !important;
+}
+.dashboard-header h2 i { font-size: 18px !important; }
+
+/* ── Modal titles — larger, more gravitas ─────────────────────── */
+.modal-title {
+  font-family: var(--font-display) !important;
+  font-size: 17px !important; font-style: italic !important;
+  font-weight: 400 !important; letter-spacing: -.01em !important;
+  gap: 10px !important;
+}
+.modal-title i {
+  font-style: normal !important;
+  font-size: 14px !important;
+}
+
+/* ── Filter bar separation from content ───────────────────────── */
+.filter-bar {
+  background: var(--surface-2) !important;
+  border-bottom: 2px solid var(--border-2) !important;
+  padding: 10px 18px !important;
+}
+
+/* ── Modal tabs — underline style, consistent with profile tabs ─ */
+.modal-tabs {
+  display: flex !important; gap: 0 !important;
+  background: none !important; padding: 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+  margin-bottom: 20px !important; border-radius: 0 !important;
+}
+.modal-tab {
+  background: none !important; border-radius: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  margin-bottom: -1px !important;
+  padding: 10px 18px !important;
+  font-size: 12px !important; font-weight: 600 !important;
+  color: var(--text-3) !important;
+  box-shadow: none !important; min-height: 0 !important;
+}
+.modal-tab:hover { color: var(--text-1) !important; background: var(--surface-2) !important; }
+.modal-tab.active {
+  color: var(--blue) !important;
+  border-bottom-color: var(--blue) !important;
+  background: none !important;
+}
+
+/* ── Table row height — more breathing room for reading ───────── */
+.table tbody td { height: 60px !important; }
+
+/* ── Subtle zebra with better contrast ───────────────────────── */
+.table-striped tbody tr:nth-child(even) { background: rgba(241,245,249,.7) !important; }
+
+/* ── Status indicators — unified sizing ──────────────────────── */
+.status-indicator {
+  font-size: 10px !important; padding: 3px 9px !important;
+  font-weight: 700 !important; letter-spacing: .06em !important;
+}
+
+/* ── pd-section-head icons — smaller ─────────────────────────── */
+.pd-section-icon {
+  width: 18px !important; height: 18px !important;
+}
+.pd-section-icon i { font-size: 9px !important; }
+
+/* ── Confirmation modal icon ─────────────────────────────────── */
+.confirm-icon-wrap { width: 38px !important; height: 38px !important; font-size: 14px !important; }
