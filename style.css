@@ -1163,7 +1163,71 @@ a { color: var(--blue); text-decoration: none; }
 .research-coordinator-section { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; margin: 6px 0 2px; }
 .coordinator-label { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-3); margin-bottom: 10px; }
 .coordinator-info  { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.coordinator-avatar { display: none; }
+/* ── Improvement 1: Collapsible profile sections ── */
+.profile-section-head {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,.04);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  cursor: pointer; user-select: none;
+  transition: background var(--t);
+}
+.profile-section-head:hover { background: rgba(255,255,255,.07); }
+.psh-chevron { margin-left: auto; font-size: 10px; color: rgba(255,255,255,.3); transition: transform .2s ease; }
+.profile-section.collapsed .psh-chevron { transform: rotate(-90deg); }
+.profile-section-body { overflow: hidden; transition: max-height .25s ease; max-height: 600px; }
+.profile-section.collapsed .profile-section-body { max-height: 0; }
+
+/* ── Improvement 2: Stronger tab active indicator ── */
+.profile-tabs {
+  display: flex; gap: 0; background: transparent;
+  border-radius: 0; padding: 0; margin-bottom: 12px;
+  border-bottom: 2px solid var(--border); flex-wrap: wrap;
+}
+.profile-tab {
+  flex: 1; padding: 9px 14px; background: none; border: none;
+  border-bottom: 3px solid transparent; margin-bottom: -2px;
+  border-radius: 0; font-size: var(--t-12); font-weight: 600;
+  color: var(--text-3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: color var(--t), border-color var(--t);
+  min-width: 80px; font-family: var(--font-ui);
+}
+.profile-tab i { font-size: 12px; transition: color var(--t); }
+.profile-tab:hover { color: var(--text-1); background: var(--surface-2); }
+.profile-tab.active { color: var(--blue); border-bottom-color: var(--blue); background: none; box-shadow: none; }
+.profile-tab.active i { color: var(--blue); }
+
+/* ── Improvement 3: Nil activity row ── */
+.activity-nil-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: var(--r);
+  background: var(--surface); border: 1px solid var(--border);
+  font-size: var(--t-12); color: var(--text-3);
+}
+.activity-nil-row i { color: var(--teal); font-size: 14px; }
+
+/* ── Improvement 4: Context strip ── */
+.profile-context-strip {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 2px; margin-bottom: 2px;
+  font-size: var(--t-11); color: var(--text-3);
+}
+.pcs-name { font-weight: 600; color: var(--text-2); }
+.pcs-sep  { color: var(--border-2); }
+.pcs-tab  { color: var(--blue); font-weight: 600; text-transform: capitalize; }
+
+/* ── Improvement 5: Edit button in identity ── */
+.profile-edit-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 8px; padding: 5px 14px;
+  background: rgba(45,122,255,.15); border: 1px solid rgba(45,122,255,.3);
+  border-radius: 20px; color: var(--blue);
+  font-size: var(--t-11); font-weight: 600; cursor: pointer;
+  transition: var(--t); font-family: var(--font-ui);
+}
+.profile-edit-btn:hover { background: rgba(45,122,255,.25); border-color: rgba(45,122,255,.5); }
+.profile-edit-btn i { font-size: 11px; }
 .coordinator-chip {
   display: inline-flex; align-items: center; gap: 10px;
   background: var(--blue-lt); border: 1px solid var(--blue-mid);
@@ -2163,8 +2227,9 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   .profile-layout { flex-direction: column; overflow-y: auto; overflow-x: hidden; }
   .profile-left { width: 100%; min-width: unset; overflow: visible; flex-shrink: 0; }
   .profile-right { overflow-y: visible; flex: unset; min-height: unset; padding: 12px; }
-  .profile-tabs { position: sticky; top: 0; z-index: 10; background: var(--surface-2); padding: 8px 0; margin: -12px -12px 0; padding: 10px 12px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 4px; }
-  .profile-tab { flex: 1; min-width: 80px; justify-content: center; }
+  .profile-tabs { flex-wrap: wrap; gap: 0; position: sticky; top: 0; z-index: 10; background: var(--surface); padding: 0 12px; margin: -12px -12px 8px; border-bottom: 2px solid var(--border); }
+  .profile-tab { flex: 1; min-width: 70px; font-size: var(--t-11); padding: 8px 8px; }
+  .profile-context-strip { display: none; }
   .charts-grid { grid-template-columns: 1fr; }
   .stats-grid:not(.mini) { grid-template-columns: repeat(2, 1fr); }
 }
