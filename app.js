@@ -2361,18 +2361,22 @@ document.addEventListener('DOMContentLoaded', () => {
           showToast, medicalStaff, trainingUnits: tuOps.trainingUnits, rotations: ref([])
         })
 
+        const onCallOps = useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff })
+        const { onCallSchedule } = onCallOps
+
+        // useTrainingUnits needs a stub here so trainingUnits ref is available for rotationOps
+        const { trainingUnits: _tuStub } = useTrainingUnits({ showToast, showConfirmation: () => {}, rotations: ref([]) })
+
+        const rotationOps = useRotations({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, trainingUnits: _tuStub, currentUser })
+        const { rotations } = rotationOps
+
+        // Full useTrainingUnits with real rotations ref (now declared above)
         const { trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal,
           filteredTrainingUnits, getUnitActiveRotationCount, loadTrainingUnits, showAddTrainingUnitModal,
           editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians,
           viewUnitResidents, saveTrainingUnit } = useTrainingUnits({
           showToast, showConfirmation, rotations
         })
-
-        const onCallOps = useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff })
-        const { onCallSchedule } = onCallOps
-
-        const rotationOps = useRotations({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, trainingUnits, currentUser })
-        const { rotations } = rotationOps
 
         const absenceOps = useAbsences({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff })
         const { absences } = absenceOps
