@@ -12,7 +12,7 @@
 <body>
 <div id="app" v-cloak>
 
-    <!-- ============ TOAST CONTAINER ==-=---======== -->
+    <!-- ============ TOAST CONTAINER ===-======== -->
     <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
              :class="['toast', `toast-${toast.type}`]"
@@ -1526,53 +1526,94 @@
                             <button class="btn btn-primary" @click="showAddResearchLineModal" v-if="hasPermission('research_lines', 'create')"><i class="fas fa-plus"></i> Add Research Line</button>
                         </div>
                         <div class="filter-bar">
-                            <input type="text" class="form-control" v-model="researchLineFilters.search" placeholder="Search research lines...">
-                            <select class="form-select" v-model="researchLineFilters.active">
+                            <input type="text" class="form-control" v-model="researchLineFilters.search" placeholder="Search by name, description or keyword...">
+                            <select class="form-select" v-model="researchLineFilters.active" style="max-width:160px">
                                 <option value="">All Status</option>
                                 <option value="true">Active</option>
                                 <option value="false">Inactive</option>
                             </select>
                         </div>
                         <div class="research-lines-grid">
-                            <div v-for="line in filteredResearchLines" :key="line.id" class="research-line-card">
-                                <div class="research-line-header">
-                                    <div class="rline-header-left">
-                                        <div class="research-line-number">Línea {{ line.line_number }}</div>
+                            <div v-for="line in filteredResearchLines" :key="line.id"
+                                 class="rline-card"
+                                 :class="{ 'rline-card--inactive': !line.active }">
+
+                                <!-- Coloured top accent — active=blue/teal, inactive=muted -->
+                                <div class="rline-card-accent" :style="line.active ? {} : { background: 'var(--border)' }"></div>
+
+                                <!-- Header row -->
+                                <div class="rline-card-header">
+                                    <div class="rline-card-header-left">
+                                        <span class="rline-number-pill">Línea {{ line.line_number }}</span>
                                         <span v-if="!line.active" class="rline-inactive-badge"><i class="fas fa-pause-circle"></i> Inactive</span>
                                     </div>
-                                    <div class="research-line-actions">
-                                        <button class="btn-icon" @click="editResearchLine(line)" v-if="hasPermission('research_lines', 'update')" title="Edit"><i class="fas fa-edit"></i></button>
-                                        <button class="btn-icon btn-icon--danger" @click="deleteResearchLine(line)" v-if="hasPermission('research_lines', 'delete')" title="Delete"><i class="fas fa-trash"></i></button>
+                                    <div class="rline-card-actions" v-if="hasPermission('research_lines', 'update') || hasPermission('research_lines', 'delete')">
+                                        <button class="rline-action-btn" @click="editResearchLine(line)" v-if="hasPermission('research_lines', 'update')" title="Edit line"><i class="fas fa-edit"></i></button>
+                                        <button class="rline-action-btn rline-action-btn--danger" @click="deleteResearchLine(line)" v-if="hasPermission('research_lines', 'delete')" title="Delete"><i class="fas fa-trash"></i></button>
                                     </div>
                                 </div>
-                                <h3 class="research-line-name">{{ line.research_line_name || line.name }}</h3>
-                                <p class="research-line-description" v-if="line.description">{{ line.description }}</p>
-                                <!-- FIX 21: Trial/project count summary on card -->
-                                <div class="rline-stats-row" v-if="line.stats">
-                                    <span class="rline-stat"><i class="fas fa-vial"></i> {{ line.stats.totalTrials || 0 }} trials</span>
-                                    <span class="rline-stat-sep">·</span>
-                                    <span class="rline-stat"><i class="fas fa-microscope"></i> {{ line.stats.totalProjects || 0 }} projects</span>
-                                    <span class="rline-stat-sep" v-if="line.stats.activeTrials > 0">·</span>
-                                    <span class="rline-stat rline-stat--active" v-if="line.stats.activeTrials > 0"><i class="fas fa-circle"></i> {{ line.stats.activeTrials }} active</span>
-                                </div>
-                                <div class="research-coordinator-section">
-                                    <div class="coordinator-label">Coordinador/a</div>
-                                    <div class="coordinator-info" v-if="line.coordinator_id">
-                                        <!-- FIX 23: coordinator chip and change button in separate rows to avoid wrapping fight -->
-                                        <div class="coordinator-chip"><i class="fas fa-user-tie"></i><div><div class="coordinator-name">{{ line.coordinator_name }}</div><div class="coordinator-email" v-if="line.coordinator_email">{{ line.coordinator_email }}</div></div></div>
-                                        <button class="btn btn-sm btn-outline coordinator-change-btn" @click="openAssignCoordinatorModal(line)" v-if="hasPermission('research_lines', 'update')" title="Change coordinator"><i class="fas fa-exchange-alt"></i> Change</button>
+
+                                <!-- Name — big Instrument Serif -->
+                                <h3 class="rline-card-name">{{ line.research_line_name || line.name }}</h3>
+
+                                <!-- Description -->
+                                <p class="rline-card-description" v-if="line.description">{{ line.description }}</p>
+
+                                <!-- Activity stats row -->
+                                <div class="rline-activity-row">
+                                    <div class="rline-activity-pill">
+                                        <i class="fas fa-vial"></i>
+                                        <span>{{ line.stats?.totalTrials || 0 }}</span>
+                                        <span class="rline-activity-label">trials</span>
                                     </div>
-                                    <div v-else class="coordinator-empty">
+                                    <div class="rline-activity-pill rline-activity-pill--teal" v-if="line.stats?.activeTrials > 0">
+                                        <span class="rline-dot-pulse"></span>
+                                        <span>{{ line.stats.activeTrials }}</span>
+                                        <span class="rline-activity-label">active</span>
+                                    </div>
+                                    <div class="rline-activity-pill">
+                                        <i class="fas fa-microscope"></i>
+                                        <span>{{ line.stats?.totalProjects || 0 }}</span>
+                                        <span class="rline-activity-label">projects</span>
+                                    </div>
+                                    <div class="rline-activity-pill rline-activity-pill--purple" v-if="line.stats?.activeProjects > 0">
+                                        <i class="fas fa-circle"></i>
+                                        <span>{{ line.stats.activeProjects }}</span>
+                                        <span class="rline-activity-label">active</span>
+                                    </div>
+                                </div>
+
+                                <!-- Coordinator row — compact single line -->
+                                <div class="rline-coord-row">
+                                    <div class="rline-coord-label">COORDINADOR/A</div>
+                                    <div v-if="line.coordinator_id" class="rline-coord-person">
+                                        <div class="rline-coord-avatar">{{ line.coordinator_name ? line.coordinator_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() : '?' }}</div>
+                                        <div class="rline-coord-info">
+                                            <span class="rline-coord-name">{{ line.coordinator_name }}</span>
+                                            <span class="rline-coord-email" v-if="line.coordinator_email">{{ line.coordinator_email }}</span>
+                                        </div>
+                                        <button class="rline-coord-change" @click="openAssignCoordinatorModal(line)" v-if="hasPermission('research_lines', 'update')" title="Change coordinator"><i class="fas fa-exchange-alt"></i></button>
+                                    </div>
+                                    <div v-else class="rline-coord-empty">
+                                        <i class="fas fa-user-slash"></i>
                                         <span>No asignado</span>
-                                        <button class="btn btn-sm btn-outline" @click="openAssignCoordinatorModal(line)" v-if="hasPermission('research_lines', 'update')"><i class="fas fa-user-plus"></i> Asignar</button>
+                                        <button class="rline-coord-assign" @click="openAssignCoordinatorModal(line)" v-if="hasPermission('research_lines', 'update')"><i class="fas fa-user-plus"></i> Asignar</button>
                                     </div>
                                 </div>
-                                <!-- FIX 22: Only show capabilities bar if it has real content (not placeholder) -->
-                                <div class="research-capabilities" v-if="line.capabilities && line.capabilities !== 'Alcance y capacidades'"><span class="capabilities-label">{{ line.capabilities }}</span></div>
-                                <div class="research-keywords" v-if="line.keywords && line.keywords.length">
-                                    <span v-for="kw in line.keywords" :key="kw" class="keyword-tag">{{ kw }}</span>
+
+                                <!-- Capabilities — shown as small scope label -->
+                                <div class="rline-scope" v-if="line.capabilities && line.capabilities !== 'Alcance y capacidades'">
+                                    <i class="fas fa-microscope"></i>
+                                    <span>{{ line.capabilities }}</span>
                                 </div>
-                            </div>
+
+                                <!-- Keywords as pill chips -->
+                                <div class="rline-keywords" v-if="line.keywords && line.keywords.length">
+                                    <span v-for="kw in line.keywords" :key="kw" class="rline-kw-chip">{{ kw }}</span>
+                                </div>
+
+                            </div><!-- /rline-card -->
+
                             <div v-if="filteredResearchLines.length === 0" class="col-span-full empty-state">
                                 <i class="fas fa-flask empty-state-icon"></i>
                                 <div class="empty-state-title">No research lines found</div>
@@ -1683,6 +1724,22 @@
                             <div class="card-title"><i class="fas fa-microscope"></i> Innovation Projects</div>
                             <button class="btn btn-primary" @click="showAddProjectModal" v-if="hasPermission('research_lines', 'create')"><i class="fas fa-plus"></i> Add Project</button>
                         </div>
+
+                        <!-- Pipeline stage overview bar -->
+                        <div class="pipeline-overview">
+                            <div v-for="stage in PROJECT_STAGES" :key="stage.key"
+                                 class="pipeline-stage-tile"
+                                 :class="{ 'pipeline-stage-tile--active': projectFilters.stage === stage.key }"
+                                 @click="projectFilters.stage = projectFilters.stage === stage.key ? '' : stage.key"
+                                 :style="projectFilters.stage === stage.key ? { borderColor: stage.color, background: stage.bg } : {}">
+                                <div class="pst-count" :style="projectFilters.stage === stage.key ? { color: stage.color } : {}">
+                                    {{ innovationProjects.filter(p => (p.current_stage || p.development_stage) === stage.key).length }}
+                                </div>
+                                <div class="pst-label">{{ stage.label }}</div>
+                                <div class="pst-dot" :style="{ background: stage.color }"></div>
+                            </div>
+                        </div>
+
                         <div class="filter-bar">
                             <select class="form-select" v-model="projectFilters.research_line_id">
                                 <option value="">All Lines</option>
@@ -1693,40 +1750,130 @@
                                 <option value="Dispositivo">Dispositivo</option>
                                 <option value="Salud Digital">Salud Digital</option>
                                 <option value="IA / ML">IA / ML</option>
-                                <option value="Tecnología Quirúrgica">Tecnología Quirúrgica</option>
+                                <option value="Tecnologia Quirurgica">Tecnologia Quirurgica</option>
                             </select>
-                            <input type="text" class="form-control" v-model="projectFilters.search" placeholder="Search projects...">
+                            <select class="form-select" v-model="projectFilters.funding_status">
+                                <option value="">All Funding</option>
+                                <option value="not_applicable">N/A</option>
+                                <option value="seeking">Seeking Funding</option>
+                                <option value="applied">Applied</option>
+                                <option value="funded">Funded ✓</option>
+                            </select>
+                            <input type="text" class="form-control" v-model="projectFilters.search" placeholder="Search title, description or keyword...">
                         </div>
-                        <div class="innovation-projects-grid">
-                            <div v-for="project in filteredProjects" :key="project.id" class="innovation-card">
-                                <div class="innovation-category" :class="project.category.toLowerCase().replace(' ', '-')">{{ project.category }}</div>
-                                <h3 class="innovation-title">{{ project.title }}</h3>
-                                <div class="innovation-stage"><span class="stage-badge">{{ project.development_stage }}</span></div>
-                                <p class="innovation-description">{{ project.description }}</p>
-                                <div class="innovation-research-line"><i class="fas fa-flask"></i><span>{{ getResearchLineName(project.research_line_id) }}</span></div>
-                                <div class="innovation-needs" v-if="project.partner_needs && project.partner_needs.length">
-                                    <div class="needs-label">Necesidades del Socio:</div>
-                                    <div class="needs-tags">
-                                        <span v-for="need in project.partner_needs" :key="need" class="need-tag">{{ need }}</span>
+
+                        <div class="inno-projects-grid">
+                            <div v-for="project in filteredProjects" :key="project.id"
+                                 class="inno-card"
+                                 :style="{ '--stage-color': getStageConfig(project.current_stage || project.development_stage).color, '--stage-bg': getStageConfig(project.current_stage || project.development_stage).bg }">
+
+                                <!-- Stage-colored left border accent -->
+                                <div class="inno-card-bar"></div>
+
+                                <!-- Top row: category badge + actions -->
+                                <div class="inno-card-top">
+                                    <span class="inno-cat-badge" :class="'inno-cat--' + (project.category || '').toLowerCase().replace(/[^a-z]/g, '-')">
+                                        {{ project.category }}
+                                    </span>
+                                    <div class="inno-card-actions">
+                                        <button class="inno-action-btn" @click="editProject(project)" v-if="hasPermission('research_lines', 'update')" title="Edit"><i class="fas fa-edit"></i></button>
+                                        <button class="inno-action-btn inno-action-btn--danger" @click="deleteInnovationProject(project)" v-if="hasPermission('research_lines', 'delete')" title="Delete"><i class="fas fa-trash"></i></button>
                                     </div>
                                 </div>
-                                <div v-if="project.lead_investigator_id" class="innovation-lead">
-                                    <i class="fas fa-user-md"></i>
-                                    <span>{{ getStaffName(project.lead_investigator_id) }}</span>
-                                    <span class="innovation-lead-role">Project Lead</span>
+
+                                <!-- Title -->
+                                <h3 class="inno-card-title">{{ project.title }}</h3>
+
+                                <!-- Stage pipeline track -->
+                                <div class="inno-stage-track">
+                                    <div v-for="s in PROJECT_STAGES" :key="s.key"
+                                         class="inno-stage-node"
+                                         :class="{
+                                           'inno-stage-node--done': s.step < getStageConfig(project.current_stage || project.development_stage).step,
+                                           'inno-stage-node--current': s.key === (project.current_stage || project.development_stage),
+                                           'inno-stage-node--future': s.step > getStageConfig(project.current_stage || project.development_stage).step
+                                         }"
+                                         :style="s.key === (project.current_stage || project.development_stage) ? { background: s.color, borderColor: s.color } : {}"
+                                         :title="s.label">
+                                        <i class="fas" :class="s.key === (project.current_stage || project.development_stage) ? s.icon : 'fa-check'" v-if="s.step <= getStageConfig(project.current_stage || project.development_stage).step"></i>
+                                    </div>
+                                    <span class="inno-stage-label" :style="{ color: 'var(--stage-color)' }">
+                                        <i class="fas" :class="getStageConfig(project.current_stage || project.development_stage).icon"></i>
+                                        {{ project.current_stage || project.development_stage }}
+                                    </span>
                                 </div>
-                                <div class="innovation-actions">
-                                    <button class="btn-pill btn-pill-edit" @click="editProject(project)" v-if="hasPermission('research_lines', 'update')"><i class="fas fa-edit"></i> Edit</button>
-                                    <button class="btn-pill btn-pill-delete" @click="deleteInnovationProject(project)" v-if="hasPermission('research_lines', 'delete')"><i class="fas fa-trash"></i> Delete</button>
+
+                                <!-- Description -->
+                                <p class="inno-card-description" v-if="project.description">{{ project.description }}</p>
+
+                                <!-- Research line + funding badge row -->
+                                <div class="inno-meta-row">
+                                    <span class="inno-line-badge"><i class="fas fa-flask"></i> {{ getResearchLineName(project.research_line_id) }}</span>
+                                    <span v-if="project.funding_status && project.funding_status !== 'not_applicable'"
+                                          class="inno-funding-badge"
+                                          :class="'inno-funding--' + project.funding_status">
+                                        <i class="fas" :class="{ 'fa-search-dollar': project.funding_status === 'seeking', 'fa-file-alt': project.funding_status === 'applied', 'fa-check-circle': project.funding_status === 'funded' }"></i>
+                                        {{ { seeking: 'Seeking Funding', applied: 'Applied', funded: 'Funded' }[project.funding_status] }}
+                                    </span>
                                 </div>
-                            </div>
+
+                                <!-- Team section -->
+                                <div class="inno-team-section" v-if="project.lead_investigator_id || (project.co_investigators && project.co_investigators.length)">
+                                    <div class="inno-team-label">EQUIPO</div>
+                                    <div class="inno-team-members">
+                                        <div v-if="project.lead_investigator_id" class="inno-team-member">
+                                            <div class="inno-member-avatar inno-member-avatar--lead">
+                                                {{ getStaffName(project.lead_investigator_id).split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }}
+                                            </div>
+                                            <div class="inno-member-info">
+                                                <span class="inno-member-name">{{ getStaffName(project.lead_investigator_id) }}</span>
+                                                <span class="inno-member-role">PI / Lead</span>
+                                            </div>
+                                        </div>
+                                        <div v-for="coId in (project.co_investigators || []).slice(0,3)" :key="coId" class="inno-team-member">
+                                            <div class="inno-member-avatar">
+                                                {{ getStaffName(coId).split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }}
+                                            </div>
+                                            <div class="inno-member-info">
+                                                <span class="inno-member-name">{{ getStaffName(coId) }}</span>
+                                                <span class="inno-member-role">Co-I</span>
+                                            </div>
+                                        </div>
+                                        <div v-if="(project.co_investigators || []).length > 3" class="inno-member-overflow">
+                                            +{{ project.co_investigators.length - 3 }} more
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Partner section — conditional on partner_found -->
+                                <div class="inno-partner-section" v-if="project.partner_found && project.partner_name">
+                                    <div class="inno-partner-found">
+                                        <i class="fas fa-handshake"></i>
+                                        <span class="inno-partner-found-label">Partner:</span>
+                                        <span class="inno-partner-name">{{ project.partner_name }}</span>
+                                    </div>
+                                </div>
+                                <div class="inno-needs-section" v-else-if="project.partner_needs && project.partner_needs.length">
+                                    <div class="inno-needs-label"><i class="fas fa-search"></i> Seeking partner for:</div>
+                                    <div class="inno-needs-chips">
+                                        <span v-for="need in project.partner_needs" :key="need" class="inno-need-chip">{{ need }}</span>
+                                    </div>
+                                </div>
+
+                                <!-- Keywords -->
+                                <div class="inno-keywords" v-if="project.keywords && project.keywords.length">
+                                    <span v-for="kw in project.keywords" :key="kw" class="inno-kw-chip">{{ kw }}</span>
+                                </div>
+
+                            </div><!-- /inno-card -->
+
                             <div v-if="filteredProjects.length === 0" class="col-span-full empty-state">
                                 <i class="fas fa-microscope empty-state-icon"></i>
                                 <div class="empty-state-title">No innovation projects found</div>
-                                <div class="empty-state-description">Innovation projects showcase your department's cutting-edge research</div>
+                                <div class="empty-state-description">Innovation projects track ideas from inception through funding to clinical implementation</div>
                                 <button class="btn btn-primary btn-sm" @click="showAddProjectModal" v-if="hasPermission('research_lines', 'create')"><i class="fas fa-plus"></i> Add First Project</button>
                             </div>
-                        </div>
+                        </div><!-- /grid -->
                     </div>
                 </div>
 
@@ -3647,38 +3794,45 @@
                 <div class="modal-header">
                     <div class="modal-title">
                         <i class="fas fa-microscope"></i>
-                        {{ innovationProjectModal.mode === 'add' ? 'Add Innovation Project' : 'Edit Innovation Project' }}
+                        {{ innovationProjectModal.mode === 'add' ? 'New Innovation Project' : 'Edit Innovation Project' }}
                     </div>
                     <button class="modal-close" @click="innovationProjectModal.show = false"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
-                    <div v-if="innovationProjectModal.mode === 'edit'" class="modal-edit-context">
-                        <i class="fas fa-microscope"></i>
-                        <span>Editing: <strong>{{ innovationProjectModal.form.title }}</strong></span>
+
+                    <!-- Stage picker — visual pipeline selector at top of modal -->
+                    <div class="ipm-stage-picker">
+                        <div class="ipm-stage-picker-label">Development Stage</div>
+                        <div class="ipm-stage-options">
+                            <button v-for="s in PROJECT_STAGES" :key="s.key"
+                                    class="ipm-stage-btn"
+                                    :class="{ 'ipm-stage-btn--active': innovationProjectModal.form.current_stage === s.key }"
+                                    :style="innovationProjectModal.form.current_stage === s.key ? { background: s.bg, borderColor: s.color, color: s.color } : {}"
+                                    @click="innovationProjectModal.form.current_stage = s.key"
+                                    type="button">
+                                <i class="fas" :class="s.icon"></i>
+                                <span>{{ s.label }}</span>
+                            </button>
+                        </div>
                     </div>
+
                     <div class="grid grid-cols-2 gap-4">
+                        <!-- Title -->
                         <div class="form-group col-span-2" :class="{ 'has-error': fieldErrors.project?.title }">
                             <label class="form-label">Project Title *</label>
                             <input type="text" class="form-control" v-model="innovationProjectModal.form.title"
                                    required @input="clearFieldError('project', 'title')"
                                    :class="{ 'is-invalid': fieldErrors.project?.title }"
-                                   placeholder="e.g. Sistema de monitorizacion remota para pacientes EPOC">
-                            <small v-if="fieldErrors.project?.title" class="error-text">
-                                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.project.title }}
-                            </small>
+                                   placeholder="e.g. Sistema de monitorización remota para pacientes EPOC">
+                            <small v-if="fieldErrors.project?.title" class="error-text"><i class="fas fa-exclamation-circle"></i> {{ fieldErrors.project.title }}</small>
                         </div>
-                        <div class="form-group col-span-2">
-                            <label class="form-label">Description</label>
-                            <textarea class="form-control" v-model="innovationProjectModal.form.description" rows="3"
-                                      placeholder="Brief description of the project, objectives and expected impact..."></textarea>
-                        </div>
+
+                        <!-- Research line + category -->
                         <div class="form-group">
                             <label class="form-label">Research Line *</label>
                             <select class="form-select" v-model="innovationProjectModal.form.research_line_id" required>
                                 <option value="">Select Research Line</option>
-                                <option v-for="line in researchLines" :key="line.id" :value="line.id">
-                                    L{{ line.line_number }}: {{ line.research_line_name || line.name }}
-                                </option>
+                                <option v-for="line in researchLines" :key="line.id" :value="line.id">L{{ line.line_number }}: {{ line.research_line_name || line.name }}</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -3691,44 +3845,92 @@
                                 <option value="Tecnologia Quirurgica">Tecnologia Quirurgica</option>
                             </select>
                         </div>
+
+                        <!-- Description -->
+                        <div class="form-group col-span-2">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" v-model="innovationProjectModal.form.description" rows="3"
+                                      placeholder="Brief description of the project, objectives and expected clinical impact..."></textarea>
+                        </div>
+
+                        <!-- Clinical rationale -->
+                        <div class="form-group col-span-2">
+                            <label class="form-label">Clinical Rationale <span class="form-hint">Why does this problem matter clinically?</span></label>
+                            <textarea class="form-control" v-model="innovationProjectModal.form.clinical_rationale" rows="2"
+                                      placeholder="Describe the clinical unmet need or problem this project addresses..."></textarea>
+                        </div>
+
+                        <!-- Keywords -->
+                        <div class="form-group col-span-2">
+                            <label class="form-label">Keywords <span class="form-hint">comma-separated — will display as tags</span></label>
+                            <input type="text" class="form-control" v-model="innovationProjectModal.form.keywordsInput"
+                                   placeholder="e.g. EPOC, sensor portátil, machine learning, exacerbación">
+                            <small class="form-help">Keywords make projects discoverable through search</small>
+                        </div>
+
+                        <!-- Team: Lead + Co-investigators -->
                         <div class="form-group">
-                            <label class="form-label">Development Stage *</label>
-                            <select class="form-select" v-model="innovationProjectModal.form.current_stage" required>
-                                <option value="">Select Stage</option>
-                                <option value="Idea">Idea</option>
-                                <option value="Proof of Concept">Proof of Concept</option>
-                                <option value="Prototype">Prototype</option>
-                                <option value="Pilot">Pilot</option>
-                                <option value="Validation">Validation</option>
-                                <option value="Scale-up">Scale-up</option>
-                                <option value="Commercialized">Commercialized</option>
+                            <label class="form-label">Project Lead (PI)</label>
+                            <select class="form-select" v-model="innovationProjectModal.form.lead_investigator_id">
+                                <option value="">Select Project Lead</option>
+                                <option v-for="staff in availablePhysicians" :key="staff.id" :value="staff.id">{{ staff.full_name }}</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Project Lead</label>
-                            <select class="form-select" v-model="innovationProjectModal.form.lead_investigator_id">
-                                <option value="">Select Project Lead</option>
-                                <option v-for="staff in availablePhysicians" :key="staff.id" :value="staff.id">
-                                    {{ staff.full_name }}
-                                </option>
+                            <label class="form-label">Funding Status</label>
+                            <select class="form-select" v-model="innovationProjectModal.form.funding_status">
+                                <option value="not_applicable">N/A</option>
+                                <option value="seeking">Seeking Funding</option>
+                                <option value="applied">Applied</option>
+                                <option value="funded">Funded ✓</option>
                             </select>
                         </div>
                         <div class="form-group col-span-2">
-                            <label class="form-label">Partner Needs <span class="form-hint">(select all that apply)</span></label>
-                            <div class="partner-needs-grid">
-                                <label v-for="need in availablePartnerNeeds" :key="need" class="need-checkbox"
-                                       :class="{ 'need-selected': innovationProjectModal.form.partner_needs && innovationProjectModal.form.partner_needs.includes(need) }">
-                                    <input type="checkbox"
-                                           :value="need"
-                                           :checked="innovationProjectModal.form.partner_needs && innovationProjectModal.form.partner_needs.includes(need)"
-                                           @change="togglePartnerNeed(need)"
-                                           class="hidden">
-                                    <span>{{ need }}</span>
+                            <label class="form-label">Co-Investigators <span class="form-hint">Select all team members</span></label>
+                            <div class="multi-investigator-grid">
+                                <label v-for="staff in availablePhysicians" :key="staff.id" class="investigator-checkbox"
+                                       :class="{ 'investigator-selected': innovationProjectModal.form.co_investigators?.includes(staff.id) }">
+                                    <input type="checkbox" class="hidden" :value="staff.id"
+                                           :checked="innovationProjectModal.form.co_investigators?.includes(staff.id)"
+                                           @change="toggleProjectCoInvestigator(staff.id)">
+                                    <span>{{ staff.full_name }}</span>
                                 </label>
                             </div>
                         </div>
-                    </div>
-                </div>
+
+                        <!-- Partner section -->
+                        <div class="form-group col-span-2">
+                            <div class="ipm-partner-header">
+                                <label class="form-label" style="margin:0">Partnership</label>
+                                <label class="ipm-partner-toggle">
+                                    <input type="checkbox" v-model="innovationProjectModal.form.partner_found">
+                                    <span class="ipm-partner-toggle-track" :class="{ 'ipm-partner-toggle-track--on': innovationProjectModal.form.partner_found }"></span>
+                                    <span class="ipm-partner-toggle-label">Partner found</span>
+                                </label>
+                            </div>
+                            <!-- Partner found: show partner name -->
+                            <div v-if="innovationProjectModal.form.partner_found" class="ipm-partner-found-row">
+                                <i class="fas fa-handshake"></i>
+                                <input type="text" class="form-control" v-model="innovationProjectModal.form.partner_name"
+                                       placeholder="Partner organisation name...">
+                            </div>
+                            <!-- Partner not found: show needs checkboxes -->
+                            <div v-else>
+                                <small class="form-help" style="display:block;margin-bottom:8px">Select the types of partners you are seeking:</small>
+                                <div class="partner-needs-grid">
+                                    <label v-for="need in availablePartnerNeeds" :key="need" class="need-checkbox"
+                                           :class="{ 'need-selected': innovationProjectModal.form.partner_needs && innovationProjectModal.form.partner_needs.includes(need) }">
+                                        <input type="checkbox" class="hidden" :value="need"
+                                               :checked="innovationProjectModal.form.partner_needs && innovationProjectModal.form.partner_needs.includes(need)"
+                                               @change="togglePartnerNeed(need)">
+                                        <span>{{ need }}</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div><!-- /grid -->
+                </div><!-- /modal-body -->
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @click="innovationProjectModal.show = false">Cancel</button>
                     <button class="btn btn-primary" @click="saveInnovationProject" :disabled="saving">
