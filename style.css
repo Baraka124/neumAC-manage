@@ -4259,3 +4259,40 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .absence-overlap-warning div { display: flex; flex-direction: column; gap: 2px; }
 .absence-overlap-warning strong { font-weight: 600; }
 .absence-overlap-warning span { opacity: 0.85; font-size: 12px; }
+
+/* ============================================================
+   RESEARCH MODULE — NEW CLASSES (session 11)
+   ============================================================ */
+
+/* Research line card header: inactive badge + layout */
+.rline-header-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rline-inactive-badge { display: inline-flex; align-items: center; gap: 5px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-3); padding: 3px 10px; border-radius: 20px; font-family: var(--font-data); font-size: var(--t-10); font-weight: 600; letter-spacing: .04em; }
+.rline-inactive-badge i { font-size: 10px; opacity: .7; }
+.research-line-card:has(.rline-inactive-badge) { opacity: 0.7; }
+.research-line-card:has(.rline-inactive-badge):hover { opacity: 1; }
+
+/* Danger variant for delete icon button */
+.btn-icon--danger { color: var(--text-3) !important; }
+.btn-icon--danger:hover { background: rgba(239,68,68,0.1) !important; border-color: rgba(239,68,68,0.3) !important; color: var(--danger) !important; }
+
+/* Coordinator change button — compact inline */
+.coordinator-info { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.coordinator-change-btn { font-size: var(--t-11) !important; padding: 4px 10px !important; opacity: 0.7; flex-shrink: 0; }
+.coordinator-change-btn:hover { opacity: 1; }
+
+/* Trials table: PI column */
+.trial-pi-name { display: inline-flex; align-items: center; gap: 5px; font-size: var(--t-12); color: var(--text-2); }
+.trial-pi-name i { color: var(--blue); font-size: 11px; }
+.text-muted-sm { color: var(--text-3); font-size: var(--t-12); }
+
+/* Table: actions cell with multiple buttons side by side */
+.table-actions-cell { display: flex; gap: 4px; align-items: center; }
+
+/* Innovation card: lead investigator row */
+.innovation-lead { display: flex; align-items: center; gap: 8px; font-size: var(--t-12); color: var(--text-2); padding: 8px 0 6px; border-top: 1px solid var(--border); margin-top: 4px; }
+.innovation-lead i { color: var(--blue); font-size: 12px; flex-shrink: 0; }
+.innovation-lead span:first-of-type { font-weight: 600; color: var(--text-1); flex: 1; }
+.innovation-lead-role { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; letter-spacing: .05em; color: var(--blue); background: var(--blue-lt); padding: 2px 8px; border-radius: 20px; text-transform: uppercase; flex-shrink: 0; }
+
+/* Innovation: delete button in actions row */
+.innovation-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 6px; }
