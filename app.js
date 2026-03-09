@@ -689,7 +689,8 @@ document.addEventListener('DOMContentLoaded', () => {
             this.getAllInnovationProjects(), this.getResearchLines(), this.getRotations()
           ])
           
-          const linesCoordinated = performance.filter(l => l.coordinator === staffId)
+          // FIX 1: Use researchLines (UUID match) not performance (name string) for coordinator detection
+          const linesCoordinated = researchLines.filter(l => l.coordinator_id === staffId)
           const trialsAsPI = allTrials.filter(t => t.principal_investigator_id === staffId)
           const linesAsPI = [...new Set(trialsAsPI.map(t => t.research_line_id))].map(lineId => researchLines.find(l => l.id === lineId)).filter(Boolean)
           const trialsAsCoI = allTrials.filter(t => t.co_investigators?.includes(staffId))
@@ -699,36 +700,58 @@ document.addEventListener('DOMContentLoaded', () => {
           const trialsAsSubI = allTrials.filter(t => t.sub_investigators?.includes(staffId))
           const linesAsSubI = [...new Set(trialsAsSubI.map(t => t.research_line_id))].map(lineId => researchLines.find(l => l.id === lineId)).filter(Boolean)
           
-          const allLineMap = new Map();
-          linesCoordinated.forEach(l => allLineMap.set(l.id, { ...l, role: 'Coordinator' }));
-          linesAsPI.forEach(l => allLineMap.set(l.id, { ...l, role: 'Principal Investigator' }));
-          linesAsCoI.forEach(l => allLineMap.set(l.id, { ...l, role: 'Co-Investigator' }));
-          linesAsLead.forEach(l => allLineMap.set(l.id, { ...l, role: 'Project Lead' }));
-          linesAsSubI.forEach(l => allLineMap.set(l.id, { ...l, role: 'Sub-Investigator' }));
+          // FIX 2: Build a roles-array map so a staff member can show multiple roles per line
+          const allLineRolesMap = new Map();
+          const addLineRole = (line, role) => {
+            const key = line.id;
+            if (!allLineRolesMap.has(key)) allLineRolesMap.set(key, { ...line, roles: [] });
+            allLineRolesMap.get(key).roles.push(role);
+          };
+          linesCoordinated.forEach(l => addLineRole(l, 'Coordinator'));
+          linesAsPI.forEach(l => addLineRole(l, 'Principal Investigator'));
+          linesAsCoI.forEach(l => addLineRole(l, 'Co-Investigator'));
+          linesAsLead.forEach(l => addLineRole(l, 'Project Lead'));
+          linesAsSubI.forEach(l => addLineRole(l, 'Sub-Investigator'));
           
-          const allResearchLines = Array.from(allLineMap.values()).map(l => ({
-            id: l.id, name: l.research_line_name || l.name, line_number: l.line_number,
-            role: l.role, trialsCount: l.stats?.totalTrials || 0, projectsCount: l.stats?.totalProjects || 0
-          }));
+          // Find matching perf data for counts
+          const perfMap = new Map(performance.map(p => [p.id, p]));
+          const allResearchLines = Array.from(allLineRolesMap.values()).map(l => {
+            const perf = perfMap.get(l.id);
+            return {
+              id: l.id, name: l.research_line_name || l.name, line_number: l.line_number,
+              roles: l.roles, role: l.roles[0], // primary role for badge colour
+              trialsCount: perf?.stats?.totalTrials || l.stats?.totalTrials || 0,
+              projectsCount: perf?.stats?.totalProjects || l.stats?.totalProjects || 0
+            };
+          });
           
           const byPhase = { 'Phase I': 0, 'Phase II': 0, 'Phase III': 0, 'Phase IV': 0 };
           trialsAsPI.forEach(t => { if (t.phase in byPhase) byPhase[t.phase]++ });
           const partnerNeeds = {};
           projectsAsLead.forEach(p => p.partner_needs?.forEach(n => { partnerNeeds[n] = (partnerNeeds[n] || 0) + 1 }));
           
+          // FIX 4: active count includes trials where staff is any role (PI or Co-I)
+          const allActiveTrials = new Set([
+            ...trialsAsPI.filter(t => ['Activo', 'Reclutando'].includes(t.status)).map(t => t.id),
+            ...trialsAsCoI.filter(t => ['Activo', 'Reclutando'].includes(t.status)).map(t => t.id)
+          ]);
+          
           return {
             allResearchLines,
-            researchLines: linesCoordinated.map(l => ({ id: l.id, name: l.name, line_number: l.line_number, role: 'Coordinator', trialsCount: l.stats?.totalTrials || 0, projectsCount: l.stats?.totalProjects || 0 })),
+            // FIX: expose coordinator info at top level for banner display
+            isCoordinator: linesCoordinated.length > 0,
+            coordinatorLines: linesCoordinated.map(l => ({ id: l.id, name: l.research_line_name || l.name, line_number: l.line_number })),
+            researchLines: linesCoordinated.map(l => ({ id: l.id, name: l.research_line_name || l.name, line_number: l.line_number, role: 'Coordinator', trialsCount: l.stats?.totalTrials || 0, projectsCount: l.stats?.totalProjects || 0 })),
             trials: {
               asPI: trialsAsPI.length, asCoI: trialsAsCoI.length, asSubI: trialsAsSubI.length,
-              active: trialsAsPI.filter(t => ['Activo', 'Reclutando'].includes(t.status)).length,
+              active: allActiveTrials.size,
               completed: trialsAsPI.filter(t => t.status === 'Completado').length, byPhase,
               list: [...trialsAsPI.slice(0, 3).map(t => ({ id: t.id, title: t.title, status: t.status, phase: t.phase, role: 'PI' })), ...trialsAsCoI.slice(0, 3).map(t => ({ id: t.id, title: t.title, status: t.status, phase: t.phase, role: 'Co-I' })), ...trialsAsSubI.slice(0, 3).map(t => ({ id: t.id, title: t.title, status: t.status, phase: t.phase, role: 'Sub-I' }))].slice(0, 8)
             },
             projects: {
               asLead: projectsAsLead.length,
-              byStage: projectsAsLead.reduce((acc, p) => { acc[p.current_stage] = (acc[p.current_stage] || 0) + 1; return acc }, {}),
-              list: projectsAsLead.slice(0, 5).map(p => ({ id: p.id, title: p.title, current_stage: p.current_stage, development_stage: p.development_stage, role: 'Lead' }))
+              byStage: projectsAsLead.reduce((acc, p) => { const stage = p.current_stage || p.development_stage; acc[stage] = (acc[stage] || 0) + 1; return acc }, {}),
+              list: projectsAsLead.slice(0, 5).map(p => ({ id: p.id, title: p.title, current_stage: p.current_stage || p.development_stage, role: 'Lead' }))
             },
             publications: [],
             partnerNeeds: Object.entries(partnerNeeds).map(([name, count]) => ({ name, count }))
@@ -2152,8 +2175,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const projectFilters = reactive({ research_line_id: '', category: '', search: '' })
 
       const researchLineModal = reactive({ show: false, mode: 'add', form: { line_number: null, name: '', description: '', capabilities: 'Alcance y capacidades', sort_order: 0, active: true } })
-      const clinicalTrialModal = reactive({ show: false, mode: 'add', form: { protocol_id: '', title: '', research_line_id: '', phase: 'Phase III', status: 'Reclutando', description: '', inclusion_criteria: '', exclusion_criteria: '', principal_investigator_id: '', contact_email: '', featured_in_website: true, display_order: 0 } })
-      const innovationProjectModal = reactive({ show: false, mode: 'add', form: { title: '', category: 'Dispositivo', development_stage: 'En Desarrollo', description: '', research_line_id: '', lead_investigator_id: '', partner_needs: [], featured_in_website: true, display_order: 0 } })
+      const clinicalTrialModal = reactive({ show: false, mode: 'add', form: { protocol_id: '', title: '', research_line_id: '', phase: 'Phase III', status: 'Reclutando', description: '', inclusion_criteria: '', exclusion_criteria: '', principal_investigator_id: '', co_investigators: [], sub_investigators: [], contact_email: '', featured_in_website: true, display_order: 0, start_date: '', end_date: '' } })
+      const trialDetailModal = reactive({ show: false, trial: null })
+      const innovationProjectModal = reactive({ show: false, mode: 'add', form: { title: '', category: 'Dispositivo', current_stage: 'Idea', description: '', research_line_id: '', lead_investigator_id: '', partner_needs: [], featured_in_website: true, display_order: 0 } })
       const assignCoordinatorModal = reactive({ show: false, lineId: null, lineName: '', selectedCoordinatorId: '' })
 
       const getResearchLineName = (id) => { if (!id) return 'Not assigned'; const l = researchLines.value.find(l => l.id === id); return l ? (l.research_line_name || l.name) : 'Unknown' }
@@ -2191,14 +2215,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const loadClinicalTrials = async () => { try { clinicalTrials.value = await API.getAllClinicalTrials() } catch { } }
       const loadInnovationProjects = async () => { try { innovationProjects.value = await API.getAllInnovationProjects() } catch { } }
 
-      const showAddResearchLineModal = () => { clearAll('research'); researchLineModal.mode = 'add'; Object.assign(researchLineModal.form, { line_number: researchLines.value.length + 1, name: '', description: '', capabilities: 'Alcance y capacidades', sort_order: researchLines.value.length + 1, active: true }); researchLineModal.show = true }
-      const showAddTrialModal = () => { clinicalTrialModal.mode = 'add'; Object.assign(clinicalTrialModal.form, { protocol_id: `HUAC-${Date.now().toString().slice(-6)}`, title: '', research_line_id: '', phase: 'Phase III', status: 'Reclutando', description: '', inclusion_criteria: '', exclusion_criteria: '', principal_investigator_id: '', contact_email: '', featured_in_website: true, display_order: clinicalTrials.value.length + 1 }); clinicalTrialModal.show = true }
-      const showAddProjectModal = () => { innovationProjectModal.mode = 'add'; Object.assign(innovationProjectModal.form, { title: '', category: 'Dispositivo', development_stage: 'En Desarrollo', description: '', research_line_id: '', lead_investigator_id: '', partner_needs: [], featured_in_website: true, display_order: innovationProjects.value.length + 1 }); innovationProjectModal.show = true }
+      const showAddResearchLineModal = () => { clearAll('research'); researchLineModal.mode = 'add'; Object.assign(researchLineModal.form, { line_number: researchLines.value.length + 1, name: '', description: '', capabilities: '', sort_order: researchLines.value.length + 1, active: true, keywords: [], keywordsInput: '' }); researchLineModal.show = true }
+      const showAddTrialModal = () => { clinicalTrialModal.mode = 'add'; Object.assign(clinicalTrialModal.form, { protocol_id: `HUAC-${Date.now().toString().slice(-6)}`, title: '', research_line_id: '', phase: 'Phase III', status: 'Reclutando', description: '', inclusion_criteria: '', exclusion_criteria: '', principal_investigator_id: '', co_investigators: [], sub_investigators: [], contact_email: '', featured_in_website: true, display_order: clinicalTrials.value.length + 1, start_date: '', end_date: '' }); clinicalTrialModal.show = true }
+      const showAddProjectModal = () => { innovationProjectModal.mode = 'add'; Object.assign(innovationProjectModal.form, { title: '', category: 'Dispositivo', current_stage: 'Idea', description: '', research_line_id: '', lead_investigator_id: '', partner_needs: [], featured_in_website: true, display_order: innovationProjects.value.length + 1 }); innovationProjectModal.show = true }
 
       const openAssignCoordinatorModal = (line) => { assignCoordinatorModal.lineId = line.id; assignCoordinatorModal.lineName = line.research_line_name || line.name; assignCoordinatorModal.selectedCoordinatorId = line.coordinator_id || ''; assignCoordinatorModal.show = true }
-      const editResearchLine = (l) => { researchLineModal.mode = 'edit'; researchLineModal.form = { ...l }; researchLineModal.show = true }
-      const editTrial = (t) => { clinicalTrialModal.mode = 'edit'; clinicalTrialModal.form = { ...t }; clinicalTrialModal.show = true }
-      const editProject = (p) => { innovationProjectModal.mode = 'edit'; innovationProjectModal.form = { ...p }; innovationProjectModal.show = true }
+      const editResearchLine = (l) => { researchLineModal.mode = 'edit'; researchLineModal.form = { ...l, keywordsInput: Array.isArray(l.keywords) ? l.keywords.join(', ') : (l.keywordsInput || '') }; researchLineModal.show = true }
+      const editTrial = (t) => { clinicalTrialModal.mode = 'edit'; clinicalTrialModal.form = { ...t, co_investigators: Array.isArray(t.co_investigators) ? [...t.co_investigators] : (t.co_investigator_id ? [t.co_investigator_id] : []), sub_investigators: Array.isArray(t.sub_investigators) ? [...t.sub_investigators] : (t.sub_investigator_id ? [t.sub_investigator_id] : []) }; clinicalTrialModal.show = true }
+      const editProject = (p) => { innovationProjectModal.mode = 'edit'; innovationProjectModal.form = { ...p, current_stage: p.current_stage || p.development_stage || 'Idea', partner_needs: Array.isArray(p.partner_needs) ? [...p.partner_needs] : [] }; innovationProjectModal.show = true }
+      const viewTrial = (t) => { trialDetailModal.trial = t; trialDetailModal.show = true }
 
       const saveResearchLine = async (saving) => {
         // Normalise: HTML form uses research_line_name, JS defaults use name — backend DB stores 'name'
@@ -2207,8 +2232,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!lineName) { showToast('Validation Error', 'Research line name is required', 'error'); return }
         saving.value = true
         try {
-          const payload = { ...f, name: lineName }
+          // FIX 14: Parse keywords from comma-separated string into array
+          const keywords = f.keywordsInput ? f.keywordsInput.split(',').map(k => k.trim()).filter(Boolean) : (Array.isArray(f.keywords) ? f.keywords : [])
+          // FIX 15: Never send the placeholder text as capabilities
+          const capabilities = (f.capabilities && f.capabilities !== 'Alcance y capacidades') ? f.capabilities : ''
+          const payload = { ...f, name: lineName, keywords, capabilities }
           delete payload.research_line_name // backend only knows 'name'
+          delete payload.keywordsInput
           if (researchLineModal.mode === 'add') { researchLines.value.unshift(await API.createResearchLine(payload)); showToast('Success', 'Research line created', 'success') }
           else { const result = await API.updateResearchLine(f.id, payload); const idx = researchLines.value.findIndex(l => l.id === result.id); if (idx !== -1) researchLines.value[idx] = result; showToast('Success', 'Research line updated', 'success') }
           researchLineModal.show = false; await loadResearchLines(); loadAnalyticsSummary()
@@ -2217,22 +2247,33 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const saveClinicalTrial = async (saving) => {
+        const f = clinicalTrialModal.form
+        // FIX 8: date relationship validation
+        if (f.start_date && f.end_date && f.end_date < f.start_date) { showToast('Validation Error', 'End date cannot be before start date', 'error'); return }
         saving.value = true
         try {
-          if (clinicalTrialModal.mode === 'add') { clinicalTrials.value.unshift(await API.createClinicalTrial(clinicalTrialModal.form)); showToast('Success', 'Clinical trial created', 'success') }
-          else { const result = await API.updateClinicalTrial(clinicalTrialModal.form.id, clinicalTrialModal.form); const idx = clinicalTrials.value.findIndex(t => t.id === result.id); if (idx !== -1) clinicalTrials.value[idx] = result; showToast('Success', 'Clinical trial updated', 'success') }
+          // FIX 5: co_investigators is array — send as-is (already array from modal state)
+          const payload = { ...f }
+          delete payload.co_investigator_id // legacy field — not in schema
+          delete payload.sub_investigator_id // legacy field
+          if (clinicalTrialModal.mode === 'add') { clinicalTrials.value.unshift(await API.createClinicalTrial(payload)); showToast('Success', 'Clinical trial created', 'success') }
+          else { const result = await API.updateClinicalTrial(payload.id, payload); const idx = clinicalTrials.value.findIndex(t => t.id === result.id); if (idx !== -1) clinicalTrials.value[idx] = result; showToast('Success', 'Clinical trial updated', 'success') }
           clinicalTrialModal.show = false; await loadClinicalTrials(); loadAnalyticsSummary()
-        } catch (e) { showToast('Error', e.message || 'Failed to save trial', 'error') }
+        } catch (e) { showToast('Error', e?.message || 'Failed to save trial', 'error') }
         finally { saving.value = false }
       }
 
       const saveInnovationProject = async (saving) => {
         saving.value = true
         try {
-          if (innovationProjectModal.mode === 'add') { innovationProjects.value.unshift(await API.createInnovationProject(innovationProjectModal.form)); showToast('Success', 'Innovation project created', 'success') }
-          else { const result = await API.updateInnovationProject(innovationProjectModal.form.id, innovationProjectModal.form); const idx = innovationProjects.value.findIndex(p => p.id === result.id); if (idx !== -1) innovationProjects.value[idx] = result; showToast('Success', 'Innovation project updated', 'success') }
+          const payload = { ...innovationProjectModal.form }
+          // FIX 10: backend uses current_stage — remove stale development_stage alias
+          if (!payload.current_stage && payload.development_stage) payload.current_stage = payload.development_stage
+          delete payload.development_stage
+          if (innovationProjectModal.mode === 'add') { innovationProjects.value.unshift(await API.createInnovationProject(payload)); showToast('Success', 'Innovation project created', 'success') }
+          else { const result = await API.updateInnovationProject(payload.id, payload); const idx = innovationProjects.value.findIndex(p => p.id === result.id); if (idx !== -1) innovationProjects.value[idx] = result; showToast('Success', 'Innovation project updated', 'success') }
           innovationProjectModal.show = false; await loadInnovationProjects(); loadAnalyticsSummary(); loadPartnerCollaborations()
-        } catch (e) { showToast('Error', e.message || 'Failed to save project', 'error') }
+        } catch (e) { showToast('Error', e?.message || 'Failed to save project', 'error') }
         finally { saving.value = false }
       }
 
@@ -2245,7 +2286,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const deleteClinicalTrial = (trial) => showConfirmation({ title: 'Delete Trial', message: `Delete "${trial.title}"?`, icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger', details: `Protocol: ${trial.protocol_id}`, onConfirm: async () => { await API.deleteClinicalTrial(trial.id); await loadClinicalTrials(); showToast('Success', 'Trial deleted', 'success'); loadAnalyticsSummary() } })
       const deleteInnovationProject = (project) => showConfirmation({ title: 'Delete Project', message: `Delete "${project.title}"?`, icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger', onConfirm: async () => { await API.deleteInnovationProject(project.id); await loadInnovationProjects(); showToast('Success', 'Project deleted', 'success'); loadAnalyticsSummary(); loadPartnerCollaborations() } })
 
-      return { researchLines, clinicalTrials, innovationProjects, researchLineFilters, trialFilters, projectFilters, researchLineModal, clinicalTrialModal, innovationProjectModal, assignCoordinatorModal, filteredResearchLines, filteredTrials, filteredTrialsAll, filteredProjects, trialTotalPages, getResearchLineName, getClinicianResearchLines, loadResearchLines, loadClinicalTrials, loadInnovationProjects, showAddResearchLineModal, showAddTrialModal, showAddProjectModal, openAssignCoordinatorModal, editResearchLine, editTrial, editProject, saveResearchLine, saveClinicalTrial, saveInnovationProject, saveCoordinatorAssignment, deleteResearchLine, deleteClinicalTrial, deleteInnovationProject }
+      return { researchLines, clinicalTrials, innovationProjects, researchLineFilters, trialFilters, projectFilters, researchLineModal, clinicalTrialModal, innovationProjectModal, assignCoordinatorModal, trialDetailModal, filteredResearchLines, filteredTrials, filteredTrialsAll, filteredProjects, trialTotalPages, getResearchLineName, getClinicianResearchLines, loadResearchLines, loadClinicalTrials, loadInnovationProjects, showAddResearchLineModal, showAddTrialModal, showAddProjectModal, openAssignCoordinatorModal, editResearchLine, editTrial, editProject, viewTrial, saveResearchLine, saveClinicalTrial, saveInnovationProject, saveCoordinatorAssignment, deleteResearchLine, deleteClinicalTrial, deleteInnovationProject }
     }
 
     // ============ 6.12 useAnalytics ============
@@ -2680,6 +2721,24 @@ document.addEventListener('DOMContentLoaded', () => {
           getPreviewStatusClass, getPreviewStatusText, updatePreview, requestFullDossier,
           getPhaseColor: Utils.getPhaseColor, getStageColor: Utils.getStageColor, formatPercentage: Utils.formatPercentage,
           availablePhysicians, availableResidents, availableAttendings, availableHeadsOfDepartment, availableReplacementStaff,
+          // FIX 11: Partner needs options with an "Other" escape hatch handled in template
+          availablePartnerNeeds: ['Financiación', 'Distribución', 'Fabricación', 'Software', 'Regulatorio', 'Ensayos clínicos', 'Licencia de tecnología', 'Co-desarrollo'],
+          togglePartnerNeed: (need) => {
+            const arr = researchOps.innovationProjectModal.form.partner_needs
+            const idx = arr.indexOf(need)
+            if (idx === -1) arr.push(need); else arr.splice(idx, 1)
+          },
+          // FIX 5: toggle helpers for co_investigators and sub_investigators arrays
+          toggleCoInvestigator: (id) => {
+            const arr = researchOps.clinicalTrialModal.form.co_investigators
+            const idx = arr.indexOf(id)
+            if (idx === -1) arr.push(id); else arr.splice(idx, 1)
+          },
+          toggleSubInvestigator: (id) => {
+            const arr = researchOps.clinicalTrialModal.form.sub_investigators
+            const idx = arr.indexOf(id)
+            if (idx === -1) arr.push(id); else arr.splice(idx, 1)
+          },
           saveMedicalStaff: () => staffOps.saveMedicalStaff(saving),
           saveDepartment: () => saveDepartment(saving),
           saveTrainingUnit: () => saveTrainingUnit(saving),
