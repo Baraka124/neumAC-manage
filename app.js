@@ -2604,7 +2604,7 @@ document.addEventListener('DOMContentLoaded', () => {
           departments, departmentFilters, departmentModal, filteredDepartments,
           getDepartmentName, getDepartmentUnits, getDepartmentStaffCount,
           loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment, viewDepartmentStaff,
-          trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, filteredTrainingUnits,
+          trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits,
           getUnitActiveRotationCount, loadTrainingUnits, showAddTrainingUnitModal,
           editTrainingUnit, deleteTrainingUnit, saveTrainingUnit,
           openUnitClinicians: (unit) => openUnitClinicians(unit, medicalStaff.value),
