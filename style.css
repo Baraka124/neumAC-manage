@@ -4196,3 +4196,66 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .pd-cap-label {
   font-size: 12px; font-weight: 500; color: rgba(255,255,255,.8);
 }
+
+
+/* ============ UNIT CAPACITY HINT (rotation modal) ============ */
+.unit-capacity-hint {
+  margin-top: 6px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  border: 1px solid var(--border-1);
+  background: var(--surface-1);
+  color: var(--text-2);
+}
+.unit-capacity-hint--warn {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #92400e;
+}
+.unit-capacity-hint--full {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #991b1b;
+}
+.ucap-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+.ucap-row i { margin-right: 4px; }
+.ucap-pct { font-family: var(--font-mono); font-size: 11px; opacity: 0.75; }
+.ucap-bar-track {
+  height: 4px;
+  background: var(--border-1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.ucap-bar-fill {
+  height: 100%;
+  background: var(--ok);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+.unit-capacity-hint--warn .ucap-bar-fill { background: var(--warn); }
+.unit-capacity-hint--full .ucap-bar-fill { background: var(--danger); }
+
+/* ============ ABSENCE OVERLAP WARNING ============ */
+.absence-overlap-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  background: rgba(245, 158, 11, 0.09);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #92400e;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.absence-overlap-warning i { margin-top: 2px; flex-shrink: 0; }
+.absence-overlap-warning div { display: flex; flex-direction: column; gap: 2px; }
+.absence-overlap-warning strong { font-weight: 600; }
+.absence-overlap-warning span { opacity: 0.85; font-size: 12px; }
