@@ -3167,3 +3167,272 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 
 /* Remove old chip styles */
 .staff-avatar-chip { display: none; }
+
+
+/* ================================================================
+   WEEK VIEW  —  Real dates, meaningful content
+================================================================ */
+
+.week-view { display: flex; flex-direction: column; }
+
+/* Week navigator */
+.week-nav {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 18px; border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.week-nav-btn {
+  width: 32px; height: 32px; border-radius: var(--r-sm);
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-2); cursor: pointer; font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--t); flex-shrink: 0;
+}
+.week-nav-btn:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+.week-nav-label {
+  flex: 1; text-align: center; font-size: 13px; font-weight: 600;
+  color: var(--text-1); display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.week-nav-label i { color: var(--blue); font-size: 12px; }
+.week-nav-today {
+  background: var(--blue-lt); border: 1px solid var(--blue-mid); color: var(--blue);
+  padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: var(--t);
+}
+.week-nav-today:hover { background: var(--blue); color: white; }
+
+/* Grid */
+.week-grid {
+  display: grid;
+  grid-template-columns: 200px repeat(7, 1fr);
+  overflow-x: auto;
+}
+
+/* Header cells */
+.week-cell--header {
+  background: var(--ink); padding: 10px 8px;
+  font-family: var(--font-data); text-align: center;
+  border-right: 1px solid rgba(255,255,255,.05);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+}
+.week-cell--header.week-cell--name {
+  text-align: left; align-items: flex-start;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; color: rgba(255,255,255,.4); padding: 10px 14px;
+}
+.week-cell--today.week-cell--header { background: var(--ink-2); }
+
+.week-hdr-day {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: rgba(255,255,255,.35);
+}
+.week-hdr-num {
+  font-family: var(--font-display); font-size: 20px; font-weight: 400;
+  font-style: italic; color: rgba(255,255,255,.6); line-height: 1;
+}
+.week-hdr-num--today {
+  color: var(--blue); text-shadow: 0 0 16px rgba(45,122,255,.5);
+}
+
+/* Data cells */
+.week-cell {
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  min-height: 60px; position: relative;
+}
+.week-cell:last-child { border-right: none; }
+.week-cell--name {
+  background: var(--surface); padding: 10px 12px;
+  border-right: 2px solid var(--border-2);
+}
+.week-cell--day {
+  padding: 5px 4px; background: var(--surface);
+  display: flex; flex-direction: column; gap: 3px;
+  transition: background var(--t);
+}
+.week-cell--today.week-cell--day { background: rgba(45,122,255,.04); }
+.week-cell--day:hover { background: rgba(45,122,255,.06); }
+
+/* Resident identity in week grid */
+.week-resident-who { display: flex; align-items: center; gap: 8px; }
+.week-resident-icon {
+  width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+  background: rgba(13,158,110,.1); border: 1px solid rgba(13,158,110,.2);
+  color: var(--ok); display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+}
+.week-resident-name { font-size: 12px; font-weight: 600; color: var(--text-1); white-space: nowrap; }
+.week-resident-year { font-family: var(--font-data); font-size: 10px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+
+/* Rotation block inside day cell */
+.week-block {
+  width: 100%; border-radius: 4px; padding: 3px 6px;
+  font-size: 10px; font-weight: 600; cursor: pointer;
+  transition: var(--t); position: relative;
+  display: flex; align-items: center; gap: 4px;
+  min-height: 22px; overflow: hidden; white-space: nowrap;
+}
+.week-block:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.week-block-unit { flex: 1; overflow: hidden; text-overflow: ellipsis; font-size: 10px; }
+.week-block-marker { font-size: 8px; flex-shrink: 0; opacity: .8; }
+.week-block-marker--start { color: inherit; }
+.week-block-marker--end   { color: inherit; }
+
+/* Block status colours — warm clinical teal-green for active */
+.week-block--active    { background: rgba(10,143,110,.18); border-left: 2px solid #0a8f6e; color: #065f46; }
+.week-block--scheduled { background: var(--blue-lt); border-left: 2px solid var(--blue-mid); color: var(--blue); }
+.week-block--completed { background: var(--surface-3); border-left: 2px solid var(--border-2); color: var(--text-3); }
+
+/* First/last day visual markers */
+.week-block--first { border-radius: 4px 4px 4px 4px; }
+.week-block--last  { }
+
+/* Empty today marker */
+.week-empty-today {
+  width: 100%; height: 3px; border-radius: 2px;
+  background: rgba(45,122,255,.15); margin: auto 0;
+}
+
+.week-empty-state {
+  grid-column: 1 / -1; padding: 32px;
+  text-align: center; color: var(--text-3); font-size: 13px;
+}
+
+/* ================================================================
+   ROTATION ORBS — warm teal-green for active (not pure blue/green)
+================================================================ */
+.rot-orb--active {
+  background: #0a8f6e;
+  border: none; color: white;
+  box-shadow: 0 0 0 3px rgba(10,143,110,.25), 0 3px 10px rgba(10,143,110,.3);
+  animation: orb-pulse-green 2.5s ease-in-out infinite;
+}
+@keyframes orb-pulse-green {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(10,143,110,.2), 0 3px 10px rgba(10,143,110,.25); }
+  50%       { box-shadow: 0 0 0 6px rgba(10,143,110,.1), 0 3px 14px rgba(10,143,110,.35); }
+}
+.src-dot { background: #0a8f6e; box-shadow: 0 0 5px rgba(10,143,110,.6); }
+
+/* ================================================================
+   ROTATION DETAIL SHEET  —  Read view, not a form
+================================================================ */
+.rot-detail-sheet {
+  position: fixed; top: 50%; right: 0; transform: translateY(-50%);
+  width: min(480px, 92vw); max-height: 90vh;
+  background: var(--surface); border-radius: var(--r-2xl) 0 0 var(--r-2xl);
+  box-shadow: -24px 0 80px rgba(0,0,0,.25);
+  display: flex; flex-direction: column;
+  z-index: 9100; overflow: hidden;
+  border-left: 1px solid var(--border);
+}
+
+/* Status bar at top */
+.rds-header { position: relative; flex-shrink: 0; }
+.rds-status-bar { height: 4px; }
+.rds-bar--active    { background: #0a8f6e; box-shadow: 0 0 20px rgba(10,143,110,.4); }
+.rds-bar--scheduled { background: var(--blue); box-shadow: 0 0 20px var(--blue-glow); }
+.rds-bar--completed { background: var(--neutral); }
+.rds-bar--cancelled { background: var(--danger); }
+
+.rds-header-content {
+  padding: 20px 24px 16px; display: flex; align-items: flex-start;
+  gap: 12px; border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, var(--surface), var(--surface-2));
+}
+.rds-title-block { flex: 1; min-width: 0; }
+.rds-unit {
+  font-family: var(--font-display); font-size: 22px; font-style: italic;
+  color: var(--text-1); line-height: 1.2; margin-bottom: 4px;
+}
+.rds-resident {
+  font-family: var(--font-data); font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--text-3);
+}
+
+.rds-body { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+/* Status badge */
+.rds-meta-row { display: flex; align-items: center; gap: 10px; }
+.rds-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 20px;
+  font-family: var(--font-data); font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.rds-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.rds-badge--active    { background: rgba(10,143,110,.12); color: #0a8f6e; border: 1px solid rgba(10,143,110,.25); }
+.rds-badge--scheduled { background: var(--blue-lt); color: var(--blue); border: 1px solid var(--blue-mid); }
+.rds-badge--done      { background: var(--neutral-lt); color: var(--neutral); border: 1px solid var(--neutral-mid); }
+.rds-badge--cancelled { background: var(--danger-lt); color: var(--danger); border: 1px solid var(--danger-mid); }
+.rds-category {
+  font-family: var(--font-data); font-size: 11px; font-weight: 600;
+  text-transform: capitalize; color: var(--text-3);
+}
+
+/* Duration span — visual timeline bar */
+.rds-span {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 14px 16px;
+}
+.rds-span-date { flex-shrink: 0; }
+.rds-span-date--end { text-align: right; }
+.rds-span-label {
+  font-family: var(--font-data); font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--text-4);
+  margin-bottom: 3px;
+}
+.rds-span-day { font-size: 12px; font-weight: 600; color: var(--text-1); white-space: nowrap; }
+.rds-span-line { flex: 1; min-width: 0; }
+.rds-span-track {
+  width: 100%; height: 5px; background: var(--border);
+  border-radius: 3px; overflow: hidden; margin-bottom: 5px;
+}
+.rds-span-fill {
+  height: 100%; border-radius: 3px; transition: width .6s ease;
+}
+.rds-fill--active    { background: linear-gradient(90deg, #0a8f6e, #0d9e6e); }
+.rds-fill--completed { background: var(--neutral-mid); }
+.rds-fill--scheduled { background: var(--blue-mid); }
+.rds-span-dur {
+  font-family: var(--font-data); font-size: 10px; font-weight: 600;
+  color: var(--text-3); text-align: center;
+}
+
+/* Remaining indicator */
+.rds-remaining {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: var(--r);
+  background: rgba(10,143,110,.08); border: 1px solid rgba(10,143,110,.18);
+  font-size: 13px; color: #0a8f6e; font-weight: 500;
+}
+.rds-remaining i { font-size: 13px; }
+.rds-remaining--scheduled {
+  background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue);
+}
+
+/* Data fields — reads like a record, not a form */
+.rds-fields {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); overflow: hidden;
+}
+.rds-field {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+}
+.rds-field:last-child { border-bottom: none; }
+.rds-field-key {
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em; color: var(--text-3);
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0; width: 130px; padding-top: 1px;
+}
+.rds-field-key i { color: var(--blue); font-size: 11px; width: 12px; }
+.rds-field-val { font-size: 13px; font-weight: 500; color: var(--text-1); line-height: 1.4; }
+.rds-field-na  { color: var(--text-4); font-style: italic; }
+
+/* Footer */
+.rds-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px; border-top: 1px solid var(--border);
+  background: var(--surface-2); flex-shrink: 0;
+}
