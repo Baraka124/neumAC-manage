@@ -3765,3 +3765,408 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 
 /* ── Confirmation modal icon ─────────────────────────────────── */
 .confirm-icon-wrap { width: 38px !important; height: 38px !important; font-size: 14px !important; }
+
+
+/* ================================================================
+   SIDEBAR REBUILD — v5
+   Instrument: you know where you are. Icons recede. Names lead.
+================================================================ */
+
+/* Reset section backgrounds — no more box per section */
+.sidebar-section {
+  margin-bottom: 0 !important;
+  background: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+/* Section divider titles — visible but not dominant */
+.sidebar-section-title {
+  font-family: var(--font-data) !important;
+  font-size: 9px !important; font-weight: 800 !important;
+  text-transform: uppercase !important; letter-spacing: .18em !important;
+  color: rgba(255,255,255,.32) !important;
+  padding: 18px 14px 5px !important;
+  white-space: nowrap; overflow: hidden;
+  display: flex; align-items: center; gap: 8px;
+}
+.sidebar-section-title::after {
+  content: ''; flex: 1; height: 1px;
+  background: rgba(255,255,255,.06);
+}
+
+/* Menu items */
+.sidebar-menu { list-style: none; padding: 0 6px; }
+.sidebar-menu-item { margin-bottom: 1px; }
+
+.sidebar-menu-link {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--r-sm);
+  color: rgba(255,255,255,.52) !important;
+  font-size: 13px !important; font-weight: 500 !important;
+  transition: var(--t);
+  white-space: nowrap; overflow: hidden;
+  min-height: 36px !important;
+  position: relative; letter-spacing: -.005em;
+}
+
+/* Icon — symbolic, small, coloured per section */
+.sidebar-menu-link i {
+  font-size: 12px !important; width: 16px !important;
+  text-align: center; flex-shrink: 0; opacity: .7;
+  transition: var(--t);
+}
+
+/* Section colour coding — muted */
+.sidebar-section:nth-child(1) .sidebar-menu-link i { color: rgba(147,197,253,.7) !important; }
+.sidebar-section:nth-child(2) .sidebar-menu-link i { color: rgba(52,211,153,.7) !important; }
+.sidebar-section:nth-child(3) .sidebar-menu-link i { color: rgba(103,232,249,.7) !important; }
+.sidebar-section:nth-child(4) .sidebar-menu-link i { color: rgba(251,191,36,.7) !important; }
+.sidebar-section:nth-child(5) .sidebar-menu-link i { color: rgba(196,181,253,.7) !important; }
+.sidebar-section:nth-child(6) .sidebar-menu-link i { color: rgba(251,146,60,.7) !important; }
+
+/* Hover */
+.sidebar-menu-link:hover {
+  background: rgba(255,255,255,.06) !important;
+  color: rgba(255,255,255,.85) !important;
+}
+.sidebar-menu-link:hover i { opacity: 1 !important; }
+
+/* Active — pill with left accent bar */
+.sidebar-menu-link.active {
+  background: rgba(45,122,255,.16) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+.sidebar-menu-link.active::before {
+  content: '';
+  position: absolute; left: 0; top: 20%; height: 60%;
+  width: 3px; border-radius: 0 2px 2px 0;
+  background: var(--blue);
+  box-shadow: 0 0 8px rgba(45,122,255,.6);
+}
+.sidebar-menu-link.active i {
+  opacity: 1 !important;
+  color: #fff !important;
+}
+
+/* Logo — more breathing room, refined */
+.sidebar-header {
+  padding: 0 14px !important;
+  height: 58px !important;
+  border-bottom: 1px solid rgba(255,255,255,.05) !important;
+}
+.sidebar-logo {
+  font-size: 16px !important; font-weight: 800 !important;
+  letter-spacing: -.03em !important;
+}
+.sidebar-logo i {
+  font-size: 18px !important;
+  filter: drop-shadow(0 0 8px rgba(45,122,255,.6)) !important;
+}
+
+/* Nav padding */
+.sidebar-nav { padding: 6px 0 !important; }
+
+/* User role text */
+.user-role { color: rgba(255,255,255,.35) !important; }
+.user-name  { color: rgba(255,255,255,.92) !important; }
+
+/* ================================================================
+   TRAINING UNIT CARD — tuc
+================================================================ */
+.training-units-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px; padding: 16px;
+}
+
+.tuc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  display: flex; flex-direction: column; gap: 0;
+  overflow: hidden;
+  transition: box-shadow var(--t), transform var(--t);
+}
+.tuc:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+
+/* Head */
+.tuc-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.tuc-name-row { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.tuc-icon { font-size: 12px; color: var(--teal); flex-shrink: 0; }
+.tuc-name {
+  font-family: var(--font-display); font-size: 16px;
+  font-style: italic; font-weight: 400;
+  color: var(--text-1); letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Meta */
+.tuc-meta {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.tuc-meta-item {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--text-3); font-weight: 500;
+}
+.tuc-meta-item i { font-size: 10px; color: var(--text-4); }
+
+/* Occupancy */
+.tuc-occupancy { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+.tuc-occ-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.tuc-occ-label {
+  font-family: var(--font-data); font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--text-4);
+}
+.tuc-occ-count {
+  font-family: var(--font-data); font-size: 13px; font-weight: 700;
+  color: var(--ok);
+}
+.tuc-occ-max { font-size: 11px; font-weight: 500; color: var(--text-3); }
+.tuc-occ-full { color: var(--danger) !important; }
+.tuc-occ-warn { color: var(--warn) !important; }
+
+.tuc-occ-bar {
+  height: 5px; background: var(--border); border-radius: 3px; overflow: hidden;
+}
+.tuc-occ-fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--ok), #0d9e6e);
+  transition: width .4s ease;
+}
+.tuc-occ-fill--warn { background: linear-gradient(90deg, var(--warn), #f59e0b); }
+.tuc-occ-fill--full { background: linear-gradient(90deg, var(--danger), #ef4444); }
+
+/* Supervisor strip */
+.tuc-supervisor {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-bottom: 1px solid var(--border);
+  font-size: 12px; font-weight: 500; color: var(--text-2);
+}
+.tuc-supervisor i { font-size: 11px; color: var(--blue); }
+.tuc-supervisor--empty { color: var(--text-4); font-style: italic; }
+.tuc-supervisor--empty i { color: var(--text-4); }
+.tuc-sup-badge {
+  margin-left: auto; font-family: var(--font-data);
+  font-size: 9px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--blue);
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  padding: 2px 7px; border-radius: 20px;
+}
+
+/* Actions */
+.tuc-actions {
+  display: flex; align-items: center; gap: 5px;
+  padding: 10px 12px;
+}
+.tuc-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: var(--r-sm);
+  font-size: 11px; font-weight: 600; cursor: pointer;
+  transition: var(--t); border: 1px solid transparent;
+  font-family: var(--font-ui);
+}
+.tuc-btn i { font-size: 10px; }
+.tuc-btn-text { } /* label text */
+.tuc-count-badge {
+  background: var(--blue); color: #fff;
+  font-size: 9px; font-weight: 700; border-radius: 20px;
+  padding: 1px 5px; line-height: 1.4;
+}
+
+.tuc-btn--ghost {
+  flex: 1; justify-content: center;
+  background: var(--surface-2); border-color: var(--border);
+  color: var(--text-2);
+}
+.tuc-btn--ghost:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+
+.tuc-btn--edit {
+  background: var(--surface-2); border-color: var(--border); color: var(--text-3);
+  padding: 5px 10px;
+}
+.tuc-btn--edit:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+
+.tuc-btn--danger {
+  background: var(--surface-2); border-color: var(--border); color: var(--text-3);
+  padding: 5px 10px;
+}
+.tuc-btn--danger:hover { background: var(--danger-lt); border-color: var(--danger-mid); color: var(--danger); }
+
+/* ================================================================
+   UNIT RESIDENTS MODAL — clean names list
+================================================================ */
+.urm-strip {
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 20px; border-bottom: 1px solid var(--border);
+  background: var(--surface-2); flex-shrink: 0;
+}
+.urm-stat { text-align: center; flex-shrink: 0; }
+.urm-stat-val {
+  display: block; font-family: var(--font-display);
+  font-size: 22px; font-style: italic; font-weight: 400;
+  color: var(--text-1); line-height: 1;
+}
+.urm-stat-key {
+  font-family: var(--font-data); font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--text-4);
+}
+.urm-occ-bar-wrap { flex: 1; }
+.urm-occ-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 5px; }
+.urm-occ-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--ok), #0d9e6e); transition: width .4s; }
+.urm-occ-full { background: linear-gradient(90deg, var(--danger), #ef4444) !important; }
+.urm-occ-warn { background: linear-gradient(90deg, var(--warn), #f59e0b) !important; }
+.urm-occ-label { font-family: var(--font-data); font-size: 10px; font-weight: 600; color: var(--text-3); text-align: center; }
+
+.urm-body { padding: 0 !important; }
+.urm-list { display: flex; flex-direction: column; }
+.urm-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 20px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background var(--t);
+}
+.urm-row:last-child { border-bottom: none; }
+.urm-row:hover { background: var(--blue-lt); }
+
+.urm-avatar {
+  width: 32px; height: 32px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; flex-shrink: 0;
+}
+.urm-info { flex: 1; min-width: 0; }
+.urm-name { font-size: 14px; font-weight: 600; color: var(--text-1); }
+.urm-sub { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.urm-sup { font-size: 11px; color: var(--text-3); display: flex; align-items: center; gap: 4px; }
+.urm-sup i { font-size: 10px; }
+.urm-days { text-align: center; flex-shrink: 0; }
+.urm-days-num {
+  display: block; font-family: var(--font-data); font-size: 16px;
+  font-weight: 700; color: var(--ok); line-height: 1;
+}
+.urm-days-urgent { color: var(--danger) !important; }
+.urm-days-future { color: var(--blue) !important; font-size: 12px !important; }
+.urm-days-lbl { font-family: var(--font-data); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-4); }
+.urm-chevron { font-size: 10px; color: var(--text-4); flex-shrink: 0; }
+
+/* ================================================================
+   UNIT CLINICIANS MODAL
+================================================================ */
+.ucm-hint {
+  font-size: 12px; color: var(--text-3); margin-bottom: 14px;
+  padding: 10px 12px; background: var(--blue-lt);
+  border: 1px solid var(--blue-mid); border-radius: var(--r);
+}
+.ucm-list { display: flex; flex-direction: column; gap: 3px; }
+.ucm-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: var(--r);
+  border: 1px solid transparent; cursor: pointer;
+  transition: var(--t);
+}
+.ucm-row:hover { background: var(--surface-2); }
+.ucm-row--checked { background: var(--blue-lt); border-color: var(--blue-mid); }
+.ucm-check { width: 15px; height: 15px; flex-shrink: 0; cursor: pointer; }
+.ucm-avatar {
+  width: 30px; height: 30px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; flex-shrink: 0;
+}
+.ucm-info { flex: 1; min-width: 0; }
+.ucm-name { font-size: 13px; font-weight: 600; color: var(--text-1); }
+.ucm-type { font-size: 10px; color: var(--text-3); font-family: var(--font-data); text-transform: capitalize; }
+.ucm-sup-toggle { flex-shrink: 0; }
+.ucm-sup-label {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 10px; font-weight: 700; cursor: pointer;
+  border: 1px solid var(--border); color: var(--text-3);
+  transition: var(--t); font-family: var(--font-data);
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.ucm-sup-label:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
+.ucm-sup-active { border-color: var(--blue) !important; color: var(--blue) !important; background: var(--blue-lt) !important; }
+.ucm-sup-active i { color: var(--blue); }
+
+/* ================================================================
+   GLOBAL FAINT TEXT FIX — readable section titles everywhere
+================================================================ */
+/* Section titles inside cards — not faint, properly readable */
+.card-header .card-title { color: var(--text-1) !important; }
+.card-title i { opacity: .8; }
+
+/* View section headers (h-style labels above tables) */
+.pd-section-title {
+  color: rgba(255,255,255,.70) !important;
+  font-size: 10px !important; font-weight: 700 !important;
+}
+
+/* Form labels — readable, not faint */
+.form-label { color: var(--text-2) !important; }
+
+/* Table header text — in dark header, whiter */
+.table thead th { color: rgba(255,255,255,.75) !important; }
+
+/* Sidebar section title — slightly brighter */
+.sidebar-section-title { color: rgba(255,255,255,.38) !important; }
+
+/* Meta text in cards — not too faint */
+.tuc-meta-item { color: var(--text-2) !important; }
+.tuc-occ-label { color: var(--text-3) !important; }
+
+/* stat-label in profile drawer */
+.pd-row-key { color: rgba(255,255,255,.55) !important; }
+
+
+/* ================================================================
+   PROFILE — Missing field displays
+================================================================ */
+
+/* Certificate status inline badge */
+.pd-row-cert { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pd-cert-status {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em;
+  padding: 2px 7px; border-radius: 20px;
+}
+.pd-cert-current { background: rgba(13,158,110,.15); color: #0a8f6e; border: 1px solid rgba(13,158,110,.25); }
+.pd-cert-expired { background: rgba(220,53,69,.12); color: var(--danger); border: 1px solid var(--danger-mid); }
+.pd-cert-status i { font-size: 9px; }
+
+/* Study certificate tags */
+.pd-cert-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.pd-cert-tag {
+  font-size: 10px; font-weight: 600; padding: 2px 8px;
+  border-radius: 20px; background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.75); border: 1px solid rgba(255,255,255,.1);
+}
+.pd-cert-tag--other {
+  background: rgba(45,122,255,.15); color: rgba(147,197,253,.9);
+  border-color: rgba(45,122,255,.25);
+}
+
+/* Research capabilities */
+.pd-capability-row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.pd-capability-row:last-child { border-bottom: none; }
+.pd-cap-icon {
+  width: 22px; height: 22px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; flex-shrink: 0;
+}
+.pd-cap-icon--pi  { background: rgba(251,191,36,.15); color: #f59e0b; border: 1px solid rgba(251,191,36,.25); }
+.pd-cap-icon--coi { background: rgba(45,122,255,.15); color: var(--blue); border: 1px solid rgba(45,122,255,.25); }
+.pd-cap-icon--sup { background: rgba(13,158,110,.15); color: #0a8f6e; border: 1px solid rgba(13,158,110,.25); }
+.pd-cap-label {
+  font-size: 12px; font-weight: 500; color: rgba(255,255,255,.8);
+}
