@@ -364,6 +364,37 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch { return 0 }
       }
 
+      // Clinical duration: speaks the language clinicians use
+      static formatClinicalDuration(startDate, endDate) {
+        if (!startDate || !endDate) return '?'
+        try {
+          const s = new Date(Utils.normalizeDate(startDate) + 'T00:00:00')
+          const e = new Date(Utils.normalizeDate(endDate) + 'T00:00:00')
+          const days = Math.round((e - s) / 86400000) + 1
+          if (days <= 0) return '?'
+          // If rotation is entirely within a single calendar month
+          if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) {
+            const monthName = s.toLocaleDateString('en-GB', { month: 'short' })
+            if (days >= 25) return monthName  // "Mar"
+            if (days >= 14) return `${Math.round(days/7)}w·${monthName}` // "2w·Mar"
+          }
+          // Multi-month spans
+          const months = Math.round(days / 30.4)
+          if (days >= 56) return `${months}mo`   // "2mo"
+          if (days >= 28) return '1mo'
+          if (days >= 21) return '3w'
+          if (days >= 14) return '2w'
+          if (days >= 7)  return '1w'
+          return `${days}d`
+        } catch { return '?' }
+      }
+
+      // Initials for avatar chips
+      static getInitials(name) {
+        if (!name) return '?'
+        return name.split(' ').filter(Boolean).slice(0, 2).map(n => n[0].toUpperCase()).join('')
+      }
+
       static daysUntil(d) {
         if (!d) return 0
         const date = new Date(Utils.normalizeDate(d) + 'T00:00:00')
@@ -1240,6 +1271,45 @@ document.addEventListener('DOMContentLoaded', () => {
         return Object.values(groups).sort((a, b) => a.date.localeCompare(b.date))
       })
 
+      // Physician-per-row on-call orb view
+      const staffWithOnCallOrbs = computed(() => {
+        const today = Utils.normalizeDate(new Date())
+        const physicianMap = {}
+
+        // Build filtered schedule
+        let shifts = onCallSchedule.value
+        if (onCallFilters.shiftType) shifts = shifts.filter(s => s.shift_type === onCallFilters.shiftType)
+        if (onCallFilters.date) shifts = shifts.filter(s => Utils.normalizeDate(s.duty_date) === onCallFilters.date)
+        if (onCallFilters.search) {
+          const q = onCallFilters.search.toLowerCase()
+          shifts = shifts.filter(s => getPhysicianName(s.primary_physician_id).toLowerCase().includes(q))
+        }
+
+        shifts.forEach(shift => {
+          const pid = shift.primary_physician_id
+          if (!pid) return
+          if (onCallFilters.physician && pid !== onCallFilters.physician) return
+          if (!physicianMap[pid]) {
+            physicianMap[pid] = { id: pid, name: getPhysicianName(pid), shifts: [] }
+          }
+          const shiftDate = Utils.normalizeDate(shift.duty_date)
+          const isToday = shiftDate === today
+          const isPast = shiftDate < today
+          physicianMap[pid].shifts.push({
+            ...shift,
+            shiftDate,
+            isToday,
+            isPast,
+            dayLabel: new Date(shiftDate + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short' }),
+            dateLabel: new Date(shiftDate + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+          })
+        })
+
+        return Object.values(physicianMap)
+          .map(p => ({ ...p, shifts: p.shifts.sort((a, b) => a.shiftDate.localeCompare(b.shiftDate)) }))
+          .sort((a, b) => a.name.localeCompare(b.name))
+      })
+
       const isShiftActive = (shift) => {
         if (!shift.duty_date) return false
         const today = Utils.normalizeDate(new Date())
@@ -1260,6 +1330,7 @@ document.addEventListener('DOMContentLoaded', () => {
         editOnCallSchedule, saveOnCallSchedule, deleteOnCallSchedule, contactPhysician,
         // NEW compact view properties
         groupedOnCallSchedules,
+        staffWithOnCallOrbs,
         isShiftActive
       }
     }
@@ -2477,6 +2548,7 @@ document.addEventListener('DOMContentLoaded', () => {
           formatDateShort: (d) => Utils.formatDateShort(d),
           formatDatePlusDays: (d, n) => Utils.formatDatePlusDays(d, n),
           formatRelativeDate: (d) => Utils.formatRelativeDate(d),
+          formatClinicalDuration: (s, e) => Utils.formatClinicalDuration(s, e),
           formatTime: (d) => Utils.formatTime(d),
           formatRelativeTime: (d) => Utils.formatRelativeTime(d),
           formatTimeAgo: (d) => Utils.formatRelativeTime(d),
@@ -2501,6 +2573,7 @@ document.addEventListener('DOMContentLoaded', () => {
           onCallView,
           residentsWithRotations: rotationOps.residentsWithRotations,
           groupedOnCallSchedules: onCallOps.groupedOnCallSchedules,
+          staffWithOnCallOrbs: onCallOps.staffWithOnCallOrbs,
           weekDays,
           getRotationsForDay: rotationOps.getRotationsForDay,
           isRotationActive: rotationOps.isRotationActive,
