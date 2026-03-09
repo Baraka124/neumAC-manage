@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
       CACHE_TTL: 300000
     }
 
-    // ============ 2. CONSTANTS ============
+    // ============ 2. CONSTANTS ======-======
     const ROLES = {
       ADMIN: 'system_admin',
       HEAD: 'department_head',
