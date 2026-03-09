@@ -1,4 +1,4 @@
-/* ================================================================-
+/* ================================================================
    NEUMOCARE — Clinical Precision Design System v11.0
    FULL REWRITE — All typography, spacing & layout fixes applied
 
@@ -3042,3 +3042,128 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .oc-orb-demo--primary  { background: var(--blue-lt); border: 1.5px solid var(--blue-mid); }
 .oc-orb-demo--backup   { background: var(--surface-2); border: 1.5px dashed var(--border-2); }
 .oc-orb-demo--today    { background: var(--blue); }
+
+
+/* ================================================================
+   PREMIUM TABLE OVERHAUL  —  NeumoCaré v3
+   No initials. Role-icon system. Surgical information density.
+================================================================ */
+
+/* ── Core table reset — tighter, stronger ─────────────────────── */
+.table {
+  width: 100%; border-collapse: separate; border-spacing: 0;
+  font-size: 13px; min-width: 560px;
+}
+.table thead th {
+  background: var(--ink); padding: 10px 16px;
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .12em; color: rgba(255,255,255,.45);
+  border-bottom: none; white-space: nowrap;
+  position: sticky; top: 0; z-index: 2; cursor: pointer; user-select: none;
+}
+.table thead th:first-child { border-radius: var(--r-sm) 0 0 0; }
+.table thead th:last-child  { border-radius: 0 var(--r-sm) 0 0; }
+.table thead th i { margin-left: 4px; font-size: 9px; color: rgba(255,255,255,.25); }
+.table thead th:hover { color: rgba(255,255,255,.7); }
+
+.table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t), box-shadow var(--t);
+  cursor: pointer; position: relative;
+}
+.table tbody tr:last-child td { border-bottom: none; }
+.table tbody tr:hover { background: var(--blue-lt); }
+.table tbody tr:hover td { border-bottom-color: var(--blue-mid); }
+
+/* Zebra — very subtle, doesn't fight hover */
+.table-striped tbody tr:nth-child(even)      { background: rgba(248,250,252,.8); }
+.table-striped tbody tr:nth-child(even):hover { background: var(--blue-lt); }
+
+.table tbody td {
+  padding: 12px 16px;
+  color: var(--text-1); vertical-align: middle;
+  line-height: 1.35; border-bottom: 1px solid var(--border);
+  height: 56px;
+}
+
+/* Status accent — left border as a meaningful signal strip */
+.table tbody tr.row-active   td:first-child { border-left: 3px solid var(--ok); }
+.table tbody tr.row-on_leave td:first-child { border-left: 3px solid var(--warn); }
+.table tbody tr.row-inactive td:first-child { border-left: 3px solid var(--neutral); }
+.table tbody tr.row-scheduled td:first-child { border-left: 3px solid var(--blue); }
+.table tbody tr.row-completed td:first-child { border-left: 3px solid var(--teal); }
+.table tbody tr.row-cancelled td:first-child { border-left: 3px solid var(--border-2); }
+
+/* Remove old border-left applied to whole row */
+.table tbody tr.row-active,
+.table tbody tr.row-on_leave,
+.table tbody tr.row-inactive,
+.table tbody tr.row-scheduled,
+.table tbody tr.row-completed,
+.table tbody tr.row-cancelled { border-left: none; }
+
+/* ── Role icon — replaces initials avatar ─────────────────────── */
+.staff-role-icon {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; transition: var(--t);
+}
+.role-icon--attending_physician  { background: rgba(45,122,255,.1); color: var(--blue); border: 1px solid rgba(45,122,255,.2); }
+.role-icon--medical_resident     { background: rgba(13,158,110,.1); color: var(--ok); border: 1px solid rgba(13,158,110,.2); }
+.role-icon--fellow               { background: rgba(124,58,237,.1); color: var(--purple); border: 1px solid rgba(124,58,237,.2); }
+.role-icon--nurse_practitioner   { background: rgba(8,145,178,.1); color: var(--teal); border: 1px solid rgba(8,145,178,.2); }
+
+.table tbody tr:hover .staff-role-icon { transform: scale(1.06); }
+
+/* ── Name cell ────────────────────────────────────────────────── */
+.staff-name-cell { display: flex; align-items: center; gap: 11px; }
+.staff-name-block { min-width: 0; }
+.staff-name-primary { font-weight: 600; font-size: 14px; color: var(--text-1); white-space: nowrap; letter-spacing: -.01em; }
+.staff-name-sub {
+  font-family: var(--font-data); font-size: 10px; font-weight: 500;
+  color: var(--text-3); margin-top: 2px; display: flex; align-items: center; gap: 4px;
+}
+
+/* ── Rotation chip inside staff table ─────────────────────────── */
+.staff-rotation-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 20px;
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  font-size: 11px; font-weight: 500; color: var(--blue);
+  max-width: 200px;
+}
+.src-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ok); flex-shrink: 0;
+  box-shadow: 0 0 5px rgba(13,158,110,.6);
+  animation: pulse-active 2s infinite;
+}
+.src-unit { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.src-dur  { font-family: var(--font-data); font-size: 10px; font-weight: 700; color: var(--blue); flex-shrink: 0; }
+
+/* ── Profile drawer avatar — icon, not initials ───────────────── */
+.pd-avatar {
+  font-size: 30px; /* icon size */
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--ink)));
+}
+.pd-avatar i { color: rgba(255,255,255,.9); filter: drop-shadow(0 1px 3px rgba(0,0,0,.3)); }
+
+/* ── Rotation row avatars — icon, not initials ────────────────── */
+.rot-who-avatar {
+  font-size: 14px;
+  background: linear-gradient(135deg, var(--ink-3), var(--ink-2));
+  color: rgba(255,255,255,.7);
+  border: 1.5px solid var(--border-2);
+}
+.rot-who-avatar i { }
+.rot-who-avatar--blue { background: linear-gradient(135deg, var(--blue), var(--ink-3)); color: rgba(255,255,255,.9); }
+
+/* ── Supervision resident avatar — icon ───────────────────────── */
+.pd-resident-avatar {
+  background: linear-gradient(135deg, var(--ok), #065f46);
+  color: white; font-size: 14px;
+}
+.pd-resident-avatar i { }
+
+/* Remove old chip styles */
+.staff-avatar-chip { display: none; }
