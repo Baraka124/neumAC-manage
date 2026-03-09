@@ -12,7 +12,7 @@
 <body>
 <div id="app" v-cloak>
 
-    <!-- ============ TOAST CONTAINER ==-========= -->
+    <!-- ============ TOAST CONTAINER =========== -->
     <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
              :class="['toast', `toast-${toast.type}`]"
@@ -668,6 +668,14 @@
                         </div>
                         <div class="table-responsive">
                             <table class="table table-striped table-staff">
+                                <colgroup>
+                                    <col style="width:32%"><!-- Name -->
+                                    <col style="width:14%"><!-- Type -->
+                                    <col style="width:16%"><!-- Department -->
+                                    <col style="width:20%"><!-- Rotation -->
+                                    <col style="width:10%"><!-- Status -->
+                                    <col style="width:8%"> <!-- Actions -->
+                                </colgroup>
                                 <thead>
                                     <tr>
                                         <th @click="sortBy('medical_staff', 'full_name')">Name <i class="fas" :class="sortIcon('medical_staff', 'full_name')"></i></th>
@@ -1238,7 +1246,7 @@
                             </select>
                         </div>
                         <div class="training-units-grid">
-                            <div v-for="unit in filteredTrainingUnits" :key="unit.id" class="tuc">
+                            <div v-for="unit in filteredTrainingUnits" :key="unit.id" class="tuc" :class="{ 'tuc--full': getUnitActiveRotationCount(unit.id) >= unit.maximum_residents, 'tuc--warn': getUnitActiveRotationCount(unit.id) / unit.maximum_residents > 0.75 && getUnitActiveRotationCount(unit.id) < unit.maximum_residents, 'tuc--active': getUnitActiveRotationCount(unit.id) > 0 && getUnitActiveRotationCount(unit.id) / unit.maximum_residents <= 0.75 }">
                                 <!-- Card top: name + status -->
                                 <div class="tuc-head">
                                     <div class="tuc-name-row">
@@ -2045,9 +2053,6 @@
                         <button class="pd-tab" :class="{ active: staffProfileModal.activeTab === 'supervision' }" @click="staffProfileModal.activeTab = 'supervision'" v-if="staffProfileModal.staff.staff_type === 'attending_physician'">
                             <i class="fas fa-users"></i> Supervision
                         </button>
-                        <button class="pd-tab" :class="{ active: staffProfileModal.activeTab === 'evaluations' }" @click="staffProfileModal.activeTab = 'evaluations'" v-if="staffProfileModal.staff.staff_type === 'medical_resident'">
-                            <i class="fas fa-star"></i> Evaluations
-                        </button>
                         <div class="pd-tabs-spacer"></div>
                         <div class="pd-who">
                             <span class="pd-who-name">{{ staffProfileModal.staff.full_name }}</span>
@@ -2266,14 +2271,6 @@
                     </div><!-- /supervision tab -->
 
                     <!-- ── EVALUATIONS TAB ── -->
-                    <div v-if="staffProfileModal.activeTab === 'evaluations'" class="pd-tab-body">
-                        <div class="pd-empty">
-                            <div class="pd-empty-icon"><i class="fas fa-star"></i></div>
-                            <div class="pd-empty-title">Evaluations Coming Soon</div>
-                            <div class="pd-empty-sub">Rotation evaluations and progress tracking will appear here</div>
-                        </div>
-                    </div>
-
                 </div><!-- /pd-content -->
             </div><!-- /profile-drawer -->
         </transition>
