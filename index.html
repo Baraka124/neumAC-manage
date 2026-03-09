@@ -682,7 +682,14 @@
                                     <tr v-for="staff in filteredMedicalStaff" :key="staff.id" :class="'row-' + staff.employment_status" @click="viewStaffDetails(staff)">
                                         <td>
                                             <div class="staff-name-cell">
-                                                <div class="staff-avatar-chip" :class="'chip--' + staff.employment_status">{{ staff.full_name.split(' ').map(n=>n[0]).join('').slice(0,2) }}</div>
+                                                <div class="staff-role-icon" :class="'role-icon--' + staff.staff_type">
+                                                    <i class="fas" :class="{
+                                                        'fa-user-md':       staff.staff_type === 'attending_physician',
+                                                        'fa-user-graduate': staff.staff_type === 'medical_resident',
+                                                        'fa-stethoscope':   staff.staff_type === 'fellow',
+                                                        'fa-heartbeat':     staff.staff_type === 'nurse_practitioner'
+                                                    }"></i>
+                                                </div>
                                                 <div class="staff-name-block">
                                                     <div class="staff-name-primary">{{ staff.full_name }}</div>
                                                     <div v-if="staff.staff_type === 'medical_resident' && staff.resident_category" class="staff-name-sub">
@@ -796,7 +803,9 @@
 
                                 <!-- Physician identity -->
                                 <div class="rot-who">
-                                    <div class="rot-who-avatar rot-who-avatar--blue">{{ physician.name.split(' ').map(n=>n[0]).join('').slice(0,2) }}</div>
+                                    <div class="rot-who-avatar rot-who-avatar--blue">
+                                        <i class="fas fa-user-md"></i>
+                                    </div>
                                     <div class="rot-who-info">
                                         <span class="rot-who-name">{{ physician.name }}</span>
                                         <span class="rot-who-meta">{{ physician.shifts.length }} shift{{ physician.shifts.length !== 1 ? 's' : '' }}</span>
@@ -968,7 +977,9 @@
 
                                 <!-- Resident identity -->
                                 <div class="rot-who">
-                                    <div class="rot-who-avatar">{{ resident.full_name.split(' ').map(n=>n[0]).join('').slice(0,2) }}</div>
+                                    <div class="rot-who-avatar">
+                                        <i class="fas fa-user-graduate"></i>
+                                    </div>
                                     <div class="rot-who-info">
                                         <span class="rot-who-name">{{ resident.full_name }}</span>
                                         <span class="rot-who-meta">{{ formatTrainingYear(resident.training_year) || 'PGY-?' }}</span>
@@ -1744,7 +1755,13 @@
                     <!-- Avatar block -->
                     <div class="pd-avatar-block">
                         <div class="pd-avatar">
-                            <span>{{ getInitials(staffProfileModal.staff.full_name) }}</span>
+                            <i class="fas" :class="{
+                                'fa-user-md':       staffProfileModal.staff.staff_type === 'attending_physician',
+                                'fa-user-graduate': staffProfileModal.staff.staff_type === 'medical_resident',
+                                'fa-stethoscope':   staffProfileModal.staff.staff_type === 'fellow',
+                                'fa-heartbeat':     staffProfileModal.staff.staff_type === 'nurse_practitioner',
+                                'fa-user-tie':      !['attending_physician','medical_resident','fellow','nurse_practitioner'].includes(staffProfileModal.staff.staff_type)
+                            }"></i>
                             <div class="pd-avatar-ring"></div>
                         </div>
                         <div class="pd-status-dot" :class="'dot--' + staffProfileModal.staff.employment_status" :title="formatEmploymentStatus(staffProfileModal.staff.employment_status)"></div>
@@ -1828,55 +1845,6 @@
                             <div v-for="role in getStaffRoles(staffProfileModal.staff)" :key="role.key" class="pd-role-item">
                                 <i :class="['fas', role.icon]" :style="{ color: role.color }"></i>
                                 <span>{{ role.label }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Research snapshot (conditional) -->
-                    <div v-if="staffProfileModal.researchProfile" class="pd-section" :class="{ 'pd-section--collapsed': staffProfileModal.collapsed?.research }">
-                        <button class="pd-section-head" @click="toggleProfileSection('research')">
-                            <span class="pd-section-icon"><i class="fas fa-flask"></i></span>
-                            <span class="pd-section-title">Research</span>
-                            <i class="fas fa-chevron-down pd-section-chevron"></i>
-                        </button>
-                        <div class="pd-section-body">
-                            <div class="pd-research-grid">
-                                <div class="pd-research-stat">
-                                    <div class="pd-research-num">{{ staffProfileModal.researchProfile.trials?.asPI || 0 }}</div>
-                                    <div class="pd-research-lbl">Trials PI</div>
-                                </div>
-                                <div class="pd-research-stat">
-                                    <div class="pd-research-num">{{ staffProfileModal.researchProfile.trials?.asCoI || 0 }}</div>
-                                    <div class="pd-research-lbl">Trials Co-I</div>
-                                </div>
-                                <div class="pd-research-stat">
-                                    <div class="pd-research-num">{{ staffProfileModal.researchProfile.projects?.asLead || 0 }}</div>
-                                    <div class="pd-research-lbl">Projects</div>
-                                </div>
-                                <div class="pd-research-stat">
-                                    <div class="pd-research-num">{{ staffProfileModal.researchProfile.allResearchLines?.length || 0 }}</div>
-                                    <div class="pd-research-lbl">Lines</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Leave balance (conditional) -->
-                    <div v-if="staffProfileModal.leaveBalance" class="pd-section" :class="{ 'pd-section--collapsed': staffProfileModal.collapsed?.leave }">
-                        <button class="pd-section-head" @click="toggleProfileSection('leave')">
-                            <span class="pd-section-icon"><i class="fas fa-calendar-alt"></i></span>
-                            <span class="pd-section-title">Leave Balance</span>
-                            <i class="fas fa-chevron-down pd-section-chevron"></i>
-                        </button>
-                        <div class="pd-section-body">
-                            <div v-for="(balance, type) in staffProfileModal.leaveBalance" :key="type" class="pd-leave-item">
-                                <div class="pd-leave-header">
-                                    <span class="pd-leave-type">{{ type }}</span>
-                                    <span class="pd-leave-count">{{ balance.remaining }}<span class="pd-leave-total"> / {{ balance.total }} days</span></span>
-                                </div>
-                                <div class="pd-leave-bar">
-                                    <div class="pd-leave-fill" :style="{ width: (balance.used / balance.total * 100) + '%', background: getDaysRemainingColor(balance.remaining) }"></div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -2118,7 +2086,7 @@
                                     <span class="pd-badge pd-badge--ok">{{ staffProfileModal.supervisionData.current.length }}</span>
                                 </div>
                                 <div v-for="resident in staffProfileModal.supervisionData.current" :key="resident.id" class="pd-resident-row">
-                                    <div class="pd-resident-avatar">{{ getInitials(resident.residentName) }}</div>
+                                    <div class="pd-resident-avatar"><i class="fas fa-user-graduate"></i></div>
                                     <div class="pd-resident-info">
                                         <span class="pd-resident-name">{{ resident.residentName }}</span>
                                         <span class="pd-resident-unit">{{ resident.unitName }}</span>
