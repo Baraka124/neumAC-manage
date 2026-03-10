@@ -1,22 +1,4 @@
-/* ======================================================-==========
-   NEUMOCARE — Clinical Precision Design System v11.0
-   FULL REWRITE — All typography, spacing & layout fixes applied
 
-   CHANGES FROM v10:
-   ─ Token scale shifted up one step system-wide (10→11, 11→12, 12→13, 13→15)
-   ─ Body bumped 14→15px, line-height 1.5→1.55
-   ─ Content area padding uses clamp() for viewport-aware breathing room
-   ─ Navbar subtitle color elevated from --text-3 to --text-2
-   ─ Stats grid capped at 4 columns on wide screens
-   ─ Charts grid locked to 2-col on wide screens
-   ─ Table headers 10→11px; cell padding increased
-   ─ Form labels 10→11px; controls 13→14px, min-height 38→40px
-   ─ Badges/status indicators 10→11px
-   ─ Profile modal left panel widened: clamp(200,22%,260) → clamp(240,26%,320)
-   ─ Research/innovation/training/dept grids min-width bumped
-   ─ Live stats sidebar: all metric/detail text scaled up
-   ─ Rotation dots: tooltip font bumped; dot size increased
-   ─ All responsive breakpoints re-tuned to match new scale
 ================================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500;600&display=swap');
