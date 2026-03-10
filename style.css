@@ -1,4 +1,22 @@
+/* ======================================================-==========
+   NEUMOCARE — Clinical Precision Design System v11.0
+   FULL REWRITE — All typography, spacing & layout fixes applied
 
+   CHANGES FROM v10:
+   ─ Token scale shifted up one step system-wide (10→11, 11→12, 12→13, 13→15)
+   ─ Body bumped 14→15px, line-height 1.5→1.55
+   ─ Content area padding uses clamp() for viewport-aware breathing room
+   ─ Navbar subtitle color elevated from --text-3 to --text-2
+   ─ Stats grid capped at 4 columns on wide screens
+   ─ Charts grid locked to 2-col on wide screens
+   ─ Table headers 10→11px; cell padding increased
+   ─ Form labels 10→11px; controls 13→14px, min-height 38→40px
+   ─ Badges/status indicators 10→11px
+   ─ Profile modal left panel widened: clamp(200,22%,260) → clamp(240,26%,320)
+   ─ Research/innovation/training/dept grids min-width bumped
+   ─ Live stats sidebar: all metric/detail text scaled up
+   ─ Rotation dots: tooltip font bumped; dot size increased
+   ─ All responsive breakpoints re-tuned to match new scale
 ================================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500;600&display=swap');
@@ -5449,3 +5467,196 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 @media (max-width: 1024px) {
   .mobile-bottom-nav { display: flex; }
 }
+
+/* ================================================================
+   KEYWORD CHIP EDITOR (modal input)
+================================================================ */
+.kw-editor {
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-1);
+  transition: border-color .15s, box-shadow .15s;
+  cursor: text;
+}
+.kw-editor:focus-within {
+  border-color: var(--blue-mid);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+}
+.kw-chips-area {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 6px; padding: 8px 10px; min-height: 42px;
+}
+.kw-chip-edit {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  color: var(--blue); border-radius: 20px;
+  padding: 3px 4px 3px 10px;
+  font-family: var(--font-data); font-size: 11px; font-weight: 600;
+  white-space: nowrap;
+  animation: kwPopIn .18s cubic-bezier(.34,1.56,.64,1);
+}
+.kw-chip-text { line-height: 1.2; }
+.kw-chip-remove {
+  display: flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  border: none; background: transparent; color: var(--blue);
+  cursor: pointer; padding: 0; font-size: 9px;
+  transition: background .12s, color .12s;
+}
+.kw-chip-remove:hover { background: var(--blue); color: #fff; }
+.kw-input-inline {
+  flex: 1; min-width: 120px; border: none; background: transparent;
+  outline: none; font-size: 13px; color: var(--text-1);
+  font-family: var(--font-body); padding: 2px 0;
+}
+.kw-input-inline::placeholder { color: var(--text-3); }
+
+@keyframes kwPopIn {
+  from { transform: scale(.6); opacity: 0; }
+  to   { transform: scale(1);  opacity: 1; }
+}
+
+/* Vue transition for chip removal */
+.kw-chip-enter-active { transition: all .18s cubic-bezier(.34,1.56,.64,1); }
+.kw-chip-leave-active { transition: all .14s ease; }
+.kw-chip-enter-from  { transform: scale(.5); opacity: 0; }
+.kw-chip-leave-to    { transform: scale(.5); opacity: 0; }
+
+/* Display chips on cards — extra pop */
+.rline-kw-chip, .inno-kw-chip {
+  transition: background .15s, border-color .15s, color .15s, transform .15s;
+}
+.rline-kw-chip:hover { transform: translateY(-1px); }
+.inno-kw-chip:hover  { transform: translateY(-1px); }
+
+/* Search highlight on research line cards when keyword matches */
+.rline-card--kw-match { box-shadow: 0 0 0 2px var(--blue-mid); }
+
+/* ================================================================
+   CLINICAL TRIALS — enrollment progress + date cells
+================================================================ */
+.enrollment-wrap { display: flex; flex-direction: column; gap: 3px; min-width: 70px; }
+.enrollment-nums { display: flex; align-items: baseline; gap: 2px; font-family: var(--font-data); font-size: 11px; }
+.enrollment-actual { font-weight: 700; color: var(--text-1); }
+.enrollment-sep    { color: var(--text-3); font-size: 10px; }
+.enrollment-target { color: var(--text-3); }
+.enrollment-bar    { height: 4px; background: var(--surface-3); border-radius: 4px; overflow: hidden; }
+.enrollment-fill   { height: 100%; border-radius: 4px; transition: width .4s ease; }
+
+.trial-dates-cell { min-width: 90px; }
+.trial-dates-wrap { display: flex; flex-direction: column; gap: 2px; }
+.trial-date-from, .trial-date-to {
+  display: flex; align-items: center; gap: 4px;
+  font-family: var(--font-data); font-size: 10.5px; color: var(--text-2); white-space: nowrap;
+}
+
+.trial-sponsor-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-2); border-radius: var(--r-sm);
+  padding: 2px 7px; font-size: 10.5px; font-weight: 500;
+  max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ================================================================
+   INNOVATION PROJECTS — TRL level track
+================================================================ */
+.inno-trl-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 20px 4px;
+}
+.inno-trl-track {
+  display: flex; gap: 3px; flex: 1;
+}
+.inno-trl-pip {
+  flex: 1; height: 5px; border-radius: 3px;
+  background: var(--surface-3); transition: background .2s;
+}
+.inno-trl-pip--filled {
+  opacity: .85;
+}
+.inno-trl-pip--current {
+  opacity: 1;
+  box-shadow: 0 0 0 2px rgba(255,255,255,.6), 0 0 0 3px var(--stage-color, #60a5fa);
+}
+.inno-trl-label {
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  color: var(--stage-color, var(--text-2)); white-space: nowrap;
+  background: var(--stage-bg, var(--surface-2));
+  border: 1px solid var(--stage-color, var(--border));
+  border-radius: 20px; padding: 2px 7px;
+}
+
+/* ================================================================
+   ANALYTICS — unified tab navigation
+================================================================ */
+.analytics-tab-bar {
+  display: flex; align-items: center; gap: 2px;
+  padding: 0 4px; margin-bottom: 20px;
+  border-bottom: 2px solid var(--border);
+}
+.analytics-tab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 16px; font-size: 13px; font-weight: 500;
+  color: var(--text-2); border: none; background: transparent;
+  cursor: pointer; border-bottom: 2px solid transparent;
+  margin-bottom: -2px; transition: color .15s, border-color .15s;
+  white-space: nowrap; border-radius: var(--r-sm) var(--r-sm) 0 0;
+}
+.analytics-tab:hover { color: var(--text-1); background: var(--surface-2); }
+.analytics-tab--active {
+  color: var(--blue); border-bottom-color: var(--blue);
+  font-weight: 600;
+}
+.analytics-tab i { font-size: 12px; opacity: .8; }
+.analytics-tab-spacer { flex: 1; }
+
+/* ================================================================
+   ANALYTICS — trials timeline chart (horizontal bars by month)
+================================================================ */
+.timeline-chart {
+  display: flex; align-items: flex-end; gap: 4px;
+  padding: 16px 20px 8px;
+  height: 120px; overflow-x: auto;
+  scrollbar-width: thin;
+}
+.timeline-bar-col {
+  display: flex; flex-direction: column; align-items: center;
+  flex: 1; min-width: 28px; max-width: 48px;
+  height: 100%;
+}
+.timeline-bar-wrap {
+  flex: 1; width: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-end; position: relative;
+}
+.timeline-bar-fill {
+  width: 70%; border-radius: 3px 3px 0 0;
+  background: var(--blue); opacity: .75;
+  transition: height .4s ease, opacity .2s;
+  min-height: 4px;
+}
+.timeline-bar-fill:hover { opacity: 1; }
+.timeline-bar-val {
+  position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  color: var(--blue); white-space: nowrap;
+}
+.timeline-bar-label {
+  font-family: var(--font-data); font-size: 9px; color: var(--text-3);
+  margin-top: 4px; white-space: nowrap;
+}
+
+/* ================================================================
+   TRIAL DETAIL MODAL — sponsor + enrollment enhancements
+================================================================ */
+.trial-detail-enroll {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 10px 14px;
+  margin-bottom: 4px;
+}
+.trial-enroll-label { font-size: 11px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.trial-enroll-nums  { font-family: var(--font-data); font-size: 18px; font-weight: 700; color: var(--text-1); }
+.trial-enroll-bar   { flex: 1; height: 6px; background: var(--surface-3); border-radius: 4px; overflow: hidden; }
+.trial-enroll-fill  { height: 100%; border-radius: 4px; background: var(--blue); transition: width .5s ease; }
+.trial-enroll-pct   { font-family: var(--font-data); font-size: 12px; font-weight: 700; color: var(--blue); }
