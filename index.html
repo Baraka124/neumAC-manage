@@ -840,7 +840,12 @@
                             </select>
                             <select class="form-select" v-model="onCallFilters.physician">
                                 <option value="">All Physicians</option>
-                                <option v-for="p in availablePhysicians" :key="p.id" :value="p.id">{{ p.full_name }}</option>
+                                <optgroup label="Attending / Fellow / NP">
+                                    <option v-for="p in availablePhysicians.filter(x => x.staff_type !== 'medical_resident')" :key="p.id" :value="p.id">{{ p.full_name }}</option>
+                                </optgroup>
+                                <optgroup label="Residents">
+                                    <option v-for="p in availablePhysicians.filter(x => x.staff_type === 'medical_resident')" :key="p.id" :value="p.id">{{ p.full_name }}</option>
+                                </optgroup>
                             </select>
                             <input type="text" class="form-control" v-model="onCallFilters.search" placeholder="Search...">
                         </div>
@@ -3029,7 +3034,12 @@
                             <label class="form-label">Primary Physician *</label>
                             <select class="form-select" v-model="onCallModal.form.primary_physician_id" required @change="clearFieldError('oncall', 'primary_physician_id')" :class="{ 'is-invalid': fieldErrors.oncall?.primary_physician_id }">
                                 <option value="">Select Physician</option>
-                                <option v-for="p in availablePhysicians" :key="p.id" :value="p.id">{{ p.full_name }}</option>
+                                <optgroup label="Attending / Fellow / NP">
+                                    <option v-for="p in availablePhysicians.filter(x => x.staff_type !== 'medical_resident')" :key="p.id" :value="p.id">{{ p.full_name }}</option>
+                                </optgroup>
+                                <optgroup label="Residents">
+                                    <option v-for="p in availablePhysicians.filter(x => x.staff_type === 'medical_resident')" :key="p.id" :value="p.id">{{ p.full_name }}</option>
+                                </optgroup>
                             </select>
                             <small v-if="fieldErrors.oncall?.primary_physician_id" class="error-text"><i class="fas fa-exclamation-circle"></i> {{ fieldErrors.oncall.primary_physician_id }}</small>
                         </div>
@@ -3037,7 +3047,12 @@
                             <label class="form-label">Backup Physician</label>
                             <select class="form-select" v-model="onCallModal.form.backup_physician_id">
                                 <option value="">No Backup</option>
-                                <option v-for="p in availablePhysicians" :key="p.id" :value="p.id">{{ p.full_name }}</option>
+                                <optgroup label="Attending / Fellow / NP">
+                                    <option v-for="p in availablePhysicians.filter(x => x.staff_type !== 'medical_resident')" :key="p.id" :value="p.id">{{ p.full_name }}</option>
+                                </optgroup>
+                                <optgroup label="Residents">
+                                    <option v-for="p in availablePhysicians.filter(x => x.staff_type === 'medical_resident')" :key="p.id" :value="p.id">{{ p.full_name }}</option>
+                                </optgroup>
                             </select>
                         </div>
                         <div class="form-group" :class="{ 'has-error': fieldErrors.oncall?.start_time }">
@@ -4201,7 +4216,7 @@
                                     <select class="rsm-select"
                                             v-model="reassignmentModal.replacements['shift_' + shift.role + '_' + shift.id]">
                                         <option value="">— Leave Unassigned —</option>
-                                        <option v-for="s in medicalStaff.filter(x => x.employment_status === 'active' && ['attending_physician','fellow','nurse_practitioner'].includes(x.staff_type))"
+                                        <option v-for="s in medicalStaff.filter(x => x.employment_status === 'active' && ['attending_physician','fellow','nurse_practitioner','medical_resident'].includes(x.staff_type))"
                                                 :key="s.id" :value="s.id">{{ s.full_name }}</option>
                                     </select>
                                 </span>
