@@ -83,15 +83,26 @@ document.addEventListener('DOMContentLoaded', () => {
       medical_resident: 'Medical Resident', 
       attending_physician: 'Attending Physician',
       fellow: 'Fellow', 
-      nurse_practitioner: 'Nurse Practitioner'
+      nurse_practitioner: 'Nurse Practitioner',
+      administrator: 'Administrator'
     }
     
     const STAFF_TYPE_CLASSES = {
       medical_resident: 'badge-primary', 
       attending_physician: 'badge-success',
       fellow: 'badge-info', 
-      nurse_practitioner: 'badge-warning'
+      nurse_practitioner: 'badge-warning',
+      administrator: 'badge-secondary'
     }
+
+    // Known baseline staff types shown in dropdowns; users can also define custom ones
+    const BASE_STAFF_TYPES = [
+      { value: 'attending_physician', label: 'Attending Physician' },
+      { value: 'medical_resident',    label: 'Medical Resident' },
+      { value: 'fellow',              label: 'Fellow' },
+      { value: 'nurse_practitioner',  label: 'Nurse Practitioner' },
+      { value: 'administrator',       label: 'Administrator' },
+    ]
     
     const ABSENCE_REASON_LABELS = {
       vacation: 'Vacation', 
@@ -277,10 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       static getStaffRoles(staff) {
         const roles = [];
-        if (staff?.is_chief_of_department) roles.push({ key: 'chief_of_department', ...Utils.getRoleInfo('chief_of_department') });
         if (staff?.is_research_coordinator) roles.push({ key: 'research_coordinator', ...Utils.getRoleInfo('research_coordinator') });
-        if (staff?.is_resident_manager) roles.push({ key: 'resident_manager', ...Utils.getRoleInfo('resident_manager') });
-        if (staff?.is_oncall_manager) roles.push({ key: 'oncall_manager', ...Utils.getRoleInfo('oncall_manager') });
         return roles;
       }
 
@@ -539,10 +547,7 @@ document.addEventListener('DOMContentLoaded', () => {
           can_supervise_residents: staff.can_supervise_residents || false,
           training_year: staff.training_year || null,
           training_level: staff.training_level || null,
-          is_chief_of_department: staff.is_chief_of_department || false,
-          is_research_coordinator: staff.is_research_coordinator || false,
-          is_resident_manager: staff.is_resident_manager || false,
-          is_oncall_manager: staff.is_oncall_manager || false
+          is_research_coordinator: staff.is_research_coordinator || false
         }));
       }
       
@@ -967,17 +972,30 @@ document.addEventListener('DOMContentLoaded', () => {
       const medicalStaffModal = reactive({
         show: false, mode: 'add', activeTab: 'basic',
         _addingHospital: false, _newHospitalName: '', _newHospitalNetwork: 'external',
+        _showCustomType: false,   // true when user selects "Other / Define type"
         form: { 
-          full_name: '', staff_type: 'medical_resident', staff_id: '', employment_status: 'active', 
+          full_name: '', staff_type: 'attending_physician', _customStaffType: '', staff_id: '', employment_status: 'active', 
           professional_email: '', department_id: '', academic_degree: '', specialization: '', 
           training_year: '', clinical_certificate: '', certificate_status: '',
           mobile_phone: '', medical_license: '', can_supervise_residents: false, special_notes: '',
           can_be_pi: false, can_be_coi: false, other_certificate: '',
           resident_category: null, home_department: null, external_institution: null,
-          is_chief_of_department: false, is_research_coordinator: false, 
-          is_resident_manager: false, is_oncall_manager: false, clinical_study_certificates: [],
+          is_research_coordinator: false,
+          clinical_study_certificates: [],
           hospital_id: null, _networkHint: null
         }
+      })
+
+      // Compute all unique staff types: baseline + any types already in the DB not in baseline
+      const availableStaffTypes = computed(() => {
+        const baseValues = new Set(BASE_STAFF_TYPES.map(t => t.value))
+        const extra = []
+        for (const s of medicalStaff.value) {
+          if (s.staff_type && !baseValues.has(s.staff_type) && !extra.find(e => e.value === s.staff_type)) {
+            extra.push({ value: s.staff_type, label: s.staff_type.replace(/_/g, ' ').replace(/\w/g, c => c.toUpperCase()) })
+          }
+        }
+        return [...BASE_STAFF_TYPES, ...extra]
       })
 
       const validateStaff = (form) => {
@@ -988,6 +1006,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (form.staff_type === 'medical_resident' && !form.training_year?.trim()) {
           setErr('staff', 'training_year', 'Training year is required for residents'); ok = false
+        }
+        if (form.staff_type === '__custom__' && !form._customStaffType?.trim()) {
+          setErr('staff', 'staff_type', 'Please enter a staff type'); ok = false
         }
         return ok
       }
@@ -1065,8 +1086,8 @@ document.addEventListener('DOMContentLoaded', () => {
           mobile_phone: '', medical_license: '', can_supervise_residents: false, special_notes: '',
           can_be_pi: false, can_be_coi: false, other_certificate: '',
           resident_category: null, home_department: null, external_institution: null,
-          is_chief_of_department: false, is_research_coordinator: false, 
-          is_resident_manager: false, is_oncall_manager: false, clinical_study_certificates: [],
+          is_research_coordinator: false,
+          clinical_study_certificates: [],
           hospital_id: null, _networkHint: null
         })
         medicalStaffModal.show = true
@@ -1096,12 +1117,19 @@ document.addEventListener('DOMContentLoaded', () => {
           can_supervise_residents: staff.can_supervise_residents || false,
           can_be_pi: staff.can_be_pi || false,
           can_be_coi: staff.can_be_coi || false,
-          is_chief_of_department: staff.is_chief_of_department || false,
           is_research_coordinator: staff.is_research_coordinator || false,
-          is_resident_manager: staff.is_resident_manager || false,
-          is_oncall_manager: staff.is_oncall_manager || false,
           clinical_study_certificates: Array.isArray(staff.clinical_study_certificates) ? [...staff.clinical_study_certificates] : [],
           hospital_id: staff.hospital_id || null
+        }
+        // Handle custom staff types: if the type isn't in our baseline list, show the custom input
+        const isKnownType = BASE_STAFF_TYPES.some(t => t.value === staff.staff_type)
+        if (!isKnownType && staff.staff_type) {
+          medicalStaffModal._showCustomType = true
+          medicalStaffModal.form.staff_type = '__custom__'
+          medicalStaffModal.form._customStaffType = staff.staff_type
+        } else {
+          medicalStaffModal._showCustomType = false
+          medicalStaffModal.form._customStaffType = ''
         }
         medicalStaffModal.show = true
       }
@@ -1112,8 +1140,12 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
           const clean = v => (v == null) ? '' : String(v).trim()
           const f = medicalStaffModal.form
+          // If user selected 'other' and typed a custom type, use that value instead
+          const resolvedStaffType = (f.staff_type === '__custom__')
+            ? (f._customStaffType || '').trim().toLowerCase().replace(/\s+/g, '_') || 'other'
+            : f.staff_type || 'attending_physician'
           const data = {
-            full_name: f.full_name.trim(), staff_type: f.staff_type || 'medical_resident',
+            full_name: f.full_name.trim(), staff_type: resolvedStaffType,
             staff_id: f.staff_id || Utils.generateId('MD'), employment_status: f.employment_status || 'active',
             professional_email: f.professional_email || '', department_id: f.department_id || null,
             academic_degree: clean(f.academic_degree), specialization: clean(f.specialization),
@@ -1124,8 +1156,7 @@ document.addEventListener('DOMContentLoaded', () => {
             other_certificate: clean(f.other_certificate),
             special_notes: clean(f.special_notes), resident_category: f.resident_category || null,
             home_department: f.home_department || null, external_institution: f.external_institution || null,
-            is_chief_of_department: f.is_chief_of_department || false, is_research_coordinator: f.is_research_coordinator || false,
-            is_resident_manager: f.is_resident_manager || false, is_oncall_manager: f.is_oncall_manager || false,
+            is_research_coordinator: f.is_research_coordinator || false,
             clinical_study_certificates: f.clinical_study_certificates || []
           }
           if (medicalStaffModal.mode === 'add') {
@@ -1152,10 +1183,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!medicalStaff.value) return false;
         const currentHolder = medicalStaff.value.find(staff => {
           switch (role) {
-            case 'chief_of_department': return staff.is_chief_of_department;
             case 'research_coordinator': return staff.is_research_coordinator;
-            case 'resident_manager': return staff.is_resident_manager;
-            case 'oncall_manager': return staff.is_oncall_manager;
             default: return false;
           }
         });
@@ -1166,10 +1194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!medicalStaff.value) return null;
         return medicalStaff.value.find(staff => {
           switch (role) {
-            case 'chief_of_department': return staff.is_chief_of_department;
             case 'research_coordinator': return staff.is_research_coordinator;
-            case 'resident_manager': return staff.is_resident_manager;
-            case 'oncall_manager': return staff.is_oncall_manager;
             default: return false;
           }
         }) || null;
@@ -1210,7 +1235,8 @@ document.addEventListener('DOMContentLoaded', () => {
         getResidentCategoryInfo: Utils.getResidentCategoryInfo, formatResidentCategorySimple: Utils.formatResidentCategorySimple,
         formatResidentCategoryDetailed: Utils.formatResidentCategoryDetailed, getResidentCategoryIcon: Utils.getResidentCategoryIcon,
         getResidentCategoryTooltip: Utils.getResidentCategoryTooltip, getRoleInfo: Utils.getRoleInfo, getStaffRoles: Utils.getStaffRoles,
-        isRoleTaken, getCurrentRoleHolder, handleRoleAssignment, toggleCertificate, availableCertificates
+        isRoleTaken, getCurrentRoleHolder, handleRoleAssignment, toggleCertificate, availableCertificates,
+        availableStaffTypes
       }
     }
 
@@ -3134,7 +3160,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const getCurrentViewSubtitle = () => VIEW_SUBTITLES[currentView.value] || 'Hospital Management System'
         const getSearchPlaceholder = () => 'Search...'
 
-        const getStaffTypeIcon = (t) => ({ attending_physician: 'fa-user-md', medical_resident: 'fa-user-graduate', fellow: 'fa-user-tie', nurse_practitioner: 'fa-user-nurse' }[t] || 'fa-user')
+        const getStaffTypeIcon = (t) => ({ attending_physician: 'fa-user-md', medical_resident: 'fa-user-graduate', fellow: 'fa-user-tie', nurse_practitioner: 'fa-user-nurse', administrator: 'fa-user-cog' }[t] || 'fa-user-tag')
         const getAbsenceReasonIcon = (r) => ({ vacation: 'fa-umbrella-beach', sick_leave: 'fa-procedures', conference: 'fa-chalkboard-teacher', training: 'fa-graduation-cap', personal: 'fa-user-clock', other: 'fa-question-circle' }[r] || 'fa-clock')
         const calculateCapacityPercent = (cur, max) => (!cur || !max) ? 0 : Math.round((cur / max) * 100)
         const getPreviewCardClass = () => absenceOps.absenceModal.form.absence_type === 'planned' ? 'planned' : 'unplanned'
