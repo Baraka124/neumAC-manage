@@ -2248,7 +2248,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const filteredResearchLines = computed(() => {
         let f = researchLines.value
-        if (researchLineFilters.search) { const q = researchLineFilters.search.toLowerCase(); f = f.filter(l => (l.research_line_name || l.name)?.toLowerCase().includes(q) || l.description?.toLowerCase().includes(q)) }
+        if (researchLineFilters.search) {
+          const q = researchLineFilters.search.toLowerCase()
+          f = f.filter(l =>
+            (l.research_line_name || l.name)?.toLowerCase().includes(q) ||
+            l.description?.toLowerCase().includes(q) ||
+            l.capabilities?.toLowerCase().includes(q) ||
+            (Array.isArray(l.keywords) && l.keywords.some(k => k.toLowerCase().includes(q)))
+          )
+        }
         if (researchLineFilters.active !== '') { const active = researchLineFilters.active === 'true'; f = f.filter(l => l.active === active) }
         return applySort(f, 'research_lines')
       })
@@ -2264,17 +2272,31 @@ document.addEventListener('DOMContentLoaded', () => {
       const filteredTrials = computed(() => paginate(filteredTrialsAll.value, 'trials'))
       const trialTotalPages = computed(() => totalPages(filteredTrialsAll.value, 'trials'))
 
-      const filteredProjects = computed(() => {
-        let f = innovationProjects.value
-        if (projectFilters.research_line_id) f = f.filter(p => p.research_line_id === projectFilters.research_line_id)
-        if (projectFilters.category) f = f.filter(p => p.category === projectFilters.category)
-        if (projectFilters.stage) f = f.filter(p => (p.current_stage || p.development_stage) === projectFilters.stage)
-        if (projectFilters.funding_status) f = f.filter(p => (p.funding_status || 'not_applicable') === projectFilters.funding_status)
-        if (projectFilters.search) { const q = projectFilters.search.toLowerCase(); f = f.filter(p => p.title?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q) || (Array.isArray(p.keywords) && p.keywords.some(k => k.toLowerCase().includes(q)))) }
-        return f
-      })
 
-      watch(trialFilters, () => resetPage('trials'), { deep: true })
+
+
+
+
+
+
+
+
+
+
+
+      // ── Keyword chip helpers ──────────────────────────────────────────────
+      const addKeyword = (form) => {
+        if (!form.keywordsInput?.trim()) return
+        const incoming = form.keywordsInput.split(',').map(k => k.trim()).filter(Boolean)
+        incoming.forEach(kw => { if (kw && !form.keywords.includes(kw)) form.keywords.push(kw) })
+        form.keywordsInput = ''
+      }
+      const removeKeyword = (form, idx) => { form.keywords.splice(idx, 1) }
+      const handleKeywordKey = (e, form) => {
+        if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab') {
+          e.preventDefault(); addKeyword(form)
+        }
+      }
 
       const loadResearchLines = async () => { try { researchLines.value = await API.getResearchLines() } catch { } }
       const loadClinicalTrials = async () => { try { clinicalTrials.value = await API.getAllClinicalTrials() } catch { } }
@@ -2369,7 +2391,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const deleteClinicalTrial = (trial) => showConfirmation({ title: 'Delete Trial', message: `Delete "${trial.title}"?`, icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger', details: `Protocol: ${trial.protocol_id}`, onConfirm: async () => { await API.deleteClinicalTrial(trial.id); await loadClinicalTrials(); showToast('Success', 'Trial deleted', 'success'); loadAnalyticsSummary() } })
       const deleteInnovationProject = (project) => showConfirmation({ title: 'Delete Project', message: `Delete "${project.title}"?`, icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger', onConfirm: async () => { await API.deleteInnovationProject(project.id); await loadInnovationProjects(); showToast('Success', 'Project deleted', 'success'); loadAnalyticsSummary(); loadPartnerCollaborations() } })
 
-      return { researchLines, clinicalTrials, innovationProjects, researchLineFilters, trialFilters, projectFilters, researchLineModal, clinicalTrialModal, innovationProjectModal, assignCoordinatorModal, trialDetailModal, filteredResearchLines, filteredTrials, filteredTrialsAll, filteredProjects, trialTotalPages, getResearchLineName, getClinicianResearchLines, loadResearchLines, loadClinicalTrials, loadInnovationProjects, showAddResearchLineModal, showAddTrialModal, showAddProjectModal, openAssignCoordinatorModal, editResearchLine, editTrial, editProject, viewTrial, saveResearchLine, saveClinicalTrial, saveInnovationProject, saveCoordinatorAssignment, deleteResearchLine, deleteClinicalTrial, deleteInnovationProject }
+      return { researchLines, clinicalTrials, innovationProjects, researchLineFilters, trialFilters, projectFilters, researchLineModal, clinicalTrialModal, innovationProjectModal, assignCoordinatorModal, trialDetailModal, filteredResearchLines, filteredTrials, filteredTrialsAll, filteredProjects, filteredProjectsAll, trialTotalPages, projectTotalPages, getResearchLineName, getClinicianResearchLines, loadResearchLines, loadClinicalTrials, loadInnovationProjects, showAddResearchLineModal, showAddTrialModal, showAddProjectModal, openAssignCoordinatorModal, editResearchLine, editTrial, editProject, viewTrial, saveResearchLine, saveClinicalTrial, saveInnovationProject, saveCoordinatorAssignment, deleteResearchLine, deleteClinicalTrial, deleteInnovationProject, addKeyword, removeKeyword, handleKeywordKey }
     }
 
     // ============ 6.12 useAnalytics ============
@@ -2381,16 +2403,52 @@ document.addEventListener('DOMContentLoaded', () => {
       const analyticsSummary = ref(null)
       const loadingAnalytics = ref(false)
       const exportModal = reactive({ show: false, type: 'clinical-trials', format: 'csv', loading: false })
+      const analyticsActiveTab = ref('dashboard') // 'dashboard' | 'performance' | 'partners'
 
-      const loadResearchDashboard = async () => {
+      const loadResearchDashboard = async (localResearchLines, localTrials, localProjects) => {
         if (!hasPermission('analytics', 'read')) return
         loadingAnalytics.value = true
-        try { const data = await API.getResearchDashboard(); if (data) researchDashboard.value = data }
+        try {
+          const data = await API.getResearchDashboard()
+          if (data) {
+            // Augment with researchLines table the backend doesn't return
+            const lines = localResearchLines?.value || []
+            const trials = localTrials?.value || []
+            const projects = localProjects?.value || []
+            data.researchLines = lines.map(line => ({
+              id: line.id,
+              line_number: line.line_number,
+              name: line.research_line_name || line.name,
+              active: line.active,
+              coordinator_name: line.coordinator_name || null,
+              coordinator_id: line.coordinator_id || null,
+              trialsCount: trials.filter(t => t.research_line_id === line.id).length,
+              projectsCount: projects.filter(p => p.research_line_id === line.id).length
+            }))
+            researchDashboard.value = data
+          }
+        }
         catch { showToast('Error', 'Failed to load research dashboard', 'error') }
         finally { loadingAnalytics.value = false }
       }
       const loadResearchLinesPerformance = async () => { if (!hasPermission('analytics', 'read')) return; try { researchLinesPerformance.value = await API.getResearchLinesPerformance() } catch { showToast('Error', 'Failed to load performance data', 'error') } }
-      const loadPartnerCollaborations = async () => { if (!hasPermission('analytics', 'read')) return; try { partnerCollaborations.value = await API.getPartnerCollaborations() } catch { showToast('Error', 'Failed to load partner data', 'error') } }
+      const loadPartnerCollaborations = async () => {
+        if (!hasPermission('analytics', 'read')) return
+        try {
+          const raw = await API.getPartnerCollaborations()
+          if (raw) {
+            // Compute needsByType from partnerNeeds (group by first word as category proxy)
+            const needs = raw.partnerNeeds || []
+            const byType = {}
+            needs.forEach(n => {
+              const type = n.name.split(' ')[0] || 'Other'
+              byType[type] = (byType[type] || 0) + n.count
+            })
+            raw.needsByType = Object.entries(byType).map(([type, count]) => ({ type, count })).sort((a,b) => b.count - a.count)
+            partnerCollaborations.value = raw
+          }
+        } catch { showToast('Error', 'Failed to load partner data', 'error') }
+      }
       const loadTrialsTimeline = async (years = 3) => { if (!hasPermission('analytics', 'read')) return; try { trialsTimeline.value = await API.getClinicalTrialsTimeline(years) } catch { showToast('Error', 'Failed to load timeline', 'error') } }
       const loadAnalyticsSummary = async () => { if (!hasPermission('analytics', 'read')) return; try { analyticsSummary.value = await API.getAnalyticsSummary() } catch { } }
 
@@ -2418,7 +2476,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const showExportModal = () => { exportModal.type = 'clinical-trials'; exportModal.show = true }
 
-      return { researchDashboard, researchLinesPerformance, partnerCollaborations, trialsTimeline, analyticsSummary, loadingAnalytics, exportModal, loadResearchDashboard, loadResearchLinesPerformance, loadPartnerCollaborations, loadTrialsTimeline, loadAnalyticsSummary, loadStaffResearchProfile, handleExport, showExportModal }
+      return { researchDashboard, researchLinesPerformance, partnerCollaborations, trialsTimeline, analyticsSummary, loadingAnalytics, exportModal, analyticsActiveTab, loadResearchDashboard, loadResearchLinesPerformance, loadPartnerCollaborations, loadTrialsTimeline, loadAnalyticsSummary, loadStaffResearchProfile, handleExport, showExportModal }
     }
 
     // ============ 6.13 useDashboard ============
@@ -2701,9 +2759,23 @@ document.addEventListener('DOMContentLoaded', () => {
           // Trigger entrance animation on content area
           const ca = document.querySelector('.content-area')
           if (ca) { ca.classList.remove('content-view-enter'); void ca.offsetWidth; ca.classList.add('content-view-enter') }
-          if (view === 'analytics_dashboard' && hasPermission('analytics', 'read')) { await analyticsOps.loadResearchDashboard(); await analyticsOps.loadTrialsTimeline() }
-          else if (view === 'analytics_performance' && hasPermission('analytics', 'read')) { await analyticsOps.loadResearchLinesPerformance() }
-          else if (view === 'analytics_partners' && hasPermission('analytics', 'read')) { await analyticsOps.loadPartnerCollaborations() }
+          if (view === 'analytics_dashboard' && hasPermission('analytics', 'read')) {
+            analyticsOps.analyticsActiveTab.value = 'dashboard'
+            await Promise.all([
+              analyticsOps.loadResearchDashboard(researchOps.researchLines, researchOps.clinicalTrials, researchOps.innovationProjects),
+              analyticsOps.loadTrialsTimeline()
+            ])
+          } else if (view === 'analytics_performance' && hasPermission('analytics', 'read')) {
+            analyticsOps.analyticsActiveTab.value = 'performance'
+            currentView.value = 'analytics_dashboard'
+            await analyticsOps.loadResearchLinesPerformance()
+            return
+          } else if (view === 'analytics_partners' && hasPermission('analytics', 'read')) {
+            analyticsOps.analyticsActiveTab.value = 'partners'
+            currentView.value = 'analytics_dashboard'
+            await analyticsOps.loadPartnerCollaborations()
+            return
+          }
         }
 
         const toggleStatsSidebar = () => { ui.statsSidebarOpen.value = !ui.statsSidebarOpen.value }
@@ -2824,7 +2896,8 @@ document.addEventListener('DOMContentLoaded', () => {
               rotations:     rotationOps.filteredRotationsAll.value,
               oncall:        onCallOps.filteredOnCallAll.value,
               absences:      absenceOps.filteredAbsencesAll.value,
-              trials:        researchOps.filteredTrialsAll.value
+              trials:        researchOps.filteredTrialsAll.value,
+              projects:      researchOps.filteredProjectsAll.value
             }
             goToPage(view, page, arrMap[view] || [])
           },
@@ -2833,6 +2906,10 @@ document.addEventListener('DOMContentLoaded', () => {
           oncallTotalPages: onCallOps.oncallTotalPages,
           absenceTotalPages: absenceOps.absenceTotalPages,
           trialTotalPages: researchOps.trialTotalPages,
+          projectTotalPages: researchOps.projectTotalPages,
+          addKeyword: (form) => researchOps.addKeyword(form),
+          removeKeyword: (form, idx) => researchOps.removeKeyword(form, idx),
+          handleKeywordKey: (e, form) => researchOps.handleKeywordKey(e, form),
           fieldErrors, clearFieldError: (form, field) => clearFieldError(form, field),
           viewStaffDetails, toggleProfileSection, showUserProfileModal, saveUserProfile,
           getStaffName, getSupervisorName, getPhysicianName, getResidentName, getTrainingUnitName,
