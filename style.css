@@ -5962,3 +5962,13 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .rsm-notice i { color: var(--blue); margin-top: 1px; flex-shrink: 0; }
 
 .rsm-footer { border-top: 1px solid var(--border); padding: 14px 24px; flex-shrink: 0; }
+
+/* ================================================================
+   ON-CALL COMPACT — backup orb variant (green, distinct from primary blue)
+================================================================ */
+.rot-orb--backup-oc {
+  background: linear-gradient(135deg, #059669, #047857);
+  border-color: rgba(5,150,105,.4);
+  color: #fff;
+}
+.rot-orb--backup-oc .rot-orb-label { color: rgba(255,255,255,.9); }
