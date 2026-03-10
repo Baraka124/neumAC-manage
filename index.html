@@ -1728,14 +1728,16 @@
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
-                                        <th @click="sortBy('trials', 'protocol_id')">Protocolo <i class="fas" :class="sortIcon('trials', 'protocol_id')"></i></th>
+                                        <th @click="sortBy('trials', 'protocol_id')" style="white-space:nowrap">Protocolo <i class="fas" :class="sortIcon('trials', 'protocol_id')"></i></th>
                                         <th @click="sortBy('trials', 'title')">Título del Estudio <i class="fas" :class="sortIcon('trials', 'title')"></i></th>
                                         <th>Línea</th>
                                         <th>PI</th>
-                                        <!-- FIX 9: Show co-I count -->
                                         <th title="Co-Investigators">Co-I</th>
                                         <th @click="sortBy('trials', 'phase')">Fase <i class="fas" :class="sortIcon('trials', 'phase')"></i></th>
                                         <th @click="sortBy('trials', 'status')">Estado <i class="fas" :class="sortIcon('trials', 'status')"></i></th>
+                                        <th title="Enrollment (actual / target)">Reclut.</th>
+                                        <th @click="sortBy('trials', 'start_date')" style="white-space:nowrap">Fechas <i class="fas" :class="sortIcon('trials', 'start_date')"></i></th>
+                                        <th>Sponsor</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -1761,8 +1763,35 @@
                                                     'status-suspended': trial.status === 'Suspendido'
                                                   }">{{ trial.status }}</span>
                                         </td>
+                                        <td class="trial-enrollment-cell">
+                                            <div v-if="trial.enrollment_target" class="enrollment-wrap">
+                                                <div class="enrollment-nums">
+                                                    <span class="enrollment-actual">{{ trial.actual_enrollment || 0 }}</span>
+                                                    <span class="enrollment-sep">/</span>
+                                                    <span class="enrollment-target">{{ trial.enrollment_target }}</span>
+                                                </div>
+                                                <div class="enrollment-bar">
+                                                    <div class="enrollment-fill"
+                                                         :style="{ width: Math.min(100, Math.round(((trial.actual_enrollment||0)/trial.enrollment_target)*100)) + '%',
+                                                                   background: trial.status === 'Completado' ? 'var(--teal)' : 'var(--blue)' }"></div>
+                                                </div>
+                                            </div>
+                                            <span v-else class="text-muted-sm">—</span>
+                                        </td>
+                                        <td class="trial-dates-cell">
+                                            <div v-if="trial.start_date || trial.end_date" class="trial-dates-wrap">
+                                                <span v-if="trial.start_date" class="trial-date-from"><i class="fas fa-play" style="font-size:8px;opacity:.6"></i> {{ formatDateShort(trial.start_date) }}</span>
+                                                <span v-if="trial.end_date" class="trial-date-to"><i class="fas fa-flag-checkered" style="font-size:8px;opacity:.6"></i> {{ formatDateShort(trial.end_date) }}</span>
+                                            </div>
+                                            <span v-else class="text-muted-sm">—</span>
+                                        </td>
+                                        <td>
+                                            <span v-if="trial.sponsor_name" class="trial-sponsor-badge" :title="trial.sponsor_type || ''">
+                                                <i class="fas fa-building" style="opacity:.5;font-size:10px"></i> {{ trial.sponsor_name }}
+                                            </span>
+                                            <span v-else class="text-muted-sm">—</span>
+                                        </td>
                                         <td class="table-actions-cell">
-                                            <!-- FIX 6: View button for read-only detail sheet -->
                                             <button class="btn-pill btn-pill-view" @click="viewTrial(trial)" title="View details"><i class="fas fa-eye"></i></button>
                                             <button class="btn-pill btn-pill-edit" @click="editTrial(trial)" v-if="hasPermission('research_lines', 'update')"><i class="fas fa-edit"></i></button>
                                             <button class="btn-pill btn-pill-delete" @click="deleteClinicalTrial(trial)" v-if="hasPermission('research_lines', 'delete')"><i class="fas fa-trash"></i></button>
@@ -1932,6 +1961,22 @@
                                     </div>
                                 </div>
 
+                                <!-- TRL level badge -->
+                                <div class="inno-trl-row" v-if="project.trl_level">
+                                    <div class="inno-trl-track">
+                                        <div v-for="n in 9" :key="n"
+                                             class="inno-trl-pip"
+                                             :class="{
+                                               'inno-trl-pip--filled': n <= project.trl_level,
+                                               'inno-trl-pip--current': n === project.trl_level
+                                             }"
+                                             :title="'TRL ' + n"
+                                             :style="n <= project.trl_level ? { background: getStageConfig(project.current_stage || project.development_stage).color } : {}">
+                                        </div>
+                                    </div>
+                                    <span class="inno-trl-label">TRL {{ project.trl_level }}</span>
+                                </div>
+
                                 <!-- Keywords -->
                                 <div class="inno-keywords" v-if="project.keywords && project.keywords.length">
                                     <span v-for="kw in project.keywords" :key="kw" class="inno-kw-chip">{{ kw }}</span>
@@ -1946,17 +1991,40 @@
                                 <button class="btn btn-primary btn-sm" @click="showAddProjectModal" v-if="hasPermission('research_lines', 'create')"><i class="fas fa-plus"></i> Add First Project</button>
                             </div>
                         </div><!-- /grid -->
+                        <div class="pagination" v-if="projectTotalPages > 1">
+                            <button class="btn-pill" @click="goToPage('projects', pagination.projects?.page - 1)" :disabled="!pagination.projects || pagination.projects.page === 1"><i class="fas fa-chevron-left"></i></button>
+                            <span class="pagination-info">Page {{ pagination.projects?.page || 1 }} of {{ projectTotalPages }}</span>
+                            <button class="btn-pill" @click="goToPage('projects', pagination.projects?.page + 1)" :disabled="!pagination.projects || pagination.projects.page === projectTotalPages"><i class="fas fa-chevron-right"></i></button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- ============ ANALYTICS DASHBOARD VIEW ============ -->
-                <div v-if="currentView === 'analytics_dashboard'">
-                    <div class="dashboard-header">
+                <!-- ============ ANALYTICS (UNIFIED TABBED VIEW) ============ -->
+                <div v-if="currentView === 'analytics_dashboard' || currentView === 'analytics_performance' || currentView === 'analytics_partners'">
+
+                    <!-- Tab navigation -->
+                    <div class="analytics-tab-bar">
+                        <button class="analytics-tab" :class="{ 'analytics-tab--active': analyticsActiveTab === 'dashboard' }"
+                                @click="analyticsActiveTab = 'dashboard'; loadResearchDashboard(); loadTrialsTimeline()">
+                            <i class="fas fa-chart-pie"></i> Dashboard
+                        </button>
+                        <button class="analytics-tab" :class="{ 'analytics-tab--active': analyticsActiveTab === 'performance' }"
+                                @click="analyticsActiveTab = 'performance'; loadResearchLinesPerformance()">
+                            <i class="fas fa-chart-line"></i> Performance
+                        </button>
+                        <button class="analytics-tab" :class="{ 'analytics-tab--active': analyticsActiveTab === 'partners' }"
+                                @click="analyticsActiveTab = 'partners'; loadPartnerCollaborations()">
+                            <i class="fas fa-handshake"></i> Partners
+                        </button>
+                        <div class="analytics-tab-spacer"></div>
+                        <button class="btn btn-primary btn-sm" @click="showExportModal" v-if="hasPermission('analytics', 'export')"><i class="fas fa-download"></i> Export</button>
+                    </div>
+
+                    <!-- ── TAB: DASHBOARD ─────────────────────────────────────── -->
+                    <div v-show="analyticsActiveTab === 'dashboard'">
+                    <div class="dashboard-header" style="padding-top:0;margin-top:0">
                         <h2><i class="fas fa-chart-pie"></i> Research Analytics Dashboard</h2>
-                        <div class="dashboard-actions">
-                            <button class="btn btn-outline" @click="loadResearchDashboard(true)" :disabled="loadingAnalytics"><i class="fas fa-sync-alt" :class="{ 'fa-spin': loadingAnalytics }"></i> Refresh</button>
-                            <button class="btn btn-primary" @click="showExportModal" v-if="hasPermission('analytics', 'export')"><i class="fas fa-download"></i> Export Report</button>
-                        </div>
+                        <button class="btn btn-outline btn-sm" @click="loadResearchDashboard(); loadTrialsTimeline()" :disabled="loadingAnalytics"><i class="fas fa-sync-alt" :class="{ 'fa-spin': loadingAnalytics }"></i> Refresh</button>
                     </div>
                     <div v-if="loadingAnalytics" class="loading-state"><i class="fas fa-spinner fa-spin"></i> Loading analytics data...</div>
                     <template v-else-if="researchDashboard">
@@ -2023,7 +2091,6 @@
                         </div>
                         <div class="card" v-if="researchDashboard.innovationProjects?.partnerNeeds?.length">
                             <div class="card-header"><div class="card-title"><i class="fas fa-handshake"></i> Top Partner Needs</div></div>
-                            <!-- FIX 32: Partner needs shown as sorted bar list instead of poorly-scaled word cloud -->
                             <div class="partner-needs-chart">
                                 <div v-for="need in researchDashboard.innovationProjects.partnerNeeds.slice(0, 10).sort((a,b) => b.count - a.count)" :key="need.name" class="pneed-row">
                                     <span class="pneed-label">{{ need.name }}</span>
@@ -2034,20 +2101,61 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Trials added over time timeline -->
+                        <div class="card" v-if="trialsTimeline && trialsTimeline.timeline?.length">
+                            <div class="card-header">
+                                <div class="card-title"><i class="fas fa-stream"></i> Trials Added Over Time</div>
+                                <span class="badge badge-info">{{ trialsTimeline.totalInPeriod }} in last 3 years</span>
+                            </div>
+                            <div class="timeline-chart">
+                                <div v-for="(item, idx) in trialsTimeline.timeline" :key="item.month" class="timeline-bar-col">
+                                    <div class="timeline-bar-wrap">
+                                        <div class="timeline-bar-fill"
+                                             :style="{ height: Math.max(4, Math.round((item.count / Math.max(...trialsTimeline.timeline.map(t=>t.count))) * 100)) + '%' }"
+                                             :title="item.month + ': ' + item.count + ' trial(s)'">
+                                        </div>
+                                        <span v-if="item.count > 0" class="timeline-bar-val">{{ item.count }}</span>
+                                    </div>
+                                    <span class="timeline-bar-label">{{ item.month.slice(5) }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Research Lines overview table — built from local data -->
+                        <div class="card" v-if="researchDashboard.researchLines?.length">
+                            <div class="card-header"><div class="card-title"><i class="fas fa-flask"></i> Research Lines Overview</div></div>
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead><tr><th>Line</th><th>Name</th><th>Coordinator</th><th>Trials</th><th>Projects</th><th>Status</th></tr></thead>
+                                    <tbody>
+                                        <tr v-for="line in researchDashboard.researchLines" :key="line.id" class="row-active" style="cursor:pointer"
+                                            @click="trialFilters.line = line.id; switchView('clinical_trials')">
+                                            <td><span class="rline-number-pill" style="font-size:11px">Línea {{ line.line_number }}</span></td>
+                                            <td class="font-medium">{{ line.name }}</td>
+                                            <td>{{ line.coordinator_name || 'Not assigned' }}</td>
+                                            <td><span class="badge badge-info">{{ line.trialsCount || 0 }}</span></td>
+                                            <td><span class="badge badge-success">{{ line.projectsCount || 0 }}</span></td>
+                                            <td><span class="status-indicator" :class="line.active ? 'status-active' : 'status-inactive'">{{ line.active ? 'Active' : 'Inactive' }}</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </template>
                     <div v-else class="empty-state">
                         <i class="fas fa-chart-pie empty-state-icon"></i>
                         <div class="empty-state-title">No analytics data available</div>
                         <div class="empty-state-description">Unable to load research dashboard data</div>
-                        <button class="btn btn-primary btn-sm" @click="loadResearchDashboard(true)"><i class="fas fa-sync-alt"></i> Retry</button>
+                        <button class="btn btn-primary btn-sm" @click="loadResearchDashboard(); loadTrialsTimeline()"><i class="fas fa-sync-alt"></i> Retry</button>
                     </div>
-                </div>
+                    </div><!-- /tab:dashboard -->
 
-                <!-- ============ RESEARCH LINES PERFORMANCE VIEW ============ -->
-                <div v-if="currentView === 'analytics_performance'">
-                    <div class="dashboard-header">
+                    <!-- ── TAB: PERFORMANCE ───────────────────────────────────── -->
+                    <div v-show="analyticsActiveTab === 'performance'">
+                    <div class="dashboard-header" style="padding-top:0;margin-top:0">
                         <h2><i class="fas fa-chart-line"></i> Research Lines Performance</h2>
-                        <button class="btn btn-outline" @click="loadResearchLinesPerformance(true)" :disabled="loadingAnalytics"><i class="fas fa-sync-alt" :class="{ 'fa-spin': loadingAnalytics }"></i> Refresh</button>
+                        <button class="btn btn-outline btn-sm" @click="loadResearchLinesPerformance()" :disabled="loadingAnalytics"><i class="fas fa-sync-alt" :class="{ 'fa-spin': loadingAnalytics }"></i> Refresh</button>
                     </div>
                     <div v-if="loadingAnalytics" class="loading-state"><i class="fas fa-spinner fa-spin"></i> Loading performance data...</div>
                     <div v-else-if="researchLinesPerformance.length > 0" class="card">
@@ -2070,13 +2178,13 @@
                         </div>
                     </div>
                     <div v-else class="empty-state"><i class="fas fa-chart-line empty-state-icon"></i><div class="empty-state-title">No performance data available</div></div>
-                </div>
+                    </div><!-- /tab:performance -->
 
-                <!-- ============ PARTNER COLLABORATIONS VIEW ============ -->
-                <div v-if="currentView === 'analytics_partners'">
-                    <div class="dashboard-header">
+                    <!-- ── TAB: PARTNERS ──────────────────────────────────────── -->
+                    <div v-show="analyticsActiveTab === 'partners'">
+                    <div class="dashboard-header" style="padding-top:0;margin-top:0">
                         <h2><i class="fas fa-handshake"></i> Partner Collaborations</h2>
-                        <button class="btn btn-outline" @click="loadPartnerCollaborations(true)" :disabled="loadingAnalytics"><i class="fas fa-sync-alt" :class="{ 'fa-spin': loadingAnalytics }"></i> Refresh</button>
+                        <button class="btn btn-outline btn-sm" @click="loadPartnerCollaborations()" :disabled="loadingAnalytics"><i class="fas fa-sync-alt" :class="{ 'fa-spin': loadingAnalytics }"></i> Refresh</button>
                     </div>
                     <div v-if="loadingAnalytics" class="loading-state"><i class="fas fa-spinner fa-spin"></i> Loading partner data...</div>
                     <div v-else-if="partnerCollaborations" class="space-y-4">
@@ -2118,7 +2226,9 @@
                         </div>
                     </div>
                     <div v-else class="empty-state"><i class="fas fa-handshake empty-state-icon"></i><div class="empty-state-title">No partner collaboration data available</div></div>
-                </div>
+                    </div><!-- /tab:partners -->
+
+                </div><!-- /analytics unified view -->
 
             </div><!-- /content-area -->
         </main>
@@ -3720,10 +3830,22 @@
                         </div>
                         <!-- FIX 13: Coordinator field removed from edit modal — use the dedicated "Assign Coordinator" button on the card instead to avoid divergent code paths -->
                         <div class="form-group col-span-2">
-                            <label class="form-label">Keywords <span class="form-hint">(comma-separated)</span></label>
-                            <input type="text" class="form-control" v-model="researchLineModal.form.keywordsInput"
-                                   :placeholder="researchLineModal.mode === 'edit' && researchLineModal.form.keywords?.length ? researchLineModal.form.keywords.join(', ') : 'e.g. EPOC, ventilacion mecanica, fibrosis pulmonar'">
-                            <small class="form-help">Keywords help search and categorize this research line</small>
+                            <label class="form-label">Keywords <span class="form-hint">press Enter or comma to add</span></label>
+                            <div class="kw-editor">
+                                <div class="kw-chips-area" @click="$refs.rlKwInput.focus()">
+                                    <transition-group name="kw-chip" tag="span">
+                                        <span v-for="(kw, i) in researchLineModal.form.keywords" :key="kw" class="kw-chip-edit">
+                                            <span class="kw-chip-text">{{ kw }}</span>
+                                            <button type="button" class="kw-chip-remove" @click.stop="removeKeyword(researchLineModal.form, i)" title="Remove"><i class="fas fa-times"></i></button>
+                                        </span>
+                                    </transition-group>
+                                    <input ref="rlKwInput" class="kw-input-inline" v-model="researchLineModal.form.keywordsInput"
+                                           placeholder="Add keyword..."
+                                           @keydown="handleKeywordKey($event, researchLineModal.form)"
+                                           @blur="addKeyword(researchLineModal.form)">
+                                </div>
+                            </div>
+                            <small class="form-help">Keywords make this line discoverable through search</small>
                         </div>
                     </div>
                 </div>
@@ -3934,9 +4056,21 @@
 
                         <!-- Keywords -->
                         <div class="form-group col-span-2">
-                            <label class="form-label">Keywords <span class="form-hint">comma-separated — will display as tags</span></label>
-                            <input type="text" class="form-control" v-model="innovationProjectModal.form.keywordsInput"
-                                   placeholder="e.g. EPOC, sensor portátil, machine learning, exacerbación">
+                            <label class="form-label">Keywords <span class="form-hint">press Enter or comma to add</span></label>
+                            <div class="kw-editor">
+                                <div class="kw-chips-area" @click="$refs.ipKwInput.focus()">
+                                    <transition-group name="kw-chip" tag="span">
+                                        <span v-for="(kw, i) in innovationProjectModal.form.keywords" :key="kw" class="kw-chip-edit">
+                                            <span class="kw-chip-text">{{ kw }}</span>
+                                            <button type="button" class="kw-chip-remove" @click.stop="removeKeyword(innovationProjectModal.form, i)" title="Remove"><i class="fas fa-times"></i></button>
+                                        </span>
+                                    </transition-group>
+                                    <input ref="ipKwInput" class="kw-input-inline" v-model="innovationProjectModal.form.keywordsInput"
+                                           placeholder="Add keyword..."
+                                           @keydown="handleKeywordKey($event, innovationProjectModal.form)"
+                                           @blur="addKeyword(innovationProjectModal.form)">
+                                </div>
+                            </div>
                             <small class="form-help">Keywords make projects discoverable through search</small>
                         </div>
 
@@ -4060,6 +4194,32 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Enrollment progress -->
+                    <div class="trial-detail-section" v-if="trialDetailModal.trial.enrollment_target">
+                        <div class="trial-detail-section-title">Reclutamiento</div>
+                        <div class="trial-detail-enroll">
+                            <div>
+                                <div class="trial-enroll-label">Enrollados</div>
+                                <div class="trial-enroll-nums">{{ trialDetailModal.trial.actual_enrollment || 0 }} <span style="font-size:13px;color:var(--text-3)">/ {{ trialDetailModal.trial.enrollment_target }}</span></div>
+                            </div>
+                            <div class="trial-enroll-bar">
+                                <div class="trial-enroll-fill"
+                                     :style="{ width: Math.min(100, Math.round(((trialDetailModal.trial.actual_enrollment||0)/trialDetailModal.trial.enrollment_target)*100)) + '%' }"></div>
+                            </div>
+                            <span class="trial-enroll-pct">{{ Math.min(100, Math.round(((trialDetailModal.trial.actual_enrollment||0)/trialDetailModal.trial.enrollment_target)*100)) }}%</span>
+                        </div>
+                    </div>
+
+                    <!-- Sponsor -->
+                    <div class="trial-detail-section" v-if="trialDetailModal.trial.sponsor_name">
+                        <div class="trial-detail-section-title">Sponsor</div>
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <i class="fas fa-building" style="color:var(--teal)"></i>
+                            <span style="font-weight:600">{{ trialDetailModal.trial.sponsor_name }}</span>
+                            <span v-if="trialDetailModal.trial.sponsor_type" class="badge badge-info" style="font-size:10px">{{ trialDetailModal.trial.sponsor_type }}</span>
+                        </div>
+                    </div>
+
                     <!-- Description -->
                     <div class="trial-detail-section" v-if="trialDetailModal.trial.description">
                         <div class="trial-detail-section-title">Descripción</div>
