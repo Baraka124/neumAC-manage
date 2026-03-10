@@ -609,6 +609,47 @@ document.addEventListener('DOMContentLoaded', () => {
       async updateDepartment(id, d) { this.invalidate('/api/departments'); return this.request(`/api/departments/${id}`, { method: 'PUT', body: d }) }
       async deleteDepartment(id, reassignments) { this.invalidate('/api/departments'); return this.request(`/api/departments/${id}`, { method: 'DELETE', body: reassignments ? { reassignments } : {} }) }
 
+      async getHospitals() {
+        try {
+          const r = await this.request('/api/hospitals')
+          return (r?.success && Array.isArray(r.data)) ? r.data : Utils.ensureArray(r)
+        } catch { return [] }
+      }
+      async createHospital(d) { this.invalidate('/api/hospitals'); return this.request('/api/hospitals', { method: 'POST', body: d }) }
+      async updateHospital(id, d) { this.invalidate('/api/hospitals'); return this.request(`/api/hospitals/${id}`, { method: 'PUT', body: d }) }
+
+      async getClinicalUnits(departmentId) {
+        const url = departmentId ? `/api/clinical-units?department_id=${departmentId}` : '/api/clinical-units'
+        try {
+          const r = await this.request(url)
+          return (r?.success && Array.isArray(r.data)) ? r.data : Utils.ensureArray(r)
+        } catch { return [] }
+      }
+      async createClinicalUnit(d) { this.invalidate('/api/clinical-units'); return this.request('/api/clinical-units', { method: 'POST', body: d }) }
+      async updateClinicalUnit(id, d) { this.invalidate('/api/clinical-units'); return this.request(`/api/clinical-units/${id}`, { method: 'PUT', body: d }) }
+      async deleteClinicalUnit(id) { this.invalidate('/api/clinical-units'); return this.request(`/api/clinical-units/${id}`, { method: 'DELETE' }) }
+      async getClinicalUnitStaff(unitId) {
+        try { const r = await this.request(`/api/clinical-units/${unitId}/staff`); return (r?.success && Array.isArray(r.data)) ? r.data : [] } catch { return [] }
+      }
+      async assignStaffToUnit(unitId, d) { return this.request(`/api/clinical-units/${unitId}/staff`, { method: 'POST', body: d }) }
+      async removeStaffFromUnit(unitId, assignmentId) { return this.request(`/api/clinical-units/${unitId}/staff/${assignmentId}`, { method: 'DELETE' }) }
+
+      async getPartners() {
+        try { const r = await this.request('/api/partners'); return (r?.success && Array.isArray(r.data)) ? r.data : Utils.ensureArray(r) } catch { return [] }
+      }
+      async createPartner(d) { this.invalidate('/api/partners'); return this.request('/api/partners', { method: 'POST', body: d }) }
+      async updatePartner(id, d) { this.invalidate('/api/partners'); return this.request(`/api/partners/${id}`, { method: 'PUT', body: d }) }
+      async deletePartner(id) { this.invalidate('/api/partners'); return this.request(`/api/partners/${id}`, { method: 'DELETE' }) }
+      async getPartnerNeeds() {
+        try { const r = await this.request('/api/partner-needs'); return (r?.success && Array.isArray(r.data)) ? r.data : [] } catch { return [] }
+      }
+      async createPartnerNeed(d) { return this.request('/api/partner-needs', { method: 'POST', body: d }) }
+      async getProjectPartners(projectId) {
+        try { const r = await this.request(`/api/innovation-projects/${projectId}/partners`); return (r?.success && Array.isArray(r.data)) ? r.data : [] } catch { return [] }
+      }
+      async linkPartnerToProject(projectId, d) { return this.request(`/api/innovation-projects/${projectId}/partners`, { method: 'POST', body: d }) }
+      async unlinkPartnerFromProject(projectId, partnerId) { return this.request(`/api/innovation-projects/${projectId}/partners/${partnerId}`, { method: 'DELETE' }) }
+
       async getTrainingUnits() { return this.getList('/api/training-units') }
       async createTrainingUnit(d) { this.invalidate('/api/training-units'); return this.request('/api/training-units', { method: 'POST', body: d }) }
       async updateTrainingUnit(id, d) { this.invalidate('/api/training-units'); return this.request(`/api/training-units/${id}`, { method: 'PUT', body: d }) }
@@ -915,7 +956,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // allStaffLookup keeps ALL staff (including inactive) for name resolution
       // so deleted staff don't ghost as "Not assigned" in historical records
       const allStaffLookup = ref([])
-      const staffFilters = reactive({ search: '', staffType: '', department: '', status: '', residentCategory: '' })
+      const hospitalsList = ref([])   // all hospitals from DB
+      const clinicalUnits = ref([])   // clinical units for Pneumology / current dept
+      const staffFilters = reactive({ search: '', staffType: '', department: '', status: '', residentCategory: '', hospital: '', networkType: '' })
       const staffProfileModal = reactive({ 
         show: false, staff: null, activeTab: 'activity',
         researchProfile: null, supervisionData: null, leaveBalance: null,
@@ -923,6 +966,7 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       const medicalStaffModal = reactive({
         show: false, mode: 'add', activeTab: 'basic',
+        _addingHospital: false, _newHospitalName: '', _newHospitalNetwork: 'external',
         form: { 
           full_name: '', staff_type: 'medical_resident', staff_id: '', employment_status: 'active', 
           professional_email: '', department_id: '', academic_degree: '', specialization: '', 
@@ -931,7 +975,8 @@ document.addEventListener('DOMContentLoaded', () => {
           can_be_pi: false, can_be_coi: false, other_certificate: '',
           resident_category: null, home_department: null, external_institution: null,
           is_chief_of_department: false, is_research_coordinator: false, 
-          is_resident_manager: false, is_oncall_manager: false, clinical_study_certificates: []
+          is_resident_manager: false, is_oncall_manager: false, clinical_study_certificates: [],
+          hospital_id: null, _networkHint: null
         }
       })
 
@@ -957,6 +1002,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (staffFilters.department) f = f.filter(x => x.department_id === staffFilters.department)
         if (staffFilters.status) f = f.filter(x => x.employment_status === staffFilters.status)
         if (staffFilters.residentCategory) f = f.filter(x => x.resident_category === staffFilters.residentCategory)
+        if (staffFilters.hospital) f = f.filter(x => x.hospital_id === staffFilters.hospital)
+        if (staffFilters.networkType) {
+          const hospitalIds = hospitalsList.value.filter(h => h.parent_complex === staffFilters.networkType).map(h => h.id)
+          f = f.filter(x => hospitalIds.includes(x.hospital_id))
+        }
         return applySort(f, 'medical_staff')
       })
 
@@ -967,19 +1017,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const loadMedicalStaff = async () => {
         try {
-          const raw = await API.getList('/api/medical-staff')
+          const [raw, hospitals, units] = await Promise.all([
+            API.getList('/api/medical-staff'),
+            API.getHospitals(),
+            API.getClinicalUnits()
+          ])
           if (Array.isArray(raw)) {
             allStaffLookup.value = raw.map(s => ({ id: s.id, full_name: s.full_name, staff_type: s.staff_type, employment_status: s.employment_status }))
           }
+          hospitalsList.value = hospitals
+          clinicalUnits.value = units
           medicalStaff.value = await API.getMedicalStaff()
         }
         catch { showToast('Error', 'Failed to load medical staff', 'error') }
+      }
+
+      const loadHospitals = async () => {
+        try { hospitalsList.value = await API.getHospitals() }
+        catch { console.error('Failed to load hospitals') }
+      }
+
+      // Add a new hospital inline from the staff form, then select it
+      const addHospitalInline = async (name, networkType = 'external') => {
+        if (!name?.trim()) return null
+        try {
+          const result = await API.createHospital({ name: name.trim(), network_type: networkType })
+          if (result?.success && result.data) {
+            hospitalsList.value = [...hospitalsList.value, result.data].sort((a, b) => a.name.localeCompare(b.name))
+            showToast('Success', `Hospital "${result.data.name}" added`, 'success')
+            return result.data
+          }
+          return null
+        } catch { showToast('Error', 'Failed to add hospital', 'error'); return null }
       }
 
       const showAddMedicalStaffModal = () => {
         clearAll('staff')
         medicalStaffModal.mode = 'add'
         medicalStaffModal.activeTab = 'basic'
+        medicalStaffModal._addingHospital = false
+        medicalStaffModal._newHospitalName = ''
+        medicalStaffModal._newHospitalNetwork = 'external'
         Object.assign(medicalStaffModal.form, {
           full_name: '', staff_type: 'medical_resident', staff_id: `MD-${Date.now().toString().slice(-6)}`,
           employment_status: 'active', professional_email: '', department_id: '', academic_degree: '',
@@ -988,7 +1066,8 @@ document.addEventListener('DOMContentLoaded', () => {
           can_be_pi: false, can_be_coi: false, other_certificate: '',
           resident_category: null, home_department: null, external_institution: null,
           is_chief_of_department: false, is_research_coordinator: false, 
-          is_resident_manager: false, is_oncall_manager: false, clinical_study_certificates: []
+          is_resident_manager: false, is_oncall_manager: false, clinical_study_certificates: [],
+          hospital_id: null, _networkHint: null
         })
         medicalStaffModal.show = true
       }
@@ -1021,7 +1100,8 @@ document.addEventListener('DOMContentLoaded', () => {
           is_research_coordinator: staff.is_research_coordinator || false,
           is_resident_manager: staff.is_resident_manager || false,
           is_oncall_manager: staff.is_oncall_manager || false,
-          clinical_study_certificates: Array.isArray(staff.clinical_study_certificates) ? [...staff.clinical_study_certificates] : []
+          clinical_study_certificates: Array.isArray(staff.clinical_study_certificates) ? [...staff.clinical_study_certificates] : [],
+          hospital_id: staff.hospital_id || null
         }
         medicalStaffModal.show = true
       }
@@ -1122,6 +1202,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       return {
         medicalStaff, allStaffLookup, staffFilters, staffProfileModal, medicalStaffModal,
+        hospitalsList, clinicalUnits, loadHospitals, addHospitalInline,
         filteredMedicalStaff, filteredMedicalStaffAll, staffTotalPages,
         loadMedicalStaff, showAddMedicalStaffModal, editMedicalStaff, saveMedicalStaff, deactivateStaffMember,
         formatTrainingYear: Utils.formatTrainingYear, formatSpecialization: Utils.formatSpecialization,
@@ -1935,10 +2016,13 @@ document.addEventListener('DOMContentLoaded', () => {
           const today = Utils.normalizeDate(new Date())
           const stalePatches = []
 
-          absences.value = raw.map(a => {
+          // Filter out cancelled records — they are soft-deleted and should not appear
+          const active = raw.filter(a => a.current_status !== 'cancelled')
+
+          absences.value = active.map(a => {
             const normalized = { ...a, start_date: Utils.normalizeDate(a.start_date), end_date: Utils.normalizeDate(a.end_date) }
             const derived = deriveAbsenceStatus(normalized)
-            // Silently patch stale records (ended but still not 'completed' in DB)
+            // Silently patch stale records (ended but still not 'returned_to_duty' in DB)
             if (derived === 'completed' && a.current_status && a.current_status !== 'completed' && a.current_status !== 'cancelled') {
               stalePatches.push(API.updateAbsence(a.id, { ...a, current_status: 'completed' }).catch(() => {}))
             }
@@ -2815,7 +2899,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tuOps = useTrainingUnits({ showToast, showConfirmation: () => {}, rotations: ref([]) })
 
         const staffOps = useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll })
-        const { medicalStaff, allStaffLookup } = staffOps
+        const { medicalStaff, allStaffLookup, hospitalsList, clinicalUnits } = staffOps
 
         const { departments, allDepartmentsLookup, departmentFilters, departmentModal, deptReassignModal,
           filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount,
