@@ -2741,6 +2741,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
 
+        const commsOps = useComms({ showToast, showConfirmation })
         const liveOps = useLiveStatus({ showToast, showConfirmation, medicalStaff, currentUser })
         const analyticsOps = useAnalytics({ showToast, hasPermission })
         const { loadAnalyticsSummary, loadResearchLinesPerformance, loadPartnerCollaborations } = analyticsOps
