@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
       CACHE_TTL: 300000
     }
 
-    // ============ 2. CONSTANTS ====--========
+    // ============ 2. CONSTANTS ====-========
     const ROLES = {
       ADMIN: 'system_admin',
       HEAD: 'department_head',
@@ -529,7 +529,9 @@ document.addEventListener('DOMContentLoaded', () => {
       
       async getMedicalStaff() { 
         const data = await this.getList('/api/medical-staff');
-        return data.map(staff => ({
+        return data
+          .filter(staff => staff.employment_status !== 'inactive')
+          .map(staff => ({
           ...staff,
           resident_category: staff.resident_category || null,
           home_department: staff.home_department || null,
@@ -1048,16 +1050,27 @@ document.addEventListener('DOMContentLoaded', () => {
         finally { saving.value = false }
       }
 
-      const deleteMedicalStaff = (staff) => showConfirmation({
-        title: 'Delete Staff', message: `Delete ${staff.full_name}?`,
-        icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
-        details: 'This action cannot be undone.',
-        onConfirm: async () => {
-          await API.deleteMedicalStaff(staff.id)
-          medicalStaff.value = medicalStaff.value.filter(s => s.id !== staff.id)
-          showToast('Success', 'Staff deleted', 'success')
-        }
-      })
+      const deleteMedicalStaff = (staff) => {
+        const staffTypeLabel = STAFF_TYPE_LABELS[staff.staff_type] || staff.staff_type
+        const dept = staff.department?.name || staff.home_department || null
+        showConfirmation({
+          title: 'Remove Staff Member',
+          message: `You are about to permanently remove ${staff.full_name} (${staffTypeLabel}${dept ? ', ' + dept : ''}) from the system.`,
+          icon: 'fa-user-times',
+          confirmButtonText: 'Yes, Remove',
+          confirmButtonClass: 'btn-danger',
+          details: 'This will set their status to inactive. Their historical records (rotations, on-call assignments, absence records) are preserved for audit purposes. This action cannot be undone from the interface.',
+          onConfirm: async () => {
+            try {
+              await API.deleteMedicalStaff(staff.id)
+              medicalStaff.value = medicalStaff.value.filter(s => s.id !== staff.id)
+              showToast('Done', `${staff.full_name} has been removed from active staff`, 'success')
+            } catch (e) {
+              showToast('Error', e.message || 'Failed to remove staff member', 'error')
+            }
+          }
+        })
+      }
 
       const isRoleTaken = (role) => {
         if (!medicalStaff.value) return false;
@@ -2272,17 +2285,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const filteredTrials = computed(() => paginate(filteredTrialsAll.value, 'trials'))
       const trialTotalPages = computed(() => totalPages(filteredTrialsAll.value, 'trials'))
 
-
-
-
-
-
-
-
-
-
-
-
+      const filteredProjectsAll = computed(() => {
+        let f = innovationProjects.value
+        if (projectFilters.research_line_id) f = f.filter(p => p.research_line_id === projectFilters.research_line_id)
+        if (projectFilters.category) f = f.filter(p => p.category === projectFilters.category)
+        if (projectFilters.stage) f = f.filter(p => (p.current_stage || p.development_stage) === projectFilters.stage)
+        if (projectFilters.funding_status) f = f.filter(p => (p.funding_status || 'not_applicable') === projectFilters.funding_status)
+        if (projectFilters.search) { const q = projectFilters.search.toLowerCase(); f = f.filter(p => p.title?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q) || (Array.isArray(p.keywords) && p.keywords.some(k => k.toLowerCase().includes(q)))) }
+        return applySort(f, 'projects')
+      })
+      const filteredProjects = computed(() => paginate(filteredProjectsAll.value, 'projects'))
+      const projectTotalPages = computed(() => totalPages(filteredProjectsAll.value, 'projects'))
 
       // ── Keyword chip helpers ──────────────────────────────────────────────
       const addKeyword = (form) => {
