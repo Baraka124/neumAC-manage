@@ -17,7 +17,7 @@
    ─ Live stats sidebar: all metric/detail text scaled up
    ─ Rotation dots: tooltip font bumped; dot size increased
    ─ All responsive breakpoints re-tuned to match new scale
-================================================================- */
+================================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500;600&display=swap');
 
@@ -5660,3 +5660,219 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .trial-enroll-bar   { flex: 1; height: 6px; background: var(--surface-3); border-radius: 4px; overflow: hidden; }
 .trial-enroll-fill  { height: 100%; border-radius: 4px; background: var(--blue); transition: width .5s ease; }
 .trial-enroll-pct   { font-family: var(--font-data); font-size: 12px; font-weight: 700; color: var(--blue); }
+
+/* ================================================================
+   TRIAL DETAIL MODAL — full redesign
+================================================================ */
+.tdm-container {
+  max-width: 860px; width: 92vw;
+  max-height: 88vh; display: flex; flex-direction: column;
+  padding: 0; overflow: hidden;
+}
+.tdm-hero {
+  background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 24px 16px; flex-shrink: 0;
+}
+.tdm-hero-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+.tdm-badges { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tdm-protocol {
+  font-family: var(--font-data); font-size: 12px; font-weight: 700;
+  color: var(--blue); background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  border-radius: 6px; padding: 3px 9px; letter-spacing: .03em;
+}
+.tdm-phase-badge {
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em;
+  padding: 3px 10px; border-radius: 20px;
+}
+.tdm-phase--phase-i   { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+.tdm-phase--phase-ii  { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.tdm-phase--phase-iii { background: #fefce8; color: #854d0e; border: 1px solid #fde68a; }
+.tdm-phase--phase-iv  { background: #fdf2f8; color: #86198f; border: 1px solid #f0abfc; }
+.tdm-study-type-badge {
+  font-size: 10px; font-weight: 600; color: var(--text-2);
+  background: var(--surface-3); border: 1px solid var(--border);
+  border-radius: 20px; padding: 3px 9px;
+}
+.tdm-close { margin-left: auto; flex-shrink: 0; }
+.tdm-title {
+  font-family: var(--font-display); font-size: 21px; font-style: italic;
+  color: var(--text-1); line-height: 1.4; margin: 0 0 12px; font-weight: 400;
+}
+.tdm-meta-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; }
+.tdm-meta-sep { color: var(--border-2); }
+.tdm-line { color: var(--text-2); display: flex; align-items: center; gap: 5px; }
+.tdm-line i { color: var(--blue); font-size: 11px; }
+.tdm-dates { color: var(--text-2); display: flex; align-items: center; gap: 5px; font-family: var(--font-data); }
+.tdm-dates i { font-size: 11px; color: var(--teal); }
+
+.tdm-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+/* KPI strip */
+.tdm-kpi-strip {
+  display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.tdm-kpi {
+  flex: 1; min-width: 140px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 12px 14px;
+}
+.tdm-kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); margin-bottom: 4px; }
+.tdm-kpi-value { font-family: var(--font-data); font-size: 22px; font-weight: 700; color: var(--text-1); line-height: 1.2; }
+.tdm-kpi-value--text { font-size: 14px; font-weight: 600; font-family: var(--font-body); }
+.tdm-kpi-denom { font-size: 13px; font-weight: 400; color: var(--text-3); }
+.tdm-kpi-bar { height: 5px; background: var(--surface-3); border-radius: 4px; overflow: hidden; margin: 6px 0 3px; }
+.tdm-kpi-fill { height: 100%; border-radius: 4px; transition: width .5s ease; }
+.tdm-kpi-pct { font-size: 10.5px; font-weight: 600; color: var(--blue); font-family: var(--font-data); }
+.tdm-kpi-sub { font-size: 10.5px; color: var(--text-3); margin-top: 3px; font-family: var(--font-data); }
+
+/* Two-column grid */
+.tdm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 640px) { .tdm-grid { grid-template-columns: 1fr; } }
+.tdm-col { display: flex; flex-direction: column; gap: 12px; }
+
+/* Sections */
+.tdm-section {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 12px 14px;
+}
+.tdm-section--ok    { border-left: 3px solid var(--ok); }
+.tdm-section--danger { border-left: 3px solid var(--danger); }
+.tdm-section-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-3);
+  display: flex; align-items: center; gap: 5px; margin-bottom: 8px;
+}
+.tdm-section--ok .tdm-section-label     { color: var(--ok); }
+.tdm-section--danger .tdm-section-label { color: var(--danger); }
+.tdm-section-text { font-size: 13px; color: var(--text-2); line-height: 1.65; margin: 0; }
+
+/* Investigators */
+.tdm-inv-list { display: flex; flex-direction: column; gap: 8px; }
+.tdm-inv-row  { display: flex; align-items: center; gap: 10px; }
+.tdm-inv-avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: var(--surface-3); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-data); font-size: 10px; font-weight: 700; color: var(--text-2);
+}
+.tdm-inv-avatar--pi  { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+.tdm-inv-avatar--sub { background: var(--surface-2); }
+.tdm-inv-info { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; }
+.tdm-inv-name { font-size: 13px; font-weight: 500; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tdm-inv-badge {
+  flex-shrink: 0; font-family: var(--font-data); font-size: 9px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .06em; border-radius: 4px; padding: 2px 5px;
+}
+.tdm-inv-badge--pi  { background: var(--blue-lt);  color: var(--blue);  border: 1px solid var(--blue-mid); }
+.tdm-inv-badge--coi { background: var(--teal-lt, rgba(0,229,160,.1));  color: var(--teal);  border: 1px solid rgba(0,229,160,.25); }
+.tdm-inv-badge--sub { background: var(--surface-3); color: var(--text-3); border: 1px solid var(--border); }
+.tdm-empty-hint { font-size: 12px; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
+
+.tdm-contact-link {
+  display: inline-flex; align-items: center; gap: 7px; font-size: 13px;
+  color: var(--blue); text-decoration: none; font-weight: 500;
+}
+.tdm-contact-link:hover { text-decoration: underline; }
+.tdm-footer { border-top: 1px solid var(--border); padding: 12px 24px; flex-shrink: 0; }
+
+/* ================================================================
+   ANALYTICS — upgraded chart cards
+================================================================ */
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.chart-card h4 {
+  font-size: 13px; font-weight: 600; color: var(--text-1);
+  margin: 0 0 16px; display: flex; align-items: center; gap: 8px;
+}
+.chart-bar-item { display: flex; align-items: center; gap: 10px; }
+.bar-label { font-size: 12px; color: var(--text-2); min-width: 80px; font-weight: 500; }
+.bar-container { flex: 1; height: 10px; background: var(--surface-3); border-radius: 6px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 6px; transition: width .5s cubic-bezier(.34,1.56,.64,1); }
+.bar-value { font-family: var(--font-data); font-size: 11px; font-weight: 700; color: var(--text-2); min-width: 20px; text-align: right; }
+
+/* Analytics performance table — row sparkbars */
+.perf-bar-cell { display: flex; align-items: center; gap: 6px; }
+.perf-mini-bar { flex: 1; height: 6px; background: var(--surface-3); border-radius: 4px; overflow: hidden; min-width: 40px; }
+.perf-mini-fill { height: 100%; border-radius: 4px; background: var(--blue); transition: width .4s ease; }
+.perf-num { font-family: var(--font-data); font-size: 11px; font-weight: 700; color: var(--text-2); min-width: 18px; text-align: right; }
+
+/* Stats grid upgrades */
+.stat-card .stat-main-value { font-family: var(--font-data); font-size: 36px; font-weight: 800; color: var(--text-1); line-height: 1; margin: 8px 0; }
+.stat-breakdown { display: flex; gap: 16px; margin-top: 8px; }
+.breakdown-item { display: flex; flex-direction: column; gap: 2px; }
+.breakdown-item .label { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); font-weight: 700; }
+.breakdown-item .value { font-family: var(--font-data); font-size: 16px; font-weight: 700; color: var(--text-1); }
+
+/* ================================================================
+   INNOVATION PROJECTS — upgraded card design
+================================================================ */
+/* Replace left bar with top gradient banner */
+.inno-card { padding: 0; }
+.inno-card-bar {
+  position: absolute; top: 0; left: 0; right: 0; bottom: auto;
+  width: auto; height: 3px;
+  background: var(--stage-color, #7a90b0);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+
+/* Add subtle stage-color glow on hover */
+.inno-card:hover {
+  box-shadow: 0 8px 32px -4px color-mix(in srgb, var(--stage-color, #7a90b0) 20%, transparent),
+              0 2px 8px rgba(0,0,0,.08);
+}
+
+/* Stage track — make it more substantial */
+.inno-stage-node {
+  width: 26px; height: 26px;
+  font-size: 9px;
+}
+.inno-stage-node--current {
+  width: 30px; height: 30px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--stage-color) 20%, transparent);
+}
+.inno-stage-label {
+  font-size: 11px; padding: 3px 10px;
+  background: color-mix(in srgb, var(--stage-color) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--stage-color) 30%, transparent);
+  border-radius: 20px;
+}
+
+/* Category badges — slightly richer */
+.inno-cat-badge { font-size: 10px; letter-spacing: .06em; }
+
+/* Team member avatars */
+.inno-member-avatar {
+  box-shadow: 0 1px 3px rgba(0,0,0,.15);
+}
+.inno-member-avatar--lead {
+  box-shadow: 0 0 0 2px var(--blue-mid), 0 1px 3px rgba(0,0,0,.15);
+}
+
+/* Partner / needs chips */
+.inno-need-chip, .rline-kw-chip, .inno-kw-chip {
+  transition: all .15s ease;
+}
+.inno-need-chip:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,.1); }
+
+/* Funding badge colours more vivid */
+.inno-funding--seeking  { background: #fef9c3; color: #854d0e; border: 1px solid #fde68a; }
+.inno-funding--applied  { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.inno-funding--funded   { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+
+/* Pipeline overview tiles */
+.pipeline-stage-tile {
+  transition: all .2s ease;
+  cursor: pointer;
+  position: relative;
+}
+.pipeline-stage-tile::after {
+  content: attr(data-count);
+}
+.pipeline-stage-tile:hover { background: var(--surface-2); }
