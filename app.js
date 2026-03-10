@@ -1856,7 +1856,7 @@ document.addEventListener('DOMContentLoaded', () => {
       })
 
       const filteredAbsencesAll = computed(() => {
-        let f = absences.value
+        let f = absences.value.map(a => ({ ...a, current_status: deriveAbsenceStatus(a) }))
         if (absenceFilters.staff) f = f.filter(a => a.staff_member_id === absenceFilters.staff)
         if (absenceFilters.status) f = f.filter(a => a.current_status === absenceFilters.status)
         if (absenceFilters.reason) f = f.filter(a => a.absence_reason === absenceFilters.reason)
@@ -1872,10 +1872,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
       watch(absenceFilters, () => resetPage('absences'), { deep: true })
 
+      const deriveAbsenceStatus = (a) => {
+        if (a.current_status === 'cancelled') return 'cancelled'
+        const today = Utils.normalizeDate(new Date())
+        const start = Utils.normalizeDate(a.start_date)
+        const end   = Utils.normalizeDate(a.end_date)
+        if (end < today)    return 'completed'
+        if (start <= today) return 'currently_absent'
+        return 'upcoming'
+      }
+
       const loadAbsences = async () => {
         try {
           const raw = await API.getAbsences()
-          absences.value = raw.map(a => ({ ...a, start_date: Utils.normalizeDate(a.start_date), end_date: Utils.normalizeDate(a.end_date) }))
+          const today = Utils.normalizeDate(new Date())
+          const stalePatches = []
+
+          absences.value = raw.map(a => {
+            const normalized = { ...a, start_date: Utils.normalizeDate(a.start_date), end_date: Utils.normalizeDate(a.end_date) }
+            const derived = deriveAbsenceStatus(normalized)
+            // Silently patch stale records (ended but still not 'completed' in DB)
+            if (derived === 'completed' && a.current_status && a.current_status !== 'completed' && a.current_status !== 'cancelled') {
+              stalePatches.push(API.updateAbsence(a.id, { ...a, current_status: 'completed' }).catch(() => {}))
+            }
+            return { ...normalized, current_status: derived }
+          })
+
+          if (stalePatches.length) await Promise.all(stalePatches)
         } catch { showToast('Error', 'Failed to load absences', 'error') }
       }
 
@@ -2534,7 +2557,7 @@ document.addEventListener('DOMContentLoaded', () => {
         systemStats.value.onLeaveStaff = absences.value.filter(a => {
           const s = Utils.normalizeDate(a.start_date), e = Utils.normalizeDate(a.end_date)
           if (!s || !e || !(s <= today && today <= e)) return false
-          if (a.current_status) return ['currently_absent', 'active', 'on_leave', 'approved'].includes(a.current_status.toLowerCase())
+          if (a.current_status) return a.current_status === 'currently_absent'
           return true
         }).length
 
