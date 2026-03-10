@@ -644,10 +644,7 @@
                             <input type="text" class="form-control" v-model="staffFilters.search" placeholder="Search name or email…" aria-label="Search staff">
                             <select class="form-select" v-model="staffFilters.staffType">
                                 <option value="">All Types</option>
-                                <option value="attending_physician">Attending Physician</option>
-                                <option value="medical_resident">Medical Resident</option>
-                                <option value="fellow">Fellow</option>
-                                <option value="nurse_practitioner">Nurse Practitioner</option>
+                                <option v-for="t in availableStaffTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
                             </select>
                             <select v-if="staffFilters.staffType === 'medical_resident'" class="form-select" v-model="staffFilters.residentCategory">
                                 <option value="">All Residents</option>
@@ -2421,12 +2418,18 @@
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Staff Type *</label>
-                                <select class="form-select" v-model="medicalStaffModal.form.staff_type" required>
-                                    <option value="medical_resident">Medical Resident</option>
-                                    <option value="attending_physician">Attending Physician</option>
-                                    <option value="fellow">Fellow</option>
-                                    <option value="nurse_practitioner">Nurse Practitioner</option>
+                                <select class="form-select" v-model="medicalStaffModal.form.staff_type"
+                                        @change="medicalStaffModal._showCustomType = medicalStaffModal.form.staff_type === '__custom__'"
+                                        required>
+                                    <option v-for="t in availableStaffTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
+                                    <option value="__custom__">✏️ Other / Define type…</option>
                                 </select>
+                                <small v-if="fieldErrors.staff?.staff_type" class="error-text"><i class="fas fa-exclamation-circle"></i> {{ fieldErrors.staff.staff_type }}</small>
+                                <div v-if="medicalStaffModal._showCustomType" class="mt-2">
+                                    <input type="text" class="form-control" v-model="medicalStaffModal.form._customStaffType"
+                                           placeholder="e.g. Research Coordinator, Physiotherapist…"
+                                           style="margin-top:6px;">
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Employment Status</label>
@@ -2633,25 +2636,7 @@
                             <i class="fas fa-spinner fa-spin mb-2"></i><p class="text-sm text-gray-400">Loading staff...</p>
                         </div>
                         <template v-else>
-                            <div class="role-assignment-card">
-                                <div class="role-header"><i class="fas fa-crown"></i><h4>Chief of Department</h4>
-                                    <span class="role-badge" :class="getCurrentRoleHolder('chief_of_department')?.id === medicalStaffModal.form.id ? 'role-current' : ''">{{ getCurrentRoleHolder('chief_of_department') ? 'Assigned' : 'Available' }}</span>
-                                </div>
-                                <div class="role-current-holder" v-if="getCurrentRoleHolder('chief_of_department')">
-                                    <span class="holder-label">Current holder:</span>
-                                    <span class="holder-name">{{ getCurrentRoleHolder('chief_of_department').full_name }}</span>
-                                    <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('chief_of_department').assigned_date) }}</span>
-                                </div>
-                                <div class="role-assign-control">
-                                    <label class="checkbox-label" :title="!medicalStaffModal.form.full_name ? 'Save staff first' : ''">
-                                        <input type="checkbox" v-model="medicalStaffModal.form.is_chief_of_department"
-                                               @change="handleRoleAssignment('chief_of_department', $event.target.checked)"
-                                               :disabled="(isRoleTaken('chief_of_department') && !medicalStaffModal.form.is_chief_of_department) || !medicalStaffModal.form.full_name">
-                                        Assign as Chief of Department
-                                    </label>
-                                    <p v-if="isRoleTaken('chief_of_department') && !medicalStaffModal.form.is_chief_of_department" class="role-warning">⚠️ Currently held by {{ getCurrentRoleHolder('chief_of_department').full_name }}</p>
-                                </div>
-                            </div>
+
                             <div class="role-assignment-card">
                                 <div class="role-header"><i class="fas fa-flask"></i><h4>Research Coordinator</h4>
                                     <span class="role-badge" :class="getCurrentRoleHolder('research_coordinator')?.id === medicalStaffModal.form.id ? 'role-current' : ''">{{ getCurrentRoleHolder('research_coordinator') ? 'Assigned' : 'Available' }}</span>
@@ -2671,44 +2656,8 @@
                                     <p v-if="isRoleTaken('research_coordinator') && !medicalStaffModal.form.is_research_coordinator" class="role-warning">⚠️ Currently held by {{ getCurrentRoleHolder('research_coordinator').full_name }}</p>
                                 </div>
                             </div>
-                            <div class="role-assignment-card">
-                                <div class="role-header"><i class="fas fa-user-graduate"></i><h4>Resident Manager</h4>
-                                    <span class="role-badge" :class="getCurrentRoleHolder('resident_manager')?.id === medicalStaffModal.form.id ? 'role-current' : ''">{{ getCurrentRoleHolder('resident_manager') ? 'Assigned' : 'Available' }}</span>
-                                </div>
-                                <div class="role-current-holder" v-if="getCurrentRoleHolder('resident_manager')">
-                                    <span class="holder-label">Current holder:</span>
-                                    <span class="holder-name">{{ getCurrentRoleHolder('resident_manager').full_name }}</span>
-                                    <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('resident_manager').assigned_date) }}</span>
-                                </div>
-                                <div class="role-assign-control">
-                                    <label class="checkbox-label" :title="medicalStaffModal.form.staff_type !== 'attending_physician' ? 'Attendings only' : ''">
-                                        <input type="checkbox" v-model="medicalStaffModal.form.is_resident_manager"
-                                               @change="handleRoleAssignment('resident_manager', $event.target.checked)"
-                                               :disabled="(isRoleTaken('resident_manager') && !medicalStaffModal.form.is_resident_manager) || medicalStaffModal.form.staff_type !== 'attending_physician' || !medicalStaffModal.form.full_name">
-                                        Assign as Resident Manager
-                                    </label>
-                                    <div v-if="medicalStaffModal.form.staff_type !== 'attending_physician'" class="role-error"><i class="fas fa-exclamation-triangle"></i> Attendings only</div>
-                                </div>
-                            </div>
-                            <div class="role-assignment-card">
-                                <div class="role-header"><i class="fas fa-phone-alt"></i><h4>On-Call Manager</h4>
-                                    <span class="role-badge" :class="getCurrentRoleHolder('oncall_manager')?.id === medicalStaffModal.form.id ? 'role-current' : ''">{{ getCurrentRoleHolder('oncall_manager') ? 'Assigned' : 'Available' }}</span>
-                                </div>
-                                <div class="role-current-holder" v-if="getCurrentRoleHolder('oncall_manager')">
-                                    <span class="holder-label">Current holder:</span>
-                                    <span class="holder-name">{{ getCurrentRoleHolder('oncall_manager').full_name }}</span>
-                                    <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('oncall_manager').assigned_date) }}</span>
-                                </div>
-                                <div class="role-assign-control">
-                                    <label class="checkbox-label" :title="medicalStaffModal.form.staff_type !== 'attending_physician' ? 'Attendings only' : ''">
-                                        <input type="checkbox" v-model="medicalStaffModal.form.is_oncall_manager"
-                                               @change="handleRoleAssignment('oncall_manager', $event.target.checked)"
-                                               :disabled="(isRoleTaken('oncall_manager') && !medicalStaffModal.form.is_oncall_manager) || medicalStaffModal.form.staff_type !== 'attending_physician' || !medicalStaffModal.form.full_name">
-                                        Assign as On-Call Manager
-                                    </label>
-                                    <div v-if="medicalStaffModal.form.staff_type !== 'attending_physician'" class="role-error"><i class="fas fa-exclamation-triangle"></i> Attendings only</div>
-                                </div>
-                            </div>
+
+
                         </template>
                     </div>
                 </div>
