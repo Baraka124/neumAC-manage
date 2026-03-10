@@ -12,7 +12,7 @@
 <body>
 <div id="app" v-cloak>
 
-    <!-- ============ TOAST CONTAINER ===-=--======= -->
+    <!-- ============ TOAST CONTAINER ===-=-======= -->
     <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
              :class="['toast', `toast-${toast.type}`]"
@@ -4147,7 +4147,138 @@
             </div>
         </div>
 
-        <!-- ============ TRIAL DETAIL MODAL ============ -->
+        <!-- ============ STAFF REASSIGNMENT MODAL ============ -->
+        <div v-if="reassignmentModal.show" class="modal-overlay">
+            <div class="modal-container rsm-container">
+
+                <div class="rsm-header">
+                    <div class="rsm-header-icon"><i class="fas fa-user-times"></i></div>
+                    <div class="rsm-header-text">
+                        <h3 class="rsm-title">Remove Staff Member</h3>
+                        <p class="rsm-subtitle">
+                            <strong>{{ reassignmentModal.staff?.full_name }}</strong> has
+                            {{ reassignmentModal.affectedShifts.length + reassignmentModal.affectedRotations.length + reassignmentModal.affectedAbsences.length }}
+                            upcoming assignment(s). Reassign or leave unassigned before proceeding.
+                        </p>
+                    </div>
+                    <button class="modal-close" @click="reassignmentModal.show = false" :disabled="reassignmentModal.saving">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="rsm-body">
+
+                    <!-- ON-CALL SHIFTS -->
+                    <div v-if="reassignmentModal.affectedShifts.length" class="rsm-section">
+                        <div class="rsm-section-header">
+                            <i class="fas fa-moon"></i>
+                            On-call Shifts
+                            <span class="rsm-count">{{ reassignmentModal.affectedShifts.length }}</span>
+                        </div>
+                        <div class="rsm-table">
+                            <div class="rsm-row rsm-row--head">
+                                <span>Date</span><span>Type</span><span>Coverage Area</span><span>Role</span><span>Replace With</span>
+                            </div>
+                            <div v-for="shift in reassignmentModal.affectedShifts" :key="'s'+shift.id" class="rsm-row">
+                                <span class="rsm-cell-date"><i class="fas fa-calendar-day"></i> {{ formatDate(shift.duty_date) }}</span>
+                                <span class="rsm-cell-meta">{{ shift.shift_type === 'primary_call' ? 'Primary' : 'Backup' }}</span>
+                                <span class="rsm-cell-meta">{{ shift.coverage_area || '—' }}</span>
+                                <span><span class="rsm-role-badge" :class="shift.role === 'primary' ? 'rsm-role--primary' : 'rsm-role--backup'">{{ shift.role }}</span></span>
+                                <span>
+                                    <select class="rsm-select"
+                                            v-model="reassignmentModal.replacements['shift_' + shift.role + '_' + shift.id]">
+                                        <option value="">— Leave Unassigned —</option>
+                                        <option v-for="s in medicalStaff.filter(x => x.employment_status === 'active' && ['attending_physician','fellow','nurse_practitioner'].includes(x.staff_type))"
+                                                :key="s.id" :value="s.id">{{ s.full_name }}</option>
+                                    </select>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ROTATIONS -->
+                    <div v-if="reassignmentModal.affectedRotations.length" class="rsm-section">
+                        <div class="rsm-section-header">
+                            <i class="fas fa-sync-alt"></i>
+                            Rotations
+                            <span class="rsm-count">{{ reassignmentModal.affectedRotations.length }}</span>
+                        </div>
+                        <div class="rsm-table">
+                            <div class="rsm-row rsm-row--head">
+                                <span>Dates</span><span>Role</span><span>Note</span><span>Replace Supervisor With</span>
+                            </div>
+                            <div v-for="rot in reassignmentModal.affectedRotations" :key="'r'+rot.id" class="rsm-row">
+                                <span class="rsm-cell-date">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    {{ formatDate(rot.start_date) }} → {{ formatDate(rot.end_date) }}
+                                </span>
+                                <span><span class="rsm-role-badge rsm-role--neutral">{{ rot.role }}</span></span>
+                                <span class="rsm-cell-note" v-if="rot.role === 'resident'">
+                                    <i class="fas fa-info-circle"></i> Resident reassignment requires manual update
+                                </span>
+                                <span v-if="rot.role === 'supervisor'">
+                                    <select class="rsm-select"
+                                            v-model="reassignmentModal.replacements['rotation_supervisor_' + rot.id]">
+                                        <option value="">— Leave Unassigned —</option>
+                                        <option v-for="s in medicalStaff.filter(x => x.employment_status === 'active' && x.can_supervise_residents)"
+                                                :key="s.id" :value="s.id">{{ s.full_name }}</option>
+                                    </select>
+                                </span>
+                                <span v-else class="rsm-cell-note">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ABSENCE COVER -->
+                    <div v-if="reassignmentModal.affectedAbsences.length" class="rsm-section">
+                        <div class="rsm-section-header">
+                            <i class="fas fa-user-slash"></i>
+                            Absence Cover Assignments
+                            <span class="rsm-count">{{ reassignmentModal.affectedAbsences.length }}</span>
+                        </div>
+                        <div class="rsm-table">
+                            <div class="rsm-row rsm-row--head">
+                                <span>Period</span><span>Covering</span><span>Replace Cover With</span>
+                            </div>
+                            <div v-for="abs in reassignmentModal.affectedAbsences" :key="'a'+abs.id" class="rsm-row">
+                                <span class="rsm-cell-date">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    {{ formatDate(abs.start_date) }} → {{ formatDate(abs.end_date) }}
+                                </span>
+                                <span class="rsm-cell-meta">{{ getStaffName(abs.staff_member_id) }}</span>
+                                <span>
+                                    <select class="rsm-select"
+                                            v-model="reassignmentModal.replacements['absence_cover_' + abs.id]">
+                                        <option value="">— Leave Unassigned —</option>
+                                        <option v-for="s in medicalStaff.filter(x => x.employment_status === 'active')"
+                                                :key="s.id" :value="s.id">{{ s.full_name }}</option>
+                                    </select>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rsm-notice">
+                        <i class="fas fa-info-circle"></i>
+                        Historical records (completed rotations, past on-call, past absences) are retained unchanged for audit purposes.
+                        Leaving a slot unassigned will mark it as open coverage.
+                    </div>
+                </div>
+
+                <div class="modal-footer rsm-footer">
+                    <button class="btn btn-secondary" @click="reassignmentModal.show = false" :disabled="reassignmentModal.saving">
+                        Cancel
+                    </button>
+                    <button class="btn btn-danger" @click="confirmReassignAndDeactivate" :disabled="reassignmentModal.saving">
+                        <i class="fas fa-spinner fa-spin" v-if="reassignmentModal.saving"></i>
+                        <i class="fas fa-user-times" v-else></i>
+                        {{ reassignmentModal.saving ? 'Processing…' : 'Confirm Removal' }}
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
         <!-- ============ TRIAL DETAIL MODAL ============ -->
         <div v-if="trialDetailModal.show" class="modal-overlay" @click.self="trialDetailModal.show = false">
             <div class="modal-container tdm-container">
