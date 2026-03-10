@@ -603,8 +603,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // ============ 4.4 EXISTING ENDPOINTS ============
       
       async getDepartments() { return this.getList('/api/departments') }
+      async getAllDepartments() { return this.getList('/api/departments?include_inactive=true') }
+      async getDepartmentImpact(id) { return this.request(`/api/departments/${id}/impact`) }
       async createDepartment(d) { this.invalidate('/api/departments'); return this.request('/api/departments', { method: 'POST', body: d }) }
       async updateDepartment(id, d) { this.invalidate('/api/departments'); return this.request(`/api/departments/${id}`, { method: 'PUT', body: d }) }
+      async deleteDepartment(id, reassignments) { this.invalidate('/api/departments'); return this.request(`/api/departments/${id}`, { method: 'DELETE', body: reassignments ? { reassignments } : {} }) }
 
       async getTrainingUnits() { return this.getList('/api/training-units') }
       async createTrainingUnit(d) { this.invalidate('/api/training-units'); return this.request('/api/training-units', { method: 'POST', body: d }) }
@@ -2019,10 +2022,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============ 6.7 useDepartments ============
-    function useDepartments({ showToast, medicalStaff, trainingUnits, rotations }) {
+    function useDepartments({ showToast, showConfirmation, medicalStaff, trainingUnits, rotations }) {
       const departments = ref([])
+      const allDepartmentsLookup = ref([])  // includes inactive — for name resolution only
       const departmentFilters = reactive({ search: '', status: '' })
-      const departmentModal = reactive({ show: false, mode: 'add', form: { name: '', code: '', status: 'active', head_of_department_id: '' } })
+      const departmentModal = reactive({ show: false, mode: 'add', form: { name: '', code: '', status: 'active', head_of_department_id: '', description: '', contact_email: '', contact_phone: '' } })
+
+      // Department reassignment modal — shown when dept has active staff/units
+      const deptReassignModal = reactive({
+        show: false,
+        dept: null,
+        impact: { activeStaff: [], activeUnits: [], activeRotations: [] },
+        staffTargetDeptId: '',
+        unitsTargetDeptId: ''
+      })
 
       const filteredDepartments = computed(() => {
         let f = departments.value
@@ -2031,31 +2044,119 @@ document.addEventListener('DOMContentLoaded', () => {
         return f
       })
 
-      const getDepartmentName = (id) => departments.value.find(d => d.id === id)?.name || 'Not assigned'
+      // Use allDepartmentsLookup for name resolution so deactivated depts still resolve
+      const getDepartmentName = (id) => allDepartmentsLookup.value.find(d => d.id === id)?.name || departments.value.find(d => d.id === id)?.name || 'Not assigned'
       const getDepartmentUnits = (id) => trainingUnits.value.filter(u => u.department_id === id)
       const getDepartmentStaffCount = (id) => medicalStaff.value.filter(s => s.department_id === id).length
 
       const loadDepartments = async () => {
-        try { departments.value = await API.getDepartments() }
-        catch { showToast('Error', 'Failed to load departments', 'error') }
+        try {
+          const [active, all] = await Promise.all([API.getDepartments(), API.getAllDepartments()])
+          departments.value = active
+          allDepartmentsLookup.value = all
+        } catch { showToast('Error', 'Failed to load departments', 'error') }
       }
 
-      const showAddDepartmentModal = () => { departmentModal.mode = 'add'; Object.assign(departmentModal.form, { name: '', code: '', status: 'active', head_of_department_id: '' }); departmentModal.show = true }
-      const editDepartment = (d) => { departmentModal.mode = 'edit'; departmentModal.form = { ...d }; departmentModal.show = true }
+      const showAddDepartmentModal = () => {
+        departmentModal.mode = 'add'
+        Object.assign(departmentModal.form, { name: '', code: '', status: 'active', head_of_department_id: '', description: '', contact_email: '', contact_phone: '' })
+        departmentModal.show = true
+      }
+      const editDepartment = (d) => { departmentModal.mode = 'edit'; Object.assign(departmentModal.form, { ...d }); departmentModal.show = true }
 
       const saveDepartment = async (saving) => {
         saving.value = true
         try {
-          if (departmentModal.mode === 'add') { departments.value.unshift(await API.createDepartment(departmentModal.form)); showToast('Success', 'Department created', 'success') }
-          else { const result = await API.updateDepartment(departmentModal.form.id, departmentModal.form); const idx = departments.value.findIndex(d => d.id === result.id); if (idx !== -1) departments.value[idx] = result; showToast('Success', 'Department updated', 'success') }
+          if (departmentModal.mode === 'add') {
+            departments.value.unshift(await API.createDepartment(departmentModal.form))
+            showToast('Success', 'Department created', 'success')
+          } else {
+            const result = await API.updateDepartment(departmentModal.form.id, departmentModal.form)
+            const idx = departments.value.findIndex(d => d.id === result.id)
+            if (idx !== -1) departments.value[idx] = result
+            showToast('Success', 'Department updated', 'success')
+          }
           departmentModal.show = false
         } catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
         finally { saving.value = false }
       }
 
+      const deleteDepartment = async (dept) => {
+        // Step 1: fetch impact from backend
+        let impact
+        try { impact = (await API.getDepartmentImpact(dept.id))?.impact }
+        catch { showToast('Error', 'Could not check department dependencies', 'error'); return }
+
+        const { activeStaff = [], activeUnits = [], activeRotations = [], canDelete } = impact
+
+        // Step 2: if active rotations exist — hard block (can't safely reassign rotations away)
+        if (activeRotations.length > 0) {
+          showConfirmation({
+            title: 'Cannot Deactivate Department',
+            message: `"${dept.name}" has ${activeRotations.length} active rotation(s) in its training units.`,
+            icon: 'fa-exclamation-triangle',
+            confirmButtonText: 'OK', confirmButtonClass: 'btn-secondary',
+            details: 'Complete or reassign all active rotations before deactivating this department.',
+            onConfirm: () => {}
+          })
+          return
+        }
+
+        // Step 3: clean — no deps at all
+        if (canDelete) {
+          showConfirmation({
+            title: 'Deactivate Department',
+            message: `Deactivate "${dept.name}" (${dept.code})?`,
+            icon: 'fa-building',
+            confirmButtonText: 'Deactivate', confirmButtonClass: 'btn-danger',
+            details: 'No active staff or units are assigned to this department.',
+            onConfirm: async () => {
+              try {
+                await API.deleteDepartment(dept.id, null)
+                departments.value = departments.value.filter(d => d.id !== dept.id)
+                showToast('Deactivated', `${dept.name} has been deactivated`, 'success')
+              } catch (e) { showToast('Error', e?.message || 'Failed to deactivate department', 'error') }
+            }
+          })
+          return
+        }
+
+        // Step 4: has active staff or units — open reassignment modal
+        Object.assign(deptReassignModal, {
+          show: true, dept,
+          impact: { activeStaff, activeUnits, activeRotations },
+          staffTargetDeptId: '',
+          unitsTargetDeptId: ''
+        })
+      }
+
+      const confirmDeptReassignAndDeactivate = async () => {
+        const { dept, impact, staffTargetDeptId, unitsTargetDeptId } = deptReassignModal
+        const needsStaffReassign = impact.activeStaff.length > 0
+        const needsUnitReassign = impact.activeUnits.length > 0
+        if (needsStaffReassign && !staffTargetDeptId) { showToast('Required', 'Please select a department for staff reassignment', 'warning'); return }
+        if (needsUnitReassign && !unitsTargetDeptId) { showToast('Required', 'Please select a department for unit reassignment', 'warning'); return }
+        try {
+          await API.deleteDepartment(dept.id, {
+            staffDeptId: needsStaffReassign ? staffTargetDeptId : null,
+            unitsDeptId: needsUnitReassign ? unitsTargetDeptId : null
+          })
+          departments.value = departments.value.filter(d => d.id !== dept.id)
+          deptReassignModal.show = false
+          showToast('Deactivated', `${dept.name} deactivated — staff and units reassigned`, 'success')
+          // Reload to pick up fresh state
+          await loadDepartments()
+        } catch (e) { showToast('Error', e?.message || 'Failed to deactivate department', 'error') }
+      }
+
       const viewDepartmentStaff = (dept) => showToast('Department Staff', `Viewing staff for ${dept.name}`, 'info')
 
-      return { departments, departmentFilters, departmentModal, filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount, loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment, viewDepartmentStaff }
+      return {
+        departments, allDepartmentsLookup, departmentFilters, departmentModal, deptReassignModal,
+        filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount,
+        loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment,
+        deleteDepartment, confirmDeptReassignAndDeactivate, viewDepartmentStaff
+      }
     }
 
     // ============ 6.8 useTrainingUnits ============
@@ -2710,16 +2811,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const { fieldErrors, setErr, clearErr: clearFieldError, clearAll } = makeValidation(['rotation', 'staff', 'absence', 'oncall', 'research'])
 
-        const deptOps = useDepartments({ showToast, medicalStaff: ref([]), trainingUnits: ref([]), rotations: ref([]) })
+        const deptOps = useDepartments({ showToast, showConfirmation: () => {}, medicalStaff: ref([]), trainingUnits: ref([]), rotations: ref([]) })
         const tuOps = useTrainingUnits({ showToast, showConfirmation: () => {}, rotations: ref([]) })
 
         const staffOps = useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll })
         const { medicalStaff, allStaffLookup } = staffOps
 
-        const { departments, departmentFilters, departmentModal, filteredDepartments,
-          getDepartmentName, getDepartmentUnits, getDepartmentStaffCount,
-          loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment, viewDepartmentStaff } = useDepartments({
-          showToast, medicalStaff, trainingUnits: tuOps.trainingUnits, rotations: ref([])
+        const { departments, allDepartmentsLookup, departmentFilters, departmentModal, deptReassignModal,
+          filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount,
+          loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment,
+          deleteDepartment, confirmDeptReassignAndDeactivate, viewDepartmentStaff } = useDepartments({
+          showToast, showConfirmation, medicalStaff, trainingUnits: tuOps.trainingUnits, rotations: ref([])
         })
 
         const onCallOps = useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff })
@@ -3118,9 +3220,10 @@ document.addEventListener('DOMContentLoaded', () => {
           formatResidentCategoryDetailed: Utils.formatResidentCategoryDetailed, getResidentCategoryIcon: Utils.getResidentCategoryIcon,
           getResidentCategoryTooltip: Utils.getResidentCategoryTooltip, getRoleInfo: Utils.getRoleInfo, getStaffRoles: Utils.getStaffRoles,
           getDaysRemainingColor: Utils.getDaysRemainingColor,
-          departments, departmentFilters, departmentModal, filteredDepartments,
-          getDepartmentName, getDepartmentUnits, getDepartmentStaffCount,
-          loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment, viewDepartmentStaff,
+          departments, allDepartmentsLookup, departmentFilters, departmentModal, deptReassignModal,
+          filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount,
+          loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment,
+          deleteDepartment, confirmDeptReassignAndDeactivate, viewDepartmentStaff,
           trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits,
           getUnitActiveRotationCount, loadTrainingUnits, showAddTrainingUnitModal,
           editTrainingUnit, deleteTrainingUnit, saveTrainingUnit,
