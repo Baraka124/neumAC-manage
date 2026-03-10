@@ -1550,6 +1550,7 @@
                                 <div class="department-actions">
                                     <button class="btn-pill btn-pill-edit" @click="editDepartment(department)" v-if="hasPermission('system', 'manage_departments')"><i class="fas fa-edit"></i> Edit</button>
                                     <button class="btn btn-primary btn-pill department-action-btn" @click="viewDepartmentStaff(department)"><i class="fas fa-users"></i> Staff</button>
+                                    <button class="btn btn-danger btn-pill department-action-btn" @click="deleteDepartment(department)" v-if="hasPermission('system', 'manage_departments')" title="Deactivate department"><i class="fas fa-power-off"></i></button>
                                 </div>
                             </div>
                             <div v-if="filteredDepartments.length === 0" class="col-span-full empty-state">
@@ -4304,6 +4305,80 @@
                     </button>
                 </div>
 
+            </div>
+        </div>
+
+        <!-- ============ DEPARTMENT REASSIGNMENT MODAL ============ -->
+        <div v-if="deptReassignModal.show" class="modal-overlay">
+            <div class="modal-container rsm-container">
+                <div class="modal-header">
+                    <div class="modal-title"><i class="fas fa-building"></i> Deactivate Department</div>
+                    <button class="modal-close" @click="deptReassignModal.show = false"><i class="fas fa-times"></i></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="rsm-alert">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>
+                            <strong>{{ deptReassignModal.dept?.name }}</strong> ({{ deptReassignModal.dept?.code }}) has active dependencies.
+                            Reassign them before deactivating.
+                        </div>
+                    </div>
+
+                    <!-- Active Staff Reassignment -->
+                    <div v-if="deptReassignModal.impact.activeStaff.length" class="rsm-section">
+                        <div class="rsm-section-header">
+                            <i class="fas fa-users"></i> Active Staff
+                            <span class="rsm-count">{{ deptReassignModal.impact.activeStaff.length }}</span>
+                        </div>
+                        <div class="rsm-row rsm-row-header">
+                            <span>Staff Member</span><span>Role</span><span>Reassign To</span>
+                        </div>
+                        <div v-for="s in deptReassignModal.impact.activeStaff" :key="s.id" class="rsm-row">
+                            <span>{{ s.full_name }}</span>
+                            <span><span class="badge" :class="'staff-type-' + s.staff_type">{{ s.staff_type?.replace(/_/g,' ') }}</span></span>
+                            <span class="rsm-cell-wide">
+                                <em class="rsm-note">All selected staff moved to the target department below</em>
+                            </span>
+                        </div>
+                        <div class="rsm-reassign-target">
+                            <label class="form-label">Move all {{ deptReassignModal.impact.activeStaff.length }} staff member(s) to:</label>
+                            <select class="form-select" v-model="deptReassignModal.staffTargetDeptId">
+                                <option value="">Select target department</option>
+                                <option v-for="d in departments.filter(x => x.id !== deptReassignModal.dept?.id)" :key="d.id" :value="d.id">{{ d.name }} ({{ d.code }})</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Active Training Units Reassignment -->
+                    <div v-if="deptReassignModal.impact.activeUnits.length" class="rsm-section">
+                        <div class="rsm-section-header">
+                            <i class="fas fa-layer-group"></i> Training Units
+                            <span class="rsm-count">{{ deptReassignModal.impact.activeUnits.length }}</span>
+                        </div>
+                        <div class="rsm-row rsm-row-header">
+                            <span>Unit Name</span><span>Status</span>
+                        </div>
+                        <div v-for="u in deptReassignModal.impact.activeUnits" :key="u.id" class="rsm-row">
+                            <span>{{ u.unit_name }}</span>
+                            <span><span class="badge badge-success">Active</span></span>
+                        </div>
+                        <div class="rsm-reassign-target">
+                            <label class="form-label">Move all {{ deptReassignModal.impact.activeUnits.length }} unit(s) to:</label>
+                            <select class="form-select" v-model="deptReassignModal.unitsTargetDeptId">
+                                <option value="">Select target department</option>
+                                <option v-for="d in departments.filter(x => x.id !== deptReassignModal.dept?.id)" :key="d.id" :value="d.id">{{ d.name }} ({{ d.code }})</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer rsm-footer">
+                    <button class="btn btn-secondary" @click="deptReassignModal.show = false">Cancel</button>
+                    <button class="btn btn-danger" @click="confirmDeptReassignAndDeactivate">
+                        <i class="fas fa-power-off"></i> Reassign &amp; Deactivate
+                    </button>
+                </div>
             </div>
         </div>
 
