@@ -1163,8 +1163,21 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error('Failed to check existing schedule:', error); return false; }
       };
 
+      const deriveOnCallStatus = (s) => {
+        const today = Utils.normalizeDate(new Date())
+        const d = Utils.normalizeDate(s.duty_date)
+        if (d < today)  return 'completed'
+        if (d === today) return 'today'
+        return 'upcoming'
+      }
+
       const filteredOnCallAll = computed(() => {
         let f = onCallSchedule.value
+        // Default: hide past shifts unless user explicitly filters to a past date or searches
+        const today = Utils.normalizeDate(new Date())
+        if (!onCallFilters.date && !onCallFilters.search) {
+          f = f.filter(s => Utils.normalizeDate(s.duty_date) >= today)
+        }
         if (onCallFilters.date) f = f.filter(s => Utils.normalizeDate(s.duty_date) === onCallFilters.date)
         if (onCallFilters.shiftType) f = f.filter(s => s.shift_type === onCallFilters.shiftType)
         if (onCallFilters.physician) f = f.filter(s => s.primary_physician_id === onCallFilters.physician || s.backup_physician_id === onCallFilters.physician)
@@ -1183,20 +1196,19 @@ document.addEventListener('DOMContentLoaded', () => {
       // Groups ALL on-call schedules by physician for the compact orb view
       const staffWithOnCallOrbs = computed(() => {
         const today = Utils.normalizeDate(new Date())
+        // Show shifts from 7 days ago onward (so recent past is visible, ancient history is not)
+        const cutoff = Utils.normalizeDate(new Date(Date.now() - 7 * 86400000))
         const map = {}
         ;(onCallSchedule.value || []).forEach(shift => {
+          const dutyDate = Utils.normalizeDate(shift.duty_date)
+          if (dutyDate < cutoff) return // skip very old shifts
           const id = shift.primary_physician_id
           if (!id) return
           const staff = medicalStaff.value.find(s => s.id === id)
-          if (!staff) return // skip inactive/deleted physicians
-          if (!map[id]) map[id] = {
-            id, name: staff.full_name,
-            staffType: staff.staff_type, shifts: []
-          }
-          const dutyDate = Utils.normalizeDate(shift.duty_date)
+          if (!staff) return
+          if (!map[id]) map[id] = { id, name: staff.full_name, staffType: staff.staff_type, shifts: [] }
           map[id].shifts.push({
-            ...shift,
-            dutyDate,
+            ...shift, dutyDate,
             isToday: dutyDate === today,
             isPast:  dutyDate < today,
             dayLabel:  new Date(dutyDate + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' }),
@@ -1204,7 +1216,6 @@ document.addEventListener('DOMContentLoaded', () => {
             backupName: shift.backup_physician_id ? (medicalStaff.value.find(s => s.id === shift.backup_physician_id)?.full_name || null) : null
           })
         })
-        // Sort each physician's shifts by date
         Object.values(map).forEach(p => p.shifts.sort((a, b) => a.dutyDate.localeCompare(b.dutyDate)))
         return Object.values(map).sort((a, b) => a.name.localeCompare(b.name))
       })
@@ -1873,7 +1884,23 @@ document.addEventListener('DOMContentLoaded', () => {
       })
 
       const filteredAbsencesAll = computed(() => {
-        let f = absences.value.map(a => ({ ...a, current_status: deriveAbsenceStatus(a) }))
+        const today = Utils.normalizeDate(new Date())
+        let f = absences.value.map(a => {
+          const derived = deriveAbsenceStatus(a)
+          // Auto-clear coverage_arranged if covering person is also absent in the same period
+          let coverageOk = a.coverage_arranged
+          if (coverageOk && a.covering_staff_id) {
+            const coverIsAbsent = absences.value.some(b =>
+              b.id !== a.id &&
+              b.staff_member_id === a.covering_staff_id &&
+              b.current_status !== 'cancelled' &&
+              Utils.normalizeDate(b.start_date) <= Utils.normalizeDate(a.end_date) &&
+              Utils.normalizeDate(b.end_date)   >= Utils.normalizeDate(a.start_date)
+            )
+            if (coverIsAbsent) coverageOk = false
+          }
+          return { ...a, current_status: derived, coverage_arranged: coverageOk }
+        })
         if (absenceFilters.staff) f = f.filter(a => a.staff_member_id === absenceFilters.staff)
         if (absenceFilters.status) f = f.filter(a => a.current_status === absenceFilters.status)
         if (absenceFilters.reason) f = f.filter(a => a.absence_reason === absenceFilters.reason)
@@ -2057,16 +2084,34 @@ document.addEventListener('DOMContentLoaded', () => {
       const showAddTrainingUnitModal = () => { trainingUnitModal.mode = 'add'; Object.assign(trainingUnitModal.form, { unit_name: '', unit_code: '', department_id: '', maximum_residents: 10, unit_status: 'active', specialty: '', supervising_attending_id: '' }); trainingUnitModal.show = true }
       const editTrainingUnit = (u) => { trainingUnitModal.mode = 'edit'; trainingUnitModal.form = { ...u }; trainingUnitModal.show = true }
 
-      const deleteTrainingUnit = (unit) => showConfirmation({
-        title: 'Delete Training Unit', icon: 'fa-trash',
-        message: `Delete "${unit.unit_name}"? All rotation assignments to this unit will be affected.`,
-        confirmButtonText: 'Delete Unit', confirmButtonClass: 'btn-danger',
-        onConfirm: async () => {
-          await API.deleteTrainingUnit(unit.id)
-          trainingUnits.value = trainingUnits.value.filter(u => u.id !== unit.id)
-          showToast('Deleted', `${unit.unit_name} removed`, 'success')
+      const deleteTrainingUnit = (unit) => {
+        const activeRotations = rotations.value.filter(r =>
+          r.training_unit_id === unit.id && ['active', 'scheduled'].includes(r.rotation_status)
+        )
+        if (activeRotations.length > 0) {
+          showConfirmation({
+            title: 'Cannot Delete Training Unit',
+            message: `"${unit.unit_name}" has ${activeRotations.length} active or scheduled rotation(s) assigned to it.`,
+            icon: 'fa-exclamation-triangle',
+            confirmButtonText: 'OK',
+            confirmButtonClass: 'btn-secondary',
+            details: 'Reassign or complete all active rotations before deleting this unit.',
+            onConfirm: () => {}
+          })
+          return
         }
-      })
+        showConfirmation({
+          title: 'Delete Training Unit', icon: 'fa-trash',
+          message: `Delete "${unit.unit_name}"?`,
+          confirmButtonText: 'Delete Unit', confirmButtonClass: 'btn-danger',
+          details: activeRotations.length === 0 ? 'No active rotations are assigned to this unit.' : '',
+          onConfirm: async () => {
+            await API.deleteTrainingUnit(unit.id)
+            trainingUnits.value = trainingUnits.value.filter(u => u.id !== unit.id)
+            showToast('Deleted', `${unit.unit_name} removed`, 'success')
+          }
+        })
+      }
 
       const openUnitClinicians = (unit, allStaff) => {
         unitCliniciansModal.unit = unit
@@ -2444,7 +2489,27 @@ document.addEventListener('DOMContentLoaded', () => {
         catch (e) { showToast('Error', e.message || 'Failed to assign coordinator', 'error') }
       }
 
-      const deleteResearchLine = (line) => showConfirmation({ title: 'Delete Research Line', message: `Delete "${line.research_line_name || line.name}"?`, icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger', onConfirm: async () => { await API.deleteResearchLine(line.id); await loadResearchLines(); showToast('Success', 'Research line deleted', 'success'); loadAnalyticsSummary() } })
+      const deleteResearchLine = (line) => {
+        const activeTrials = clinicalTrials.value.filter(t => t.research_line_id === line.id && !['Completado','Suspendido','Cancelado'].includes(t.status))
+        const activeProjects = innovationProjects.value.filter(p => p.research_line_id === line.id)
+        if (activeTrials.length || activeProjects.length) {
+          showConfirmation({
+            title: 'Cannot Delete Research Line',
+            message: `"${line.research_line_name || line.name}" has ${activeTrials.length} active trial(s) and ${activeProjects.length} project(s) linked to it.`,
+            icon: 'fa-exclamation-triangle',
+            confirmButtonText: 'OK', confirmButtonClass: 'btn-secondary',
+            details: 'Reassign or remove all associated trials and projects before deleting this research line.',
+            onConfirm: () => {}
+          })
+          return
+        }
+        showConfirmation({
+          title: 'Delete Research Line', message: `Delete "${line.research_line_name || line.name}"?`,
+          icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
+          details: 'No active trials or projects are linked to this line.',
+          onConfirm: async () => { await API.deleteResearchLine(line.id); await loadResearchLines(); showToast('Success', 'Research line deleted', 'success'); loadAnalyticsSummary() }
+        })
+      }
       const deleteClinicalTrial = (trial) => showConfirmation({ title: 'Delete Trial', message: `Delete "${trial.title}"?`, icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger', details: `Protocol: ${trial.protocol_id}`, onConfirm: async () => { await API.deleteClinicalTrial(trial.id); await loadClinicalTrials(); showToast('Success', 'Trial deleted', 'success'); loadAnalyticsSummary() } })
       const deleteInnovationProject = (project) => showConfirmation({ title: 'Delete Project', message: `Delete "${project.title}"?`, icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger', onConfirm: async () => { await API.deleteInnovationProject(project.id); await loadInnovationProjects(); showToast('Success', 'Project deleted', 'success'); loadAnalyticsSummary(); loadPartnerCollaborations() } })
 
@@ -2837,7 +2902,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const getCurrentRotationForStaff = (id) => rotations.value.find(r => r.resident_id === id && r.rotation_status === 'active') || null
         const isOnCallToday = (staffId) => { const today = Utils.normalizeDate(new Date()); return onCallSchedule.value.some(s => (s.primary_physician_id === staffId || s.backup_physician_id === staffId) && Utils.normalizeDate(s.duty_date) === today) }
         const getUpcomingOnCall = (staffId) => { if (!staffId) return []; const today = Utils.normalizeDate(new Date()); return onCallSchedule.value.filter(s => (s.primary_physician_id === staffId || s.backup_physician_id === staffId) && Utils.normalizeDate(s.duty_date) >= today).sort((a, b) => Utils.normalizeDate(a.duty_date).localeCompare(Utils.normalizeDate(b.duty_date))) }
-        const getUpcomingLeave = (staffId) => { if (!staffId) return []; const today = Utils.normalizeDate(new Date()); return absences.value.filter(a => a.staff_member_id === staffId && Utils.normalizeDate(a.start_date) >= today && a.current_status !== 'cancelled').sort((a, b) => Utils.normalizeDate(a.start_date).localeCompare(Utils.normalizeDate(b.start_date))) }
+        const getUpcomingLeave = (staffId) => {
+          if (!staffId) return []
+          const today = Utils.normalizeDate(new Date())
+          return absences.value
+            .filter(a => a.staff_member_id === staffId
+              && Utils.normalizeDate(a.start_date) >= today
+              && a.current_status !== 'cancelled'
+              && a.current_status !== 'completed')
+            .sort((a, b) => Utils.normalizeDate(a.start_date).localeCompare(Utils.normalizeDate(b.start_date)))
+        }
         const getRotationHistory = (staffId) => { if (!staffId) return []; return rotations.value.filter(r => r.resident_id === staffId && !['active', 'scheduled'].includes(r.rotation_status)).sort((a, b) => Utils.normalizeDate(b.end_date || b.rotation_end_date).localeCompare(Utils.normalizeDate(a.end_date || a.rotation_end_date))) }
         const getRotationDaysLeft = (staffId) => { const r = getCurrentRotationForStaff(staffId); return r ? getDaysRemaining(r.end_date || r.rotation_end_date) : 0 }
         const getCurrentRotationSupervisor = (staffId) => { const r = getCurrentRotationForStaff(staffId); return r?.supervising_attending_id ? getStaffName(r.supervising_attending_id) : 'Not assigned' }
@@ -2885,7 +2959,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const updatePreview = () => { }
         const requestFullDossier = () => showToast('Info', 'Dossier request sent. Our team will contact you.', 'info')
 
-        const availablePhysicians = computed(() => medicalStaff.value.filter(s => ['attending_physician', 'fellow', 'nurse_practitioner'].includes(s.staff_type) && s.employment_status === 'active'))
+        // All clinical staff eligible for on-call (attendings, fellows, NPs, and residents)
+        const availablePhysicians = computed(() => medicalStaff.value.filter(s => ['attending_physician', 'fellow', 'nurse_practitioner', 'medical_resident'].includes(s.staff_type) && s.employment_status === 'active'))
         const availableResidents = computed(() => medicalStaff.value.filter(s => s.staff_type === 'medical_resident' && s.employment_status === 'active'))
         const availableAttendings = computed(() => medicalStaff.value.filter(s => s.staff_type === 'attending_physician' && s.employment_status === 'active'))
         const availableHeadsOfDepartment = computed(() => availableAttendings.value)
