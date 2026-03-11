@@ -12,7 +12,7 @@
 <body>
 <div id="app" v-cloak>
 
-    <!-- ============ TOAST CONTAINER ===-=-=-====== -->
+    <!-- ============ TOAST CONTAINER ===-======== -->
     <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
              :class="['toast', `toast-${toast.type}`]"
@@ -99,9 +99,7 @@
             <div class="sidebar-header">
                 <div class="sidebar-logo">
                     <i class="fas fa-lungs"></i>
-                    <span v-if="!sidebarCollapsed">
-                        <span class="logo-text-main">Neumo</span><span class="logo-text-sub">Care</span>
-                    </span>
+                    <span v-if="!sidebarCollapsed">NeumoCare</span>
                 </div>
                 <button class="sidebar-toggle" @click="sidebarCollapsed = !sidebarCollapsed"
                         :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
@@ -468,40 +466,18 @@
                     <button class="mobile-menu-toggle" @click="mobileMenuOpen = !mobileMenuOpen">
                         <i class="fas fa-bars"></i>
                     </button>
-                    <div class="navbar-title-block">
+                    <div>
                         <span class="navbar-title">{{ getCurrentViewTitle() }}</span>
                         <span class="navbar-subtitle" v-if="getCurrentViewSubtitle()">{{ getCurrentViewSubtitle() }}</span>
                     </div>
                 </div>
                 <div class="navbar-right">
-                    <div class="search-container" style="position:relative;">
+                    <div class="search-container">
                         <div class="search-box">
                             <i class="fas fa-search search-icon"></i>
                             <input type="text" class="search-input" :placeholder="getSearchPlaceholder()"
-                                   v-model="globalSearchQuery"
-                                   @keyup="handleGlobalSearch"
-                                   @keyup.escape="clearSearch"
-                                   @blur="setTimeout(() => searchResultsOpen = false, 200)"
+                                   v-model="globalSearchQuery" @keyup.enter="handleGlobalSearch"
                                    aria-label="Search across system">
-                        </div>
-                        <!-- Live results dropdown -->
-                        <div v-if="searchResultsOpen && globalSearchQuery.length >= 2" class="search-results-dropdown">
-                            <template v-if="Object.keys(globalSearchResults).length">
-                                <div v-for="(items, group) in globalSearchResults" :key="group" class="search-results-group">
-                                    <div class="search-group-label">{{ group === 'staff' ? 'Medical Staff' : group === 'rotations' ? 'Rotations' : 'Research' }}</div>
-                                    <div v-for="item in items" :key="item.id" class="search-result-item" @mousedown="item.action">
-                                        <i class="fas" :class="item.icon"></i>
-                                        <div class="search-result-text">
-                                            <div class="search-result-name">{{ item.name }}</div>
-                                            <div class="search-result-meta">{{ item.meta }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </template>
-                            <div v-else class="search-no-results">
-                                <i class="fas fa-search" style="opacity:.3;margin-right:6px"></i>
-                                No results for "{{ globalSearchQuery }}"
-                            </div>
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
@@ -548,29 +524,17 @@
 
                 <!-- ============ DASHBOARD VIEW ============ -->
                 <div v-if="currentView === 'dashboard'">
-
-                    <!-- Greeting zone -->
-                    <div class="db-greeting">
-                        <div class="db-greeting-left">
-                            <div class="db-greeting-time">{{ formatDate(currentTime) }}</div>
-                            <div class="db-greeting-title">
-                                Good morning, <span>{{ currentUser && currentUser.full_name ? currentUser.full_name.split(' ')[0] : 'Doctor' }}</span>
-                            </div>
-                        </div>
-                        <div class="quick-actions-bar" style="margin-bottom:0; flex:0 1 auto;">
-                            <button class="action-btn" @click="showAddMedicalStaffModal" v-if="hasPermission('medical_staff', 'create')"><i class="fas fa-user-plus"></i> Add Staff</button>
-                            <button class="action-btn" @click="showAddOnCallModal" v-if="hasPermission('oncall_schedule', 'create')"><i class="fas fa-phone-medical"></i> Schedule On-call</button>
-                            <button class="action-btn" @click="showAddAbsenceModal" v-if="hasPermission('staff_absence', 'create')"><i class="fas fa-user-clock"></i> Record Absence</button>
-                            <button class="action-btn" @click="showAddRotationModal" v-if="hasPermission('resident_rotations', 'create')"><i class="fas fa-calendar-check"></i> Add Rotation</button>
-                            <div class="ml-auto">
-                                <button class="btn btn-primary btn-sm" @click="showCommunicationsModal" v-if="hasPermission('communications', 'create')">
-                                    <i class="fas fa-bullhorn"></i> Announce
-                                </button>
-                            </div>
+                    <div class="quick-actions-bar">
+                        <button class="action-btn" @click="showAddMedicalStaffModal" v-if="hasPermission('medical_staff', 'create')"><i class="fas fa-user-plus"></i> Add Staff</button>
+                        <button class="action-btn" @click="showAddOnCallModal" v-if="hasPermission('oncall_schedule', 'create')"><i class="fas fa-phone-medical"></i> Schedule On-call</button>
+                        <button class="action-btn" @click="showAddAbsenceModal" v-if="hasPermission('staff_absence', 'create')"><i class="fas fa-user-clock"></i> Record Absence</button>
+                        <button class="action-btn" @click="showAddRotationModal" v-if="hasPermission('resident_rotations', 'create')"><i class="fas fa-calendar-check"></i> Add Rotation</button>
+                        <div class="ml-auto">
+                            <button class="btn btn-primary btn-sm" @click="showCommunicationsModal" v-if="hasPermission('communications', 'create')">
+                                <i class="fas fa-bullhorn"></i> New Announcement
+                            </button>
                         </div>
                     </div>
-
-                    <!-- Stat cards -->
                     <div class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-header"><i class="fas fa-stethoscope"></i><h3>Medical Staff</h3><button class="btn btn-sm btn-outline" @click="switchView('medical_staff')">View All</button></div>
@@ -618,60 +582,53 @@
                             </div>
                         </div>
                     </div>
-                    <!-- On-call timeline — replaces the dense table -->
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-phone-medical"></i>
-                                Today's On-call Schedule
-                            </div>
+                            <div class="card-title"><i class="fas fa-phone-medical"></i> Today's On-call Schedule</div>
                             <button class="btn btn-sm btn-primary" @click="showAddOnCallModal" v-if="hasPermission('oncall_schedule', 'create')"><i class="fas fa-plus"></i> Add</button>
                         </div>
-                        <div style="padding: 4px 20px 20px;">
-                            <div v-if="loadingSchedule" style="padding:32px;text-align:center;color:var(--text-3)">
-                                <i class="fas fa-spinner fa-spin"></i>
-                            </div>
-                            <div v-else-if="todaysOnCall.length === 0" class="empty-state" style="padding:40px 20px;">
-                                <i class="fas fa-phone-slash empty-state-icon"></i>
-                                <div class="empty-state-title">No on-call scheduled today</div>
-                                <div class="empty-state-description">No physicians are scheduled for on-call coverage</div>
-                                <button class="btn btn-primary btn-sm" @click="showAddOnCallModal" v-if="hasPermission('oncall_schedule', 'create')"><i class="fas fa-plus"></i> Schedule First Shift</button>
-                            </div>
-                            <div v-else class="oncall-timeline">
-                                <div v-for="shift in todaysOnCall" :key="shift.id"
-                                     class="oncall-tl-item"
-                                     :class="{ 'is-now': true }">
-                                    <!-- Time -->
-                                    <div class="oncall-tl-time">
-                                        <div class="oncall-tl-from">{{ shift.startTime }}</div>
-                                        <div class="oncall-tl-to">→ {{ shift.endTime }}</div>
-                                        <div class="oncall-tl-date">{{ shift.endTime < shift.startTime ? 'next day' : 'today' }}</div>
-                                    </div>
-                                    <!-- Line -->
-                                    <div class="oncall-tl-connector">
-                                        <div class="oncall-tl-dot"></div>
-                                    </div>
-                                    <!-- Card -->
-                                    <div class="oncall-tl-card">
-                                        <div class="oncall-tl-avatar">
-                                            {{ shift.physicianName ? shift.physicianName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() : '?' }}
-                                        </div>
-                                        <div class="oncall-tl-info">
-                                            <div class="oncall-tl-name">{{ shift.physicianName }}</div>
-                                            <div class="oncall-tl-role">{{ shift.staffType }}</div>
-                                        </div>
-                                        <div class="oncall-tl-badges">
-                                            <span class="badge" :class="shift.shiftTypeClass">{{ shift.shiftType }}</span>
-                                            <span class="oncall-now-badge">On-call</span>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead><tr><th>Shift Period</th><th>Physician</th><th>Type</th><th>Coverage Area</th><th>Backup</th><th>Contact</th></tr></thead>
+                                <tbody>
+                                    <tr v-if="loadingSchedule"><td colspan="6" class="text-center py-8"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                                    <tr v-else-if="todaysOnCall.length === 0">
+                                        <td colspan="6" class="empty-state">
+                                            <i class="fas fa-phone-slash empty-state-icon"></i>
+                                            <div class="empty-state-title">No on-call scheduled today</div>
+                                            <div class="empty-state-description">No physicians are scheduled for on-call coverage</div>
+                                            <button class="btn btn-primary btn-sm" @click="showAddOnCallModal" v-if="hasPermission('oncall_schedule', 'create')"><i class="fas fa-plus"></i> Schedule First Shift</button>
+                                        </td>
+                                    </tr>
+                                    <tr v-else v-for="shift in todaysOnCall" :key="shift.id" class="row-active">
+                                        <td>
+                                            <div class="oncall-shift-cell">
+                                                <div class="oncall-shift-start">
+                                                    <span class="oncall-shift-label">From</span>
+                                                    <span class="oncall-shift-time">{{ shift.startTime }}</span>
+                                                    <span class="oncall-shift-date">{{ formatDateShort(new Date()) }}</span>
+                                                </div>
+                                                <div class="oncall-shift-sep"></div>
+                                                <div class="oncall-shift-end">
+                                                    <span class="oncall-shift-label">Until</span>
+                                                    <span class="oncall-shift-time">{{ shift.endTime }}</span>
+                                                    <span class="oncall-shift-date">{{ shift.endTime < shift.startTime ? formatDateShort(getTomorrow()) : formatDateShort(new Date()) }}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><div class="font-medium">{{ shift.physicianName }}</div><div class="text-xs text-gray-500">{{ shift.staffType }}</div></td>
+                                        <td><span class="badge" :class="shift.shiftTypeClass">{{ shift.shiftType }}</span></td>
+                                        <td>{{ shift.coverageArea || 'NA' }}</td>
+                                        <td><span v-if="shift.backupPhysician">{{ shift.backupPhysician }}</span><span v-else class="na-value">NA</span></td>
+                                        <td>
                                             <button class="btn btn-sm btn-outline" @click="contactPhysician(shift)"
-                                                    :disabled="!shift.contactInfo || shift.contactInfo === 'No contact info'"
-                                                    style="margin-left:4px">
+                                                    :disabled="!shift.contactInfo || shift.contactInfo === 'No contact info'">
                                                 <i class="fas" :class="shift.contactInfo && shift.contactInfo.includes('@') ? 'fa-envelope' : 'fa-phone'"></i>
                                             </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -687,10 +644,7 @@
                             <input type="text" class="form-control" v-model="staffFilters.search" placeholder="Search name or email…" aria-label="Search staff">
                             <select class="form-select" v-model="staffFilters.staffType">
                                 <option value="">All Types</option>
-                                <option value="attending_physician">Attending Physician</option>
-                                <option value="medical_resident">Medical Resident</option>
-                                <option value="fellow">Fellow</option>
-                                <option value="nurse_practitioner">Nurse Practitioner</option>
+                                <option v-for="t in availableStaffTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
                             </select>
                             <select v-if="staffFilters.staffType === 'medical_resident'" class="form-select" v-model="staffFilters.residentCategory">
                                 <option value="">All Residents</option>
@@ -701,6 +655,18 @@
                             <select class="form-select" v-model="staffFilters.department">
                                 <option value="">All Departments</option>
                                 <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+                            </select>
+                            <select class="form-select" v-model="staffFilters.networkType">
+                                <option value="">All Networks</option>
+                                <option value="CHUAC">CHUAC</option>
+                                <option value="SERGAS">SERGAS (non-CHUAC)</option>
+                                <option value="external">External</option>
+                            </select>
+                            <select class="form-select" v-model="staffFilters.hospital" v-if="hospitalsList.length">
+                                <option value="">All Hospitals</option>
+                                <optgroup v-for="nt in ['CHUAC','SERGAS','external']" :key="nt" :label="nt === 'external' ? 'External' : nt">
+                                    <option v-for="h in hospitalsList.filter(x => x.parent_complex === nt)" :key="h.id" :value="h.id">{{ h.name }}</option>
+                                </optgroup>
                             </select>
                             <select class="form-select" v-model="staffFilters.status">
                                 <option value="">All Status</option>
@@ -713,17 +679,19 @@
                             <table class="table table-striped table-staff">
                                 <colgroup>
                                     <col style="width:22%"><!-- Name -->
-                                    <col style="width:16%"><!-- Type -->
-                                    <col style="width:18%"><!-- Department -->
-                                    <col style="width:24%"><!-- Rotation -->
-                                    <col style="width:12%"><!-- Status -->
-                                    <col style="width:8%"> <!-- Actions -->
+                                    <col style="width:14%"><!-- Type -->
+                                    <col style="width:14%"><!-- Department -->
+                                    <col style="width:14%"><!-- Hospital -->
+                                    <col style="width:20%"><!-- Rotation -->
+                                    <col style="width:10%"><!-- Status -->
+                                    <col style="width:6%"> <!-- Actions -->
                                 </colgroup>
                                 <thead>
                                     <tr>
                                         <th @click="sortBy('medical_staff', 'full_name')">Name <i class="fas" :class="sortIcon('medical_staff', 'full_name')"></i></th>
                                         <th @click="sortBy('medical_staff', 'staff_type')">Type <i class="fas" :class="sortIcon('medical_staff', 'staff_type')"></i></th>
                                         <th>Department</th>
+                                        <th>Hospital</th>
                                         <th>Current Rotation</th>
                                         <th @click="sortBy('medical_staff', 'employment_status')">Status <i class="fas" :class="sortIcon('medical_staff', 'employment_status')"></i></th>
                                         <th>Actions</th>
@@ -742,12 +710,7 @@
                                                     }"></i>
                                                 </div>
                                                 <div class="staff-name-block">
-                                                    <div class="staff-name-primary">
-                                                        {{ staff.full_name }}
-                                                        <span v-if="!staff.professional_email || !staff.department_id" class="incomplete-flag">
-                                                            <i class="fas fa-exclamation"></i> Incomplete
-                                                        </span>
-                                                    </div>
+                                                    <div class="staff-name-primary">{{ staff.full_name }}</div>
                                                     <div v-if="staff.staff_type === 'medical_resident' && staff.resident_category" class="staff-name-sub">
                                                         <i class="fas" :class="getResidentCategoryIcon(staff.resident_category)" style="font-size:9px; opacity:.6"></i>
                                                         {{ formatResidentCategorySimple(staff.resident_category) }}
@@ -759,6 +722,19 @@
                                         <td><span class="badge" :class="getStaffTypeClass(staff.staff_type)">{{ formatStaffType(staff.staff_type) }}</span></td>
                                         <td>
                                             <span v-if="getDepartmentName(staff.department_id)">{{ getDepartmentName(staff.department_id) }}</span>
+                                            <span v-else class="na-value">—</span>
+                                        </td>
+                                        <td>
+                                            <template v-if="staff.hospitals || staff.hospital_id">
+                                                <div class="hospital-cell">
+                                                    <span class="hospital-network-dot" :class="{
+                                                        'hnd--chuac':    (staff.hospitals?.parent_complex || hospitalsList.find(h=>h.id===staff.hospital_id)?.parent_complex) === 'CHUAC',
+                                                        'hnd--sergas':   (staff.hospitals?.parent_complex || hospitalsList.find(h=>h.id===staff.hospital_id)?.parent_complex) === 'SERGAS',
+                                                        'hnd--external': (staff.hospitals?.parent_complex || hospitalsList.find(h=>h.id===staff.hospital_id)?.parent_complex) === 'external'
+                                                    }"></span>
+                                                    <span class="hospital-name-text">{{ staff.hospitals?.name || hospitalsList.find(h=>h.id===staff.hospital_id)?.name }}</span>
+                                                </div>
+                                            </template>
                                             <span v-else class="na-value">—</span>
                                         </td>
                                         <td>
@@ -784,14 +760,14 @@
                                         </td>
                                     </tr>
                                     <tr v-if="filteredMedicalStaff.length === 0">
-                                        <td colspan="6" class="empty-state">
+                                        <td colspan="7" class="empty-state">
                                             <i class="fas fa-user-md empty-state-icon"></i>
                                             <div class="empty-state-title">No medical staff found</div>
                                             <div class="empty-state-description">
-                                                <span v-if="staffFilters.search || staffFilters.staffType || staffFilters.department || staffFilters.status">No results match your filters — try clearing them</span>
+                                                <span v-if="staffFilters.search || staffFilters.staffType || staffFilters.department || staffFilters.status || staffFilters.hospital || staffFilters.networkType">No results match your filters — try clearing them</span>
                                                 <span v-else>Add your first staff member to get started</span>
                                             </div>
-                                            <button v-if="!staffFilters.search && !staffFilters.staffType && !staffFilters.department && !staffFilters.status && hasPermission('medical_staff', 'create')"
+                                            <button v-if="!staffFilters.search && !staffFilters.staffType && !staffFilters.department && !staffFilters.status && !staffFilters.hospital && hasPermission('medical_staff', 'create')"
                                                     class="btn btn-primary btn-sm" @click="showAddMedicalStaffModal">
                                                 <i class="fas fa-user-plus"></i> Add First Staff Member
                                             </button>
@@ -840,29 +816,23 @@
                             </select>
                             <select class="form-select" v-model="onCallFilters.physician">
                                 <option value="">All Physicians</option>
-                                <optgroup label="Attending / Fellow / NP">
-                                    <option v-for="p in availablePhysicians.filter(x => x.staff_type !== 'medical_resident')" :key="p.id" :value="p.id">{{ p.full_name }}</option>
-                                </optgroup>
-                                <optgroup label="Residents">
-                                    <option v-for="p in availablePhysicians.filter(x => x.staff_type === 'medical_resident')" :key="p.id" :value="p.id">{{ p.full_name }}</option>
-                                </optgroup>
+                                <option v-for="p in availablePhysicians" :key="p.id" :value="p.id">{{ p.full_name }}</option>
                             </select>
                             <input type="text" class="form-control" v-model="onCallFilters.search" placeholder="Search...">
                         </div>
 
                         <!-- PHYSICIAN ORB VIEW -->
-                        <div v-if="onCallView === 'compact'" class="rot-compact">
+                        <div v-if="onCallView === 'compact'" class="oncall-orb-view">
 
                             <!-- Legend -->
                             <div class="rot-legend">
-                                <span class="rot-legend-item"><span class="rot-legend-dot" style="background:#4d9aff"></span> Primary Call</span>
-                                <span class="rot-legend-item"><span class="rot-legend-dot" style="background:#34d399"></span> Backup Call</span>
-                                <span class="rot-legend-item"><span class="rot-legend-dot" style="background:#f97316;box-shadow:0 0 0 3px rgba(249,115,22,.25)"></span> Today</span>
-                                <span class="rot-legend-item"><span class="rot-legend-dot" style="background:var(--surface-3);border:1px solid var(--border)"></span> Past</span>
-                                <span class="rot-legend-item rot-legend-item--note"><i class="fas fa-hand-point-up"></i> Hover for details · Click to edit</span>
+                                <span class="rot-legend-item"><span class="oc-orb-demo oc-orb-demo--primary"></span> Primary call</span>
+                                <span class="rot-legend-item"><span class="oc-orb-demo oc-orb-demo--backup"></span> Backup</span>
+                                <span class="rot-legend-item"><span class="oc-orb-demo oc-orb-demo--today"></span> Today</span>
+                                <span class="rot-legend-item rot-legend-item--note"><i class="fas fa-hand-point-up"></i> Hover orb for shift time · Click to edit</span>
                             </div>
 
-                            <div v-for="physician in staffWithOnCallOrbs" :key="physician.id" class="rot-row">
+                            <div v-for="physician in staffWithOnCallOrbs" :key="physician.id" class="oc-row">
 
                                 <!-- Physician identity -->
                                 <div class="rot-who">
@@ -871,51 +841,44 @@
                                     </div>
                                     <div class="rot-who-info">
                                         <span class="rot-who-name">{{ physician.name }}</span>
-                                        <span class="rot-who-meta">{{ (physician.shifts || []).length }} shift{{ (physician.shifts || []).length !== 1 ? 's' : '' }}</span>
+                                        <span class="rot-who-meta">{{ physician.shifts.length }} shift{{ physician.shifts.length !== 1 ? 's' : '' }}</span>
                                     </div>
                                 </div>
 
-                                <!-- Shift orbs — same design language as rotation orbs -->
+                                <!-- Shift orbs -->
                                 <div class="rot-track">
                                     <div v-for="shift in physician.shifts" :key="shift.id"
-                                         class="rot-orb"
+                                         class="oc-orb"
                                          :class="{
-                                             'rot-orb--active':    shift.isToday,
-                                             'rot-orb--scheduled': !shift.isToday && !shift.isPast && shift.shift_type === 'primary_call',
-                                             'rot-orb--backup-oc': !shift.isToday && !shift.isPast && shift.shift_type !== 'primary_call',
-                                             'rot-orb--done':       shift.isPast && !shift.isToday,
+                                             'oc-orb--primary': shift.shift_type === 'primary_call',
+                                             'oc-orb--backup':  shift.shift_type === 'backup_call',
+                                             'oc-orb--today':   shift.isToday,
+                                             'oc-orb--past':    shift.isPast && !shift.isToday,
                                          }"
                                          @click.stop="editOnCallSchedule(shift)">
-                                        <span class="rot-orb-label">{{ shift.dayLabel }} {{ shift.dateLabel }}</span>
+                                        <span class="oc-orb-day">{{ shift.dayLabel }}</span>
+                                        <span class="oc-orb-date">{{ shift.dateLabel }}</span>
                                         <div class="rot-orb-tooltip">
                                             <div class="rot-tt-unit">{{ shift.shift_type === 'primary_call' ? 'Primary Call' : 'Backup Call' }}</div>
-                                            <div class="rot-tt-dates"><i class="fas fa-clock"></i> {{ shift.start_time }} – {{ shift.end_time }}</div>
-                                            <div v-if="shift.coverage_area" class="rot-tt-dates"><i class="fas fa-map-marker-alt"></i> {{ shift.coverage_area }}</div>
-                                            <div v-if="shift.backupName" class="rot-tt-dates"><i class="fas fa-user-shield"></i> Backup: {{ shift.backupName }}</div>
-                                            <div v-if="shift.isToday"  class="rot-tt-tag rot-tt-tag--active">● On call today</div>
-                                            <div v-else-if="shift.isPast" class="rot-tt-tag rot-tt-tag--done">Completed</div>
+                                            <div class="rot-tt-dates">{{ shift.start_time }} – {{ shift.end_time }}</div>
+                                            <div v-if="shift.coverage_area" class="rot-tt-dates">{{ shift.coverage_area }}</div>
+                                            <div v-if="shift.isToday" class="rot-tt-tag rot-tt-tag--active">● Today</div>
+                                            <div v-else-if="shift.isPast" class="rot-tt-tag rot-tt-tag--done">Past</div>
                                             <div v-else class="rot-tt-tag rot-tt-tag--scheduled">Upcoming</div>
                                         </div>
                                     </div>
-
-                                    <div v-if="hasPermission('oncall_schedule', 'create')"
-                                         class="rot-orb rot-orb--add"
-                                         @click.stop="showAddOnCallModal()" title="Add shift">
-                                        <i class="fas fa-plus"></i>
-                                    </div>
-
-                                    <div v-if="!(physician.shifts||[]).length" class="rot-nil">No shifts assigned</div>
                                 </div>
 
-                                <!-- Quick actions -->
+                                <!-- Quick add -->
                                 <div class="rot-row-actions">
-                                    <button class="rot-action-btn" @click.stop="viewStaffDetails(physician)" title="View profile">
-                                        <i class="fas fa-user"></i>
+                                    <button v-if="hasPermission('oncall_schedule', 'create')"
+                                            class="rot-action-btn" @click.stop="showAddOnCallModal()" title="Add shift">
+                                        <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
                             </div>
 
-                            <div v-if="(staffWithOnCallOrbs || []).length === 0" class="empty-state">
+                            <div v-if="staffWithOnCallOrbs.length === 0" class="empty-state">
                                 <i class="fas fa-phone-medical empty-state-icon"></i>
                                 <div class="empty-state-title">No schedules found</div>
                                 <div class="empty-state-description">No on-call shifts match your filters</div>
@@ -923,15 +886,7 @@
                         </div>
                         <!-- DETAILED VIEW (EXISTING TABLE) -->
                         <div v-else class="table-responsive">
-                            <table class="table table-striped table-oncall">
-                                <colgroup>
-                                    <col class="col-period">
-                                    <col class="col-physician">
-                                    <col class="col-type">
-                                    <col class="col-coverage">
-                                    <col class="col-backup">
-                                    <col class="col-actions">
-                                </colgroup>
+                            <table class="table table-striped">
                                 <thead>
                                     <tr>
                                         <th @click="sortBy('oncall', 'duty_date')">Shift Period <i class="fas" :class="sortIcon('oncall', 'duty_date')"></i></th>
@@ -941,7 +896,7 @@
                                 </thead>
                                 <tbody>
                                     <tr v-for="schedule in filteredOnCallSchedules" :key="schedule.id" class="row-active">
-                                        <td :data-label="'Shift Period'">
+                                        <td>
                                             <div class="oncall-shift-cell">
                                                 <div class="oncall-shift-start">
                                                     <span class="oncall-shift-label">From</span>
@@ -956,18 +911,11 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td :data-label="'Physician'">
-                                            <div class="cell-primary">{{ getPhysicianName(schedule.primary_physician_id) }}</div>
-                                        </td>
-                                        <td :data-label="'Type'"><span class="badge" :class="schedule.shift_type === 'primary_call' ? 'badge-primary' : 'badge-secondary'">{{ schedule.shift_type === 'primary_call' ? 'Primary' : 'Backup' }}</span></td>
-                                        <td :data-label="'Coverage'">{{ schedule.coverage_area || '—' }}</td>
-                                        <td :data-label="'Backup'"><span v-if="schedule.backup_physician_id">{{ getPhysicianName(schedule.backup_physician_id) }}</span><span v-else class="na-value">—</span></td>
-                                        <td :data-label="'Actions'">
-                                            <div class="table-actions">
-                                                <button class="btn-pill btn-pill-edit" @click="editOnCallSchedule(schedule)" v-if="hasPermission('oncall_schedule', 'update')"><i class="fas fa-edit"></i></button>
-                                                <button class="btn-pill btn-pill-danger" @click.stop="deleteOnCallSchedule(schedule)" v-if="hasPermission('oncall_schedule', 'delete')" title="Delete shift"><i class="fas fa-trash"></i></button>
-                                            </div>
-                                        </td>
+                                        <td><div class="font-medium">{{ getPhysicianName(schedule.primary_physician_id) }}</div></td>
+                                        <td><span class="badge" :class="schedule.shift_type === 'primary_call' ? 'badge-primary' : 'badge-secondary'">{{ schedule.shift_type === 'primary_call' ? 'Primary' : 'Backup' }}</span></td>
+                                        <td>{{ schedule.coverage_area || 'NA' }}</td>
+                                        <td><span v-if="schedule.backup_physician_id">{{ getPhysicianName(schedule.backup_physician_id) }}</span><span v-else class="na-value">NA</span></td>
+                                        <td><button class="btn-pill btn-pill-edit" @click="editOnCallSchedule(schedule)" v-if="hasPermission('oncall_schedule', 'update')"><i class="fas fa-edit"></i> Edit</button></td>
                                     </tr>
                                     <tr v-if="filteredOnCallSchedules.length === 0">
                                         <td colspan="6" class="empty-state">
@@ -1087,7 +1035,7 @@
                                     </div>
 
                                     <!-- Connector arrow if there's history -->
-                                    <div v-if="(resident.pastRotations||[]).length && (resident.currentRotation || (resident.upcomingRotations||[]).length)" class="rot-connector">›</div>
+                                    <div v-if="resident.pastRotations.length && (resident.currentRotation || resident.upcomingRotations.length)" class="rot-connector">›</div>
 
                                     <!-- Active orb — larger, glowing -->
                                     <div v-if="resident.currentRotation"
@@ -1103,7 +1051,7 @@
                                     </div>
 
                                     <!-- Connector before scheduled -->
-                                    <div v-if="resident.currentRotation && (resident.upcomingRotations||[]).length" class="rot-connector">›</div>
+                                    <div v-if="resident.currentRotation && resident.upcomingRotations.length" class="rot-connector">›</div>
 
                                     <!-- Scheduled orbs -->
                                     <div v-for="(rot, idx) in resident.upcomingRotations" :key="rot.id"
@@ -1126,7 +1074,7 @@
                                     </div>
 
                                     <!-- Empty state for this resident -->
-                                    <div v-if="!resident.currentRotation && !(resident.upcomingRotations||[]).length && !(resident.pastRotations||[]).length" class="rot-nil">
+                                    <div v-if="!resident.currentRotation && !resident.upcomingRotations.length && !resident.pastRotations.length" class="rot-nil">
                                         No rotations assigned
                                     </div>
                                 </div>
@@ -1257,18 +1205,9 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <template v-if="rotation.rotation_status === 'active'">
-                                                <div class="rot-progress-wrap">
-                                                    <div class="rot-progress-bar">
-                                                        <div class="rot-progress-fill"
-                                                             :class="{ urgent: getRotationProgress(rotation).urgent, done: getRotationProgress(rotation).done }"
-                                                             :style="{ width: getRotationProgress(rotation).pct + '%' }"></div>
-                                                    </div>
-                                                    <div class="rot-days-label" :class="{ urgent: getRotationProgress(rotation).urgent }">
-                                                        {{ getRotationProgress(rotation).pct }}% · {{ getRotationProgress(rotation).label }}
-                                                    </div>
-                                                </div>
-                                            </template>
+                                            <span v-if="rotation.rotation_status === 'active'" class="days-pill" :class="getDaysRemaining(rotation.end_date) <= 7 ? 'days-urgent' : ''">
+                                                {{ getDaysRemaining(rotation.end_date) > 0 ? getDaysRemaining(rotation.end_date) + ' days' : 'Ending' }}
+                                            </span>
                                             <span v-else-if="rotation.rotation_status === 'scheduled'" class="days-pill days-future">in {{ getDaysUntilStart(rotation.start_date) }} days</span>
                                             <span v-else class="na-value">—</span>
                                         </td>
@@ -1550,7 +1489,6 @@
                                 <div class="department-actions">
                                     <button class="btn-pill btn-pill-edit" @click="editDepartment(department)" v-if="hasPermission('system', 'manage_departments')"><i class="fas fa-edit"></i> Edit</button>
                                     <button class="btn btn-primary btn-pill department-action-btn" @click="viewDepartmentStaff(department)"><i class="fas fa-users"></i> Staff</button>
-                                    <button class="btn btn-danger btn-pill department-action-btn" @click="deleteDepartment(department)" v-if="hasPermission('system', 'manage_departments')" title="Deactivate department"><i class="fas fa-power-off"></i></button>
                                 </div>
                             </div>
                             <div v-if="filteredDepartments.length === 0" class="col-span-full empty-state">
@@ -1612,94 +1550,43 @@
                             <button class="btn btn-primary" @click="showAddResearchLineModal" v-if="hasPermission('research_lines', 'create')"><i class="fas fa-plus"></i> Add Research Line</button>
                         </div>
                         <div class="filter-bar">
-                            <input type="text" class="form-control" v-model="researchLineFilters.search" placeholder="Search by name, description or keyword...">
-                            <select class="form-select" v-model="researchLineFilters.active" style="max-width:160px">
+                            <input type="text" class="form-control" v-model="researchLineFilters.search" placeholder="Search research lines...">
+                            <select class="form-select" v-model="researchLineFilters.active">
                                 <option value="">All Status</option>
                                 <option value="true">Active</option>
                                 <option value="false">Inactive</option>
                             </select>
                         </div>
                         <div class="research-lines-grid">
-                            <div v-for="line in filteredResearchLines" :key="line.id"
-                                 class="rline-card"
-                                 :class="{ 'rline-card--inactive': !line.active }">
-
-                                <!-- Coloured top accent — active=blue/teal, inactive=muted -->
-                                <div class="rline-card-accent" :style="line.active ? {} : { background: 'var(--border)' }"></div>
-
-                                <!-- Header row -->
-                                <div class="rline-card-header">
-                                    <div class="rline-card-header-left">
-                                        <span class="rline-number-pill">Línea {{ line.line_number }}</span>
+                            <div v-for="line in filteredResearchLines" :key="line.id" class="research-line-card">
+                                <div class="research-line-header">
+                                    <div class="rline-header-left">
+                                        <div class="research-line-number">Línea {{ line.line_number }}</div>
                                         <span v-if="!line.active" class="rline-inactive-badge"><i class="fas fa-pause-circle"></i> Inactive</span>
                                     </div>
-                                    <div class="rline-card-actions" v-if="hasPermission('research_lines', 'update') || hasPermission('research_lines', 'delete')">
-                                        <button class="rline-action-btn" @click="editResearchLine(line)" v-if="hasPermission('research_lines', 'update')" title="Edit line"><i class="fas fa-edit"></i></button>
-                                        <button class="rline-action-btn rline-action-btn--danger" @click="deleteResearchLine(line)" v-if="hasPermission('research_lines', 'delete')" title="Delete"><i class="fas fa-trash"></i></button>
+                                    <div class="research-line-actions">
+                                        <button class="btn-icon" @click="editResearchLine(line)" v-if="hasPermission('research_lines', 'update')" title="Edit"><i class="fas fa-edit"></i></button>
+                                        <button class="btn-icon btn-icon--danger" @click="deleteResearchLine(line)" v-if="hasPermission('research_lines', 'delete')" title="Delete"><i class="fas fa-trash"></i></button>
                                     </div>
                                 </div>
-
-                                <!-- Name — big Instrument Serif -->
-                                <h3 class="rline-card-name">{{ line.research_line_name || line.name }}</h3>
-
-                                <!-- Description -->
-                                <p class="rline-card-description" v-if="line.description">{{ line.description }}</p>
-
-                                <!-- Activity stats row -->
-                                <div class="rline-activity-row">
-                                    <div class="rline-activity-pill">
-                                        <i class="fas fa-vial"></i>
-                                        <span>{{ line.stats?.totalTrials || 0 }}</span>
-                                        <span class="rline-activity-label">trials</span>
+                                <h3 class="research-line-name">{{ line.research_line_name || line.name }}</h3>
+                                <p class="research-line-description">{{ line.description }}</p>
+                                <div class="research-coordinator-section">
+                                    <div class="coordinator-label">Coordinador/a</div>
+                                    <div class="coordinator-info" v-if="line.coordinator_id">
+                                        <div class="coordinator-chip"><i class="fas fa-user-tie"></i><div><div class="coordinator-name">{{ line.coordinator_name }}</div><div class="coordinator-email" v-if="line.coordinator_email">{{ line.coordinator_email }}</div></div></div>
+                                        <button class="btn btn-sm btn-outline coordinator-change-btn" @click="openAssignCoordinatorModal(line)" v-if="hasPermission('research_lines', 'update')" title="Change coordinator"><i class="fas fa-exchange-alt"></i> Change</button>
                                     </div>
-                                    <div class="rline-activity-pill rline-activity-pill--teal" v-if="line.stats?.activeTrials > 0">
-                                        <span class="rline-dot-pulse"></span>
-                                        <span>{{ line.stats.activeTrials }}</span>
-                                        <span class="rline-activity-label">active</span>
-                                    </div>
-                                    <div class="rline-activity-pill">
-                                        <i class="fas fa-microscope"></i>
-                                        <span>{{ line.stats?.totalProjects || 0 }}</span>
-                                        <span class="rline-activity-label">projects</span>
-                                    </div>
-                                    <div class="rline-activity-pill rline-activity-pill--purple" v-if="line.stats?.activeProjects > 0">
-                                        <i class="fas fa-circle"></i>
-                                        <span>{{ line.stats.activeProjects }}</span>
-                                        <span class="rline-activity-label">active</span>
-                                    </div>
-                                </div>
-
-                                <!-- Coordinator row — compact single line -->
-                                <div class="rline-coord-row">
-                                    <div class="rline-coord-label">COORDINADOR/A</div>
-                                    <div v-if="line.coordinator_id" class="rline-coord-person">
-                                        <div class="rline-coord-avatar">{{ line.coordinator_name ? line.coordinator_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() : '?' }}</div>
-                                        <div class="rline-coord-info">
-                                            <span class="rline-coord-name">{{ line.coordinator_name }}</span>
-                                            <span class="rline-coord-email" v-if="line.coordinator_email">{{ line.coordinator_email }}</span>
-                                        </div>
-                                        <button class="rline-coord-change" @click="openAssignCoordinatorModal(line)" v-if="hasPermission('research_lines', 'update')" title="Change coordinator"><i class="fas fa-exchange-alt"></i></button>
-                                    </div>
-                                    <div v-else class="rline-coord-empty">
-                                        <i class="fas fa-user-slash"></i>
+                                    <div v-else class="coordinator-empty">
                                         <span>No asignado</span>
-                                        <button class="rline-coord-assign" @click="openAssignCoordinatorModal(line)" v-if="hasPermission('research_lines', 'update')"><i class="fas fa-user-plus"></i> Asignar</button>
+                                        <button class="btn btn-sm btn-outline" @click="openAssignCoordinatorModal(line)" v-if="hasPermission('research_lines', 'update')"><i class="fas fa-user-plus"></i> Asignar</button>
                                     </div>
                                 </div>
-
-                                <!-- Capabilities — shown as small scope label -->
-                                <div class="rline-scope" v-if="line.capabilities && line.capabilities !== 'Alcance y capacidades'">
-                                    <i class="fas fa-microscope"></i>
-                                    <span>{{ line.capabilities }}</span>
+                                <div class="research-capabilities"><span class="capabilities-label">{{ line.capabilities }}</span></div>
+                                <div class="research-keywords" v-if="line.keywords && line.keywords.length">
+                                    <span v-for="kw in line.keywords" :key="kw" class="keyword-tag">{{ kw }}</span>
                                 </div>
-
-                                <!-- Keywords as pill chips -->
-                                <div class="rline-keywords" v-if="line.keywords && line.keywords.length">
-                                    <span v-for="kw in line.keywords" :key="kw" class="rline-kw-chip">{{ kw }}</span>
-                                </div>
-
-                            </div><!-- /rline-card -->
-
+                            </div>
                             <div v-if="filteredResearchLines.length === 0" class="col-span-full empty-state">
                                 <i class="fas fa-flask empty-state-icon"></i>
                                 <div class="empty-state-title">No research lines found</div>
@@ -1734,7 +1621,6 @@
                                 <option value="Reclutando">Reclutando</option>
                                 <option value="Activo">Activo</option>
                                 <option value="Completado">Completado</option>
-                                <option value="Suspendido">Suspendido</option>
                             </select>
                             <input type="text" class="form-control" v-model="trialFilters.search" placeholder="Search by protocol or title…">
                         </div>
@@ -1742,16 +1628,12 @@
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
-                                        <th @click="sortBy('trials', 'protocol_id')" style="white-space:nowrap">Protocolo <i class="fas" :class="sortIcon('trials', 'protocol_id')"></i></th>
+                                        <th @click="sortBy('trials', 'protocol_id')">Protocolo <i class="fas" :class="sortIcon('trials', 'protocol_id')"></i></th>
                                         <th @click="sortBy('trials', 'title')">Título del Estudio <i class="fas" :class="sortIcon('trials', 'title')"></i></th>
                                         <th>Línea</th>
                                         <th>PI</th>
-                                        <th title="Co-Investigators">Co-I</th>
                                         <th @click="sortBy('trials', 'phase')">Fase <i class="fas" :class="sortIcon('trials', 'phase')"></i></th>
                                         <th @click="sortBy('trials', 'status')">Estado <i class="fas" :class="sortIcon('trials', 'status')"></i></th>
-                                        <th title="Enrollment (actual / target)">Reclut.</th>
-                                        <th @click="sortBy('trials', 'start_date')" style="white-space:nowrap">Fechas <i class="fas" :class="sortIcon('trials', 'start_date')"></i></th>
-                                        <th>Sponsor</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -1761,58 +1643,15 @@
                                         <td>{{ trial.title }}</td>
                                         <td>{{ getResearchLineName(trial.research_line_id) }}</td>
                                         <td><span v-if="trial.principal_investigator_id" class="trial-pi-name"><i class="fas fa-user-md"></i> {{ getStaffName(trial.principal_investigator_id) }}</span><span v-else class="text-muted-sm">—</span></td>
-                                        <!-- FIX 9: Co-I count badge -->
-                                        <td class="text-center">
-                                            <span v-if="trial.co_investigators?.length" class="badge badge-info" :title="trial.co_investigators.map(id => getStaffName(id)).join(', ')">{{ trial.co_investigators.length }}</span>
-                                            <span v-else class="text-muted-sm">—</span>
-                                        </td>
                                         <td><span class="badge badge-info">{{ trial.phase }}</span></td>
-                                        <!-- FIX 26: Distinct classes for Reclutando vs Activo vs Completado -->
-                                        <td>
-                                            <span class="status-indicator"
-                                                  :class="{
-                                                    'status-recruiting': trial.status === 'Reclutando',
-                                                    'status-active': trial.status === 'Activo',
-                                                    'status-completed': trial.status === 'Completado',
-                                                    'status-suspended': trial.status === 'Suspendido'
-                                                  }">{{ trial.status }}</span>
-                                        </td>
-                                        <td class="trial-enrollment-cell">
-                                            <div v-if="trial.enrollment_target" class="enrollment-wrap">
-                                                <div class="enrollment-nums">
-                                                    <span class="enrollment-actual">{{ trial.actual_enrollment || 0 }}</span>
-                                                    <span class="enrollment-sep">/</span>
-                                                    <span class="enrollment-target">{{ trial.enrollment_target }}</span>
-                                                </div>
-                                                <div class="enrollment-bar">
-                                                    <div class="enrollment-fill"
-                                                         :style="{ width: Math.min(100, Math.round(((trial.actual_enrollment||0)/trial.enrollment_target)*100)) + '%',
-                                                                   background: trial.status === 'Completado' ? 'var(--teal)' : 'var(--blue)' }"></div>
-                                                </div>
-                                            </div>
-                                            <span v-else class="text-muted-sm">—</span>
-                                        </td>
-                                        <td class="trial-dates-cell">
-                                            <div v-if="trial.start_date || trial.end_date" class="trial-dates-wrap">
-                                                <span v-if="trial.start_date" class="trial-date-from"><i class="fas fa-play" style="font-size:8px;opacity:.6"></i> {{ formatDateShort(trial.start_date) }}</span>
-                                                <span v-if="trial.end_date" class="trial-date-to"><i class="fas fa-flag-checkered" style="font-size:8px;opacity:.6"></i> {{ formatDateShort(trial.end_date) }}</span>
-                                            </div>
-                                            <span v-else class="text-muted-sm">—</span>
-                                        </td>
-                                        <td>
-                                            <span v-if="trial.sponsor_name" class="trial-sponsor-badge" :title="trial.sponsor_type || ''">
-                                                <i class="fas fa-building" style="opacity:.5;font-size:10px"></i> {{ trial.sponsor_name }}
-                                            </span>
-                                            <span v-else class="text-muted-sm">—</span>
-                                        </td>
+                                        <td><span class="status-indicator" :class="trial.status === 'Reclutando' ? 'status-active' : 'status-completed'">{{ trial.status }}</span></td>
                                         <td class="table-actions-cell">
-                                            <button class="btn-pill btn-pill-view" @click="viewTrial(trial)" title="View details"><i class="fas fa-eye"></i></button>
                                             <button class="btn-pill btn-pill-edit" @click="editTrial(trial)" v-if="hasPermission('research_lines', 'update')"><i class="fas fa-edit"></i></button>
                                             <button class="btn-pill btn-pill-delete" @click="deleteClinicalTrial(trial)" v-if="hasPermission('research_lines', 'delete')"><i class="fas fa-trash"></i></button>
                                         </td>
                                     </tr>
                                     <tr v-if="filteredTrials.length === 0">
-                                        <td colspan="8" class="empty-state">
+                                        <td colspan="7" class="empty-state">
                                             <i class="fas fa-vial empty-state-icon"></i>
                                             <div class="empty-state-title">No clinical trials found</div>
                                         </td>
@@ -1839,22 +1678,6 @@
                             <div class="card-title"><i class="fas fa-microscope"></i> Innovation Projects</div>
                             <button class="btn btn-primary" @click="showAddProjectModal" v-if="hasPermission('research_lines', 'create')"><i class="fas fa-plus"></i> Add Project</button>
                         </div>
-
-                        <!-- Pipeline stage overview bar -->
-                        <div class="pipeline-overview">
-                            <div v-for="stage in PROJECT_STAGES" :key="stage.key"
-                                 class="pipeline-stage-tile"
-                                 :class="{ 'pipeline-stage-tile--active': projectFilters.stage === stage.key }"
-                                 @click="projectFilters.stage = projectFilters.stage === stage.key ? '' : stage.key"
-                                 :style="projectFilters.stage === stage.key ? { borderColor: stage.color, background: stage.bg } : {}">
-                                <div class="pst-count" :style="projectFilters.stage === stage.key ? { color: stage.color } : {}">
-                                    {{ (innovationProjects || []).filter(p => (p.current_stage || p.development_stage) === stage.key).length }}
-                                </div>
-                                <div class="pst-label">{{ stage.label }}</div>
-                                <div class="pst-dot" :style="{ background: stage.color }"></div>
-                            </div>
-                        </div>
-
                         <div class="filter-bar">
                             <select class="form-select" v-model="projectFilters.research_line_id">
                                 <option value="">All Lines</option>
@@ -1865,180 +1688,51 @@
                                 <option value="Dispositivo">Dispositivo</option>
                                 <option value="Salud Digital">Salud Digital</option>
                                 <option value="IA / ML">IA / ML</option>
-                                <option value="Tecnologia Quirurgica">Tecnologia Quirurgica</option>
+                                <option value="Tecnología Quirúrgica">Tecnología Quirúrgica</option>
                             </select>
-                            <select class="form-select" v-model="projectFilters.funding_status">
-                                <option value="">All Funding</option>
-                                <option value="not_applicable">N/A</option>
-                                <option value="seeking">Seeking Funding</option>
-                                <option value="applied">Applied</option>
-                                <option value="funded">Funded ✓</option>
-                            </select>
-                            <input type="text" class="form-control" v-model="projectFilters.search" placeholder="Search title, description or keyword...">
+                            <input type="text" class="form-control" v-model="projectFilters.search" placeholder="Search projects...">
                         </div>
-
-                        <div class="inno-projects-grid">
-                            <div v-for="project in filteredProjects" :key="project.id"
-                                 class="inno-card"
-                                 :style="{ '--stage-color': getStageConfig(project.current_stage || project.development_stage).color, '--stage-bg': getStageConfig(project.current_stage || project.development_stage).bg }">
-
-                                <!-- Stage-colored left border accent -->
-                                <div class="inno-card-bar"></div>
-
-                                <!-- Top row: category badge + actions -->
-                                <div class="inno-card-top">
-                                    <span class="inno-cat-badge" :class="'inno-cat--' + (project.category || '').toLowerCase().replace(/[^a-z]/g, '-')">
-                                        {{ project.category }}
-                                    </span>
-                                    <div class="inno-card-actions">
-                                        <button class="inno-action-btn" @click="editProject(project)" v-if="hasPermission('research_lines', 'update')" title="Edit"><i class="fas fa-edit"></i></button>
-                                        <button class="inno-action-btn inno-action-btn--danger" @click="deleteInnovationProject(project)" v-if="hasPermission('research_lines', 'delete')" title="Delete"><i class="fas fa-trash"></i></button>
+                        <div class="innovation-projects-grid">
+                            <div v-for="project in filteredProjects" :key="project.id" class="innovation-card">
+                                <div class="innovation-category" :class="project.category.toLowerCase().replace(' ', '-')">{{ project.category }}</div>
+                                <h3 class="innovation-title">{{ project.title }}</h3>
+                                <div class="innovation-stage"><span class="stage-badge">{{ project.development_stage }}</span></div>
+                                <p class="innovation-description">{{ project.description }}</p>
+                                <div class="innovation-research-line"><i class="fas fa-flask"></i><span>{{ getResearchLineName(project.research_line_id) }}</span></div>
+                                <div class="innovation-needs" v-if="project.partner_needs && project.partner_needs.length">
+                                    <div class="needs-label">Necesidades del Socio:</div>
+                                    <div class="needs-tags">
+                                        <span v-for="need in project.partner_needs" :key="need" class="need-tag">{{ need }}</span>
                                     </div>
                                 </div>
-
-                                <!-- Title -->
-                                <h3 class="inno-card-title">{{ project.title }}</h3>
-
-                                <!-- Stage pipeline track -->
-                                <div class="inno-stage-track">
-                                    <div v-for="s in PROJECT_STAGES" :key="s.key"
-                                         class="inno-stage-node"
-                                         :class="{
-                                           'inno-stage-node--done': s.step < getStageConfig(project.current_stage || project.development_stage).step,
-                                           'inno-stage-node--current': s.key === (project.current_stage || project.development_stage),
-                                           'inno-stage-node--future': s.step > getStageConfig(project.current_stage || project.development_stage).step
-                                         }"
-                                         :style="s.key === (project.current_stage || project.development_stage) ? { background: s.color, borderColor: s.color } : {}"
-                                         :title="s.label">
-                                        <i class="fas" :class="s.key === (project.current_stage || project.development_stage) ? s.icon : 'fa-check'" v-if="s.step <= getStageConfig(project.current_stage || project.development_stage).step"></i>
-                                    </div>
-                                    <span class="inno-stage-label" :style="{ color: 'var(--stage-color)' }">
-                                        <i class="fas" :class="getStageConfig(project.current_stage || project.development_stage).icon"></i>
-                                        {{ project.current_stage || project.development_stage }}
-                                    </span>
+                                <div v-if="project.lead_investigator_id" class="innovation-lead">
+                                    <i class="fas fa-user-md"></i>
+                                    <span>{{ getStaffName(project.lead_investigator_id) }}</span>
+                                    <span class="innovation-lead-role">Project Lead</span>
                                 </div>
-
-                                <!-- Description -->
-                                <p class="inno-card-description" v-if="project.description">{{ project.description }}</p>
-
-                                <!-- Research line + funding badge row -->
-                                <div class="inno-meta-row">
-                                    <span class="inno-line-badge"><i class="fas fa-flask"></i> {{ getResearchLineName(project.research_line_id) }}</span>
-                                    <span v-if="project.funding_status && project.funding_status !== 'not_applicable'"
-                                          class="inno-funding-badge"
-                                          :class="'inno-funding--' + project.funding_status">
-                                        <i class="fas" :class="{ 'fa-search-dollar': project.funding_status === 'seeking', 'fa-file-alt': project.funding_status === 'applied', 'fa-check-circle': project.funding_status === 'funded' }"></i>
-                                        {{ { seeking: 'Seeking Funding', applied: 'Applied', funded: 'Funded' }[project.funding_status] }}
-                                    </span>
+                                <div class="innovation-actions">
+                                    <button class="btn-pill btn-pill-edit" @click="editProject(project)" v-if="hasPermission('research_lines', 'update')"><i class="fas fa-edit"></i> Edit</button>
+                                    <button class="btn-pill btn-pill-delete" @click="deleteInnovationProject(project)" v-if="hasPermission('research_lines', 'delete')"><i class="fas fa-trash"></i> Delete</button>
                                 </div>
-
-                                <!-- Team section -->
-                                <div class="inno-team-section" v-if="project.lead_investigator_id || (project.co_investigators && project.co_investigators.length)">
-                                    <div class="inno-team-label">EQUIPO</div>
-                                    <div class="inno-team-members">
-                                        <div v-if="project.lead_investigator_id" class="inno-team-member">
-                                            <div class="inno-member-avatar inno-member-avatar--lead">
-                                                {{ getStaffName(project.lead_investigator_id).split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }}
-                                            </div>
-                                            <div class="inno-member-info">
-                                                <span class="inno-member-name">{{ getStaffName(project.lead_investigator_id) }}</span>
-                                                <span class="inno-member-role">PI / Lead</span>
-                                            </div>
-                                        </div>
-                                        <div v-for="coId in (project.co_investigators || []).slice(0,3)" :key="coId" class="inno-team-member">
-                                            <div class="inno-member-avatar">
-                                                {{ getStaffName(coId).split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }}
-                                            </div>
-                                            <div class="inno-member-info">
-                                                <span class="inno-member-name">{{ getStaffName(coId) }}</span>
-                                                <span class="inno-member-role">Co-I</span>
-                                            </div>
-                                        </div>
-                                        <div v-if="(project.co_investigators || []).length > 3" class="inno-member-overflow">
-                                            +{{ (project.co_investigators || []).length - 3 }} more
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Partner section — conditional on partner_found -->
-                                <div class="inno-partner-section" v-if="project.partner_found && project.partner_name">
-                                    <div class="inno-partner-found">
-                                        <i class="fas fa-handshake"></i>
-                                        <span class="inno-partner-found-label">Partner:</span>
-                                        <span class="inno-partner-name">{{ project.partner_name }}</span>
-                                    </div>
-                                </div>
-                                <div class="inno-needs-section" v-else-if="project.partner_needs && project.partner_needs.length">
-                                    <div class="inno-needs-label"><i class="fas fa-search"></i> Seeking partner for:</div>
-                                    <div class="inno-needs-chips">
-                                        <span v-for="need in project.partner_needs" :key="need" class="inno-need-chip">{{ need }}</span>
-                                    </div>
-                                </div>
-
-                                <!-- TRL level badge -->
-                                <div class="inno-trl-row" v-if="project.trl_level">
-                                    <div class="inno-trl-track">
-                                        <div v-for="n in 9" :key="n"
-                                             class="inno-trl-pip"
-                                             :class="{
-                                               'inno-trl-pip--filled': n <= project.trl_level,
-                                               'inno-trl-pip--current': n === project.trl_level
-                                             }"
-                                             :title="'TRL ' + n"
-                                             :style="n <= project.trl_level ? { background: getStageConfig(project.current_stage || project.development_stage).color } : {}">
-                                        </div>
-                                    </div>
-                                    <span class="inno-trl-label">TRL {{ project.trl_level }}</span>
-                                </div>
-
-                                <!-- Keywords -->
-                                <div class="inno-keywords" v-if="project.keywords && project.keywords.length">
-                                    <span v-for="kw in project.keywords" :key="kw" class="inno-kw-chip">{{ kw }}</span>
-                                </div>
-
-                            </div><!-- /inno-card -->
-
+                            </div>
                             <div v-if="filteredProjects.length === 0" class="col-span-full empty-state">
                                 <i class="fas fa-microscope empty-state-icon"></i>
                                 <div class="empty-state-title">No innovation projects found</div>
-                                <div class="empty-state-description">Innovation projects track ideas from inception through funding to clinical implementation</div>
+                                <div class="empty-state-description">Innovation projects showcase your department's cutting-edge research</div>
                                 <button class="btn btn-primary btn-sm" @click="showAddProjectModal" v-if="hasPermission('research_lines', 'create')"><i class="fas fa-plus"></i> Add First Project</button>
                             </div>
-                        </div><!-- /grid -->
-                        <div class="pagination" v-if="projectTotalPages > 1">
-                            <button class="btn-pill" @click="goToPage('projects', pagination.projects?.page - 1)" :disabled="!pagination.projects || pagination.projects.page === 1"><i class="fas fa-chevron-left"></i></button>
-                            <span class="pagination-info">Page {{ pagination.projects?.page || 1 }} of {{ projectTotalPages }}</span>
-                            <button class="btn-pill" @click="goToPage('projects', pagination.projects?.page + 1)" :disabled="!pagination.projects || pagination.projects.page === projectTotalPages"><i class="fas fa-chevron-right"></i></button>
                         </div>
                     </div>
                 </div>
 
-                <!-- ============ ANALYTICS (UNIFIED TABBED VIEW) ============ -->
-                <div v-if="currentView === 'analytics_dashboard' || currentView === 'analytics_performance' || currentView === 'analytics_partners'">
-
-                    <!-- Tab navigation -->
-                    <div class="analytics-tab-bar">
-                        <button class="analytics-tab" :class="{ 'analytics-tab--active': analyticsActiveTab === 'dashboard' }"
-                                @click="analyticsActiveTab = 'dashboard'; loadResearchDashboard(); loadTrialsTimeline()">
-                            <i class="fas fa-chart-pie"></i> Dashboard
-                        </button>
-                        <button class="analytics-tab" :class="{ 'analytics-tab--active': analyticsActiveTab === 'performance' }"
-                                @click="analyticsActiveTab = 'performance'; loadResearchLinesPerformance()">
-                            <i class="fas fa-chart-line"></i> Performance
-                        </button>
-                        <button class="analytics-tab" :class="{ 'analytics-tab--active': analyticsActiveTab === 'partners' }"
-                                @click="analyticsActiveTab = 'partners'; loadPartnerCollaborations()">
-                            <i class="fas fa-handshake"></i> Partners
-                        </button>
-                        <div class="analytics-tab-spacer"></div>
-                        <button class="btn btn-primary btn-sm" @click="showExportModal" v-if="hasPermission('analytics', 'export')"><i class="fas fa-download"></i> Export</button>
-                    </div>
-
-                    <!-- ── TAB: DASHBOARD ─────────────────────────────────────── -->
-                    <div v-show="analyticsActiveTab === 'dashboard'">
-                    <div class="dashboard-header" style="padding-top:0;margin-top:0">
+                <!-- ============ ANALYTICS DASHBOARD VIEW ============ -->
+                <div v-if="currentView === 'analytics_dashboard'">
+                    <div class="dashboard-header">
                         <h2><i class="fas fa-chart-pie"></i> Research Analytics Dashboard</h2>
-                        <button class="btn btn-outline btn-sm" @click="loadResearchDashboard(); loadTrialsTimeline()" :disabled="loadingAnalytics"><i class="fas fa-sync-alt" :class="{ 'fa-spin': loadingAnalytics }"></i> Refresh</button>
+                        <div class="dashboard-actions">
+                            <button class="btn btn-outline" @click="loadResearchDashboard(true)" :disabled="loadingAnalytics"><i class="fas fa-sync-alt" :class="{ 'fa-spin': loadingAnalytics }"></i> Refresh</button>
+                            <button class="btn btn-primary" @click="showExportModal" v-if="hasPermission('analytics', 'export')"><i class="fas fa-download"></i> Export Report</button>
+                        </div>
                     </div>
                     <div v-if="loadingAnalytics" class="loading-state"><i class="fas fa-spinner fa-spin"></i> Loading analytics data...</div>
                     <template v-else-if="researchDashboard">
@@ -2063,13 +1757,12 @@
                             <div class="card-header"><div class="card-title"><i class="fas fa-flask"></i> Research Lines Overview</div></div>
                             <div class="table-responsive">
                                 <table class="table">
-                                    <!-- FIX 30: coordinator_id may be absent in dashboard aggregate — show coordinator_name directly if available -->
                                     <thead><tr><th>Line</th><th>Name</th><th>Coordinator</th><th>Trials</th><th>Projects</th><th>Status</th></tr></thead>
                                     <tbody>
                                         <tr v-for="line in researchDashboard.researchLines" :key="line.id" class="row-active">
                                             <td>Línea {{ line.line_number }}</td>
                                             <td>{{ line.name }}</td>
-                                            <td>{{ line.coordinator_name || getStaffName(line.coordinator_id) || 'Not assigned' }}</td>
+                                            <td>{{ getStaffName(line.coordinator_id) || 'Not assigned' }}</td>
                                             <td><span class="badge badge-info">{{ line.trialsCount || 0 }}</span></td>
                                             <td><span class="badge badge-success">{{ line.projectsCount || 0 }}</span></td>
                                             <td><span class="status-indicator" :class="line.active ? 'status-active' : 'status-inactive'">{{ line.active ? 'Active' : 'Inactive' }}</span></td>
@@ -2082,13 +1775,12 @@
                             <div class="chart-card">
                                 <h4><i class="fas fa-chart-pie"></i> Trials by Phase</h4>
                                 <div class="chart-bars">
-                                    <!-- FIX 31: Guard against NaN when totalTrials is 0 -->
                                     <div v-for="(count, phase) in researchDashboard.clinicalTrials?.byPhase" :key="phase" class="chart-bar-item" v-if="count > 0">
                                         <span class="bar-label">{{ phase }}</span>
-                                        <div class="bar-container"><div class="bar-fill" :style="{ width: researchDashboard.summary?.totalTrials > 0 ? (count / researchDashboard.summary.totalTrials * 100) + '%' : '0%', background: getPhaseColor(phase) }"></div></div>
+                                        <div class="bar-container"><div class="bar-fill" :style="{ width: (count / researchDashboard.summary?.totalTrials * 100) + '%', background: getPhaseColor(phase) }"></div></div>
                                         <span class="bar-value">{{ count }}</span>
                                     </div>
-                                    <div v-if="!researchDashboard.clinicalTrials?.byPhase || Object.values(researchDashboard.clinicalTrials.byPhase).every(v => v === 0)" class="empty-chart">No trial data available</div>
+                                    <div v-if="Object.keys(researchDashboard.clinicalTrials?.byPhase || {}).length === 0" class="empty-chart">No trial data available</div>
                                 </div>
                             </div>
                             <div class="chart-card">
@@ -2096,64 +1788,19 @@
                                 <div class="chart-bars">
                                     <div v-for="(count, stage) in researchDashboard.innovationProjects?.byStage" :key="stage" class="chart-bar-item" v-if="count > 0">
                                         <span class="bar-label">{{ stage }}</span>
-                                        <div class="bar-container"><div class="bar-fill" :style="{ width: researchDashboard.summary?.totalProjects > 0 ? (count / researchDashboard.summary.totalProjects * 100) + '%' : '0%', background: getStageColor(stage) }"></div></div>
+                                        <div class="bar-container"><div class="bar-fill" :style="{ width: (count / researchDashboard.summary?.totalProjects * 100) + '%', background: getStageColor(stage) }"></div></div>
                                         <span class="bar-value">{{ count }}</span>
                                     </div>
-                                    <div v-if="!researchDashboard.innovationProjects?.byStage || Object.values(researchDashboard.innovationProjects.byStage || {}).every(v => v === 0)" class="empty-chart">No project data available</div>
+                                    <div v-if="Object.keys(researchDashboard.innovationProjects?.byStage || {}).length === 0" class="empty-chart">No project data available</div>
                                 </div>
                             </div>
                         </div>
                         <div class="card" v-if="researchDashboard.innovationProjects?.partnerNeeds?.length">
                             <div class="card-header"><div class="card-title"><i class="fas fa-handshake"></i> Top Partner Needs</div></div>
-                            <div class="partner-needs-chart">
-                                <div v-for="need in researchDashboard.innovationProjects.partnerNeeds.slice(0, 10).sort((a,b) => b.count - a.count)" :key="need.name" class="pneed-row">
-                                    <span class="pneed-label">{{ need.name }}</span>
-                                    <div class="pneed-bar-wrap">
-                                        <div class="pneed-bar" :style="{ width: (need.count / researchDashboard.innovationProjects.partnerNeeds[0]?.count * 100) + '%' }"></div>
-                                    </div>
-                                    <span class="pneed-count">{{ need.count }}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Trials added over time timeline -->
-                        <div class="card" v-if="trialsTimeline && trialsTimeline.timeline?.length">
-                            <div class="card-header">
-                                <div class="card-title"><i class="fas fa-stream"></i> Trials Added Over Time</div>
-                                <span class="badge badge-info">{{ trialsTimeline.totalInPeriod }} in last 3 years</span>
-                            </div>
-                            <div class="timeline-chart">
-                                <div v-for="(item, idx) in trialsTimeline.timeline" :key="item.month" class="timeline-bar-col">
-                                    <div class="timeline-bar-wrap">
-                                        <div class="timeline-bar-fill"
-                                             :style="{ height: Math.max(4, Math.round((item.count / Math.max(...trialsTimeline.timeline.map(t=>t.count))) * 100)) + '%' }"
-                                             :title="item.month + ': ' + item.count + ' trial(s)'">
-                                        </div>
-                                        <span v-if="item.count > 0" class="timeline-bar-val">{{ item.count }}</span>
-                                    </div>
-                                    <span class="timeline-bar-label">{{ item.month.slice(5) }}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Research Lines overview table — built from local data -->
-                        <div class="card" v-if="researchDashboard.researchLines?.length">
-                            <div class="card-header"><div class="card-title"><i class="fas fa-flask"></i> Research Lines Overview</div></div>
-                            <div class="table-responsive">
-                                <table class="table">
-                                    <thead><tr><th>Line</th><th>Name</th><th>Coordinator</th><th>Trials</th><th>Projects</th><th>Status</th></tr></thead>
-                                    <tbody>
-                                        <tr v-for="line in researchDashboard.researchLines" :key="line.id" class="row-active" style="cursor:pointer"
-                                            @click="trialFilters.line = line.id; switchView('clinical_trials')">
-                                            <td><span class="rline-number-pill" style="font-size:11px">Línea {{ line.line_number }}</span></td>
-                                            <td class="font-medium">{{ line.name }}</td>
-                                            <td>{{ line.coordinator_name || 'Not assigned' }}</td>
-                                            <td><span class="badge badge-info">{{ line.trialsCount || 0 }}</span></td>
-                                            <td><span class="badge badge-success">{{ line.projectsCount || 0 }}</span></td>
-                                            <td><span class="status-indicator" :class="line.active ? 'status-active' : 'status-inactive'">{{ line.active ? 'Active' : 'Inactive' }}</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <div class="tags-cloud">
+                                <span v-for="need in researchDashboard.innovationProjects.partnerNeeds.slice(0, 15)" :key="need.name" class="need-tag" :style="{ fontSize: (12 + Math.min(need.count * 2, 20)) + 'px' }">
+                                    {{ need.name }} ({{ need.count }})
+                                </span>
                             </div>
                         </div>
                     </template>
@@ -2161,15 +1808,15 @@
                         <i class="fas fa-chart-pie empty-state-icon"></i>
                         <div class="empty-state-title">No analytics data available</div>
                         <div class="empty-state-description">Unable to load research dashboard data</div>
-                        <button class="btn btn-primary btn-sm" @click="loadResearchDashboard(); loadTrialsTimeline()"><i class="fas fa-sync-alt"></i> Retry</button>
+                        <button class="btn btn-primary btn-sm" @click="loadResearchDashboard(true)"><i class="fas fa-sync-alt"></i> Retry</button>
                     </div>
-                    </div><!-- /tab:dashboard -->
+                </div>
 
-                    <!-- ── TAB: PERFORMANCE ───────────────────────────────────── -->
-                    <div v-show="analyticsActiveTab === 'performance'">
-                    <div class="dashboard-header" style="padding-top:0;margin-top:0">
+                <!-- ============ RESEARCH LINES PERFORMANCE VIEW ============ -->
+                <div v-if="currentView === 'analytics_performance'">
+                    <div class="dashboard-header">
                         <h2><i class="fas fa-chart-line"></i> Research Lines Performance</h2>
-                        <button class="btn btn-outline btn-sm" @click="loadResearchLinesPerformance()" :disabled="loadingAnalytics"><i class="fas fa-sync-alt" :class="{ 'fa-spin': loadingAnalytics }"></i> Refresh</button>
+                        <button class="btn btn-outline" @click="loadResearchLinesPerformance(true)" :disabled="loadingAnalytics"><i class="fas fa-sync-alt" :class="{ 'fa-spin': loadingAnalytics }"></i> Refresh</button>
                     </div>
                     <div v-if="loadingAnalytics" class="loading-state"><i class="fas fa-spinner fa-spin"></i> Loading performance data...</div>
                     <div v-else-if="researchLinesPerformance.length > 0" class="card">
@@ -2192,13 +1839,13 @@
                         </div>
                     </div>
                     <div v-else class="empty-state"><i class="fas fa-chart-line empty-state-icon"></i><div class="empty-state-title">No performance data available</div></div>
-                    </div><!-- /tab:performance -->
+                </div>
 
-                    <!-- ── TAB: PARTNERS ──────────────────────────────────────── -->
-                    <div v-show="analyticsActiveTab === 'partners'">
-                    <div class="dashboard-header" style="padding-top:0;margin-top:0">
+                <!-- ============ PARTNER COLLABORATIONS VIEW ============ -->
+                <div v-if="currentView === 'analytics_partners'">
+                    <div class="dashboard-header">
                         <h2><i class="fas fa-handshake"></i> Partner Collaborations</h2>
-                        <button class="btn btn-outline btn-sm" @click="loadPartnerCollaborations()" :disabled="loadingAnalytics"><i class="fas fa-sync-alt" :class="{ 'fa-spin': loadingAnalytics }"></i> Refresh</button>
+                        <button class="btn btn-outline" @click="loadPartnerCollaborations(true)" :disabled="loadingAnalytics"><i class="fas fa-sync-alt" :class="{ 'fa-spin': loadingAnalytics }"></i> Refresh</button>
                     </div>
                     <div v-if="loadingAnalytics" class="loading-state"><i class="fas fa-spinner fa-spin"></i> Loading partner data...</div>
                     <div v-else-if="partnerCollaborations" class="space-y-4">
@@ -2240,9 +1887,7 @@
                         </div>
                     </div>
                     <div v-else class="empty-state"><i class="fas fa-handshake empty-state-icon"></i><div class="empty-state-title">No partner collaboration data available</div></div>
-                    </div><!-- /tab:partners -->
-
-                </div><!-- /analytics unified view -->
+                </div>
 
             </div><!-- /content-area -->
         </main>
@@ -2256,181 +1901,209 @@
         <transition name="drawer-slide">
             <div v-if="staffProfileModal.show" class="profile-drawer" :class="'status-accent--' + (staffProfileModal.staff?.employment_status || 'active')">
 
-                <!-- ── Identity Panel (left column) ── -->
-                <div class="pd-identity">
-                    <!-- Status accent bar at top -->
+                <!-- ══════════════ LEFT SIDEBAR ══════════════ -->
+                <div class="pd-sidebar">
+
+                    <!-- Top accent bar -->
                     <div class="pd-status-bar"></div>
 
-                    <!-- Close button -->
-                    <button class="pd-close" @click="staffProfileModal.show = false" title="Close">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <!-- Close -->
+                    <button class="pd-close" @click="staffProfileModal.show = false" title="Close"><i class="fas fa-times"></i></button>
 
-                    <!-- Avatar block -->
-                    <div class="pd-avatar-block">
-                        <div class="pd-avatar">
-                            <i class="fas" :class="{
-                                'fa-user-md':       staffProfileModal.staff.staff_type === 'attending_physician',
-                                'fa-user-graduate': staffProfileModal.staff.staff_type === 'medical_resident',
-                                'fa-stethoscope':   staffProfileModal.staff.staff_type === 'fellow',
-                                'fa-heartbeat':     staffProfileModal.staff.staff_type === 'nurse_practitioner',
-                                'fa-user-tie':      !['attending_physician','medical_resident','fellow','nurse_practitioner'].includes(staffProfileModal.staff.staff_type)
-                            }"></i>
-                            <div class="pd-avatar-ring"></div>
+                    <!-- ── Hero block ── -->
+                    <div class="pd-hero">
+                        <div class="pd-avatar-wrap">
+                            <div class="pd-avatar">
+                                <i class="fas" :class="{
+                                    'fa-user-md':       staffProfileModal.staff.staff_type === 'attending_physician',
+                                    'fa-user-graduate': staffProfileModal.staff.staff_type === 'medical_resident',
+                                    'fa-stethoscope':   staffProfileModal.staff.staff_type === 'fellow',
+                                    'fa-heartbeat':     staffProfileModal.staff.staff_type === 'nurse_practitioner',
+                                    'fa-user-cog':      staffProfileModal.staff.staff_type === 'administrator',
+                                    'fa-user-tag':      !['attending_physician','medical_resident','fellow','nurse_practitioner','administrator'].includes(staffProfileModal.staff.staff_type)
+                                }"></i>
+                                <div class="pd-avatar-ring"></div>
+                            </div>
+                            <div class="pd-status-dot" :class="'dot--' + staffProfileModal.staff.employment_status" :title="formatEmploymentStatus(staffProfileModal.staff.employment_status)"></div>
                         </div>
-                        <div class="pd-status-dot" :class="'dot--' + staffProfileModal.staff.employment_status" :title="formatEmploymentStatus(staffProfileModal.staff.employment_status)"></div>
-                    </div>
 
-                    <!-- Name + role -->
-                    <div class="pd-name">{{ staffProfileModal.staff.full_name }}</div>
-                    <div class="pd-role">{{ formatStaffType(staffProfileModal.staff.staff_type) }}</div>
+                        <div class="pd-hero-text">
+                            <div class="pd-name">{{ staffProfileModal.staff.full_name }}</div>
+                            <div class="pd-type-row">
+                                <span class="pd-type-label">{{ formatStaffType(staffProfileModal.staff.staff_type) }}</span>
+                                <span class="pd-status-chip" :class="'chip--' + staffProfileModal.staff.employment_status">{{ formatEmploymentStatus(staffProfileModal.staff.employment_status) }}</span>
+                            </div>
 
-                    <!-- Department + status pills -->
-                    <div class="pd-pills">
-                        <span class="pd-pill pd-pill--dept" v-if="getDepartmentName(staffProfileModal.staff.department_id)">
-                            <i class="fas fa-hospital-alt"></i>
-                            {{ getDepartmentName(staffProfileModal.staff.department_id) }}
-                        </span>
-                        <span class="pd-pill" :class="'pd-pill--' + staffProfileModal.staff.employment_status">
-                            {{ formatEmploymentStatus(staffProfileModal.staff.employment_status) }}
-                        </span>
+                            <!-- Role chips (research coordinator only — from real DB column) -->
+                            <div class="pd-role-chips" v-if="staffProfileModal.staff.is_research_coordinator">
+                                <span class="pd-role-chip"><i class="fas fa-flask"></i> Research Coordinator</span>
+                            </div>
+
+                            <!-- Research capability chips -->
+                            <div class="pd-role-chips" v-if="staffProfileModal.staff.can_be_pi || staffProfileModal.staff.can_be_coi || staffProfileModal.staff.can_supervise_residents">
+                                <span v-if="staffProfileModal.staff.can_be_pi" class="pd-cap-chip pd-cap-chip--pi"><i class="fas fa-crown"></i> PI</span>
+                                <span v-if="staffProfileModal.staff.can_be_coi" class="pd-cap-chip pd-cap-chip--coi"><i class="fas fa-user-friends"></i> Co-I</span>
+                                <span v-if="staffProfileModal.staff.can_supervise_residents" class="pd-cap-chip pd-cap-chip--sup"><i class="fas fa-chalkboard-teacher"></i> Supervisor</span>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Edit button -->
-                    <button v-if="hasPermission('medical_staff', 'update')"
-                            class="pd-edit-btn"
-                            @click="editMedicalStaff(staffProfileModal.staff)">
+                    <button v-if="hasPermission('medical_staff', 'update')" class="pd-edit-btn" @click="editMedicalStaff(staffProfileModal.staff)">
                         <i class="fas fa-pen"></i> Edit Profile
                     </button>
 
-                    <!-- Divider -->
-                    <div class="pd-divider"></div>
+                    <!-- ── Info Grid (always visible, no collapsibles for key facts) ── -->
+                    <div class="pd-info-grid">
 
-                    <!-- Credentials section -->
-                    <div class="pd-section" :class="{ 'pd-section--collapsed': staffProfileModal.collapsed?.credentials }">
-                        <button class="pd-section-head" @click="toggleProfileSection('credentials')">
-                            <span class="pd-section-icon"><i class="fas fa-graduation-cap"></i></span>
-                            <span class="pd-section-title">Credentials</span>
-                            <i class="fas fa-chevron-down pd-section-chevron"></i>
-                        </button>
-                        <div class="pd-section-body">
-                            <div class="pd-row"><span class="pd-row-key">Degree</span><span class="pd-row-val" :class="{'pd-row-na': !staffProfileModal.staff.academic_degree}">{{ staffProfileModal.staff.academic_degree || '—' }}</span></div>
-                            <div class="pd-row"><span class="pd-row-key">Specialty</span><span class="pd-row-val" :class="{'pd-row-na': !staffProfileModal.staff.specialization}">{{ formatSpecialization(staffProfileModal.staff.specialization) || '—' }}</span></div>
-                            <div class="pd-row"><span class="pd-row-key">License</span><span class="pd-row-val" :class="{'pd-row-na': !staffProfileModal.staff.medical_license}">{{ formatLicense(staffProfileModal.staff.medical_license) || '—' }}</span></div>
-                            <div class="pd-row"><span class="pd-row-key">Mobile</span><span class="pd-row-val" :class="{'pd-row-na': !staffProfileModal.staff.mobile_phone}">{{ formatPhone(staffProfileModal.staff.mobile_phone) || '—' }}</span></div>
-                            <!-- Clinical certificate — collected in form, now shown -->
-                            <div class="pd-row" v-if="staffProfileModal.staff.clinical_certificate">
-                                <span class="pd-row-key">Certificate</span>
-                                <span class="pd-row-val pd-row-cert">
-                                    {{ staffProfileModal.staff.clinical_certificate }}
-                                    <span class="pd-cert-status" :class="staffProfileModal.staff.certificate_status === 'current' ? 'pd-cert-current' : 'pd-cert-expired'">
-                                        <i class="fas" :class="staffProfileModal.staff.certificate_status === 'current' ? 'fa-check-circle' : 'fa-exclamation-circle'"></i>
-                                        {{ staffProfileModal.staff.certificate_status || 'unknown' }}
-                                    </span>
+                        <!-- Department -->
+                        <div class="pd-info-cell" v-if="getDepartmentName(staffProfileModal.staff.department_id)">
+                            <span class="pd-info-icon"><i class="fas fa-hospital-alt"></i></span>
+                            <div class="pd-info-text">
+                                <span class="pd-info-key">Department</span>
+                                <span class="pd-info-val">{{ getDepartmentName(staffProfileModal.staff.department_id) }}</span>
+                            </div>
+                        </div>
+                        <div class="pd-info-cell pd-info-cell--muted" v-else>
+                            <span class="pd-info-icon"><i class="fas fa-hospital-alt"></i></span>
+                            <div class="pd-info-text">
+                                <span class="pd-info-key">Department</span>
+                                <span class="pd-info-val pd-info-val--na">Not assigned</span>
+                            </div>
+                        </div>
+
+                        <!-- Hospital -->
+                        <div class="pd-info-cell" v-if="staffProfileModal.staff.hospitals?.name || hospitalsList.find(h=>h.id===staffProfileModal.staff.hospital_id)?.name">
+                            <span class="pd-info-icon"><i class="fas fa-building"></i></span>
+                            <div class="pd-info-text">
+                                <span class="pd-info-key">Hospital</span>
+                                <span class="pd-info-val">{{ staffProfileModal.staff.hospitals?.name || hospitalsList.find(h=>h.id===staffProfileModal.staff.hospital_id)?.name }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Staff ID -->
+                        <div class="pd-info-cell">
+                            <span class="pd-info-icon"><i class="fas fa-id-badge"></i></span>
+                            <div class="pd-info-text">
+                                <span class="pd-info-key">Staff ID</span>
+                                <span class="pd-info-val pd-info-val--mono">{{ staffProfileModal.staff.staff_id || '—' }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Specialty -->
+                        <div class="pd-info-cell" v-if="staffProfileModal.staff.specialization">
+                            <span class="pd-info-icon"><i class="fas fa-stethoscope"></i></span>
+                            <div class="pd-info-text">
+                                <span class="pd-info-key">Specialty</span>
+                                <span class="pd-info-val">{{ formatSpecialization(staffProfileModal.staff.specialization) }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Degree -->
+                        <div class="pd-info-cell" v-if="staffProfileModal.staff.academic_degree">
+                            <span class="pd-info-icon"><i class="fas fa-graduation-cap"></i></span>
+                            <div class="pd-info-text">
+                                <span class="pd-info-key">Degree</span>
+                                <span class="pd-info-val">{{ staffProfileModal.staff.academic_degree }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Years experience -->
+                        <div class="pd-info-cell" v-if="staffProfileModal.staff.years_experience">
+                            <span class="pd-info-icon"><i class="fas fa-clock"></i></span>
+                            <div class="pd-info-text">
+                                <span class="pd-info-key">Experience</span>
+                                <span class="pd-info-val">{{ staffProfileModal.staff.years_experience }} yrs</span>
+                            </div>
+                        </div>
+
+                        <!-- License -->
+                        <div class="pd-info-cell" v-if="staffProfileModal.staff.medical_license">
+                            <span class="pd-info-icon"><i class="fas fa-certificate"></i></span>
+                            <div class="pd-info-text">
+                                <span class="pd-info-key">License</span>
+                                <span class="pd-info-val pd-info-val--mono">{{ formatLicense(staffProfileModal.staff.medical_license) }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Training year (residents) -->
+                        <div class="pd-info-cell" v-if="staffProfileModal.staff.staff_type === 'medical_resident' && staffProfileModal.staff.training_year">
+                            <span class="pd-info-icon"><i class="fas fa-layer-group"></i></span>
+                            <div class="pd-info-text">
+                                <span class="pd-info-key">Training Year</span>
+                                <span class="pd-info-val">{{ formatTrainingYear(staffProfileModal.staff.training_year) }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Resident category -->
+                        <div class="pd-info-cell" v-if="staffProfileModal.staff.staff_type === 'medical_resident' && staffProfileModal.staff.resident_category">
+                            <span class="pd-info-icon"><i :class="['fas', getResidentCategoryInfo(staffProfileModal.staff.resident_category, staffProfileModal.staff).icon]"></i></span>
+                            <div class="pd-info-text">
+                                <span class="pd-info-key">Resident Type</span>
+                                <span class="pd-info-val">{{ getResidentCategoryInfo(staffProfileModal.staff.resident_category, staffProfileModal.staff).text }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Home department (rotating) -->
+                        <div class="pd-info-cell" v-if="staffProfileModal.staff.resident_category === 'rotating_other_dept' && staffProfileModal.staff.home_department">
+                            <span class="pd-info-icon"><i class="fas fa-exchange-alt"></i></span>
+                            <div class="pd-info-text">
+                                <span class="pd-info-key">Home Dept</span>
+                                <span class="pd-info-val">{{ staffProfileModal.staff.home_department }}</span>
+                            </div>
+                        </div>
+
+                        <!-- External institution -->
+                        <div class="pd-info-cell" v-if="staffProfileModal.staff.resident_category === 'external_resident' && staffProfileModal.staff.external_institution">
+                            <span class="pd-info-icon"><i class="fas fa-university"></i></span>
+                            <div class="pd-info-text">
+                                <span class="pd-info-key">Institution</span>
+                                <span class="pd-info-val">{{ staffProfileModal.staff.external_institution }}</span>
+                            </div>
+                        </div>
+
+                    </div><!-- /pd-info-grid -->
+
+                    <!-- ── Contact strip ── -->
+                    <div class="pd-contact-strip">
+                        <a :href="staffProfileModal.staff?.professional_email ? 'mailto:' + staffProfileModal.staff.professional_email : '#'"
+                           class="pd-contact-item" :class="{ 'pd-contact-item--disabled': !staffProfileModal.staff?.professional_email }"
+                           :title="staffProfileModal.staff.professional_email || 'No email'">
+                            <i class="fas fa-envelope"></i>
+                            <span>{{ staffProfileModal.staff.professional_email || 'No email' }}</span>
+                        </a>
+                        <div class="pd-contact-item" :class="{ 'pd-contact-item--disabled': !staffProfileModal.staff.mobile_phone }">
+                            <i class="fas fa-phone"></i>
+                            <span>{{ formatPhone(staffProfileModal.staff.mobile_phone) || 'No phone' }}</span>
+                        </div>
+                    </div>
+
+                    <!-- ── Certificates (if any) ── -->
+                    <div class="pd-certs-block" v-if="staffProfileModal.staff.clinical_certificate || staffProfileModal.staff.clinical_study_certificates?.length">
+                        <div class="pd-certs-label"><i class="fas fa-shield-alt"></i> Certifications</div>
+                        <div class="pd-cert-tags">
+                            <span v-if="staffProfileModal.staff.clinical_certificate" class="pd-cert-tag">
+                                {{ staffProfileModal.staff.clinical_certificate }}
+                                <span class="pd-cert-status" :class="staffProfileModal.staff.certificate_status === 'current' ? 'pd-cert-current' : 'pd-cert-expired'">
+                                    <i class="fas" :class="staffProfileModal.staff.certificate_status === 'current' ? 'fa-check-circle' : 'fa-exclamation-circle'"></i>
                                 </span>
-                            </div>
-                            <!-- Clinical study certificates (tag array) -->
-                            <div class="pd-row" v-if="staffProfileModal.staff.clinical_study_certificates?.length">
-                                <span class="pd-row-key">Study Certs</span>
-                                <span class="pd-row-val">
-                                    <div class="pd-cert-tags">
-                                        <span v-for="cert in staffProfileModal.staff.clinical_study_certificates" :key="cert" class="pd-cert-tag">{{ cert }}</span>
-                                        <span v-if="staffProfileModal.staff.other_certificate" class="pd-cert-tag pd-cert-tag--other">{{ staffProfileModal.staff.other_certificate }}</span>
-                                    </div>
-                                </span>
-                            </div>
+                            </span>
+                            <span v-for="cert in staffProfileModal.staff.clinical_study_certificates" :key="cert" class="pd-cert-tag">{{ cert }}</span>
+                            <span v-if="staffProfileModal.staff.other_certificate" class="pd-cert-tag pd-cert-tag--other">{{ staffProfileModal.staff.other_certificate }}</span>
                         </div>
                     </div>
 
-                    <!-- Resident info (conditional) -->
-                    <div v-if="staffProfileModal.staff.staff_type === 'medical_resident'" class="pd-section" :class="{ 'pd-section--collapsed': staffProfileModal.collapsed?.resident }">
-                        <button class="pd-section-head" @click="toggleProfileSection('resident')">
-                            <span class="pd-section-icon"><i class="fas fa-user-graduate"></i></span>
-                            <span class="pd-section-title">Resident Info</span>
-                            <i class="fas fa-chevron-down pd-section-chevron"></i>
-                        </button>
-                        <div class="pd-section-body">
-                            <div class="pd-row">
-                                <span class="pd-row-key">Category</span>
-                                <span class="pd-row-val">
-                                    <template v-if="staffProfileModal.staff.resident_category">
-                                        <span class="resident-category-badge"
-                                              :style="{ background: getResidentCategoryInfo(staffProfileModal.staff.resident_category, staffProfileModal.staff).bgColor, color: getResidentCategoryInfo(staffProfileModal.staff.resident_category, staffProfileModal.staff).color }">
-                                            <i :class="['fas', getResidentCategoryInfo(staffProfileModal.staff.resident_category, staffProfileModal.staff).icon]"></i>
-                                            {{ getResidentCategoryInfo(staffProfileModal.staff.resident_category, staffProfileModal.staff).text }}
-                                        </span>
-                                    </template>
-                                    <span v-else class="pd-row-na">—</span>
-                                </span>
-                            </div>
-                            <div class="pd-row"><span class="pd-row-key">Training Year</span><span class="pd-row-val" :class="{'pd-row-na': !staffProfileModal.staff.training_year}">{{ formatTrainingYear(staffProfileModal.staff.training_year) || '—' }}</span></div>
-                            <div class="pd-row" v-if="staffProfileModal.staff.resident_category === 'rotating_other_dept'"><span class="pd-row-key">Home Dept</span><span class="pd-row-val">{{ staffProfileModal.staff.home_department || '—' }}</span></div>
-                            <div class="pd-row" v-if="staffProfileModal.staff.resident_category === 'external_resident'"><span class="pd-row-key">Institution</span><span class="pd-row-val">{{ staffProfileModal.staff.external_institution || '—' }}</span></div>
+                    <!-- ── Biography / Notes ── -->
+                    <div class="pd-bio-block" v-if="staffProfileModal.staff.biography || staffProfileModal.staff.special_notes">
+                        <div class="pd-bio-text" v-if="staffProfileModal.staff.biography">{{ staffProfileModal.staff.biography }}</div>
+                        <div class="pd-notes-text" v-if="staffProfileModal.staff.special_notes">
+                            <i class="fas fa-sticky-note"></i> {{ staffProfileModal.staff.special_notes }}
                         </div>
                     </div>
 
-                    <!-- Department Roles (conditional) -->
-                    <div v-if="getStaffRoles(staffProfileModal.staff).length > 0" class="pd-section" :class="{ 'pd-section--collapsed': staffProfileModal.collapsed?.roles }">
-                        <button class="pd-section-head" @click="toggleProfileSection('roles')">
-                            <span class="pd-section-icon"><i class="fas fa-user-tag"></i></span>
-                            <span class="pd-section-title">Dept. Roles</span>
-                            <i class="fas fa-chevron-down pd-section-chevron"></i>
-                        </button>
-                        <div class="pd-section-body">
-                            <div v-for="role in getStaffRoles(staffProfileModal.staff)" :key="role.key" class="pd-role-item">
-                                <i :class="['fas', role.icon]" :style="{ color: role.color }"></i>
-                                <span>{{ role.label }}</span>
-                            </div>
-                        </div>
-                    </div>
+                </div><!-- /pd-sidebar -->
 
-                    <!-- Research Capabilities — collected in form, always surfaced here -->
-                    <div v-if="staffProfileModal.staff.can_be_pi || staffProfileModal.staff.can_be_coi || staffProfileModal.staff.can_supervise_residents"
-                         class="pd-section" :class="{ 'pd-section--collapsed': staffProfileModal.collapsed?.capabilities }">
-                        <button class="pd-section-head" @click="toggleProfileSection('capabilities')">
-                            <span class="pd-section-icon"><i class="fas fa-flask"></i></span>
-                            <span class="pd-section-title">Research Capabilities</span>
-                            <i class="fas fa-chevron-down pd-section-chevron"></i>
-                        </button>
-                        <div class="pd-section-body">
-                            <div v-if="staffProfileModal.staff.can_be_pi" class="pd-capability-row">
-                                <span class="pd-cap-icon pd-cap-icon--pi"><i class="fas fa-crown"></i></span>
-                                <span class="pd-cap-label">Principal Investigator</span>
-                            </div>
-                            <div v-if="staffProfileModal.staff.can_be_coi" class="pd-capability-row">
-                                <span class="pd-cap-icon pd-cap-icon--coi"><i class="fas fa-user-friends"></i></span>
-                                <span class="pd-cap-label">Co-Investigator</span>
-                            </div>
-                            <div v-if="staffProfileModal.staff.can_supervise_residents" class="pd-capability-row">
-                                <span class="pd-cap-icon pd-cap-icon--sup"><i class="fas fa-chalkboard-teacher"></i></span>
-                                <span class="pd-cap-label">Resident Supervisor (Research)</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Contact -->
-                    <div class="pd-section" :class="{ 'pd-section--collapsed': staffProfileModal.collapsed?.contact }">
-                        <button class="pd-section-head" @click="toggleProfileSection('contact')">
-                            <span class="pd-section-icon"><i class="fas fa-at"></i></span>
-                            <span class="pd-section-title">Contact</span>
-                            <i class="fas fa-chevron-down pd-section-chevron"></i>
-                        </button>
-                        <div class="pd-section-body">
-                            <a :href="staffProfileModal.staff?.professional_email ? 'mailto:' + staffProfileModal.staff.professional_email : '#'"
-                               class="pd-contact-row" :class="{ 'pd-contact-row--disabled': !staffProfileModal.staff?.professional_email }">
-                                <i class="fas fa-envelope"></i>
-                                <span>{{ staffProfileModal.staff.professional_email || 'No email' }}</span>
-                            </a>
-                            <div class="pd-contact-row" :class="{ 'pd-contact-row--disabled': !staffProfileModal.staff.mobile_phone }">
-                                <i class="fas fa-phone"></i>
-                                <span>{{ formatPhone(staffProfileModal.staff.mobile_phone) || 'No phone' }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                </div><!-- /pd-identity -->
-
-                <!-- ── Content Panel (right column) ── -->
+                <!-- ══════════════ RIGHT CONTENT PANEL ══════════════ -->
                 <div class="pd-content">
 
                     <!-- Tab bar -->
@@ -2455,7 +2128,35 @@
                     <!-- ── ACTIVITY TAB ── -->
                     <div v-if="staffProfileModal.activeTab === 'activity'" class="pd-tab-body">
 
-                        <!-- Current Rotation (residents only) -->
+                        <!-- Status banner if on leave -->
+                        <div class="pd-on-leave-banner" v-if="staffProfileModal.staff.employment_status === 'on_leave'">
+                            <i class="fas fa-plane-departure"></i>
+                            <span>Currently on leave</span>
+                        </div>
+
+                        <!-- Quick-fact strip: on-call today, days until leave, etc. -->
+                        <div class="pd-quick-strip" v-if="isOnCallToday(staffProfileModal.staff.id) || getUpcomingOnCall(staffProfileModal.staff.id).length || getUpcomingLeave(staffProfileModal.staff.id).length">
+                            <div class="pd-quick-item pd-quick-item--danger" v-if="isOnCallToday(staffProfileModal.staff.id)">
+                                <i class="fas fa-phone-medical"></i>
+                                <span>On Call Today</span>
+                            </div>
+                            <div class="pd-quick-item pd-quick-item--blue" v-else-if="getUpcomingOnCall(staffProfileModal.staff.id).length">
+                                <i class="fas fa-phone-medical"></i>
+                                <span>Next on-call: {{ formatDate(getUpcomingOnCall(staffProfileModal.staff.id)[0].duty_date) }}</span>
+                            </div>
+                            <div class="pd-quick-item pd-quick-item--amber" v-if="getUpcomingLeave(staffProfileModal.staff.id).length">
+                                <i class="fas fa-plane-departure"></i>
+                                <span>Leave from {{ formatDate(getUpcomingLeave(staffProfileModal.staff.id)[0].start_date) }}</span>
+                            </div>
+                        </div>
+
+                        <!-- All clear -->
+                        <div class="pd-all-clear" v-if="!getUpcomingOnCall(staffProfileModal.staff.id).length && !isOnCallToday(staffProfileModal.staff.id) && !getUpcomingLeave(staffProfileModal.staff.id).length && staffProfileModal.staff.employment_status !== 'on_leave'">
+                            <i class="fas fa-check-circle"></i>
+                            <span>No upcoming on-call shifts or leave scheduled</span>
+                        </div>
+
+                        <!-- Current Rotation (residents) -->
                         <div v-if="staffProfileModal.staff.staff_type === 'medical_resident'" class="pd-card">
                             <div class="pd-card-head">
                                 <span class="pd-card-icon pd-card-icon--blue"><i class="fas fa-clinic-medical"></i></span>
@@ -2475,42 +2176,35 @@
                             <div v-else class="pd-nil"><i class="fas fa-info-circle"></i> No active rotation assigned</div>
                         </div>
 
-                        <!-- On-call + Leave — merged smart card -->
-                        <div class="pd-card" v-if="getUpcomingOnCall(staffProfileModal.staff.id).length > 0 || isOnCallToday(staffProfileModal.staff.id) || getUpcomingLeave(staffProfileModal.staff.id).length > 0 || staffProfileModal.staff.employment_status === 'on_leave'">
+                        <!-- On-Call schedule -->
+                        <div class="pd-card" v-if="getUpcomingOnCall(staffProfileModal.staff.id).length > 0 || isOnCallToday(staffProfileModal.staff.id)">
                             <div class="pd-card-head">
-                                <span class="pd-card-icon pd-card-icon--amber"><i class="fas fa-calendar-week"></i></span>
-                                <span class="pd-card-title">Schedule</span>
-                                <span v-if="isOnCallToday(staffProfileModal.staff.id)" class="pd-badge pd-badge--danger">On Call Today</span>
-                                <span v-if="staffProfileModal.staff.employment_status === 'on_leave'" class="pd-badge pd-badge--warn">On Leave</span>
+                                <span class="pd-card-icon pd-card-icon--amber"><i class="fas fa-phone-medical"></i></span>
+                                <span class="pd-card-title">On-Call Shifts</span>
+                                <span class="pd-badge pd-badge--blue">{{ getUpcomingOnCall(staffProfileModal.staff.id).length }} upcoming</span>
                             </div>
-                            <div class="pd-schedule-grid">
-                                <div class="pd-schedule-col" v-if="getUpcomingOnCall(staffProfileModal.staff.id).length > 0 || isOnCallToday(staffProfileModal.staff.id)">
-                                    <div class="pd-schedule-label"><i class="fas fa-phone-medical"></i> On-Call Shifts</div>
-                                    <div v-for="shift in getUpcomingOnCall(staffProfileModal.staff.id).slice(0, 4)" :key="shift.id" class="pd-shift-row">
-                                        <span class="pd-shift-date">{{ formatDate(shift.duty_date) }}</span>
-                                        <span class="pd-shift-time">{{ shift.start_time }}–{{ shift.end_time }}</span>
-                                        <span class="pd-badge" :class="shift.shift_type === 'primary_call' ? 'pd-badge--blue' : 'pd-badge--neutral'">{{ shift.shift_type === 'primary_call' ? 'Primary' : 'Backup' }}</span>
-                                    </div>
-                                    <div v-if="getUpcomingOnCall(staffProfileModal.staff.id).length > 4" class="pd-more">+{{ getUpcomingOnCall(staffProfileModal.staff.id).length - 4 }} more</div>
-                                </div>
-                                <div class="pd-schedule-col" v-if="getUpcomingLeave(staffProfileModal.staff.id).length > 0">
-                                    <div class="pd-schedule-label"><i class="fas fa-plane-departure"></i> Upcoming Leave</div>
-                                    <div v-for="leave in getUpcomingLeave(staffProfileModal.staff.id).slice(0, 4)" :key="leave.id" class="pd-shift-row">
-                                        <span class="pd-shift-date">{{ formatDate(leave.start_date) }}</span>
-                                        <span class="pd-shift-time">→ {{ formatDate(leave.end_date) }}</span>
-                                        <span class="pd-badge" :class="leave.absence_type === 'planned' ? 'pd-badge--teal' : 'pd-badge--warn'">{{ formatAbsenceReason(leave.absence_reason) }}</span>
-                                    </div>
-                                </div>
+                            <div v-for="shift in getUpcomingOnCall(staffProfileModal.staff.id).slice(0, 5)" :key="shift.id" class="pd-shift-row">
+                                <span class="pd-shift-date">{{ formatDate(shift.duty_date) }}</span>
+                                <span class="pd-shift-time">{{ shift.start_time }}–{{ shift.end_time }}</span>
+                                <span class="pd-badge" :class="shift.shift_type === 'primary_call' ? 'pd-badge--blue' : 'pd-badge--neutral'">{{ shift.shift_type === 'primary_call' ? 'Primary' : 'Backup' }}</span>
+                            </div>
+                            <div v-if="getUpcomingOnCall(staffProfileModal.staff.id).length > 5" class="pd-more">+{{ getUpcomingOnCall(staffProfileModal.staff.id).length - 5 }} more shifts</div>
+                        </div>
+
+                        <!-- Upcoming Leave -->
+                        <div class="pd-card" v-if="getUpcomingLeave(staffProfileModal.staff.id).length > 0">
+                            <div class="pd-card-head">
+                                <span class="pd-card-icon pd-card-icon--amber"><i class="fas fa-plane-departure"></i></span>
+                                <span class="pd-card-title">Upcoming Leave</span>
+                            </div>
+                            <div v-for="leave in getUpcomingLeave(staffProfileModal.staff.id)" :key="leave.id" class="pd-shift-row">
+                                <span class="pd-shift-date">{{ formatDate(leave.start_date) }}</span>
+                                <span class="pd-shift-time">→ {{ formatDate(leave.end_date) }}</span>
+                                <span class="pd-badge" :class="leave.absence_type === 'planned' ? 'pd-badge--teal' : 'pd-badge--warn'">{{ formatAbsenceReason(leave.absence_reason) }}</span>
                             </div>
                         </div>
 
-                        <!-- All clear row when nothing scheduled -->
-                        <div class="pd-clear-row" v-if="!getUpcomingOnCall(staffProfileModal.staff.id).length && !isOnCallToday(staffProfileModal.staff.id) && !getUpcomingLeave(staffProfileModal.staff.id).length && staffProfileModal.staff.employment_status !== 'on_leave'">
-                            <i class="fas fa-check-circle"></i>
-                            <span>No upcoming on-call shifts or leave</span>
-                        </div>
-
-                        <!-- Rotation History (residents only) -->
+                        <!-- Rotation History (residents) -->
                         <div v-if="staffProfileModal.staff.staff_type === 'medical_resident'" class="pd-card">
                             <div class="pd-card-head">
                                 <span class="pd-card-icon pd-card-icon--purple"><i class="fas fa-history"></i></span>
@@ -2530,6 +2224,13 @@
                             <div v-else class="pd-nil"><i class="fas fa-history"></i> No completed rotations yet</div>
                         </div>
 
+                        <!-- Empty state for non-residents with no activity -->
+                        <div class="pd-empty" v-if="staffProfileModal.staff.staff_type !== 'medical_resident' && !getUpcomingOnCall(staffProfileModal.staff.id).length && !isOnCallToday(staffProfileModal.staff.id) && !getUpcomingLeave(staffProfileModal.staff.id).length && staffProfileModal.staff.employment_status !== 'on_leave'">
+                            <div class="pd-empty-icon"><i class="fas fa-calendar-check"></i></div>
+                            <div class="pd-empty-title">Schedule Clear</div>
+                            <div class="pd-empty-sub">No upcoming on-call duties or leave periods on record</div>
+                        </div>
+
                     </div><!-- /activity tab -->
 
                     <!-- ── RESEARCH TAB ── -->
@@ -2538,22 +2239,6 @@
                             <i class="fas fa-spinner fa-spin"></i> Loading research data…
                         </div>
                         <template v-else-if="staffProfileModal.researchProfile">
-
-                            <!-- FIX 16: Coordinator banner — shown when staff manages research lines -->
-                            <div v-if="staffProfileModal.researchProfile.isCoordinator" class="research-coordinator-banner">
-                                <div class="rcb-icon"><i class="fas fa-crown"></i></div>
-                                <div class="rcb-body">
-                                    <div class="rcb-title">Research Coordinator</div>
-                                    <div class="rcb-lines">
-                                        Manages
-                                        <span v-for="(line, i) in staffProfileModal.researchProfile.coordinatorLines" :key="line.id">
-                                            <strong>L{{ line.line_number }} {{ line.name }}</strong><span v-if="i < (staffProfileModal.researchProfile?.coordinatorLines || []).length - 1">, </span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Headline numbers -->
                             <div class="pd-stat-row">
                                 <div class="pd-stat-block">
                                     <div class="pd-stat-num">{{ staffProfileModal.researchProfile.trials?.asPI || 0 }}</div>
@@ -2563,27 +2248,15 @@
                                     <div class="pd-stat-num">{{ staffProfileModal.researchProfile.trials?.asCoI || 0 }}</div>
                                     <div class="pd-stat-lbl">Co-Investigator</div>
                                 </div>
-                                <!-- FIX 19: SubI shown for all staff types, not just residents -->
-                                <div class="pd-stat-block" v-if="staffProfileModal.researchProfile.trials?.asSubI > 0">
-                                    <div class="pd-stat-num">{{ staffProfileModal.researchProfile.trials.asSubI }}</div>
-                                    <div class="pd-stat-lbl">Sub-Investigator</div>
-                                </div>
                                 <div class="pd-stat-block">
-                                    <div class="pd-stat-num">{{ staffProfileModal.researchProfile.trials?.active || 0 }}</div>
-                                    <div class="pd-stat-lbl">Active Trials</div>
-                                </div>
-                                <div class="pd-stat-block">
-                                    <div class="pd-stat-num">{{ staffProfileModal.researchProfile.projects?.asLead || 0 }}</div>
-                                    <div class="pd-stat-lbl">Projects Lead</div>
+                                    <div class="pd-stat-num">{{ staffProfileModal.researchProfile.projects?.total || 0 }}</div>
+                                    <div class="pd-stat-lbl">Projects</div>
                                 </div>
                             </div>
-
-                            <!-- FIX 2+17: Research Lines with multi-role badges -->
                             <div v-if="staffProfileModal.researchProfile.allResearchLines?.length" class="pd-card">
                                 <div class="pd-card-head">
                                     <span class="pd-card-icon pd-card-icon--blue"><i class="fas fa-flask"></i></span>
                                     <span class="pd-card-title">Research Lines</span>
-                                    <span class="pd-badge pd-badge--blue">{{ (staffProfileModal.researchProfile?.allResearchLines || []).length }}</span>
                                 </div>
                                 <div v-for="line in staffProfileModal.researchProfile.allResearchLines" :key="line.id" class="pd-line-row">
                                     <div class="pd-line-num">L{{ line.line_number }}</div>
@@ -2591,21 +2264,9 @@
                                         <span class="pd-line-name">{{ line.name }}</span>
                                         <span class="pd-line-meta">{{ line.trialsCount }} trials · {{ line.projectsCount }} projects</span>
                                     </div>
-                                    <!-- FIX 2: Show all roles if staff holds multiple -->
-                                    <div class="pd-line-roles">
-                                        <span v-for="role in line.roles" :key="role" class="pd-badge pd-badge--sm"
-                                              :class="{
-                                                'pd-badge--purple': role === 'Coordinator',
-                                                'pd-badge--gold': role === 'Principal Investigator',
-                                                'pd-badge--blue': role === 'Co-Investigator',
-                                                'pd-badge--warn': role === 'Sub-Investigator',
-                                                'pd-badge--teal': role === 'Project Lead'
-                                              }">{{ role }}</span>
-                                    </div>
+                                    <span class="pd-badge" :class="{ 'pd-badge--purple': line.role === 'Coordinator', 'pd-badge--blue': line.role === 'Principal Investigator', 'pd-badge--ok': line.role === 'Co-Investigator', 'pd-badge--warn': line.role === 'Sub-Investigator', 'pd-badge--teal': line.role === 'Project Lead' }">{{ line.role }}</span>
                                 </div>
                             </div>
-
-                            <!-- FIX 18: Clinical Trials list with role indicator and proper layout -->
                             <div v-if="staffProfileModal.researchProfile.trials?.list?.length" class="pd-card">
                                 <div class="pd-card-head">
                                     <span class="pd-card-icon pd-card-icon--teal"><i class="fas fa-vial"></i></span>
@@ -2614,13 +2275,11 @@
                                 <div v-for="trial in staffProfileModal.researchProfile.trials.list" :key="trial.id" class="pd-trial-row">
                                     <div class="pd-trial-info">
                                         <span class="pd-trial-title">{{ trial.title }}</span>
-                                        <span class="pd-trial-meta">{{ trial.phase }} · <span class="pd-trial-role">{{ trial.role }}</span></span>
+                                        <span class="pd-trial-meta">{{ trial.phase }}</span>
                                     </div>
                                     <span class="pd-badge" :class="{ 'pd-badge--ok': trial.status === 'Activo', 'pd-badge--blue': trial.status === 'Reclutando', 'pd-badge--neutral': trial.status === 'Completado' }">{{ trial.status }}</span>
                                 </div>
                             </div>
-
-                            <!-- Innovation Projects -->
                             <div v-if="staffProfileModal.researchProfile.projects?.list?.length" class="pd-card">
                                 <div class="pd-card-head">
                                     <span class="pd-card-icon pd-card-icon--purple"><i class="fas fa-microscope"></i></span>
@@ -2628,10 +2287,9 @@
                                 </div>
                                 <div v-for="project in staffProfileModal.researchProfile.projects.list" :key="project.id" class="pd-trial-row">
                                     <span class="pd-trial-title">{{ project.title }}</span>
-                                    <span class="pd-badge" :style="{ background: getStageColor(project.current_stage) + '22', color: getStageColor(project.current_stage), border: '1px solid ' + getStageColor(project.current_stage) + '44' }">{{ project.current_stage }}</span>
+                                    <span class="pd-badge" :style="{ background: getStageColor(project.current_stage) + '22', color: getStageColor(project.current_stage), border: '1px solid ' + getStageColor(project.current_stage) + '44' }">{{ project.current_stage || project.development_stage }}</span>
                                 </div>
                             </div>
-
                         </template>
                         <div v-else class="pd-empty">
                             <div class="pd-empty-icon"><i class="fas fa-flask"></i></div>
@@ -2664,7 +2322,7 @@
                                 <div class="pd-card-head">
                                     <span class="pd-card-icon pd-card-icon--ok"><i class="fas fa-user-graduate"></i></span>
                                     <span class="pd-card-title">Currently Supervising</span>
-                                    <span class="pd-badge pd-badge--ok">{{ (staffProfileModal.supervisionData?.current || []).length }}</span>
+                                    <span class="pd-badge pd-badge--ok">{{ staffProfileModal.supervisionData.current.length }}</span>
                                 </div>
                                 <div v-for="resident in staffProfileModal.supervisionData.current" :key="resident.id" class="pd-resident-row">
                                     <div class="pd-resident-avatar"><i class="fas fa-user-graduate"></i></div>
@@ -2686,7 +2344,6 @@
                         </div>
                     </div><!-- /supervision tab -->
 
-                    <!-- ── EVALUATIONS TAB ── -->
                 </div><!-- /pd-content -->
             </div><!-- /profile-drawer -->
         </transition>
@@ -2790,12 +2447,18 @@
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Staff Type *</label>
-                                <select class="form-select" v-model="medicalStaffModal.form.staff_type" required>
-                                    <option value="medical_resident">Medical Resident</option>
-                                    <option value="attending_physician">Attending Physician</option>
-                                    <option value="fellow">Fellow</option>
-                                    <option value="nurse_practitioner">Nurse Practitioner</option>
+                                <select class="form-select" v-model="medicalStaffModal.form.staff_type"
+                                        @change="medicalStaffModal._showCustomType = medicalStaffModal.form.staff_type === '__custom__'"
+                                        required>
+                                    <option v-for="t in availableStaffTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
+                                    <option value="__custom__">✏️ Other / Define type…</option>
                                 </select>
+                                <small v-if="fieldErrors.staff?.staff_type" class="error-text"><i class="fas fa-exclamation-circle"></i> {{ fieldErrors.staff.staff_type }}</small>
+                                <div v-if="medicalStaffModal._showCustomType" class="mt-2">
+                                    <input type="text" class="form-control" v-model="medicalStaffModal.form._customStaffType"
+                                           placeholder="e.g. Research Coordinator, Physiotherapist…"
+                                           style="margin-top:6px;">
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Employment Status</label>
@@ -2818,6 +2481,86 @@
                                 <label class="form-label">Medical License</label>
                                 <input type="text" class="form-control" v-model="medicalStaffModal.form.medical_license" placeholder="License number">
                             </div>
+
+                            <!-- Hospital Assignment — full width row -->
+                            <div class="form-group col-span-2">
+                                <label class="form-label"><i class="fas fa-hospital" style="opacity:.6;margin-right:4px"></i> Hospital</label>
+                                <!-- Network type radio strip -->
+                                <div class="hospital-network-strip">
+                                    <label class="hns-option" :class="{ active: (hospitalsList.find(h=>h.id===medicalStaffModal.form.hospital_id)?.parent_complex || '_') === 'CHUAC' }">
+                                        <input type="radio" name="network_type_hint" value="CHUAC"
+                                            :checked="hospitalsList.find(h=>h.id===medicalStaffModal.form.hospital_id)?.parent_complex === 'CHUAC'"
+                                            @change="medicalStaffModal.form._networkHint = 'CHUAC'; medicalStaffModal.form.hospital_id = null">
+                                        <span class="hns-dot hns-dot--chuac"></span> CHUAC
+                                        <small style="opacity:.55;font-size:10px">A Coruña complex</small>
+                                    </label>
+                                    <label class="hns-option" :class="{ active: (hospitalsList.find(h=>h.id===medicalStaffModal.form.hospital_id)?.parent_complex || '_') === 'SERGAS' }">
+                                        <input type="radio" name="network_type_hint" value="SERGAS"
+                                            :checked="hospitalsList.find(h=>h.id===medicalStaffModal.form.hospital_id)?.parent_complex === 'SERGAS'"
+                                            @change="medicalStaffModal.form._networkHint = 'SERGAS'; medicalStaffModal.form.hospital_id = null">
+                                        <span class="hns-dot hns-dot--sergas"></span> SERGAS
+                                        <small style="opacity:.55;font-size:10px">Galician network</small>
+                                    </label>
+                                    <label class="hns-option" :class="{ active: (hospitalsList.find(h=>h.id===medicalStaffModal.form.hospital_id)?.parent_complex || '_') === 'external' || (!medicalStaffModal.form.hospital_id && medicalStaffModal.form._networkHint === 'external') }">
+                                        <input type="radio" name="network_type_hint" value="external"
+                                            :checked="hospitalsList.find(h=>h.id===medicalStaffModal.form.hospital_id)?.parent_complex === 'external'"
+                                            @change="medicalStaffModal.form._networkHint = 'external'; medicalStaffModal.form.hospital_id = null">
+                                        <span class="hns-dot hns-dot--external"></span> External
+                                        <small style="opacity:.55;font-size:10px">Outside SERGAS</small>
+                                    </label>
+                                </div>
+                                <!-- Hospital dropdown filtered by selected network type -->
+                                <div class="hospital-select-row" style="display:flex;gap:8px;align-items:center;margin-top:8px">
+                                    <select class="form-select" v-model="medicalStaffModal.form.hospital_id" style="flex:1">
+                                        <option :value="null">— select hospital —</option>
+                                        <template v-if="medicalStaffModal.form._networkHint">
+                                            <option v-for="h in hospitalsList.filter(x => x.parent_complex === medicalStaffModal.form._networkHint)" :key="h.id" :value="h.id">{{ h.name }}</option>
+                                        </template>
+                                        <template v-else>
+                                            <optgroup label="CHUAC">
+                                                <option v-for="h in hospitalsList.filter(x=>x.parent_complex==='CHUAC')" :key="h.id" :value="h.id">{{ h.name }}</option>
+                                            </optgroup>
+                                            <optgroup label="SERGAS">
+                                                <option v-for="h in hospitalsList.filter(x=>x.parent_complex==='SERGAS')" :key="h.id" :value="h.id">{{ h.name }}</option>
+                                            </optgroup>
+                                            <optgroup label="External">
+                                                <option v-for="h in hospitalsList.filter(x=>x.parent_complex==='external')" :key="h.id" :value="h.id">{{ h.name }}</option>
+                                            </optgroup>
+                                        </template>
+                                    </select>
+                                    <!-- Inline "add new hospital" -->
+                                    <button type="button" class="btn btn-sm btn-outline"
+                                        style="white-space:nowrap;flex-shrink:0"
+                                        @click="medicalStaffModal._addingHospital = !medicalStaffModal._addingHospital"
+                                        :title="medicalStaffModal._addingHospital ? 'Cancel' : 'Hospital not in list? Add it'">
+                                        <i class="fas" :class="medicalStaffModal._addingHospital ? 'fa-times' : 'fa-plus'"></i>
+                                        {{ medicalStaffModal._addingHospital ? 'Cancel' : 'Add new' }}
+                                    </button>
+                                </div>
+                                <!-- Inline add hospital form — shows when Add new is clicked -->
+                                <div v-if="medicalStaffModal._addingHospital" class="inline-add-hospital" style="margin-top:10px;padding:12px;background:var(--surface);border-radius:8px;border:1px solid var(--border)">
+                                    <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.5;margin-bottom:8px">New Hospital</div>
+                                    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end">
+                                        <div class="form-group" style="margin:0">
+                                            <label class="form-label" style="font-size:11px">Name *</label>
+                                            <input type="text" class="form-control" v-model="medicalStaffModal._newHospitalName" placeholder="e.g. Hospital Santa María">
+                                        </div>
+                                        <div class="form-group" style="margin:0">
+                                            <label class="form-label" style="font-size:11px">Network</label>
+                                            <select class="form-select" v-model="medicalStaffModal._newHospitalNetwork">
+                                                <option value="CHUAC">CHUAC</option>
+                                                <option value="SERGAS">SERGAS</option>
+                                                <option value="external">External</option>
+                                            </select>
+                                        </div>
+                                        <button type="button" class="btn btn-primary btn-sm" style="height:36px"
+                                            @click="addHospitalInline(medicalStaffModal._newHospitalName, medicalStaffModal._newHospitalNetwork || medicalStaffModal.form._networkHint || 'external').then(h => { if(h){ medicalStaffModal.form.hospital_id = h.id; medicalStaffModal._addingHospital = false; medicalStaffModal._newHospitalName = ''; } })">
+                                            <i class="fas fa-save"></i> Save
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
 
@@ -2922,25 +2665,7 @@
                             <i class="fas fa-spinner fa-spin mb-2"></i><p class="text-sm text-gray-400">Loading staff...</p>
                         </div>
                         <template v-else>
-                            <div class="role-assignment-card">
-                                <div class="role-header"><i class="fas fa-crown"></i><h4>Chief of Department</h4>
-                                    <span class="role-badge" :class="getCurrentRoleHolder('chief_of_department')?.id === medicalStaffModal.form.id ? 'role-current' : ''">{{ getCurrentRoleHolder('chief_of_department') ? 'Assigned' : 'Available' }}</span>
-                                </div>
-                                <div class="role-current-holder" v-if="getCurrentRoleHolder('chief_of_department')">
-                                    <span class="holder-label">Current holder:</span>
-                                    <span class="holder-name">{{ getCurrentRoleHolder('chief_of_department').full_name }}</span>
-                                    <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('chief_of_department').assigned_date) }}</span>
-                                </div>
-                                <div class="role-assign-control">
-                                    <label class="checkbox-label" :title="!medicalStaffModal.form.full_name ? 'Save staff first' : ''">
-                                        <input type="checkbox" v-model="medicalStaffModal.form.is_chief_of_department"
-                                               @change="handleRoleAssignment('chief_of_department', $event.target.checked)"
-                                               :disabled="(isRoleTaken('chief_of_department') && !medicalStaffModal.form.is_chief_of_department) || !medicalStaffModal.form.full_name">
-                                        Assign as Chief of Department
-                                    </label>
-                                    <p v-if="isRoleTaken('chief_of_department') && !medicalStaffModal.form.is_chief_of_department" class="role-warning">⚠️ Currently held by {{ getCurrentRoleHolder('chief_of_department').full_name }}</p>
-                                </div>
-                            </div>
+
                             <div class="role-assignment-card">
                                 <div class="role-header"><i class="fas fa-flask"></i><h4>Research Coordinator</h4>
                                     <span class="role-badge" :class="getCurrentRoleHolder('research_coordinator')?.id === medicalStaffModal.form.id ? 'role-current' : ''">{{ getCurrentRoleHolder('research_coordinator') ? 'Assigned' : 'Available' }}</span>
@@ -2960,44 +2685,8 @@
                                     <p v-if="isRoleTaken('research_coordinator') && !medicalStaffModal.form.is_research_coordinator" class="role-warning">⚠️ Currently held by {{ getCurrentRoleHolder('research_coordinator').full_name }}</p>
                                 </div>
                             </div>
-                            <div class="role-assignment-card">
-                                <div class="role-header"><i class="fas fa-user-graduate"></i><h4>Resident Manager</h4>
-                                    <span class="role-badge" :class="getCurrentRoleHolder('resident_manager')?.id === medicalStaffModal.form.id ? 'role-current' : ''">{{ getCurrentRoleHolder('resident_manager') ? 'Assigned' : 'Available' }}</span>
-                                </div>
-                                <div class="role-current-holder" v-if="getCurrentRoleHolder('resident_manager')">
-                                    <span class="holder-label">Current holder:</span>
-                                    <span class="holder-name">{{ getCurrentRoleHolder('resident_manager').full_name }}</span>
-                                    <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('resident_manager').assigned_date) }}</span>
-                                </div>
-                                <div class="role-assign-control">
-                                    <label class="checkbox-label" :title="medicalStaffModal.form.staff_type !== 'attending_physician' ? 'Attendings only' : ''">
-                                        <input type="checkbox" v-model="medicalStaffModal.form.is_resident_manager"
-                                               @change="handleRoleAssignment('resident_manager', $event.target.checked)"
-                                               :disabled="(isRoleTaken('resident_manager') && !medicalStaffModal.form.is_resident_manager) || medicalStaffModal.form.staff_type !== 'attending_physician' || !medicalStaffModal.form.full_name">
-                                        Assign as Resident Manager
-                                    </label>
-                                    <div v-if="medicalStaffModal.form.staff_type !== 'attending_physician'" class="role-error"><i class="fas fa-exclamation-triangle"></i> Attendings only</div>
-                                </div>
-                            </div>
-                            <div class="role-assignment-card">
-                                <div class="role-header"><i class="fas fa-phone-alt"></i><h4>On-Call Manager</h4>
-                                    <span class="role-badge" :class="getCurrentRoleHolder('oncall_manager')?.id === medicalStaffModal.form.id ? 'role-current' : ''">{{ getCurrentRoleHolder('oncall_manager') ? 'Assigned' : 'Available' }}</span>
-                                </div>
-                                <div class="role-current-holder" v-if="getCurrentRoleHolder('oncall_manager')">
-                                    <span class="holder-label">Current holder:</span>
-                                    <span class="holder-name">{{ getCurrentRoleHolder('oncall_manager').full_name }}</span>
-                                    <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('oncall_manager').assigned_date) }}</span>
-                                </div>
-                                <div class="role-assign-control">
-                                    <label class="checkbox-label" :title="medicalStaffModal.form.staff_type !== 'attending_physician' ? 'Attendings only' : ''">
-                                        <input type="checkbox" v-model="medicalStaffModal.form.is_oncall_manager"
-                                               @change="handleRoleAssignment('oncall_manager', $event.target.checked)"
-                                               :disabled="(isRoleTaken('oncall_manager') && !medicalStaffModal.form.is_oncall_manager) || medicalStaffModal.form.staff_type !== 'attending_physician' || !medicalStaffModal.form.full_name">
-                                        Assign as On-Call Manager
-                                    </label>
-                                    <div v-if="medicalStaffModal.form.staff_type !== 'attending_physician'" class="role-error"><i class="fas fa-exclamation-triangle"></i> Attendings only</div>
-                                </div>
-                            </div>
+
+
                         </template>
                     </div>
                 </div>
@@ -3035,12 +2724,7 @@
                             <label class="form-label">Primary Physician *</label>
                             <select class="form-select" v-model="onCallModal.form.primary_physician_id" required @change="clearFieldError('oncall', 'primary_physician_id')" :class="{ 'is-invalid': fieldErrors.oncall?.primary_physician_id }">
                                 <option value="">Select Physician</option>
-                                <optgroup label="Attending / Fellow / NP">
-                                    <option v-for="p in availablePhysicians.filter(x => x.staff_type !== 'medical_resident')" :key="p.id" :value="p.id">{{ p.full_name }}</option>
-                                </optgroup>
-                                <optgroup label="Residents">
-                                    <option v-for="p in availablePhysicians.filter(x => x.staff_type === 'medical_resident')" :key="p.id" :value="p.id">{{ p.full_name }}</option>
-                                </optgroup>
+                                <option v-for="p in availablePhysicians" :key="p.id" :value="p.id">{{ p.full_name }}</option>
                             </select>
                             <small v-if="fieldErrors.oncall?.primary_physician_id" class="error-text"><i class="fas fa-exclamation-circle"></i> {{ fieldErrors.oncall.primary_physician_id }}</small>
                         </div>
@@ -3048,12 +2732,7 @@
                             <label class="form-label">Backup Physician</label>
                             <select class="form-select" v-model="onCallModal.form.backup_physician_id">
                                 <option value="">No Backup</option>
-                                <optgroup label="Attending / Fellow / NP">
-                                    <option v-for="p in availablePhysicians.filter(x => x.staff_type !== 'medical_resident')" :key="p.id" :value="p.id">{{ p.full_name }}</option>
-                                </optgroup>
-                                <optgroup label="Residents">
-                                    <option v-for="p in availablePhysicians.filter(x => x.staff_type === 'medical_resident')" :key="p.id" :value="p.id">{{ p.full_name }}</option>
-                                </optgroup>
+                                <option v-for="p in availablePhysicians" :key="p.id" :value="p.id">{{ p.full_name }}</option>
                             </select>
                         </div>
                         <div class="form-group" :class="{ 'has-error': fieldErrors.oncall?.start_time }">
@@ -3352,12 +3031,7 @@
                             <label class="form-label">Staff Member *</label>
                             <select class="form-select" v-model="absenceModal.form.staff_member_id" required @change="clearFieldError('absence', 'staff_member_id')" :class="{ 'is-invalid': fieldErrors.absence?.staff_member_id }">
                                 <option value="">Select Staff Member</option>
-                                <!-- Active staff first -->
                                 <option v-for="s in medicalStaff" :key="s.id" :value="s.id">{{ s.full_name }}</option>
-                                <!-- If editing and the current person is inactive, include them -->
-                                <template v-if="absenceModal.mode === 'edit' && absenceModal.form.staff_member_id && !medicalStaff.find(s => s.id === absenceModal.form.staff_member_id)">
-                                    <option :value="absenceModal.form.staff_member_id">{{ getStaffName(absenceModal.form.staff_member_id) }}</option>
-                                </template>
                             </select>
                             <small v-if="fieldErrors.absence?.staff_member_id" class="error-text"><i class="fas fa-exclamation-circle"></i> {{ fieldErrors.absence.staff_member_id }}</small>
                         </div>
@@ -3607,22 +3281,13 @@
                     <button class="modal-close" @click="assignCoordinatorModal.show = false"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
-                    <p class="mb-4" style="font-size:13px;color:var(--text-2);">Assigning coordinator for: <strong style="color:var(--text-1)">{{ assignCoordinatorModal.lineName }}</strong></p>
-                    <!-- FIX 29: Show current coordinator before dropdown -->
-                    <div v-if="assignCoordinatorModal.selectedCoordinatorId" class="assign-coord-current">
-                        <i class="fas fa-user-tie"></i>
-                        <span>Currently: <strong>{{ getStaffName(assignCoordinatorModal.selectedCoordinatorId) }}</strong></span>
-                    </div>
+                    <p class="mb-4">Assign coordinator for: <strong>{{ assignCoordinatorModal.lineName }}</strong></p>
                     <div class="form-group">
                         <label class="form-label">Select Coordinator</label>
                         <select class="form-select" v-model="assignCoordinatorModal.selectedCoordinatorId">
                             <option value="">— No coordinator assigned —</option>
-                            <!-- FIX 28: Show role indicator for existing research coordinators -->
-                            <option v-for="staff in availableAttendings" :key="staff.id" :value="staff.id">
-                                {{ staff.full_name }}{{ staff.is_research_coordinator ? ' ★' : '' }}
-                            </option>
+                            <option v-for="staff in availableAttendings" :key="staff.id" :value="staff.id">{{ staff.full_name }} ({{ staff.specialization || 'Attending' }})</option>
                         </select>
-                        <small class="form-help">★ indicates staff already designated as Research Coordinator</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -3857,7 +3522,7 @@
                                    placeholder="e.g. Trasplante, HTP, Fibrosis Pulmonar, Enfermedades Raras">
                             <small class="form-help">Brief summary of this line's clinical and research scope</small>
                         </div>
-                        <!-- FIX 13: Coordinator field removed from edit modal — use the dedicated "Assign Coordinator" button on the card instead to avoid divergent code paths -->
+                        <!-- Coordinator assigned via dedicated button on card — not here -->
                         <div class="form-group col-span-2">
                             <label class="form-label">Keywords <span class="form-hint">press Enter or comma to add</span></label>
                             <div class="kw-editor">
@@ -3961,30 +3626,23 @@
                                 </option>
                             </select>
                         </div>
-                        <!-- FIX 5: Co-investigators as multi-select checkboxes (array field) -->
-                        <div class="form-group col-span-2">
-                            <label class="form-label">Co-Investigators (Co-I) <span class="form-hint">Select all that apply</span></label>
-                            <div class="multi-investigator-grid">
-                                <label v-for="staff in availablePhysicians" :key="staff.id" class="investigator-checkbox"
-                                       :class="{ 'investigator-selected': clinicalTrialModal.form.co_investigators?.includes(staff.id) }">
-                                    <input type="checkbox" class="hidden" :value="staff.id"
-                                           :checked="clinicalTrialModal.form.co_investigators?.includes(staff.id)"
-                                           @change="toggleCoInvestigator(staff.id)">
-                                    <span>{{ staff.full_name }}</span>
-                                </label>
-                            </div>
+                        <div class="form-group">
+                            <label class="form-label">Co-Investigator (Co-I)</label>
+                            <select class="form-select" v-model="clinicalTrialModal.form.co_investigator_id">
+                                <option value="">Select Co-I</option>
+                                <option v-for="staff in availablePhysicians" :key="staff.id" :value="staff.id">
+                                    {{ staff.full_name }}
+                                </option>
+                            </select>
                         </div>
-                        <div class="form-group col-span-2">
-                            <label class="form-label">Sub-Investigators (Sub-I) <span class="form-hint">Select all that apply</span></label>
-                            <div class="multi-investigator-grid">
-                                <label v-for="staff in availablePhysicians.concat(availableResidents)" :key="staff.id" class="investigator-checkbox"
-                                       :class="{ 'investigator-selected': clinicalTrialModal.form.sub_investigators?.includes(staff.id) }">
-                                    <input type="checkbox" class="hidden" :value="staff.id"
-                                           :checked="clinicalTrialModal.form.sub_investigators?.includes(staff.id)"
-                                           @change="toggleSubInvestigator(staff.id)">
-                                    <span>{{ staff.full_name }}</span>
-                                </label>
-                            </div>
+                        <div class="form-group">
+                            <label class="form-label">Sub-Investigator (Sub-I)</label>
+                            <select class="form-select" v-model="clinicalTrialModal.form.sub_investigator_id">
+                                <option value="">Select Sub-I</option>
+                                <option v-for="staff in availablePhysicians" :key="staff.id" :value="staff.id">
+                                    {{ staff.full_name }}
+                                </option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Start Date</label>
@@ -3992,12 +3650,7 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">End Date</label>
-                            <input type="date" class="form-control" v-model="clinicalTrialModal.form.end_date"
-                                   :min="clinicalTrialModal.form.start_date || undefined">
-                            <!-- FIX 8: Date validation hint -->
-                            <small v-if="clinicalTrialModal.form.start_date && clinicalTrialModal.form.end_date && clinicalTrialModal.form.end_date < clinicalTrialModal.form.start_date" class="error-text">
-                                <i class="fas fa-exclamation-circle"></i> End date must be after start date
-                            </small>
+                            <input type="date" class="form-control" v-model="clinicalTrialModal.form.end_date">
                         </div>
                     </div>
                 </div>
@@ -4175,6 +3828,7 @@
                 </div>
             </div>
         </div>
+
 
         <!-- ============ STAFF REASSIGNMENT MODAL ============ -->
         <div v-if="reassignmentModal.show" class="modal-overlay">
@@ -4523,6 +4177,7 @@
                 </div>
             </div>
         </div>
+
 
         <!-- Mobile bottom navigation (shows on ≤1024px) -->
         <nav class="mobile-bottom-nav" aria-label="Mobile navigation" v-if="currentUser">
