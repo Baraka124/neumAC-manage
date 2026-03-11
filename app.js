@@ -1253,9 +1253,17 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const checkExistingSchedule = async (date, shiftType, excludeId = null) => {
+        // FIX: Use the already-loaded local reactive array instead of a network call.
+        // The old approach called getOnCallSchedule({ start_date, end_date }) but that
+        // method ignores its argument — always fetching ALL schedules with no date filter,
+        // causing false positives when ANY date had a matching shift_type.
         try {
-          const schedules = await API.getOnCallSchedule({ start_date: date, end_date: date });
-          return schedules.filter(s => s.shift_type === shiftType && (!excludeId || s.id !== excludeId)).length > 0;
+          const normalizedDate = Utils.normalizeDate(date);
+          return onCallSchedule.value.some(s =>
+            Utils.normalizeDate(s.duty_date) === normalizedDate &&
+            s.shift_type === shiftType &&
+            (!excludeId || s.id !== excludeId)
+          );
         } catch (error) { console.error('Failed to check existing schedule:', error); return false; }
       };
 
@@ -3121,9 +3129,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const viewStaffDetails = async (staff) => {
+          // Guard: staff might be undefined if medicalStaff.find() returned nothing
+          if (!staff || !staff.id) { console.warn('viewStaffDetails: staff object is undefined or missing id'); return; }
           staffOps.staffProfileModal.staff = staff; staffOps.staffProfileModal.activeTab = 'activity'; staffOps.staffProfileModal.show = true
           if (hasPermission('analytics', 'read')) await analyticsOps.loadStaffResearchProfile(staffOps.staffProfileModal, staff.id)
-          if (staff.staff_type === 'attending_physician') {
+          if (staff.staff_type === 'attending_physician' || staffTypeMap.value[staff.staff_type]?.can_supervise) {
             staffOps.staffProfileModal.loadingSupervision = true
             try { staffOps.staffProfileModal.supervisionData = await API.getSupervisedResidents(staff.id) }
             catch { staffOps.staffProfileModal.supervisionData = { current: [], currentCount: 0, pastCount: 0, avgEvaluation: 0 } }
@@ -3158,9 +3168,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const requestFullDossier = () => showToast('Info', 'Dossier request sent. Our team will contact you.', 'info')
 
         // All clinical staff eligible for on-call (attendings, fellows, NPs, and residents)
-        const availablePhysicians = computed(() => medicalStaff.value.filter(s => ['attending_physician', 'fellow', 'nurse_practitioner', 'medical_resident'].includes(s.staff_type) && s.employment_status === 'active'))
-        const availableResidents = computed(() => medicalStaff.value.filter(s => s.staff_type === 'medical_resident' && s.employment_status === 'active'))
-        const availableAttendings = computed(() => medicalStaff.value.filter(s => s.staff_type === 'attending_physician' && s.employment_status === 'active'))
+        // Dynamic: uses staffTypeMap flags instead of hardcoded type key lists
+        // Falls back to legacy keys so nothing breaks if staffTypeMap isn't loaded yet
+        const availablePhysicians = computed(() => medicalStaff.value.filter(s =>
+          s.employment_status === 'active' && s.staff_type &&
+          (staffTypeMap.value[s.staff_type] != null
+            ? true  // any active known type is eligible for scheduling
+            : ['attending_physician','fellow','nurse_practitioner','medical_resident'].includes(s.staff_type))
+        ))
+        const availableResidents = computed(() => medicalStaff.value.filter(s =>
+          s.employment_status === 'active' && s.staff_type &&
+          (staffTypeMap.value[s.staff_type] != null
+            ? staffTypeMap.value[s.staff_type].is_resident_type
+            : s.staff_type === 'medical_resident')
+        ))
+        const availableAttendings = computed(() => medicalStaff.value.filter(s =>
+          s.employment_status === 'active' && s.staff_type &&
+          (staffTypeMap.value[s.staff_type] != null
+            ? staffTypeMap.value[s.staff_type].can_supervise
+            : s.staff_type === 'attending_physician')
+        ))
         const availableHeadsOfDepartment = computed(() => availableAttendings.value)
         const availableReplacementStaff = computed(() => medicalStaff.value.filter(s => s.employment_status === 'active'))
 
