@@ -1428,9 +1428,15 @@ document.addEventListener('DOMContentLoaded', () => {
         icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
         details: `Physician: ${getPhysicianName(schedule.primary_physician_id)}`,
         onConfirm: async () => {
-          await API.deleteOnCall(schedule.id)
-          onCallSchedule.value = onCallSchedule.value.filter(s => s.id !== schedule.id)
-          showToast('Success', 'Schedule deleted', 'success'); loadTodaysOnCall()
+          try {
+            await API.deleteOnCall(schedule.id)
+            onCallSchedule.value = onCallSchedule.value.filter(s => s.id !== schedule.id)
+            showToast('Success', 'Schedule deleted', 'success')
+            loadTodaysOnCall()
+          } catch (e) {
+            showToast('Error', e?.message || 'Failed to delete schedule', 'error')
+            await loadOnCallSchedule()
+          }
         }
       })
 
@@ -1762,13 +1768,21 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const deleteRotation = (rotation) => showConfirmation({
-        title: 'Delete Rotation', message: 'Delete this rotation?',
-        icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
+        title: 'Terminate Rotation', message: 'This will mark the rotation as terminated early. The record is kept for audit and reporting purposes.',
+        icon: 'fa-stop-circle', confirmButtonText: 'Terminate', confirmButtonClass: 'btn-danger',
         details: `Resident: ${getResidentName(rotation.resident_id)}`,
         onConfirm: async () => {
-          await API.deleteRotation(rotation.id)
-          rotations.value = rotations.value.filter(r => r.id !== rotation.id)
-          showToast('Success', 'Rotation deleted', 'success')
+          try {
+            await API.deleteRotation(rotation.id)
+            // Update local state immediately — backend sets rotation_status to 'terminated_early'
+            const idx = rotations.value.findIndex(r => r.id === rotation.id)
+            if (idx !== -1) rotations.value[idx] = { ...rotations.value[idx], rotation_status: 'terminated_early' }
+            showToast('Success', 'Rotation terminated', 'success')
+            await loadRotations()
+          } catch (e) {
+            showToast('Error', e?.message || 'Failed to terminate rotation', 'error')
+            await loadRotations()
+          }
         }
       })
 
@@ -1938,7 +1952,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============ 6.6 useAbsences ============
     function useAbsences({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff }) {
       const absences = ref([])
-      const absenceFilters = reactive({ staff: '', status: '', reason: '', startDate: '', search: '' })
+      const absenceFilters = reactive({ staff: '', status: '', reason: '', startDate: '', search: '', hideReturned: true })
       const absenceModal = reactive({
         show: false, mode: 'add',
         form: { staff_member_id: '', absence_type: 'planned', absence_reason: 'vacation', start_date: Utils.normalizeDate(new Date()), end_date: Utils.normalizeDate(new Date(Date.now() + 7 * 86400000)), covering_staff_id: '', coverage_notes: '', coverage_arranged: false, hod_notes: '' }
@@ -2005,6 +2019,10 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           return { ...a, current_status: derived, coverage_arranged: coverageOk }
         })
+        // Hide 'returned_to_duty' by default (past events) — toggle via "Show Past" filter
+        if (!absenceFilters.status && absenceFilters.hideReturned) {
+          f = f.filter(a => a.current_status !== 'returned_to_duty')
+        }
         if (absenceFilters.staff) f = f.filter(a => a.staff_member_id === absenceFilters.staff)
         if (absenceFilters.status) f = f.filter(a => a.current_status === absenceFilters.status)
         if (absenceFilters.reason) f = f.filter(a => a.absence_reason === absenceFilters.reason)
@@ -2108,13 +2126,22 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const deleteAbsence = (absence) => showConfirmation({
-        title: 'Delete Absence', message: 'Delete this absence record?',
-        icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
+        title: 'Cancel Absence Record', message: 'This will mark the absence as cancelled. The record is retained for audit purposes but will no longer appear in the active list.',
+        icon: 'fa-ban', confirmButtonText: 'Cancel Absence', confirmButtonClass: 'btn-danger',
         details: `Staff: ${getStaffName(absence.staff_member_id)}`,
         onConfirm: async () => {
-          await API.deleteAbsence(absence.id)
-          absences.value = absences.value.filter(a => a.id !== absence.id)
-          showToast('Success', 'Absence deleted', 'success')
+          try {
+            await API.deleteAbsence(absence.id)
+            // Remove from local list immediately for instant feedback
+            absences.value = absences.value.filter(a => a.id !== absence.id)
+            showToast('Success', 'Absence record cancelled', 'success')
+            // Then reload to ensure DB state is reflected (catches any edge cases)
+            await loadAbsences()
+          } catch (e) {
+            showToast('Error', e?.message || 'Failed to cancel absence record', 'error')
+            // On error: reload so the UI reflects actual DB state
+            await loadAbsences()
+          }
         }
       })
 
@@ -2311,9 +2338,15 @@ document.addEventListener('DOMContentLoaded', () => {
           confirmButtonText: 'Delete Unit', confirmButtonClass: 'btn-danger',
           details: activeRotations.length === 0 ? 'No active rotations are assigned to this unit.' : '',
           onConfirm: async () => {
-            await API.deleteTrainingUnit(unit.id)
-            trainingUnits.value = trainingUnits.value.filter(u => u.id !== unit.id)
-            showToast('Deleted', `${unit.unit_name} removed`, 'success')
+            try {
+              await API.deleteTrainingUnit(unit.id)
+              // Backend soft-deletes (sets unit_status = 'inactive') — remove from active list locally
+              trainingUnits.value = trainingUnits.value.filter(u => u.id !== unit.id)
+              showToast('Deactivated', `${unit.unit_name} deactivated`, 'success')
+            } catch (e) {
+              showToast('Error', e?.message || 'Failed to deactivate training unit', 'error')
+              try { trainingUnits.value = await API.getTrainingUnits() } catch {}
+            }
           }
         })
       }
@@ -2430,7 +2463,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const deleteAnnouncement = (ann) => showConfirmation({
         title: 'Delete Announcement', message: `Delete "${ann.title}"?`,
         icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
-        onConfirm: async () => { await API.deleteAnnouncement(ann.id); announcements.value = announcements.value.filter(a => a.id !== ann.id); showToast('Success', 'Announcement deleted', 'success') }
+        onConfirm: async () => {
+          try {
+            await API.deleteAnnouncement(ann.id)
+            announcements.value = announcements.value.filter(a => a.id !== ann.id)
+            showToast('Success', 'Announcement deleted', 'success')
+          } catch (e) {
+            showToast('Error', e?.message || 'Failed to delete announcement', 'error')
+          }
+        }
       })
 
       return { announcements, communicationsFilters, communicationsModal, filteredAnnouncements, recentAnnouncements, unreadAnnouncements, loadAnnouncements, showCommunicationsModal, viewAnnouncement, saveCommunication, deleteAnnouncement }
