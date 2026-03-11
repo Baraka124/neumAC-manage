@@ -76,8 +76,8 @@
   --t-24: 28px;   /* was 24px — dashboard h2                        */
   --t-hero: clamp(36px, 3.8vw, 54px); /* was clamp(32,3.5vw,48)  */
 
-  --sidebar-w:  clamp(252px, 19vw, 310px);
-  --sidebar-sm: 64px;
+  --sidebar-w:  clamp(268px, 20vw, 330px);  /* was clamp(252,19vw,310) — more breathing room */
+  --sidebar-sm: 68px;                              /* was 64px — bigger collapsed icon strip */
   --panel-w:    360px;
   --topbar-h:   60px;
 
@@ -211,13 +211,13 @@ a { color: var(--blue); text-decoration: none; }
 }
 
 .sidebar-logo {
-  display: flex; align-items: center; gap: 11px;
-  font-size: 16px; font-weight: 700; color: #fff;
+  display: flex; align-items: center; gap: 12px;
+  font-size: 17px; font-weight: 700; color: #fff;  /* was 16px */
   white-space: nowrap; overflow: hidden; letter-spacing: -.03em;
   font-family: var(--font-ui);
 }
 .sidebar-logo i {
-  font-size: 19px; color: #4d9aff;
+  font-size: 21px; color: #4d9aff;  /* was 19px */
   filter: drop-shadow(0 0 8px rgba(77,154,255,.65));
   flex-shrink: 0;
   animation: lungPulse 3s ease-in-out infinite;
@@ -227,7 +227,7 @@ a { color: var(--blue); text-decoration: none; }
   50%      { filter: drop-shadow(0 0 14px rgba(77,154,255,.85)); }
 }
 .sidebar-logo .logo-text-main { color: #fff; font-weight: 700; }
-.sidebar-logo .logo-text-sub  { color: rgba(255,255,255,.35); font-weight: 400; font-size: 13px; letter-spacing: 0; }
+.sidebar-logo .logo-text-sub  { color: rgba(255,255,255,.38); font-weight: 400; font-size: 13.5px; letter-spacing: 0; }
 
 .sidebar-toggle {
   background: rgba(255,255,255,.04);
@@ -246,7 +246,7 @@ a { color: var(--blue); text-decoration: none; }
 /* ── Nav scroll area ──────────────────────────────────────── */
 .sidebar-nav {
   flex: 1;
-  padding: 14px 10px 10px;
+  padding: 16px 12px 12px;  /* was 14px 10px 10px — more side padding */
   overflow-y: auto; overflow-x: hidden;
   position: relative; z-index: 2;
 }
@@ -254,16 +254,16 @@ a { color: var(--blue); text-decoration: none; }
 
 /* ── Section groups ───────────────────────────────────────── */
 .sidebar-section {
-  margin-bottom: 2px;
-  padding: 0 0 6px;
+  margin-bottom: 4px;   /* was 2px */
+  padding: 0 0 8px;     /* was 6px */
 }
 
 .sidebar-section-title {
-  font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .17em;
-  padding: 14px 15px 6px;
+  font-size: 11px; font-weight: 800;             /* was 10px — one step up */
+  text-transform: uppercase; letter-spacing: .15em;
+  padding: 16px 16px 7px;                        /* was 14px top — more air */
   white-space: nowrap; overflow: hidden;
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 9px;
 }
 /* Title text color matches section accent */
 .sidebar-section:nth-child(1) .sidebar-section-title { color: rgba(77,154,255,.65); }
@@ -292,23 +292,23 @@ a { color: var(--blue); text-decoration: none; }
 
 /* ── Nav link ─────────────────────────────────────────────── */
 .sidebar-menu-link {
-  display: flex; align-items: center; gap: 11px;
-  padding: 9.5px 15px; border-radius: 8px;
-  color: rgba(255,255,255,.70);
-  font-size: 13.8px; font-weight: 500;
+  display: flex; align-items: center; gap: 13px;  /* was 11px */
+  padding: 10px 16px; border-radius: 9px;         /* was 9.5px 15px */
+  color: rgba(255,255,255,.75);                   /* slightly brighter resting state */
+  font-size: 14.5px; font-weight: 500;            /* was 13.8px — noticably bigger */
   transition: background var(--t), color var(--t), box-shadow var(--t);
-  white-space: nowrap; overflow: hidden; margin-bottom: 1px;
-  min-height: 41px;
+  white-space: nowrap; overflow: hidden; margin-bottom: 2px;  /* was 1px */
+  min-height: 44px;                               /* was 41px — taller, easier to click */
   position: relative;
   cursor: pointer;
-  /* No left border by default */
+  letter-spacing: -.01em;
 }
 
 /* Icon base — per-section accent tint */
 .sidebar-menu-link i {
-  font-size: 14px; width: 18px; text-align: center;
+  font-size: 15px; width: 20px; text-align: center;  /* was 14px/18px */
   flex-shrink: 0; transition: color var(--t), transform var(--t);
-  opacity: .7;
+  opacity: .75;                                      /* slightly brighter */
 }
 
 /* Per-section icon colors */
@@ -341,7 +341,7 @@ a { color: var(--blue); text-decoration: none; }
   content: '';
   position: absolute; left: 0; top: 50%;
   transform: translateY(-50%);
-  width: 3px; height: 22px; border-radius: 0 3px 3px 0;
+  width: 3px; height: 26px; border-radius: 0 3px 3px 0;  /* was 22px — matches taller rows */
   transition: none;
 }
 .sidebar-section:nth-child(1) .sidebar-menu-link.active::before { background: var(--sb-accent-1); box-shadow: 0 0 10px rgba(77,154,255,.6); }
@@ -405,14 +405,14 @@ a { color: var(--blue); text-decoration: none; }
 }
 .user-info { min-width: 0; overflow: hidden; }
 .user-name {
-  font-size: 13px; font-weight: 600; color: rgba(255,255,255,.9);
+  font-size: 13.5px; font-weight: 600; color: rgba(255,255,255,.92);  /* was 13px */
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.01em;
 }
 .user-role {
-  font-size: 10px; color: rgba(255,255,255,.32);
+  font-size: 11px; color: rgba(255,255,255,.38);  /* was 10px */
   text-transform: uppercase; letter-spacing: .08em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  margin-top: 1px;
+  margin-top: 2px;
 }
 
 /* ── Collapsed state ──────────────────────────────────────── */
