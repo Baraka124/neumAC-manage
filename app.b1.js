@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
       CACHE_TTL: 300000
     }
 
-    // ============ 2. CONSTANTS ====-========
+    // ============ 2. CONSTANTS ====--========
     const ROLES = {
       ADMIN: 'system_admin',
       HEAD: 'department_head',
@@ -92,6 +92,14 @@ document.addEventListener('DOMContentLoaded', () => {
       fellow: 'badge-info', 
       nurse_practitioner: 'badge-warning'
     }
+    
+    const BASE_STAFF_TYPES = [
+      { value: 'attending_physician', label: 'Attending Physician' },
+      { value: 'medical_resident',    label: 'Medical Resident' },
+      { value: 'fellow',              label: 'Fellow' },
+      { value: 'nurse_practitioner',  label: 'Nurse Practitioner' },
+      { value: 'administrator',       label: 'Administrator' },
+    ]
     
     const ABSENCE_REASON_LABELS = {
       vacation: 'Vacation', 
@@ -529,7 +537,9 @@ document.addEventListener('DOMContentLoaded', () => {
       
       async getMedicalStaff() { 
         const data = await this.getList('/api/medical-staff');
-        return data.map(staff => ({
+        return data
+          .filter(staff => staff.employment_status !== 'inactive')
+          .map(staff => ({
           ...staff,
           resident_category: staff.resident_category || null,
           home_department: staff.home_department || null,
@@ -601,8 +611,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // ============ 4.4 EXISTING ENDPOINTS ============
       
       async getDepartments() { return this.getList('/api/departments') }
+      async getAllDepartments() { return this.getList('/api/departments?include_inactive=true') }
+      async getDepartmentImpact(id) { return this.request(`/api/departments/${id}/impact`) }
       async createDepartment(d) { this.invalidate('/api/departments'); return this.request('/api/departments', { method: 'POST', body: d }) }
       async updateDepartment(id, d) { this.invalidate('/api/departments'); return this.request(`/api/departments/${id}`, { method: 'PUT', body: d }) }
+      async deleteDepartment(id, reassignments) { this.invalidate('/api/departments'); return this.request(`/api/departments/${id}`, { method: 'DELETE', body: reassignments ? { reassignments } : {} }) }
 
       async getTrainingUnits() { return this.getList('/api/training-units') }
       async createTrainingUnit(d) { this.invalidate('/api/training-units'); return this.request('/api/training-units', { method: 'POST', body: d }) }
@@ -907,6 +920,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============ 6.3 useStaff ============
     function useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll }) {
       const medicalStaff = ref([])
+      // allStaffLookup keeps ALL staff (including inactive) for name resolution
+      // so deleted staff don't ghost as "Not assigned" in historical records
+      const allStaffLookup = ref([])
       const staffFilters = reactive({ search: '', staffType: '', department: '', status: '', residentCategory: '' })
       const staffProfileModal = reactive({ 
         show: false, staff: null, activeTab: 'activity',
@@ -915,16 +931,31 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       const medicalStaffModal = reactive({
         show: false, mode: 'add', activeTab: 'basic',
+        _addingHospital: false, _newHospitalName: '', _newHospitalNetwork: 'external',
+        _showCustomType: false,   // true when user selects "Other / Define type"
         form: { 
-          full_name: '', staff_type: 'medical_resident', staff_id: '', employment_status: 'active', 
+          full_name: '', staff_type: 'attending_physician', _customStaffType: '', staff_id: '', employment_status: 'active', 
           professional_email: '', department_id: '', academic_degree: '', specialization: '', 
           training_year: '', clinical_certificate: '', certificate_status: '',
           mobile_phone: '', medical_license: '', can_supervise_residents: false, special_notes: '',
           can_be_pi: false, can_be_coi: false, other_certificate: '',
           resident_category: null, home_department: null, external_institution: null,
-          is_chief_of_department: false, is_research_coordinator: false, 
-          is_resident_manager: false, is_oncall_manager: false, clinical_study_certificates: []
+          is_research_coordinator: false,
+          clinical_study_certificates: [],
+          hospital_id: null, _networkHint: null
         }
+      })
+
+      // Compute all unique staff types: baseline + any types already in the DB not in baseline
+      const availableStaffTypes = computed(() => {
+        const baseValues = new Set(BASE_STAFF_TYPES.map(t => t.value))
+        const extra = []
+        for (const s of medicalStaff.value) {
+          if (s.staff_type && !baseValues.has(s.staff_type) && !extra.find(e => e.value === s.staff_type)) {
+            extra.push({ value: s.staff_type, label: s.staff_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) })
+          }
+        }
+        return [...BASE_STAFF_TYPES, ...extra]
       })
 
       const validateStaff = (form) => {
@@ -935,6 +966,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (form.staff_type === 'medical_resident' && !form.training_year?.trim()) {
           setErr('staff', 'training_year', 'Training year is required for residents'); ok = false
+        }
+        if (form.staff_type === '__custom__' && !form._customStaffType?.trim()) {
+          setErr('staff', 'staff_type', 'Please enter a staff type'); ok = false
         }
         return ok
       }
@@ -958,7 +992,13 @@ document.addEventListener('DOMContentLoaded', () => {
       watch(staffFilters, () => resetPage('medical_staff'), { deep: true })
 
       const loadMedicalStaff = async () => {
-        try { medicalStaff.value = await API.getMedicalStaff() }
+        try {
+          const raw = await API.getList('/api/medical-staff')
+          if (Array.isArray(raw)) {
+            allStaffLookup.value = raw.map(s => ({ id: s.id, full_name: s.full_name, staff_type: s.staff_type, employment_status: s.employment_status }))
+          }
+          medicalStaff.value = await API.getMedicalStaff()
+        }
         catch { showToast('Error', 'Failed to load medical staff', 'error') }
       }
 
@@ -973,8 +1013,8 @@ document.addEventListener('DOMContentLoaded', () => {
           mobile_phone: '', medical_license: '', can_supervise_residents: false, special_notes: '',
           can_be_pi: false, can_be_coi: false, other_certificate: '',
           resident_category: null, home_department: null, external_institution: null,
-          is_chief_of_department: false, is_research_coordinator: false, 
-          is_resident_manager: false, is_oncall_manager: false, clinical_study_certificates: []
+          is_research_coordinator: false,
+          clinical_study_certificates: [], hospital_id: null
         })
         medicalStaffModal.show = true
       }
@@ -1003,11 +1043,19 @@ document.addEventListener('DOMContentLoaded', () => {
           can_supervise_residents: staff.can_supervise_residents || false,
           can_be_pi: staff.can_be_pi || false,
           can_be_coi: staff.can_be_coi || false,
-          is_chief_of_department: staff.is_chief_of_department || false,
           is_research_coordinator: staff.is_research_coordinator || false,
-          is_resident_manager: staff.is_resident_manager || false,
-          is_oncall_manager: staff.is_oncall_manager || false,
-          clinical_study_certificates: Array.isArray(staff.clinical_study_certificates) ? [...staff.clinical_study_certificates] : []
+          clinical_study_certificates: Array.isArray(staff.clinical_study_certificates) ? [...staff.clinical_study_certificates] : [],
+          hospital_id: staff.hospital_id || null
+        }
+        // Handle custom staff types: if not in baseline, show custom input
+        const isKnownType = BASE_STAFF_TYPES.some(t => t.value === staff.staff_type)
+        if (!isKnownType && staff.staff_type) {
+          medicalStaffModal._showCustomType = true
+          medicalStaffModal.form.staff_type = '__custom__'
+          medicalStaffModal.form._customStaffType = staff.staff_type
+        } else {
+          medicalStaffModal._showCustomType = false
+          medicalStaffModal.form._customStaffType = ''
         }
         medicalStaffModal.show = true
       }
@@ -1018,8 +1066,12 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
           const clean = v => (v == null) ? '' : String(v).trim()
           const f = medicalStaffModal.form
+          // If user selected 'other' and typed a custom type, use that value instead
+          const resolvedStaffType = (f.staff_type === '__custom__')
+            ? (f._customStaffType || '').trim().toLowerCase().replace(/\s+/g, '_') || 'other'
+            : f.staff_type || 'attending_physician'
           const data = {
-            full_name: f.full_name.trim(), staff_type: f.staff_type || 'medical_resident',
+            full_name: f.full_name.trim(), staff_type: resolvedStaffType,
             staff_id: f.staff_id || Utils.generateId('MD'), employment_status: f.employment_status || 'active',
             professional_email: f.professional_email || '', department_id: f.department_id || null,
             academic_degree: clean(f.academic_degree), specialization: clean(f.specialization),
@@ -1030,8 +1082,7 @@ document.addEventListener('DOMContentLoaded', () => {
             other_certificate: clean(f.other_certificate),
             special_notes: clean(f.special_notes), resident_category: f.resident_category || null,
             home_department: f.home_department || null, external_institution: f.external_institution || null,
-            is_chief_of_department: f.is_chief_of_department || false, is_research_coordinator: f.is_research_coordinator || false,
-            is_resident_manager: f.is_resident_manager || false, is_oncall_manager: f.is_oncall_manager || false,
+            is_research_coordinator: f.is_research_coordinator || false,
             clinical_study_certificates: f.clinical_study_certificates || []
           }
           if (medicalStaffModal.mode === 'add') {
@@ -1048,16 +1099,11 @@ document.addEventListener('DOMContentLoaded', () => {
         finally { saving.value = false }
       }
 
-      const deleteMedicalStaff = (staff) => showConfirmation({
-        title: 'Delete Staff', message: `Delete ${staff.full_name}?`,
-        icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
-        details: 'This action cannot be undone.',
-        onConfirm: async () => {
-          await API.deleteMedicalStaff(staff.id)
-          medicalStaff.value = medicalStaff.value.filter(s => s.id !== staff.id)
-          showToast('Success', 'Staff deleted', 'success')
-        }
-      })
+      // Raw deactivation — called by the main setup's orchestrated deletion workflow
+      const deactivateStaffMember = async (staffId, staffName) => {
+        await API.deleteMedicalStaff(staffId)
+        medicalStaff.value = medicalStaff.value.filter(s => s.id !== staffId)
+      }
 
       const isRoleTaken = (role) => {
         if (!medicalStaff.value) return false;
@@ -1112,15 +1158,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const availableCertificates = ['GCP - Good Clinical Practice','ICH Guidelines','Clinical Research Coordinator','CITI Program','HIPAA Certification','Responsible Conduct of Research'];
 
       return {
-        medicalStaff, staffFilters, staffProfileModal, medicalStaffModal,
+        medicalStaff, allStaffLookup, staffFilters, staffProfileModal, medicalStaffModal,
         filteredMedicalStaff, filteredMedicalStaffAll, staffTotalPages,
-        loadMedicalStaff, showAddMedicalStaffModal, editMedicalStaff, saveMedicalStaff, deleteMedicalStaff,
+        loadMedicalStaff, showAddMedicalStaffModal, editMedicalStaff, saveMedicalStaff, deactivateStaffMember,
         formatTrainingYear: Utils.formatTrainingYear, formatSpecialization: Utils.formatSpecialization,
         formatPhone: Utils.formatPhone, formatLicense: Utils.formatLicense,
         getResidentCategoryInfo: Utils.getResidentCategoryInfo, formatResidentCategorySimple: Utils.formatResidentCategorySimple,
         formatResidentCategoryDetailed: Utils.formatResidentCategoryDetailed, getResidentCategoryIcon: Utils.getResidentCategoryIcon,
         getResidentCategoryTooltip: Utils.getResidentCategoryTooltip, getRoleInfo: Utils.getRoleInfo, getStaffRoles: Utils.getStaffRoles,
-        isRoleTaken, getCurrentRoleHolder, handleRoleAssignment, toggleCertificate, availableCertificates
+        isRoleTaken, getCurrentRoleHolder, handleRoleAssignment, toggleCertificate, availableCertificates,
+        availableStaffTypes
       }
     }
 
@@ -1135,7 +1182,10 @@ document.addEventListener('DOMContentLoaded', () => {
         form: { duty_date: Utils.normalizeDate(new Date()), shift_type: 'primary_call', start_time: '08:00', end_time: '17:00', primary_physician_id: '', backup_physician_id: '', coverage_area: 'emergency', coverage_notes: '' }
       })
 
-      const getPhysicianName = (id) => medicalStaff.value.find(s => s.id === id)?.full_name || 'Not assigned'
+      const getPhysicianName = (id) => {
+        if (!id) return 'Not assigned'
+        return medicalStaff.value.find(x => x.id === id)?.full_name || id
+      }
       const formatStaffType = (t) => STAFF_TYPE_LABELS[t] || t
 
       const validateOnCall = (form) => {
@@ -1154,8 +1204,21 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error('Failed to check existing schedule:', error); return false; }
       };
 
+      const deriveOnCallStatus = (s) => {
+        const today = Utils.normalizeDate(new Date())
+        const d = Utils.normalizeDate(s.duty_date)
+        if (d < today)  return 'completed'
+        if (d === today) return 'today'
+        return 'upcoming'
+      }
+
       const filteredOnCallAll = computed(() => {
         let f = onCallSchedule.value
+        // Default: hide past shifts unless user explicitly filters to a past date or searches
+        const today = Utils.normalizeDate(new Date())
+        if (!onCallFilters.date && !onCallFilters.search) {
+          f = f.filter(s => Utils.normalizeDate(s.duty_date) >= today)
+        }
         if (onCallFilters.date) f = f.filter(s => Utils.normalizeDate(s.duty_date) === onCallFilters.date)
         if (onCallFilters.shiftType) f = f.filter(s => s.shift_type === onCallFilters.shiftType)
         if (onCallFilters.physician) f = f.filter(s => s.primary_physician_id === onCallFilters.physician || s.backup_physician_id === onCallFilters.physician)
@@ -1173,13 +1236,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Groups ALL on-call schedules by physician for the compact orb view
       const staffWithOnCallOrbs = computed(() => {
+        const today = Utils.normalizeDate(new Date())
+        // Show shifts from 7 days ago onward (so recent past is visible, ancient history is not)
+        const cutoff = Utils.normalizeDate(new Date(Date.now() - 7 * 86400000))
         const map = {}
         ;(onCallSchedule.value || []).forEach(shift => {
+          const dutyDate = Utils.normalizeDate(shift.duty_date)
+          if (dutyDate < cutoff) return // skip very old shifts
           const id = shift.primary_physician_id
           if (!id) return
-          if (!map[id]) map[id] = { id, name: medicalStaff.value.find(s => s.id === id)?.full_name || 'Unknown', shifts: [] }
-          map[id].shifts.push(shift)
+          const staff = medicalStaff.value.find(s => s.id === id)
+          if (!staff) return
+          if (!map[id]) map[id] = { id, name: staff.full_name, staffType: staff.staff_type, shifts: [] }
+          map[id].shifts.push({
+            ...shift, dutyDate,
+            isToday: dutyDate === today,
+            isPast:  dutyDate < today,
+            dayLabel:  new Date(dutyDate + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' }),
+            dateLabel: new Date(dutyDate + 'T12:00:00').toLocaleDateString('en', { day: 'numeric', month: 'short' }),
+            backupName: shift.backup_physician_id ? (medicalStaff.value.find(s => s.id === shift.backup_physician_id)?.full_name || null) : null
+          })
         })
+        Object.values(map).forEach(p => p.shifts.sort((a, b) => a.dutyDate.localeCompare(b.dutyDate)))
         return Object.values(map).sort((a, b) => a.name.localeCompare(b.name))
       })
 
@@ -1803,7 +1881,10 @@ document.addEventListener('DOMContentLoaded', () => {
         form: { staff_member_id: '', absence_type: 'planned', absence_reason: 'vacation', start_date: Utils.normalizeDate(new Date()), end_date: Utils.normalizeDate(new Date(Date.now() + 7 * 86400000)), covering_staff_id: '', coverage_notes: '', coverage_arranged: false, hod_notes: '' }
       })
 
-      const getStaffName = (id) => medicalStaff.value.find(s => s.id === id)?.full_name || 'Not assigned'
+      const getStaffName = (id) => {
+        if (!id) return 'Not assigned'
+        return medicalStaff.value.find(x => x.id === id)?.full_name || id
+      }
 
       const validateAbsence = (form) => {
         clearAll('absence'); let ok = true
@@ -1844,7 +1925,23 @@ document.addEventListener('DOMContentLoaded', () => {
       })
 
       const filteredAbsencesAll = computed(() => {
-        let f = absences.value
+        const today = Utils.normalizeDate(new Date())
+        let f = absences.value.map(a => {
+          const derived = deriveAbsenceStatus(a)
+          // Auto-clear coverage_arranged if covering person is also absent in the same period
+          let coverageOk = a.coverage_arranged
+          if (coverageOk && a.covering_staff_id) {
+            const coverIsAbsent = absences.value.some(b =>
+              b.id !== a.id &&
+              b.staff_member_id === a.covering_staff_id &&
+              b.current_status !== 'cancelled' &&
+              Utils.normalizeDate(b.start_date) <= Utils.normalizeDate(a.end_date) &&
+              Utils.normalizeDate(b.end_date)   >= Utils.normalizeDate(a.start_date)
+            )
+            if (coverIsAbsent) coverageOk = false
+          }
+          return { ...a, current_status: derived, coverage_arranged: coverageOk }
+        })
         if (absenceFilters.staff) f = f.filter(a => a.staff_member_id === absenceFilters.staff)
         if (absenceFilters.status) f = f.filter(a => a.current_status === absenceFilters.status)
         if (absenceFilters.reason) f = f.filter(a => a.absence_reason === absenceFilters.reason)
@@ -1860,10 +1957,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
       watch(absenceFilters, () => resetPage('absences'), { deep: true })
 
+      const deriveAbsenceStatus = (a) => {
+        if (a.current_status === 'cancelled') return 'cancelled'
+        const today = Utils.normalizeDate(new Date())
+        const start = Utils.normalizeDate(a.start_date)
+        const end   = Utils.normalizeDate(a.end_date)
+        if (end < today)    return 'completed'
+        if (start <= today) return 'currently_absent'
+        return 'upcoming'
+      }
+
       const loadAbsences = async () => {
         try {
           const raw = await API.getAbsences()
-          absences.value = raw.map(a => ({ ...a, start_date: Utils.normalizeDate(a.start_date), end_date: Utils.normalizeDate(a.end_date) }))
+          const today = Utils.normalizeDate(new Date())
+          const stalePatches = []
+
+          absences.value = raw.map(a => {
+            const normalized = { ...a, start_date: Utils.normalizeDate(a.start_date), end_date: Utils.normalizeDate(a.end_date) }
+            const derived = deriveAbsenceStatus(normalized)
+            // Silently patch stale records (ended but still not 'completed' in DB)
+            if (derived === 'completed' && a.current_status && a.current_status !== 'completed' && a.current_status !== 'cancelled') {
+              stalePatches.push(API.updateAbsence(a.id, { ...a, current_status: 'completed' }).catch(() => {}))
+            }
+            return { ...normalized, current_status: derived }
+          })
+
+          if (stalePatches.length) await Promise.all(stalePatches)
         } catch { showToast('Error', 'Failed to load absences', 'error') }
       }
 
@@ -1879,14 +1999,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const editAbsence = (absence) => {
         clearAll('absence'); absenceModal.mode = 'edit'
-        absenceModal.form = {
-          id: absence.id, staff_member_id: absence.staff_member_id || '',
-          absence_type: absence.absence_type || 'planned', absence_reason: absence.absence_reason || 'vacation',
-          start_date: Utils.normalizeDate(absence.start_date), end_date: Utils.normalizeDate(absence.end_date),
-          covering_staff_id: absence.covering_staff_id || '', coverage_notes: absence.coverage_notes || '',
-          coverage_arranged: absence.coverage_arranged || false, hod_notes: absence.hod_notes || '',
-          current_status: absence.current_status || null
-        }
+        Object.assign(absenceModal.form, {
+          id: absence.id,
+          staff_member_id:    absence.staff_member_id    || '',
+          absence_type:       absence.absence_type       || 'planned',
+          absence_reason:     absence.absence_reason     || 'vacation',
+          start_date:         Utils.normalizeDate(absence.start_date),
+          end_date:           Utils.normalizeDate(absence.end_date),
+          covering_staff_id:  absence.covering_staff_id  || '',
+          coverage_notes:     absence.coverage_notes     || '',
+          coverage_arranged:  absence.coverage_arranged  ?? false,
+          hod_notes:          absence.hod_notes          || '',
+          current_status:     absence.current_status     || null
+        })
         absenceModal.show = true
       }
 
@@ -1935,10 +2060,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============ 6.7 useDepartments ============
-    function useDepartments({ showToast, medicalStaff, trainingUnits, rotations }) {
+    function useDepartments({ showToast, showConfirmation, medicalStaff, trainingUnits, rotations }) {
       const departments = ref([])
+      const allDepartmentsLookup = ref([])  // includes inactive — for name resolution only
       const departmentFilters = reactive({ search: '', status: '' })
-      const departmentModal = reactive({ show: false, mode: 'add', form: { name: '', code: '', status: 'active', head_of_department_id: '' } })
+      const departmentModal = reactive({ show: false, mode: 'add', form: { name: '', code: '', status: 'active', head_of_department_id: '', description: '', contact_email: '', contact_phone: '' } })
+
+      // Department reassignment modal — shown when dept has active staff/units
+      const deptReassignModal = reactive({
+        show: false,
+        dept: null,
+        impact: { activeStaff: [], activeUnits: [], activeRotations: [] },
+        staffTargetDeptId: '',
+        unitsTargetDeptId: ''
+      })
 
       const filteredDepartments = computed(() => {
         let f = departments.value
@@ -1947,31 +2082,119 @@ document.addEventListener('DOMContentLoaded', () => {
         return f
       })
 
-      const getDepartmentName = (id) => departments.value.find(d => d.id === id)?.name || 'Not assigned'
+      // Use allDepartmentsLookup for name resolution so deactivated depts still resolve
+      const getDepartmentName = (id) => allDepartmentsLookup.value.find(d => d.id === id)?.name || departments.value.find(d => d.id === id)?.name || 'Not assigned'
       const getDepartmentUnits = (id) => trainingUnits.value.filter(u => u.department_id === id)
       const getDepartmentStaffCount = (id) => medicalStaff.value.filter(s => s.department_id === id).length
 
       const loadDepartments = async () => {
-        try { departments.value = await API.getDepartments() }
-        catch { showToast('Error', 'Failed to load departments', 'error') }
+        try {
+          const [active, all] = await Promise.all([API.getDepartments(), API.getAllDepartments()])
+          departments.value = active
+          allDepartmentsLookup.value = all
+        } catch { showToast('Error', 'Failed to load departments', 'error') }
       }
 
-      const showAddDepartmentModal = () => { departmentModal.mode = 'add'; Object.assign(departmentModal.form, { name: '', code: '', status: 'active', head_of_department_id: '' }); departmentModal.show = true }
-      const editDepartment = (d) => { departmentModal.mode = 'edit'; departmentModal.form = { ...d }; departmentModal.show = true }
+      const showAddDepartmentModal = () => {
+        departmentModal.mode = 'add'
+        Object.assign(departmentModal.form, { name: '', code: '', status: 'active', head_of_department_id: '', description: '', contact_email: '', contact_phone: '' })
+        departmentModal.show = true
+      }
+      const editDepartment = (d) => { departmentModal.mode = 'edit'; Object.assign(departmentModal.form, { ...d }); departmentModal.show = true }
 
       const saveDepartment = async (saving) => {
         saving.value = true
         try {
-          if (departmentModal.mode === 'add') { departments.value.unshift(await API.createDepartment(departmentModal.form)); showToast('Success', 'Department created', 'success') }
-          else { const result = await API.updateDepartment(departmentModal.form.id, departmentModal.form); const idx = departments.value.findIndex(d => d.id === result.id); if (idx !== -1) departments.value[idx] = result; showToast('Success', 'Department updated', 'success') }
+          if (departmentModal.mode === 'add') {
+            departments.value.unshift(await API.createDepartment(departmentModal.form))
+            showToast('Success', 'Department created', 'success')
+          } else {
+            const result = await API.updateDepartment(departmentModal.form.id, departmentModal.form)
+            const idx = departments.value.findIndex(d => d.id === result.id)
+            if (idx !== -1) departments.value[idx] = result
+            showToast('Success', 'Department updated', 'success')
+          }
           departmentModal.show = false
         } catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
         finally { saving.value = false }
       }
 
+      const deleteDepartment = async (dept) => {
+        // Step 1: fetch impact from backend
+        let impact
+        try { impact = (await API.getDepartmentImpact(dept.id))?.impact }
+        catch { showToast('Error', 'Could not check department dependencies', 'error'); return }
+
+        const { activeStaff = [], activeUnits = [], activeRotations = [], canDelete } = impact
+
+        // Step 2: if active rotations exist — hard block (can't safely reassign rotations away)
+        if (activeRotations.length > 0) {
+          showConfirmation({
+            title: 'Cannot Deactivate Department',
+            message: `"${dept.name}" has ${activeRotations.length} active rotation(s) in its training units.`,
+            icon: 'fa-exclamation-triangle',
+            confirmButtonText: 'OK', confirmButtonClass: 'btn-secondary',
+            details: 'Complete or reassign all active rotations before deactivating this department.',
+            onConfirm: () => {}
+          })
+          return
+        }
+
+        // Step 3: clean — no deps at all
+        if (canDelete) {
+          showConfirmation({
+            title: 'Deactivate Department',
+            message: `Deactivate "${dept.name}" (${dept.code})?`,
+            icon: 'fa-building',
+            confirmButtonText: 'Deactivate', confirmButtonClass: 'btn-danger',
+            details: 'No active staff or units are assigned to this department.',
+            onConfirm: async () => {
+              try {
+                await API.deleteDepartment(dept.id, null)
+                departments.value = departments.value.filter(d => d.id !== dept.id)
+                showToast('Deactivated', `${dept.name} has been deactivated`, 'success')
+              } catch (e) { showToast('Error', e?.message || 'Failed to deactivate department', 'error') }
+            }
+          })
+          return
+        }
+
+        // Step 4: has active staff or units — open reassignment modal
+        Object.assign(deptReassignModal, {
+          show: true, dept,
+          impact: { activeStaff, activeUnits, activeRotations },
+          staffTargetDeptId: '',
+          unitsTargetDeptId: ''
+        })
+      }
+
+      const confirmDeptReassignAndDeactivate = async () => {
+        const { dept, impact, staffTargetDeptId, unitsTargetDeptId } = deptReassignModal
+        const needsStaffReassign = impact.activeStaff.length > 0
+        const needsUnitReassign = impact.activeUnits.length > 0
+        if (needsStaffReassign && !staffTargetDeptId) { showToast('Required', 'Please select a department for staff reassignment', 'warning'); return }
+        if (needsUnitReassign && !unitsTargetDeptId) { showToast('Required', 'Please select a department for unit reassignment', 'warning'); return }
+        try {
+          await API.deleteDepartment(dept.id, {
+            staffDeptId: needsStaffReassign ? staffTargetDeptId : null,
+            unitsDeptId: needsUnitReassign ? unitsTargetDeptId : null
+          })
+          departments.value = departments.value.filter(d => d.id !== dept.id)
+          deptReassignModal.show = false
+          showToast('Deactivated', `${dept.name} deactivated — staff and units reassigned`, 'success')
+          // Reload to pick up fresh state
+          await loadDepartments()
+        } catch (e) { showToast('Error', e?.message || 'Failed to deactivate department', 'error') }
+      }
+
       const viewDepartmentStaff = (dept) => showToast('Department Staff', `Viewing staff for ${dept.name}`, 'info')
 
-      return { departments, departmentFilters, departmentModal, filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount, loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment, viewDepartmentStaff }
+      return {
+        departments, allDepartmentsLookup, departmentFilters, departmentModal, deptReassignModal,
+        filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount,
+        loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment,
+        deleteDepartment, confirmDeptReassignAndDeactivate, viewDepartmentStaff
+      }
     }
 
     // ============ 6.8 useTrainingUnits ============
@@ -2000,16 +2223,34 @@ document.addEventListener('DOMContentLoaded', () => {
       const showAddTrainingUnitModal = () => { trainingUnitModal.mode = 'add'; Object.assign(trainingUnitModal.form, { unit_name: '', unit_code: '', department_id: '', maximum_residents: 10, unit_status: 'active', specialty: '', supervising_attending_id: '' }); trainingUnitModal.show = true }
       const editTrainingUnit = (u) => { trainingUnitModal.mode = 'edit'; trainingUnitModal.form = { ...u }; trainingUnitModal.show = true }
 
-      const deleteTrainingUnit = (unit) => showConfirmation({
-        title: 'Delete Training Unit', icon: 'fa-trash',
-        message: `Delete "${unit.unit_name}"? All rotation assignments to this unit will be affected.`,
-        confirmButtonText: 'Delete Unit', confirmButtonClass: 'btn-danger',
-        onConfirm: async () => {
-          await API.deleteTrainingUnit(unit.id)
-          trainingUnits.value = trainingUnits.value.filter(u => u.id !== unit.id)
-          showToast('Deleted', `${unit.unit_name} removed`, 'success')
+      const deleteTrainingUnit = (unit) => {
+        const activeRotations = rotations.value.filter(r =>
+          r.training_unit_id === unit.id && ['active', 'scheduled'].includes(r.rotation_status)
+        )
+        if (activeRotations.length > 0) {
+          showConfirmation({
+            title: 'Cannot Delete Training Unit',
+            message: `"${unit.unit_name}" has ${activeRotations.length} active or scheduled rotation(s) assigned to it.`,
+            icon: 'fa-exclamation-triangle',
+            confirmButtonText: 'OK',
+            confirmButtonClass: 'btn-secondary',
+            details: 'Reassign or complete all active rotations before deleting this unit.',
+            onConfirm: () => {}
+          })
+          return
         }
-      })
+        showConfirmation({
+          title: 'Delete Training Unit', icon: 'fa-trash',
+          message: `Delete "${unit.unit_name}"?`,
+          confirmButtonText: 'Delete Unit', confirmButtonClass: 'btn-danger',
+          details: activeRotations.length === 0 ? 'No active rotations are assigned to this unit.' : '',
+          onConfirm: async () => {
+            await API.deleteTrainingUnit(unit.id)
+            trainingUnits.value = trainingUnits.value.filter(u => u.id !== unit.id)
+            showToast('Deleted', `${unit.unit_name} removed`, 'success')
+          }
+        })
+      }
 
       const openUnitClinicians = (unit, allStaff) => {
         unitCliniciansModal.unit = unit
@@ -2248,7 +2489,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const filteredResearchLines = computed(() => {
         let f = researchLines.value
-        if (researchLineFilters.search) { const q = researchLineFilters.search.toLowerCase(); f = f.filter(l => (l.research_line_name || l.name)?.toLowerCase().includes(q) || l.description?.toLowerCase().includes(q)) }
+        if (researchLineFilters.search) {
+          const q = researchLineFilters.search.toLowerCase()
+          f = f.filter(l =>
+            (l.research_line_name || l.name)?.toLowerCase().includes(q) ||
+            l.description?.toLowerCase().includes(q) ||
+            l.capabilities?.toLowerCase().includes(q) ||
+            (Array.isArray(l.keywords) && l.keywords.some(k => k.toLowerCase().includes(q)))
+          )
+        }
         if (researchLineFilters.active !== '') { const active = researchLineFilters.active === 'true'; f = f.filter(l => l.active === active) }
         return applySort(f, 'research_lines')
       })
@@ -2264,17 +2513,31 @@ document.addEventListener('DOMContentLoaded', () => {
       const filteredTrials = computed(() => paginate(filteredTrialsAll.value, 'trials'))
       const trialTotalPages = computed(() => totalPages(filteredTrialsAll.value, 'trials'))
 
-      const filteredProjects = computed(() => {
+      const filteredProjectsAll = computed(() => {
         let f = innovationProjects.value
         if (projectFilters.research_line_id) f = f.filter(p => p.research_line_id === projectFilters.research_line_id)
         if (projectFilters.category) f = f.filter(p => p.category === projectFilters.category)
         if (projectFilters.stage) f = f.filter(p => (p.current_stage || p.development_stage) === projectFilters.stage)
         if (projectFilters.funding_status) f = f.filter(p => (p.funding_status || 'not_applicable') === projectFilters.funding_status)
         if (projectFilters.search) { const q = projectFilters.search.toLowerCase(); f = f.filter(p => p.title?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q) || (Array.isArray(p.keywords) && p.keywords.some(k => k.toLowerCase().includes(q)))) }
-        return f
+        return applySort(f, 'projects')
       })
+      const filteredProjects = computed(() => paginate(filteredProjectsAll.value, 'projects'))
+      const projectTotalPages = computed(() => totalPages(filteredProjectsAll.value, 'projects'))
 
-      watch(trialFilters, () => resetPage('trials'), { deep: true })
+      // ── Keyword chip helpers ──────────────────────────────────────────────
+      const addKeyword = (form) => {
+        if (!form.keywordsInput?.trim()) return
+        const incoming = form.keywordsInput.split(',').map(k => k.trim()).filter(Boolean)
+        incoming.forEach(kw => { if (kw && !form.keywords.includes(kw)) form.keywords.push(kw) })
+        form.keywordsInput = ''
+      }
+      const removeKeyword = (form, idx) => { form.keywords.splice(idx, 1) }
+      const handleKeywordKey = (e, form) => {
+        if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab') {
+          e.preventDefault(); addKeyword(form)
+        }
+      }
 
       const loadResearchLines = async () => { try { researchLines.value = await API.getResearchLines() } catch { } }
       const loadClinicalTrials = async () => { try { clinicalTrials.value = await API.getAllClinicalTrials() } catch { } }
@@ -2365,11 +2628,31 @@ document.addEventListener('DOMContentLoaded', () => {
         catch (e) { showToast('Error', e.message || 'Failed to assign coordinator', 'error') }
       }
 
-      const deleteResearchLine = (line) => showConfirmation({ title: 'Delete Research Line', message: `Delete "${line.research_line_name || line.name}"?`, icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger', onConfirm: async () => { await API.deleteResearchLine(line.id); await loadResearchLines(); showToast('Success', 'Research line deleted', 'success'); loadAnalyticsSummary() } })
+      const deleteResearchLine = (line) => {
+        const activeTrials = clinicalTrials.value.filter(t => t.research_line_id === line.id && !['Completado','Suspendido','Cancelado'].includes(t.status))
+        const activeProjects = innovationProjects.value.filter(p => p.research_line_id === line.id)
+        if (activeTrials.length || activeProjects.length) {
+          showConfirmation({
+            title: 'Cannot Delete Research Line',
+            message: `"${line.research_line_name || line.name}" has ${activeTrials.length} active trial(s) and ${activeProjects.length} project(s) linked to it.`,
+            icon: 'fa-exclamation-triangle',
+            confirmButtonText: 'OK', confirmButtonClass: 'btn-secondary',
+            details: 'Reassign or remove all associated trials and projects before deleting this research line.',
+            onConfirm: () => {}
+          })
+          return
+        }
+        showConfirmation({
+          title: 'Delete Research Line', message: `Delete "${line.research_line_name || line.name}"?`,
+          icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
+          details: 'No active trials or projects are linked to this line.',
+          onConfirm: async () => { await API.deleteResearchLine(line.id); await loadResearchLines(); showToast('Success', 'Research line deleted', 'success'); loadAnalyticsSummary() }
+        })
+      }
       const deleteClinicalTrial = (trial) => showConfirmation({ title: 'Delete Trial', message: `Delete "${trial.title}"?`, icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger', details: `Protocol: ${trial.protocol_id}`, onConfirm: async () => { await API.deleteClinicalTrial(trial.id); await loadClinicalTrials(); showToast('Success', 'Trial deleted', 'success'); loadAnalyticsSummary() } })
       const deleteInnovationProject = (project) => showConfirmation({ title: 'Delete Project', message: `Delete "${project.title}"?`, icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger', onConfirm: async () => { await API.deleteInnovationProject(project.id); await loadInnovationProjects(); showToast('Success', 'Project deleted', 'success'); loadAnalyticsSummary(); loadPartnerCollaborations() } })
 
-      return { researchLines, clinicalTrials, innovationProjects, researchLineFilters, trialFilters, projectFilters, researchLineModal, clinicalTrialModal, innovationProjectModal, assignCoordinatorModal, trialDetailModal, filteredResearchLines, filteredTrials, filteredTrialsAll, filteredProjects, trialTotalPages, getResearchLineName, getClinicianResearchLines, loadResearchLines, loadClinicalTrials, loadInnovationProjects, showAddResearchLineModal, showAddTrialModal, showAddProjectModal, openAssignCoordinatorModal, editResearchLine, editTrial, editProject, viewTrial, saveResearchLine, saveClinicalTrial, saveInnovationProject, saveCoordinatorAssignment, deleteResearchLine, deleteClinicalTrial, deleteInnovationProject }
+      return { researchLines, clinicalTrials, innovationProjects, researchLineFilters, trialFilters, projectFilters, researchLineModal, clinicalTrialModal, innovationProjectModal, assignCoordinatorModal, trialDetailModal, filteredResearchLines, filteredTrials, filteredTrialsAll, filteredProjects, filteredProjectsAll, trialTotalPages, projectTotalPages, getResearchLineName, getClinicianResearchLines, loadResearchLines, loadClinicalTrials, loadInnovationProjects, showAddResearchLineModal, showAddTrialModal, showAddProjectModal, openAssignCoordinatorModal, editResearchLine, editTrial, editProject, viewTrial, saveResearchLine, saveClinicalTrial, saveInnovationProject, saveCoordinatorAssignment, deleteResearchLine, deleteClinicalTrial, deleteInnovationProject, addKeyword, removeKeyword, handleKeywordKey }
     }
 
     // ============ 6.12 useAnalytics ============
@@ -2381,16 +2664,52 @@ document.addEventListener('DOMContentLoaded', () => {
       const analyticsSummary = ref(null)
       const loadingAnalytics = ref(false)
       const exportModal = reactive({ show: false, type: 'clinical-trials', format: 'csv', loading: false })
+      const analyticsActiveTab = ref('dashboard') // 'dashboard' | 'performance' | 'partners'
 
-      const loadResearchDashboard = async () => {
+      const loadResearchDashboard = async (localResearchLines, localTrials, localProjects) => {
         if (!hasPermission('analytics', 'read')) return
         loadingAnalytics.value = true
-        try { const data = await API.getResearchDashboard(); if (data) researchDashboard.value = data }
+        try {
+          const data = await API.getResearchDashboard()
+          if (data) {
+            // Augment with researchLines table the backend doesn't return
+            const lines = localResearchLines?.value || []
+            const trials = localTrials?.value || []
+            const projects = localProjects?.value || []
+            data.researchLines = lines.map(line => ({
+              id: line.id,
+              line_number: line.line_number,
+              name: line.research_line_name || line.name,
+              active: line.active,
+              coordinator_name: line.coordinator_name || null,
+              coordinator_id: line.coordinator_id || null,
+              trialsCount: trials.filter(t => t.research_line_id === line.id).length,
+              projectsCount: projects.filter(p => p.research_line_id === line.id).length
+            }))
+            researchDashboard.value = data
+          }
+        }
         catch { showToast('Error', 'Failed to load research dashboard', 'error') }
         finally { loadingAnalytics.value = false }
       }
       const loadResearchLinesPerformance = async () => { if (!hasPermission('analytics', 'read')) return; try { researchLinesPerformance.value = await API.getResearchLinesPerformance() } catch { showToast('Error', 'Failed to load performance data', 'error') } }
-      const loadPartnerCollaborations = async () => { if (!hasPermission('analytics', 'read')) return; try { partnerCollaborations.value = await API.getPartnerCollaborations() } catch { showToast('Error', 'Failed to load partner data', 'error') } }
+      const loadPartnerCollaborations = async () => {
+        if (!hasPermission('analytics', 'read')) return
+        try {
+          const raw = await API.getPartnerCollaborations()
+          if (raw) {
+            // Compute needsByType from partnerNeeds (group by first word as category proxy)
+            const needs = raw.partnerNeeds || []
+            const byType = {}
+            needs.forEach(n => {
+              const type = n.name.split(' ')[0] || 'Other'
+              byType[type] = (byType[type] || 0) + n.count
+            })
+            raw.needsByType = Object.entries(byType).map(([type, count]) => ({ type, count })).sort((a,b) => b.count - a.count)
+            partnerCollaborations.value = raw
+          }
+        } catch { showToast('Error', 'Failed to load partner data', 'error') }
+      }
       const loadTrialsTimeline = async (years = 3) => { if (!hasPermission('analytics', 'read')) return; try { trialsTimeline.value = await API.getClinicalTrialsTimeline(years) } catch { showToast('Error', 'Failed to load timeline', 'error') } }
       const loadAnalyticsSummary = async () => { if (!hasPermission('analytics', 'read')) return; try { analyticsSummary.value = await API.getAnalyticsSummary() } catch { } }
 
@@ -2418,7 +2737,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const showExportModal = () => { exportModal.type = 'clinical-trials'; exportModal.show = true }
 
-      return { researchDashboard, researchLinesPerformance, partnerCollaborations, trialsTimeline, analyticsSummary, loadingAnalytics, exportModal, loadResearchDashboard, loadResearchLinesPerformance, loadPartnerCollaborations, loadTrialsTimeline, loadAnalyticsSummary, loadStaffResearchProfile, handleExport, showExportModal }
+      return { researchDashboard, researchLinesPerformance, partnerCollaborations, trialsTimeline, analyticsSummary, loadingAnalytics, exportModal, analyticsActiveTab, loadResearchDashboard, loadResearchLinesPerformance, loadPartnerCollaborations, loadTrialsTimeline, loadAnalyticsSummary, loadStaffResearchProfile, handleExport, showExportModal }
     }
 
     // ============ 6.13 useDashboard ============
@@ -2464,7 +2783,7 @@ document.addEventListener('DOMContentLoaded', () => {
         systemStats.value.onLeaveStaff = absences.value.filter(a => {
           const s = Utils.normalizeDate(a.start_date), e = Utils.normalizeDate(a.end_date)
           if (!s || !e || !(s <= today && today <= e)) return false
-          if (a.current_status) return ['currently_absent', 'active', 'on_leave', 'approved'].includes(a.current_status.toLowerCase())
+          if (a.current_status) return a.current_status === 'currently_absent'
           return true
         }).length
 
@@ -2530,16 +2849,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const { fieldErrors, setErr, clearErr: clearFieldError, clearAll } = makeValidation(['rotation', 'staff', 'absence', 'oncall', 'research'])
 
-        const deptOps = useDepartments({ showToast, medicalStaff: ref([]), trainingUnits: ref([]), rotations: ref([]) })
+        const deptOps = useDepartments({ showToast, showConfirmation: () => {}, medicalStaff: ref([]), trainingUnits: ref([]), rotations: ref([]) })
         const tuOps = useTrainingUnits({ showToast, showConfirmation: () => {}, rotations: ref([]) })
 
         const staffOps = useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll })
-        const { medicalStaff } = staffOps
+        const { medicalStaff, allStaffLookup } = staffOps
 
-        const { departments, departmentFilters, departmentModal, filteredDepartments,
-          getDepartmentName, getDepartmentUnits, getDepartmentStaffCount,
-          loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment, viewDepartmentStaff } = useDepartments({
-          showToast, medicalStaff, trainingUnits: tuOps.trainingUnits, rotations: ref([])
+        const { departments, allDepartmentsLookup, departmentFilters, departmentModal, deptReassignModal,
+          filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount,
+          loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment,
+          deleteDepartment, confirmDeptReassignAndDeactivate, viewDepartmentStaff } = useDepartments({
+          showToast, showConfirmation, medicalStaff, trainingUnits: tuOps.trainingUnits, rotations: ref([])
         })
 
         const onCallOps = useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff })
@@ -2559,8 +2879,120 @@ document.addEventListener('DOMContentLoaded', () => {
           showToast, showConfirmation, rotations
         })
 
+        // Sync real trainingUnits into the stub so rotationOps.getTrainingUnitName resolves correctly
+        watch(trainingUnits, (v) => { _tuStub.value = v }, { immediate: true })
+
         const absenceOps = useAbsences({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff })
         const { absences } = absenceOps
+
+        // ============ STAFF DEACTIVATION WORKFLOW ============
+        // Professional reassignment flow: scan future records before deactivating
+        const reassignmentModal = reactive({
+          show: false, staff: null, saving: false,
+          affectedShifts: [], affectedRotations: [], affectedAbsences: [],
+          replacements: {}
+        })
+
+        const deleteMedicalStaff = (staff) => {
+          const today = Utils.normalizeDate(new Date())
+
+          // Scan future on-call shifts
+          const affectedShifts = []
+          onCallSchedule.value.forEach(s => {
+            if (Utils.normalizeDate(s.duty_date) < today) return
+            if (s.primary_physician_id === staff.id) affectedShifts.push({ ...s, role: 'primary' })
+            else if (s.backup_physician_id === staff.id) affectedShifts.push({ ...s, role: 'backup' })
+          })
+
+          // Scan active/scheduled rotations
+          const affectedRotations = []
+          rotations.value.forEach(r => {
+            if (['completed', 'cancelled'].includes(r.rotation_status)) return
+            if (r.supervising_attending_id === staff.id) affectedRotations.push({ ...r, role: 'supervisor' })
+            else if (r.resident_id === staff.id) affectedRotations.push({ ...r, role: 'resident' })
+          })
+
+          // Scan future absences where this person is the cover
+          const affectedAbsences = []
+          absences.value.forEach(a => {
+            if (Utils.normalizeDate(a.end_date) < today) return
+            if (a.covering_staff_id === staff.id) affectedAbsences.push({ ...a, role: 'cover' })
+          })
+
+          const total = affectedShifts.length + affectedRotations.length + affectedAbsences.length
+
+          if (total === 0) {
+            showConfirmation({
+              title: 'Remove Staff Member',
+              message: `Remove ${staff.full_name} from active staff?`,
+              icon: 'fa-user-times',
+              confirmButtonText: 'Confirm Removal',
+              confirmButtonClass: 'btn-danger',
+              details: 'No upcoming assignments found. All historical records are preserved for audit purposes.',
+              onConfirm: async () => {
+                try {
+                  await staffOps.deactivateStaffMember(staff.id, staff.full_name)
+                  showToast('Done', `${staff.full_name} has been deactivated`, 'success')
+                } catch (e) { showToast('Error', e.message || 'Failed to remove staff member', 'error') }
+              }
+            })
+          } else {
+            Object.assign(reassignmentModal, {
+              show: true, staff, saving: false,
+              affectedShifts, affectedRotations, affectedAbsences,
+              replacements: {}
+            })
+          }
+        }
+
+        const confirmReassignAndDeactivate = async () => {
+          const { staff, affectedShifts, affectedRotations, affectedAbsences, replacements } = reassignmentModal
+          reassignmentModal.saving = true
+          try {
+            // Patch on-call shifts
+            for (const shift of affectedShifts) {
+              const newId = replacements[`shift_${shift.role}_${shift.id}`] || null
+              const existing = onCallSchedule.value.find(s => s.id === shift.id) || shift
+              const payload = {
+                primary_physician_id: shift.role === 'primary' ? newId : existing.primary_physician_id,
+                backup_physician_id:  shift.role === 'backup'  ? newId : existing.backup_physician_id,
+                duty_date: existing.duty_date, shift_type: existing.shift_type,
+                start_time: existing.start_time, end_time: existing.end_time,
+                coverage_area: existing.coverage_area, coverage_notes: existing.coverage_notes || ''
+              }
+              await API.updateOnCall(shift.id, payload)
+              const idx = onCallSchedule.value.findIndex(s => s.id === shift.id)
+              if (idx !== -1) {
+                if (shift.role === 'primary') onCallSchedule.value[idx].primary_physician_id = newId
+                else onCallSchedule.value[idx].backup_physician_id = newId
+              }
+            }
+            // Patch rotation supervisors (residents can't be re-assigned here)
+            for (const rot of affectedRotations.filter(r => r.role === 'supervisor')) {
+              const newId = replacements[`rotation_supervisor_${rot.id}`] || null
+              const existing = rotations.value.find(r => r.id === rot.id) || rot
+              await API.updateRotation(rot.id, { ...existing, supervising_attending_id: newId })
+              const idx = rotations.value.findIndex(r => r.id === rot.id)
+              if (idx !== -1) rotations.value[idx].supervising_attending_id = newId
+            }
+            // Patch absence cover assignments
+            for (const abs of affectedAbsences) {
+              const newId = replacements[`absence_cover_${abs.id}`] || null
+              const existing = absences.value.find(a => a.id === abs.id) || abs
+              await API.updateAbsence(abs.id, { ...existing, covering_staff_id: newId })
+              const idx = absences.value.findIndex(a => a.id === abs.id)
+              if (idx !== -1) absences.value[idx].covering_staff_id = newId
+            }
+            // Now deactivate
+            await staffOps.deactivateStaffMember(staff.id, staff.full_name)
+            const updatedCount = affectedShifts.length + affectedRotations.filter(r => r.role === 'supervisor').length + affectedAbsences.length
+            reassignmentModal.show = false
+            showToast('Done', `${staff.full_name} deactivated. ${updatedCount} assignment(s) updated.`, 'success')
+          } catch (e) {
+            showToast('Error', e.message || 'Failed to complete removal', 'error')
+          } finally { reassignmentModal.saving = false }
+        }
+
 
         const commsOps = useComms({ showToast, showConfirmation })
         const liveOps = useLiveStatus({ showToast, showConfirmation, medicalStaff, currentUser })
@@ -2577,7 +3009,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
         // ============ EXISTING COMPUTED PROPERTIES ============
-        const getStaffName = (id) => medicalStaff.value.find(s => s.id === id)?.full_name || 'Not assigned'
+        const getStaffName = (id) => {
+          if (!id) return 'Not assigned'
+          const s = allStaffLookup.value.find(x => x.id === id) || medicalStaff.value.find(x => x.id === id)
+          return s?.full_name || 'Not assigned'
+        }
         const getSupervisorName = (id) => getStaffName(id)
         const getPhysicianName = (id) => getStaffName(id)
         const getResidentName = (id) => getStaffName(id)
@@ -2606,7 +3042,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const getCurrentRotationForStaff = (id) => rotations.value.find(r => r.resident_id === id && r.rotation_status === 'active') || null
         const isOnCallToday = (staffId) => { const today = Utils.normalizeDate(new Date()); return onCallSchedule.value.some(s => (s.primary_physician_id === staffId || s.backup_physician_id === staffId) && Utils.normalizeDate(s.duty_date) === today) }
         const getUpcomingOnCall = (staffId) => { if (!staffId) return []; const today = Utils.normalizeDate(new Date()); return onCallSchedule.value.filter(s => (s.primary_physician_id === staffId || s.backup_physician_id === staffId) && Utils.normalizeDate(s.duty_date) >= today).sort((a, b) => Utils.normalizeDate(a.duty_date).localeCompare(Utils.normalizeDate(b.duty_date))) }
-        const getUpcomingLeave = (staffId) => { if (!staffId) return []; const today = Utils.normalizeDate(new Date()); return absences.value.filter(a => a.staff_member_id === staffId && Utils.normalizeDate(a.start_date) >= today && a.current_status !== 'cancelled').sort((a, b) => Utils.normalizeDate(a.start_date).localeCompare(Utils.normalizeDate(b.start_date))) }
+        const getUpcomingLeave = (staffId) => {
+          if (!staffId) return []
+          const today = Utils.normalizeDate(new Date())
+          return absences.value
+            .filter(a => a.staff_member_id === staffId
+              && Utils.normalizeDate(a.start_date) >= today
+              && a.current_status !== 'cancelled'
+              && a.current_status !== 'completed')
+            .sort((a, b) => Utils.normalizeDate(a.start_date).localeCompare(Utils.normalizeDate(b.start_date)))
+        }
         const getRotationHistory = (staffId) => { if (!staffId) return []; return rotations.value.filter(r => r.resident_id === staffId && !['active', 'scheduled'].includes(r.rotation_status)).sort((a, b) => Utils.normalizeDate(b.end_date || b.rotation_end_date).localeCompare(Utils.normalizeDate(a.end_date || a.rotation_end_date))) }
         const getRotationDaysLeft = (staffId) => { const r = getCurrentRotationForStaff(staffId); return r ? getDaysRemaining(r.end_date || r.rotation_end_date) : 0 }
         const getCurrentRotationSupervisor = (staffId) => { const r = getCurrentRotationForStaff(staffId); return r?.supervising_attending_id ? getStaffName(r.supervising_attending_id) : 'Not assigned' }
@@ -2654,7 +3099,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const updatePreview = () => { }
         const requestFullDossier = () => showToast('Info', 'Dossier request sent. Our team will contact you.', 'info')
 
-        const availablePhysicians = computed(() => medicalStaff.value.filter(s => ['attending_physician', 'fellow', 'nurse_practitioner'].includes(s.staff_type) && s.employment_status === 'active'))
+        // All clinical staff eligible for on-call (attendings, fellows, NPs, and residents)
+        const availablePhysicians = computed(() => medicalStaff.value.filter(s => ['attending_physician', 'fellow', 'nurse_practitioner', 'medical_resident'].includes(s.staff_type) && s.employment_status === 'active'))
         const availableResidents = computed(() => medicalStaff.value.filter(s => s.staff_type === 'medical_resident' && s.employment_status === 'active'))
         const availableAttendings = computed(() => medicalStaff.value.filter(s => s.staff_type === 'attending_physician' && s.employment_status === 'active'))
         const availableHeadsOfDepartment = computed(() => availableAttendings.value)
@@ -2701,9 +3147,23 @@ document.addEventListener('DOMContentLoaded', () => {
           // Trigger entrance animation on content area
           const ca = document.querySelector('.content-area')
           if (ca) { ca.classList.remove('content-view-enter'); void ca.offsetWidth; ca.classList.add('content-view-enter') }
-          if (view === 'analytics_dashboard' && hasPermission('analytics', 'read')) { await analyticsOps.loadResearchDashboard(); await analyticsOps.loadTrialsTimeline() }
-          else if (view === 'analytics_performance' && hasPermission('analytics', 'read')) { await analyticsOps.loadResearchLinesPerformance() }
-          else if (view === 'analytics_partners' && hasPermission('analytics', 'read')) { await analyticsOps.loadPartnerCollaborations() }
+          if (view === 'analytics_dashboard' && hasPermission('analytics', 'read')) {
+            analyticsOps.analyticsActiveTab.value = 'dashboard'
+            await Promise.all([
+              analyticsOps.loadResearchDashboard(researchOps.researchLines, researchOps.clinicalTrials, researchOps.innovationProjects),
+              analyticsOps.loadTrialsTimeline()
+            ])
+          } else if (view === 'analytics_performance' && hasPermission('analytics', 'read')) {
+            analyticsOps.analyticsActiveTab.value = 'performance'
+            currentView.value = 'analytics_dashboard'
+            await analyticsOps.loadResearchLinesPerformance()
+            return
+          } else if (view === 'analytics_partners' && hasPermission('analytics', 'read')) {
+            analyticsOps.analyticsActiveTab.value = 'partners'
+            currentView.value = 'analytics_dashboard'
+            await analyticsOps.loadPartnerCollaborations()
+            return
+          }
         }
 
         const toggleStatsSidebar = () => { ui.statsSidebarOpen.value = !ui.statsSidebarOpen.value }
@@ -2787,6 +3247,8 @@ document.addEventListener('DOMContentLoaded', () => {
           ...Object.fromEntries(Object.entries(ui).filter(([k]) => k !== 'showToast')),
           showToast, showConfirmation, ui,
           ...staffOps,
+          deleteMedicalStaff,          // override useStaff's deactivateStaffMember with full workflow
+          reassignmentModal, confirmReassignAndDeactivate,
           ...onCallOps,
           ...rotationOps,
           ...absenceOps,
@@ -2796,9 +3258,10 @@ document.addEventListener('DOMContentLoaded', () => {
           formatResidentCategoryDetailed: Utils.formatResidentCategoryDetailed, getResidentCategoryIcon: Utils.getResidentCategoryIcon,
           getResidentCategoryTooltip: Utils.getResidentCategoryTooltip, getRoleInfo: Utils.getRoleInfo, getStaffRoles: Utils.getStaffRoles,
           getDaysRemainingColor: Utils.getDaysRemainingColor,
-          departments, departmentFilters, departmentModal, filteredDepartments,
-          getDepartmentName, getDepartmentUnits, getDepartmentStaffCount,
-          loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment, viewDepartmentStaff,
+          departments, allDepartmentsLookup, departmentFilters, departmentModal, deptReassignModal,
+          filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount,
+          loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment,
+          deleteDepartment, confirmDeptReassignAndDeactivate, viewDepartmentStaff,
           trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits,
           getUnitActiveRotationCount, loadTrainingUnits, showAddTrainingUnitModal,
           editTrainingUnit, deleteTrainingUnit, saveTrainingUnit,
@@ -2824,7 +3287,8 @@ document.addEventListener('DOMContentLoaded', () => {
               rotations:     rotationOps.filteredRotationsAll.value,
               oncall:        onCallOps.filteredOnCallAll.value,
               absences:      absenceOps.filteredAbsencesAll.value,
-              trials:        researchOps.filteredTrialsAll.value
+              trials:        researchOps.filteredTrialsAll.value,
+              projects:      researchOps.filteredProjectsAll.value
             }
             goToPage(view, page, arrMap[view] || [])
           },
@@ -2833,6 +3297,10 @@ document.addEventListener('DOMContentLoaded', () => {
           oncallTotalPages: onCallOps.oncallTotalPages,
           absenceTotalPages: absenceOps.absenceTotalPages,
           trialTotalPages: researchOps.trialTotalPages,
+          projectTotalPages: researchOps.projectTotalPages,
+          addKeyword: (form) => researchOps.addKeyword(form),
+          removeKeyword: (form, idx) => researchOps.removeKeyword(form, idx),
+          handleKeywordKey: (e, form) => researchOps.handleKeywordKey(e, form),
           fieldErrors, clearFieldError: (form, field) => clearFieldError(form, field),
           viewStaffDetails, toggleProfileSection, showUserProfileModal, saveUserProfile,
           getStaffName, getSupervisorName, getPhysicianName, getResidentName, getTrainingUnitName,
