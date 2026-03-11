@@ -702,6 +702,24 @@
                                 <option value="">All Departments</option>
                                 <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
                             </select>
+                            <select class="form-select" v-model="staffFilters.networkType">
+                                <option value="">All Networks</option>
+                                <option value="CHUAC">CHUAC</option>
+                                <option value="SERGAS">SERGAS (non-CHUAC)</option>
+                                <option value="external">External</option>
+                            </select>
+                            <select class="form-select" v-model="staffFilters.hospital" v-if="hospitalsList.length">
+                                <option value="">All Hospitals</option>
+                                <optgroup label="CHUAC">
+                                    <option v-for="h in hospitalsList.filter(x=>x.parent_complex==='CHUAC')" :key="h.id" :value="h.id">{{ h.name }}</option>
+                                </optgroup>
+                                <optgroup label="SERGAS">
+                                    <option v-for="h in hospitalsList.filter(x=>x.parent_complex==='SERGAS')" :key="h.id" :value="h.id">{{ h.name }}</option>
+                                </optgroup>
+                                <optgroup label="External">
+                                    <option v-for="h in hospitalsList.filter(x=>x.parent_complex==='external')" :key="h.id" :value="h.id">{{ h.name }}</option>
+                                </optgroup>
+                            </select>
                             <select class="form-select" v-model="staffFilters.status">
                                 <option value="">All Status</option>
                                 <option value="active">Active</option>
@@ -712,10 +730,11 @@
                         <div class="table-responsive">
                             <table class="table table-striped table-staff">
                                 <colgroup>
-                                    <col style="width:22%"><!-- Name -->
-                                    <col style="width:16%"><!-- Type -->
-                                    <col style="width:18%"><!-- Department -->
-                                    <col style="width:24%"><!-- Rotation -->
+                                    <col style="width:21%"><!-- Name -->
+                                    <col style="width:13%"><!-- Type -->
+                                    <col style="width:13%"><!-- Department -->
+                                    <col style="width:13%"><!-- Hospital -->
+                                    <col style="width:20%"><!-- Rotation -->
                                     <col style="width:12%"><!-- Status -->
                                     <col style="width:8%"> <!-- Actions -->
                                 </colgroup>
@@ -724,6 +743,7 @@
                                         <th @click="sortBy('medical_staff', 'full_name')">Name <i class="fas" :class="sortIcon('medical_staff', 'full_name')"></i></th>
                                         <th @click="sortBy('medical_staff', 'staff_type')">Type <i class="fas" :class="sortIcon('medical_staff', 'staff_type')"></i></th>
                                         <th>Department</th>
+                                        <th>Hospital</th>
                                         <th>Current Rotation</th>
                                         <th @click="sortBy('medical_staff', 'employment_status')">Status <i class="fas" :class="sortIcon('medical_staff', 'employment_status')"></i></th>
                                         <th>Actions</th>
@@ -762,6 +782,19 @@
                                             <span v-else class="na-value">—</span>
                                         </td>
                                         <td>
+                                            <template v-if="staff.hospitals?.name || hospitalsList.find(h=>h.id===staff.hospital_id)?.name">
+                                                <div class="hospital-cell">
+                                                    <span class="hospital-network-dot" :class="{
+                                                        'hnd--chuac':    (staff.hospitals?.parent_complex || hospitalsList.find(h=>h.id===staff.hospital_id)?.parent_complex) === 'CHUAC',
+                                                        'hnd--sergas':   (staff.hospitals?.parent_complex || hospitalsList.find(h=>h.id===staff.hospital_id)?.parent_complex) === 'SERGAS',
+                                                        'hnd--external': (staff.hospitals?.parent_complex || hospitalsList.find(h=>h.id===staff.hospital_id)?.parent_complex) === 'external'
+                                                    }"></span>
+                                                    <span class="hospital-name-text">{{ staff.hospitals?.name || hospitalsList.find(h=>h.id===staff.hospital_id)?.name }}</span>
+                                                </div>
+                                            </template>
+                                            <span v-else class="na-value">—</span>
+                                        </td>
+                                        <td>
                                             <template v-if="staff.staff_type === 'attending_physician'">
                                                 <span class="na-value">—</span>
                                             </template>
@@ -784,14 +817,14 @@
                                         </td>
                                     </tr>
                                     <tr v-if="filteredMedicalStaff.length === 0">
-                                        <td colspan="6" class="empty-state">
+                                        <td colspan="7" class="empty-state">
                                             <i class="fas fa-user-md empty-state-icon"></i>
                                             <div class="empty-state-title">No medical staff found</div>
                                             <div class="empty-state-description">
-                                                <span v-if="staffFilters.search || staffFilters.staffType || staffFilters.department || staffFilters.status">No results match your filters — try clearing them</span>
+                                                <span v-if="staffFilters.search || staffFilters.staffType || staffFilters.department || staffFilters.status || staffFilters.hospital || staffFilters.networkType">No results match your filters — try clearing them</span>
                                                 <span v-else>Add your first staff member to get started</span>
                                             </div>
-                                            <button v-if="!staffFilters.search && !staffFilters.staffType && !staffFilters.department && !staffFilters.status && hasPermission('medical_staff', 'create')"
+                                            <button v-if="!staffFilters.search && !staffFilters.staffType && !staffFilters.department && !staffFilters.status && !staffFilters.hospital && hasPermission('medical_staff', 'create')"
                                                     class="btn btn-primary btn-sm" @click="showAddMedicalStaffModal">
                                                 <i class="fas fa-user-plus"></i> Add First Staff Member
                                             </button>
@@ -2291,6 +2324,14 @@
                             <i class="fas fa-hospital-alt"></i>
                             {{ getDepartmentName(staffProfileModal.staff.department_id) }}
                         </span>
+                        <span class="pd-pill pd-pill--hospital" v-if="staffProfileModal.staff.hospitals?.name || hospitalsList.find(h=>h.id===staffProfileModal.staff.hospital_id)?.name">
+                            <span class="hns-dot" :class="{
+                                'hns-dot--chuac':    (staffProfileModal.staff.hospitals?.parent_complex || hospitalsList.find(h=>h.id===staffProfileModal.staff.hospital_id)?.parent_complex) === 'CHUAC',
+                                'hns-dot--sergas':   (staffProfileModal.staff.hospitals?.parent_complex || hospitalsList.find(h=>h.id===staffProfileModal.staff.hospital_id)?.parent_complex) === 'SERGAS',
+                                'hnd--external':     (staffProfileModal.staff.hospitals?.parent_complex || hospitalsList.find(h=>h.id===staffProfileModal.staff.hospital_id)?.parent_complex) === 'external'
+                            }"></span>
+                            {{ staffProfileModal.staff.hospitals?.name || hospitalsList.find(h=>h.id===staffProfileModal.staff.hospital_id)?.name }}
+                        </span>
                         <span class="pd-pill" :class="'pd-pill--' + staffProfileModal.staff.employment_status">
                             {{ formatEmploymentStatus(staffProfileModal.staff.employment_status) }}
                         </span>
@@ -2818,6 +2859,71 @@
                                 <label class="form-label">Medical License</label>
                                 <input type="text" class="form-control" v-model="medicalStaffModal.form.medical_license" placeholder="License number">
                             </div>
+
+                            <!-- Hospital Assignment — full width -->
+                            <div class="form-group col-span-2">
+                                <label class="form-label"><i class="fas fa-hospital" style="opacity:.55;margin-right:5px"></i>Hospital</label>
+                                <!-- Network type selector strip -->
+                                <div class="hospital-network-strip">
+                                    <label class="hns-option" :class="{ active: medicalStaffModal.form._networkHint === 'CHUAC' || hospitalsList.find(h=>h.id===medicalStaffModal.form.hospital_id)?.parent_complex === 'CHUAC' }">
+                                        <input type="radio" name="hns" value="CHUAC" @change="medicalStaffModal.form._networkHint = 'CHUAC'; medicalStaffModal.form.hospital_id = null">
+                                        <span class="hns-dot hns-dot--chuac"></span> CHUAC
+                                        <small style="opacity:.5;font-size:10px;margin-left:2px">A Coruña complex</small>
+                                    </label>
+                                    <label class="hns-option" :class="{ active: medicalStaffModal.form._networkHint === 'SERGAS' || hospitalsList.find(h=>h.id===medicalStaffModal.form.hospital_id)?.parent_complex === 'SERGAS' }">
+                                        <input type="radio" name="hns" value="SERGAS" @change="medicalStaffModal.form._networkHint = 'SERGAS'; medicalStaffModal.form.hospital_id = null">
+                                        <span class="hns-dot hns-dot--sergas"></span> SERGAS
+                                        <small style="opacity:.5;font-size:10px;margin-left:2px">Galician network</small>
+                                    </label>
+                                    <label class="hns-option" :class="{ active: medicalStaffModal.form._networkHint === 'external' || hospitalsList.find(h=>h.id===medicalStaffModal.form.hospital_id)?.parent_complex === 'external' }">
+                                        <input type="radio" name="hns" value="external" @change="medicalStaffModal.form._networkHint = 'external'; medicalStaffModal.form.hospital_id = null">
+                                        <span class="hns-dot hns-dot--external"></span> External
+                                        <small style="opacity:.5;font-size:10px;margin-left:2px">Outside SERGAS</small>
+                                    </label>
+                                </div>
+                                <!-- Hospital dropdown + inline add -->
+                                <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+                                    <select class="form-select" v-model="medicalStaffModal.form.hospital_id" style="flex:1">
+                                        <option :value="null">— select hospital —</option>
+                                        <template v-if="medicalStaffModal.form._networkHint">
+                                            <option v-for="h in hospitalsList.filter(x=>x.parent_complex===medicalStaffModal.form._networkHint)" :key="h.id" :value="h.id">{{ h.name }}</option>
+                                        </template>
+                                        <template v-else>
+                                            <optgroup label="CHUAC"><option v-for="h in hospitalsList.filter(x=>x.parent_complex==='CHUAC')" :key="h.id" :value="h.id">{{ h.name }}</option></optgroup>
+                                            <optgroup label="SERGAS"><option v-for="h in hospitalsList.filter(x=>x.parent_complex==='SERGAS')" :key="h.id" :value="h.id">{{ h.name }}</option></optgroup>
+                                            <optgroup label="External"><option v-for="h in hospitalsList.filter(x=>x.parent_complex==='external')" :key="h.id" :value="h.id">{{ h.name }}</option></optgroup>
+                                        </template>
+                                    </select>
+                                    <button type="button" class="btn btn-sm btn-outline" style="white-space:nowrap;flex-shrink:0"
+                                        @click="medicalStaffModal._addingHospital = !medicalStaffModal._addingHospital">
+                                        <i class="fas" :class="medicalStaffModal._addingHospital ? 'fa-times' : 'fa-plus'"></i>
+                                        {{ medicalStaffModal._addingHospital ? 'Cancel' : 'Add new' }}
+                                    </button>
+                                </div>
+                                <!-- Inline new hospital mini-form -->
+                                <div v-if="medicalStaffModal._addingHospital" class="inline-add-hospital">
+                                    <div class="iah-label">Register new hospital</div>
+                                    <div style="display:grid;grid-template-columns:1fr 140px auto;gap:8px;align-items:end">
+                                        <div class="form-group" style="margin:0">
+                                            <label class="form-label" style="font-size:11px">Name *</label>
+                                            <input type="text" class="form-control" v-model="medicalStaffModal._newHospitalName" placeholder="e.g. Hospital Santa María">
+                                        </div>
+                                        <div class="form-group" style="margin:0">
+                                            <label class="form-label" style="font-size:11px">Network</label>
+                                            <select class="form-select" v-model="medicalStaffModal._newHospitalNetwork">
+                                                <option value="CHUAC">CHUAC</option>
+                                                <option value="SERGAS">SERGAS</option>
+                                                <option value="external">External</option>
+                                            </select>
+                                        </div>
+                                        <button type="button" class="btn btn-primary btn-sm" style="height:36px"
+                                            @click="addHospitalInline(medicalStaffModal._newHospitalName, medicalStaffModal._newHospitalNetwork).then(h => { if(h){ medicalStaffModal.form.hospital_id = h.id; medicalStaffModal.form._networkHint = h.parent_complex; medicalStaffModal._addingHospital = false; medicalStaffModal._newHospitalName = ''; } })">
+                                            <i class="fas fa-save"></i> Save
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
 
