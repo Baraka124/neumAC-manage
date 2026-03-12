@@ -195,6 +195,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // ============ 3.1 RESIDENT FORMATTING ============
       
+      // Compute effective R-year: override wins over system-calc, system-calc over legacy training_year
+      static effectiveResidentYear(staff) {
+        if (staff.residency_year_override) return staff.residency_year_override
+        if (staff.residency_year_calc) return staff.residency_year_calc
+        // fallback: map legacy PGY- values
+        const t = staff.training_year
+        if (!t) return null
+        const map = { 'PGY-1':'R1','PGY-2':'R2','PGY-3':'R3','PGY-4':'R4','PGY-5':'R4+' }
+        return map[t] || t
+      }
+
       static formatTrainingYear(year) {
         if (!year && year !== 0) return null;
         const yearStr = String(year).trim();
@@ -625,6 +636,18 @@ document.addEventListener('DOMContentLoaded', () => {
       async updateStaffType(id, data) { this.invalidate('/api/staff-types'); return this.request(`/api/staff-types/${id}`, { method: 'PUT', body: data }) }
       async deleteStaffType(id) { this.invalidate('/api/staff-types'); return this.request(`/api/staff-types/${id}`, { method: 'DELETE' }) }
 
+      // ── Academic Degrees ─────────────────────────────────────────────────
+      async getAcademicDegrees() { return this.getList('/api/academic-degrees') }
+      async createAcademicDegree(d) { this.invalidate('/api/academic-degrees'); return this.request('/api/academic-degrees', { method: 'POST', body: d }) }
+      async updateAcademicDegree(id, d) { this.invalidate('/api/academic-degrees'); return this.request(`/api/academic-degrees/${id}`, { method: 'PUT', body: d }) }
+      async deleteAcademicDegree(id) { this.invalidate('/api/academic-degrees'); return this.request(`/api/academic-degrees/${id}`, { method: 'DELETE' }) }
+
+      // ── Staff Certificates ───────────────────────────────────────────────
+      async getStaffCertificates(staffId) { return this.getList(`/api/medical-staff/${staffId}/certificates`) }
+      async createStaffCertificate(staffId, d) { return this.request(`/api/medical-staff/${staffId}/certificates`, { method: 'POST', body: d }) }
+      async updateStaffCertificate(staffId, certId, d) { return this.request(`/api/medical-staff/${staffId}/certificates/${certId}`, { method: 'PUT', body: d }) }
+      async deleteStaffCertificate(staffId, certId) { return this.request(`/api/medical-staff/${staffId}/certificates/${certId}`, { method: 'DELETE' }) }
+
       async getDepartments() { return this.getList('/api/departments') }
       async getAllDepartments() { return this.getList('/api/departments?include_inactive=true') }
       async getDepartmentImpact(id) { return this.request(`/api/departments/${id}/impact`) }
@@ -987,6 +1010,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const medicalStaffModal = reactive({
         show: false, mode: 'add', activeTab: 'basic',
         _addingHospital: false, _newHospitalName: '', _newHospitalNetwork: 'external',
+        _certs: [], _addingCert: false, _newCert: { name:'', issued_month:'', renewal_months: 24 },
         _addingStaffType: false, _newStaffTypeName: '', _newStaffTypeIsResident: false, _savingStaffType: false,
         form: { 
           full_name: '', staff_type: 'medical_resident', staff_id: '', employment_status: 'active', 
@@ -995,6 +1019,9 @@ document.addEventListener('DOMContentLoaded', () => {
           mobile_phone: '', medical_license: '', can_supervise_residents: false, special_notes: '',
           can_be_pi: false, can_be_coi: false, other_certificate: '',
           resident_category: null, home_department: null, external_institution: null,
+          home_department_id: null, external_contact_name: null, external_contact_email: null, external_contact_phone: null,
+          academic_degree_id: null, has_medical_license: false,
+          residency_start_date: null, residency_year_override: null,
           is_chief_of_department: false, is_research_coordinator: false, 
           is_resident_manager: false, is_oncall_manager: false, clinical_study_certificates: [],
           hospital_id: null, _networkHint: null
@@ -1093,6 +1120,7 @@ document.addEventListener('DOMContentLoaded', () => {
           })
           // Refresh the global staff types list + map
           await loadStaffTypes()
+          await loadAcademicDegrees()
           // Auto-select the newly created type
           medicalStaffModal.form.staff_type = typeKey
           // Reset inline form
@@ -1125,11 +1153,43 @@ document.addEventListener('DOMContentLoaded', () => {
           mobile_phone: '', medical_license: '', can_supervise_residents: false, special_notes: '',
           can_be_pi: false, can_be_coi: false, other_certificate: '',
           resident_category: null, home_department: null, external_institution: null,
+          home_department_id: null, external_contact_name: null, external_contact_email: null, external_contact_phone: null,
+          academic_degree_id: null, has_medical_license: false,
+          residency_start_date: null, residency_year_override: null,
           is_chief_of_department: false, is_research_coordinator: false, 
           is_resident_manager: false, is_oncall_manager: false, clinical_study_certificates: [],
           hospital_id: null, _networkHint: null
         })
         medicalStaffModal.show = true
+      }
+
+      const loadStaffCertificates = async (staffId) => {
+        try {
+          medicalStaffModal._certs = await API.getStaffCertificates(staffId)
+        } catch { medicalStaffModal._certs = [] }
+      }
+
+      const saveCertificate = async () => {
+        const c = medicalStaffModal._newCert
+        if (!c.name?.trim()) return
+        try {
+          await API.createStaffCertificate(medicalStaffModal.form.id, {
+            certificate_name: c.name.trim(),
+            issued_date: c.issued_month ? c.issued_month + '-01' : null,
+            renewal_months: c.renewal_months || 24
+          })
+          medicalStaffModal._addingCert = false
+          await loadStaffCertificates(medicalStaffModal.form.id)
+          showToast('Saved', 'Certificate added', 'success')
+        } catch (e) { showToast('Error', e?.message || 'Failed to save certificate', 'error') }
+      }
+
+      const deleteCertificate = async (cert) => {
+        try {
+          await API.deleteStaffCertificate(medicalStaffModal.form.id, cert.id)
+          await loadStaffCertificates(medicalStaffModal.form.id)
+          showToast('Removed', 'Certificate removed', 'success')
+        } catch (e) { showToast('Error', e?.message || 'Failed to remove certificate', 'error') }
       }
 
       const editMedicalStaff = (staff) => {
@@ -1266,8 +1326,9 @@ document.addEventListener('DOMContentLoaded', () => {
         staffFilters, staffProfileModal, medicalStaffModal,
         filteredMedicalStaff, filteredMedicalStaffAll, staffTotalPages,
         loadMedicalStaff, loadHospitals, addHospitalInline,
+        loadStaffCertificates, saveCertificate, deleteCertificate,
         showAddMedicalStaffModal, editMedicalStaff, saveMedicalStaff, deactivateStaffMember,
-        formatTrainingYear: Utils.formatTrainingYear, formatSpecialization: Utils.formatSpecialization,
+        formatTrainingYear: Utils.formatTrainingYear, formatSpecialization: Utils.formatSpecialization, effectiveResidentYear: Utils.effectiveResidentYear,
         formatPhone: Utils.formatPhone, formatLicense: Utils.formatLicense,
         getResidentCategoryInfo: Utils.getResidentCategoryInfo, formatResidentCategorySimple: Utils.formatResidentCategorySimple,
         formatResidentCategoryDetailed: Utils.formatResidentCategoryDetailed, getResidentCategoryIcon: Utils.getResidentCategoryIcon,
@@ -3426,6 +3487,12 @@ document.addEventListener('DOMContentLoaded', () => {
           } catch { console.error('Failed to load staff types') }
         }
 
+        // ── Academic Degrees ────────────────────────────────────────────────
+        const loadAcademicDegrees = async () => {
+          try { academicDegrees.value = await API.getAcademicDegrees() }
+          catch { console.error('Failed to load academic degrees') }
+        }
+
         // Staff Types manager modal (lives in System Settings)
         const staffTypeModal = reactive({
           show: false, mode: 'add',
@@ -3486,6 +3553,7 @@ document.addEventListener('DOMContentLoaded', () => {
           try {
             // Load staff types FIRST — all dropdowns depend on them
             await loadStaffTypes()
+          await loadAcademicDegrees()
             await Promise.all([staffOps.loadMedicalStaff(), loadDepartments(), loadTrainingUnits()])
             await Promise.all([rotationOps.loadRotations(), onCallOps.loadOnCallSchedule(), absenceOps.loadAbsences()])
             updateDashboardStats()
@@ -3532,7 +3600,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ...onCallOps,
           ...rotationOps,
           ...absenceOps,
-          formatTrainingYear: Utils.formatTrainingYear, formatSpecialization: Utils.formatSpecialization,
+          formatTrainingYear: Utils.formatTrainingYear, formatSpecialization: Utils.formatSpecialization, effectiveResidentYear: Utils.effectiveResidentYear,
           formatPhone: Utils.formatPhone, formatLicense: Utils.formatLicense,
           getResidentCategoryInfo: Utils.getResidentCategoryInfo, formatResidentCategorySimple: Utils.formatResidentCategorySimple,
           formatResidentCategoryDetailed: Utils.formatResidentCategoryDetailed, getResidentCategoryIcon: Utils.getResidentCategoryIcon,
@@ -3559,7 +3627,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ...dashOps,
           handleLogin, handleLogout,
           switchView, toggleStatsSidebar, handleGlobalSearch, globalSearchResults, clearSearch,
-          staffTypesList, staffTypeMap, formatStaffTypeGlobal, getStaffTypeClassGlobal, isResidentType,
+          staffTypesList, staffTypeMap, academicDegrees, loadAcademicDegrees, formatStaffTypeGlobal, getStaffTypeClassGlobal, isResidentType,
           staffTypeModal, openAddStaffType, openEditStaffType, saveStaffType, deleteStaffType, toggleStaffTypeActive, loadStaffTypes,
           searchResultsOpen: ui.searchResultsOpen,
           sortState, sortBy, sortIcon, pagination,
