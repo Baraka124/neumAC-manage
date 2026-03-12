@@ -1515,39 +1515,117 @@
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </select>
+                            <!-- View mode toggle -->
+                            <div class="tuc-view-toggle">
+                                <button class="tuc-view-btn" :class="{ active: trainingUnitView === 'timeline' }"
+                                        @click="trainingUnitView = 'timeline'" title="Timeline view">
+                                    <i class="fas fa-stream"></i>
+                                </button>
+                                <button class="tuc-view-btn" :class="{ active: trainingUnitView === 'detail' }"
+                                        @click="trainingUnitView = 'detail'" title="Detail view">
+                                    <i class="fas fa-list-ul"></i>
+                                </button>
+                            </div>
+                            <!-- Horizon selector for timeline view -->
+                            <div v-if="trainingUnitView === 'timeline'" class="tuc-horizon-row">
+                                <span class="tuc-horizon-label">Showing</span>
+                                <button v-for="m in [3,6,12]" :key="m"
+                                        class="tuc-horizon-btn"
+                                        :class="{ active: trainingUnitHorizon === m }"
+                                        @click="trainingUnitHorizon = m">{{ m }}mo</button>
+                            </div>
                         </div>
                         <div class="training-units-grid">
-                            <div v-for="unit in filteredTrainingUnits" :key="unit.id" class="tuc" :class="{ 'tuc--full': getUnitActiveRotationCount(unit.id) >= unit.maximum_residents, 'tuc--warn': getUnitActiveRotationCount(unit.id) / unit.maximum_residents > 0.75 && getUnitActiveRotationCount(unit.id) < unit.maximum_residents, 'tuc--active': getUnitActiveRotationCount(unit.id) > 0 && getUnitActiveRotationCount(unit.id) / unit.maximum_residents <= 0.75 }">
-                                <!-- Card top: name + status -->
+                            <div v-for="unit in filteredTrainingUnits" :key="unit.id"
+                                 class="tuc"
+                                 :class="{
+                                   'tuc--full':   getUnitActiveRotationCount(unit.id) >= unit.maximum_residents,
+                                   'tuc--warn':   getUnitActiveRotationCount(unit.id) / unit.maximum_residents > 0.75 && getUnitActiveRotationCount(unit.id) < unit.maximum_residents,
+                                   'tuc--active': getUnitActiveRotationCount(unit.id) > 0 && getUnitActiveRotationCount(unit.id) / unit.maximum_residents <= 0.75,
+                                   'tuc--timeline-mode': trainingUnitView === 'timeline'
+                                 }">
+
+                                <!-- ── HEADER (both modes) ── -->
                                 <div class="tuc-head">
                                     <div class="tuc-name-row">
                                         <i class="fas fa-clinic-medical tuc-icon"></i>
-                                        <div class="tuc-name">{{ unit.unit_name }}</div>
+                                        <div>
+                                            <div class="tuc-name">{{ unit.unit_name }}</div>
+                                            <div class="tuc-sub">{{ getDepartmentName(unit.department_id) || '—' }}<span v-if="unit.specialty"> · {{ unit.specialty }}</span></div>
+                                        </div>
                                     </div>
-                                    <span class="status-indicator" :class="'status-' + unit.unit_status">{{ unit.unit_status }}</span>
-                                </div>
-
-                                <!-- Meta row: dept + specialty -->
-                                <div class="tuc-meta">
-                                    <span class="tuc-meta-item"><i class="fas fa-sitemap"></i>{{ getDepartmentName(unit.department_id) || '—' }}</span>
-                                    <span v-if="unit.specialty" class="tuc-meta-item"><i class="fas fa-stethoscope"></i>{{ unit.specialty }}</span>
-                                </div>
-
-                                <!-- Occupancy — slot-by-slot timeline -->
-                                <div class="tuc-occupancy">
-                                    <div class="tuc-occ-row">
-                                        <span class="tuc-occ-label">Capacity</span>
-                                        <span class="tuc-occ-count"
+                                    <div class="tuc-head-right">
+                                        <span class="tuc-cap-pill"
                                               :class="{
-                                                'tuc-occ-full': getUnitActiveRotationCount(unit.id) >= unit.maximum_residents,
-                                                'tuc-occ-warn': getUnitActiveRotationCount(unit.id) / unit.maximum_residents > 0.75 && getUnitActiveRotationCount(unit.id) < unit.maximum_residents
+                                                'tuc-cap-pill--full': getUnitActiveRotationCount(unit.id) >= unit.maximum_residents,
+                                                'tuc-cap-pill--warn': getUnitActiveRotationCount(unit.id) / unit.maximum_residents > 0.75 && getUnitActiveRotationCount(unit.id) < unit.maximum_residents,
+                                                'tuc-cap-pill--free': getUnitActiveRotationCount(unit.id) === 0
                                               }">
-                                            {{ getUnitActiveRotationCount(unit.id) }}<span class="tuc-occ-max">/{{ unit.maximum_residents }}</span>
+                                            {{ getUnitActiveRotationCount(unit.id) }}/{{ unit.maximum_residents }}
                                         </span>
+                                        <span class="status-indicator" :class="'status-' + unit.unit_status">{{ unit.unit_status }}</span>
                                     </div>
-                                    <!-- Slot list: one row per slot up to maximum_residents -->
+                                </div>
+
+                                <!-- ══════════════════════════════════════
+                                     TIMELINE VIEW — month strip per slot
+                                     ══════════════════════════════════════ -->
+                                <div v-if="trainingUnitView === 'timeline'" class="tuc-timeline-body">
+
+                                    <!-- Month header labels -->
+                                    <div class="tuc-tl-header">
+                                        <div class="tuc-tl-slot-label"></div>
+                                        <div class="tuc-tl-months">
+                                            <div v-for="m in getTimelineMonths(trainingUnitHorizon)" :key="m.key"
+                                                 class="tuc-tl-month-label"
+                                                 :class="{ 'tuc-tl-month-label--current': m.isCurrent }">
+                                                {{ m.label }}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- One row per slot -->
+                                    <div v-for="(slot, si) in getUnitSlots(unit.id, unit.maximum_residents, trainingUnitHorizon)"
+                                         :key="si" class="tuc-tl-row">
+                                        <!-- Slot label: resident initials or slot number -->
+                                        <div class="tuc-tl-slot-label">
+                                            <span v-if="slot.residentId"
+                                                  class="tuc-tl-avatar"
+                                                  :title="slot.residentName">
+                                                {{ slot.initials }}
+                                            </span>
+                                            <span v-else class="tuc-tl-slot-num">{{ si + 1 }}</span>
+                                        </div>
+                                        <!-- Month blocks -->
+                                        <div class="tuc-tl-months">
+                                            <div v-for="m in slot.months" :key="m.key"
+                                                 class="tuc-tl-cell"
+                                                 :class="{
+                                                   'tuc-tl-cell--occupied':  m.status === 'occupied',
+                                                   'tuc-tl-cell--partial':   m.status === 'partial',
+                                                   'tuc-tl-cell--free':      m.status === 'free',
+                                                   'tuc-tl-cell--current':   m.isCurrent
+                                                 }"
+                                                 :title="m.tooltip">
+                                                <span v-if="m.status === 'occupied' && m.showName" class="tuc-tl-cell-name">{{ slot.initials }}</span>
+                                                <span v-if="m.status === 'free' && m.isCurrent" class="tuc-tl-cell-free">✓</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Legend -->
+                                    <div class="tuc-tl-legend">
+                                        <span class="tuc-tl-leg-item"><span class="tuc-tl-leg-dot tuc-tl-leg-dot--occupied"></span>Occupied</span>
+                                        <span class="tuc-tl-leg-item"><span class="tuc-tl-leg-dot tuc-tl-leg-dot--partial"></span>Partial</span>
+                                        <span class="tuc-tl-leg-item"><span class="tuc-tl-leg-dot tuc-tl-leg-dot--free"></span>Available</span>
+                                    </div>
+                                </div>
+
+                                <!-- ══════════════════════════════════════
+                                     DETAIL VIEW — slot list with dates
+                                     ══════════════════════════════════════ -->
+                                <div v-if="trainingUnitView === 'detail'" class="tuc-occupancy">
                                     <div class="tuc-slots">
-                                        <!-- Occupied slots -->
                                         <div v-for="rot in getUnitRotations(unit.id)" :key="rot.id" class="tuc-slot tuc-slot--occupied">
                                             <span class="tuc-slot-dot tuc-slot-dot--active"></span>
                                             <span class="tuc-slot-name">{{ getResidentShortName(rot.resident_id) }}</span>
@@ -1556,12 +1634,16 @@
                                                 →
                                                 {{ new Date(rot.end_date).toLocaleDateString('es-ES', {day:'2-digit',month:'short'}) }}
                                             </span>
+                                            <!-- "Free from" chip if ending within 60 days -->
+                                            <span v-if="getDaysUntilFree(rot.end_date) <= 60 && getDaysUntilFree(rot.end_date) > 0"
+                                                  class="tuc-free-soon">
+                                                Free in {{ getDaysUntilFree(rot.end_date) }}d
+                                            </span>
                                         </div>
-                                        <!-- Free slots -->
                                         <div v-for="i in Math.max(0, unit.maximum_residents - getUnitActiveRotationCount(unit.id))"
                                              :key="'free-' + i" class="tuc-slot tuc-slot--free">
                                             <span class="tuc-slot-dot tuc-slot-dot--free"></span>
-                                            <span class="tuc-slot-name tuc-slot-available">Available slot</span>
+                                            <span class="tuc-slot-name tuc-slot-available">Available now</span>
                                         </div>
                                     </div>
                                     <div class="tuc-occ-bar">
@@ -1575,7 +1657,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Supervisor chip -->
+                                <!-- Supervisor -->
                                 <div class="tuc-supervisor" v-if="unit.supervising_attending_id">
                                     <i class="fas fa-user-md"></i>
                                     <span>{{ getSupervisorName(unit.supervising_attending_id) }}</span>
