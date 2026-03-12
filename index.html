@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>neumAC | Pulmonology Management System</title>
+    <title>neuMAC | Pulmonology Management System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
@@ -12,7 +12,7 @@
 <body>
 <div id="app" v-cloak>
 
-    <!-- ============ TOAST CONTAINER ==-=--=--======= -->
+    <!-- ============ TOAST CONTAINER ==-=-=--======= -->
     <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
              :class="['toast', `toast-${toast.type}`]"
@@ -3307,7 +3307,15 @@
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Medical License</label>
-                                <input type="text" class="form-control" v-model="medicalStaffModal.form.medical_license" placeholder="License number">
+                                <label class="license-toggle">
+                                    <input type="checkbox" v-model="medicalStaffModal.form.has_medical_license">
+                                    <span class="license-toggle-track">
+                                        <span class="license-toggle-thumb"></span>
+                                    </span>
+                                    <span class="license-toggle-label">
+                                        {{ medicalStaffModal.form.has_medical_license ? 'Licensed' : 'Not licensed' }}
+                                    </span>
+                                </label>
                             </div>
 
                             <!-- Hospital Assignment — full width -->
@@ -3380,21 +3388,70 @@
                     <!-- Professional Tab -->
                     <div v-if="medicalStaffModal.activeTab === 'professional'" class="mt-6">
                         <div class="grid grid-cols-2 gap-4">
+                            <!-- Academic Degree — from DB, user-configurable -->
                             <div class="form-group">
                                 <label class="form-label">Academic Degree</label>
-                                <select class="form-select" v-model="medicalStaffModal.form.academic_degree">
+                                <select class="form-select" v-model="medicalStaffModal.form.academic_degree_id">
                                     <option value="">Select Degree</option>
-                                    <option value="MD">MD</option><option value="MD-PhD">MD-PhD</option><option value="MD-MSc">MD-MSc</option><option value="DO">DO</option><option value="MBBS">MBBS</option>
+                                    <option v-for="d in academicDegrees" :key="d.id" :value="d.id">
+                                        {{ d.name }}{{ d.abbreviation ? ' (' + d.abbreviation + ')' : '' }}
+                                    </option>
                                 </select>
                             </div>
                             <div class="form-group"><label class="form-label">Specialization</label><input type="text" class="form-control" v-model="medicalStaffModal.form.specialization"></div>
 
+                            <!-- Residency dates — residents only -->
                             <div v-if="isResidentType(medicalStaffModal.form.staff_type)" class="form-group">
-                                <label class="form-label">Resident Year</label>
-                                <select class="form-select" v-model="medicalStaffModal.form.training_year">
-                                    <option value="">Select Year</option>
-                                    <option value="PGY-1">PGY-1</option><option value="PGY-2">PGY-2</option><option value="PGY-3">PGY-3</option><option value="PGY-4">PGY-4</option><option value="PGY-5">PGY-5</option>
-                                </select>
+                                <label class="form-label">
+                                    Residency Start
+                                    <span class="form-hint">— month &amp; year only, day set to 1st</span>
+                                </label>
+                                <input type="month" class="form-control"
+                                       :value="medicalStaffModal.form.residency_start_date ? medicalStaffModal.form.residency_start_date.slice(0,7) : ''"
+                                       @change="e => medicalStaffModal.form.residency_start_date = e.target.value ? e.target.value + '-01' : null">
+                            </div>
+
+                            <!-- R-year: auto-calculated preview + optional override -->
+                            <div v-if="isResidentType(medicalStaffModal.form.staff_type)" class="form-group">
+                                <label class="form-label">
+                                    Resident Year
+                                    <span v-if="medicalStaffModal.form.residency_start_date && !medicalStaffModal.form.residency_year_override"
+                                          class="form-hint form-hint--auto">— auto-calculated</span>
+                                    <span v-else-if="medicalStaffModal.form.residency_year_override"
+                                          class="form-hint form-hint--override">— manually set</span>
+                                </label>
+                                <!-- Show auto-calc as read-only chip when no override -->
+                                <div v-if="medicalStaffModal.form.residency_start_date && !medicalStaffModal.form.residency_year_override"
+                                     class="ryear-auto-row">
+                                    <span class="ryear-chip">{{ effectiveResidentYear(medicalStaffModal.form) || '—' }}</span>
+                                    <button type="button" class="ryear-override-btn"
+                                            @click="medicalStaffModal.form.residency_year_override = Utils.effectiveResidentYear(medicalStaffModal.form) || 'R1'">
+                                        <i class="fas fa-pen"></i> Override
+                                    </button>
+                                </div>
+                                <!-- Manual select (override or no start date) -->
+                                <div v-else class="ryear-auto-row">
+                                    <select class="form-select" v-model="medicalStaffModal.form.residency_year_override" style="flex:1">
+                                        <option value="">Select year…</option>
+                                        <option value="R1">R1</option>
+                                        <option value="R2">R2</option>
+                                        <option value="R3">R3</option>
+                                        <option value="R4">R4</option>
+                                        <option value="R4+">R4+</option>
+                                    </select>
+                                    <button v-if="medicalStaffModal.form.residency_start_date && medicalStaffModal.form.residency_year_override"
+                                            type="button" class="ryear-override-btn ryear-override-btn--clear"
+                                            @click="medicalStaffModal.form.residency_year_override = null"
+                                            title="Remove override — use auto-calculated value">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <!-- End date preview -->
+                                <div v-if="medicalStaffModal.form.residency_start_date" class="ryear-end-preview">
+                                    <i class="fas fa-calendar-check"></i>
+                                    Est. completion:
+                                    {{ new Date(new Date(medicalStaffModal.form.residency_start_date).setMonth(new Date(medicalStaffModal.form.residency_start_date).getMonth() + 48)).toLocaleDateString('es-ES', {month:'long', year:'numeric'}) }}
+                                </div>
                             </div>
 
                             <div v-if="isResidentType(medicalStaffModal.form.staff_type)" class="form-group col-span-2">
@@ -3442,15 +3499,54 @@
                                 </div>
                             </div>
 
-                            <div class="form-group"><label class="form-label">Clinical Certificate</label><input type="text" class="form-control" v-model="medicalStaffModal.form.clinical_certificate"></div>
-                            <div class="form-group">
-                                <label class="form-label">Certificate Status</label>
-                                <select class="form-select" v-model="medicalStaffModal.form.certificate_status">
-                                    <option value="current">Current</option><option value="expired">Expired</option>
-                                </select>
+                            <!-- Clinical Certificates — multi-entry, managed after save -->
+                            <div class="form-group col-span-2">
+                                <label class="form-label">
+                                    Clinical Certificates
+                                    <span class="form-hint">— add, edit and track validity after saving the staff record</span>
+                                </label>
+                                <div v-if="medicalStaffModal.mode === 'edit' && medicalStaffModal.form.id" class="cert-list-inline">
+                                    <div v-if="medicalStaffModal._certs && medicalStaffModal._certs.length > 0"
+                                         v-for="cert in medicalStaffModal._certs" :key="cert.id"
+                                         class="cert-row-inline">
+                                        <span class="cert-row-dot"
+                                              :class="cert.expiry_date && new Date(cert.expiry_date) < new Date() ? 'cert-dot--expired' : 'cert-dot--ok'"></span>
+                                        <span class="cert-row-name">{{ cert.certificate_name }}</span>
+                                        <span class="cert-row-dates" v-if="cert.expiry_date">
+                                            exp. {{ new Date(cert.expiry_date).toLocaleDateString('es-ES', {month:'short', year:'numeric'}) }}
+                                        </span>
+                                        <button type="button" class="cert-row-del" @click="deleteCertificate(cert)"
+                                                title="Remove certificate"><i class="fas fa-times"></i></button>
+                                    </div>
+                                    <div v-else class="cert-empty">No certificates recorded yet</div>
+                                    <!-- Add new certificate inline -->
+                                    <div class="cert-add-row" v-if="medicalStaffModal._addingCert">
+                                        <input type="text" class="form-control cert-add-name"
+                                               v-model="medicalStaffModal._newCert.name"
+                                               placeholder="Certificate name (e.g. BLS, GCP ICH E6)">
+                                        <input type="month" class="form-control cert-add-date"
+                                               v-model="medicalStaffModal._newCert.issued_month"
+                                               title="Issue date">
+                                        <select class="form-select cert-add-renewal" v-model="medicalStaffModal._newCert.renewal_months">
+                                            <option :value="12">1 yr</option>
+                                            <option :value="24">2 yr</option>
+                                            <option :value="36">3 yr</option>
+                                            <option :value="60">5 yr</option>
+                                        </select>
+                                        <button type="button" class="btn-pill btn-pill-save" @click="saveCertificate()">Save</button>
+                                        <button type="button" class="btn-pill" @click="medicalStaffModal._addingCert = false">Cancel</button>
+                                    </div>
+                                    <button v-else type="button" class="cert-add-trigger"
+                                            @click="medicalStaffModal._addingCert = true; medicalStaffModal._newCert = { name:'', issued_month:'', renewal_months: 24 }">
+                                        <i class="fas fa-plus-circle"></i> Add Certificate
+                                    </button>
+                                </div>
+                                <div v-else class="cert-empty">Save the staff record first to manage certificates</div>
                             </div>
 
-                            <div class="form-group col-span-2">
+                            <!-- Research Capabilities — role-aware: hidden for residents -->
+                            <div class="form-group col-span-2"
+                                 v-if="!isResidentType(medicalStaffModal.form.staff_type)">
                                 <label class="form-label">Research Capabilities</label>
                                 <div class="capabilities-grid">
                                     <label class="capability-check">
@@ -3463,7 +3559,7 @@
                                     </label>
                                     <label class="capability-check">
                                         <input type="checkbox" v-model="medicalStaffModal.form.can_supervise_residents">
-                                        <span>Can supervise residents in research</span>
+                                        <span>Can supervise residents</span>
                                     </label>
                                 </div>
                             </div>
