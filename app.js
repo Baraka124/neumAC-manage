@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
       CACHE_TTL: 300000
     }
 
-    // ============- 2. CONSTANTS ====---========
+    // ============ 2. CONSTANTS ====-========
     const ROLES = {
       ADMIN: 'system_admin',
       HEAD: 'department_head',
@@ -3196,7 +3196,9 @@ document.addEventListener('DOMContentLoaded', () => {
           filteredTrainingUnits, getUnitActiveRotationCount, getUnitRotations, getResidentShortName,
           loadTrainingUnits, showAddTrainingUnitModal,
           editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians,
-          viewUnitResidents, saveTrainingUnit } = useTrainingUnits({
+          viewUnitResidents, saveTrainingUnit,
+          trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree
+        } = useTrainingUnits({
           showToast, showConfirmation, rotations, allStaffLookup
         })
 
