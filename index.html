@@ -121,20 +121,13 @@
                 </div>
 
                 <button class="lc-submit" @click="handleLogin" :disabled="loginLoading">
-                    <span v-if="loginLoading">
-                        <i class="fas fa-spinner fa-spin"></i>&nbsp; Authenticating…
-                    </span>
-                    <span v-else>
-                        Sign in &nbsp;<i class="fas fa-arrow-right"></i>
-                    </span>
+                    <i v-if="loginLoading" class="fas fa-spinner fa-spin"></i>
+                    <span>{{ loginLoading ? 'Authenticating…' : 'Sign in' }}</span>
+                    <i v-if="!loginLoading" class="fas fa-arrow-right lc-submit-arrow"></i>
                 </button>
             </div>
 
-            <!-- Demo hint -->
-            <div class="lc-hint">
-                <i class="fas fa-circle-info"></i>
-                Demo: <strong>admin@neumocare.org</strong> / any password
-            </div>
+
 
         </div><!-- /login-card -->
     </div>
