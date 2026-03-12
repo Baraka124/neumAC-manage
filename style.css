@@ -1,4 +1,107 @@
 /* ═══════════════════════════════════════════════════════════════
+   RESIDENCY YEAR — auto/override display
+═══════════════════════════════════════════════════════════════ */
+.form-hint { font-size: 10.5px; color: var(--text-3); font-weight: 400; margin-left: 4px; }
+.form-hint--auto     { color: #0d9e6e; }
+.form-hint--override { color: #d97706; }
+
+.ryear-auto-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.ryear-chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 48px; height: 34px; padding: 0 12px;
+  background: rgba(45,122,255,.1); border: 1px solid rgba(45,122,255,.25);
+  border-radius: 8px; font-size: 15px; font-weight: 700; color: var(--blue);
+  letter-spacing: .02em;
+}
+.ryear-override-btn {
+  padding: 5px 10px; border-radius: 7px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text-2);
+  font-size: 11px; cursor: pointer; transition: var(--t);
+  display: flex; align-items: center; gap: 5px;
+}
+.ryear-override-btn:hover { background: var(--blue-lt); color: var(--blue); border-color: var(--blue); }
+.ryear-override-btn--clear { color: #ef4444; border-color: rgba(239,68,68,.3); }
+.ryear-override-btn--clear:hover { background: rgba(239,68,68,.1); border-color: #ef4444; }
+.ryear-end-preview {
+  margin-top: 6px; font-size: 11px; color: var(--text-3);
+  display: flex; align-items: center; gap: 5px;
+}
+.ryear-end-preview i { color: #0d9e6e; }
+
+/* ═══════════════════════════════════════════════════════════════
+   MEDICAL LICENSE TOGGLE
+═══════════════════════════════════════════════════════════════ */
+.license-toggle {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  padding: 8px 0;
+}
+.license-toggle input { display: none; }
+.license-toggle-track {
+  width: 40px; height: 22px; border-radius: 11px;
+  background: var(--border); position: relative;
+  transition: background var(--t);
+  flex-shrink: 0;
+}
+.license-toggle input:checked ~ .license-toggle-track { background: #0d9e6e; }
+.license-toggle-thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; transition: transform var(--t);
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+.license-toggle input:checked ~ .license-toggle-track .license-toggle-thumb {
+  transform: translateX(18px);
+}
+.license-toggle-label { font-size: 13px; color: var(--text-1); font-weight: 500; }
+
+/* ═══════════════════════════════════════════════════════════════
+   INLINE CERTIFICATE LIST
+═══════════════════════════════════════════════════════════════ */
+.cert-list-inline {
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 8px; border: 1px solid var(--border);
+  border-radius: 10px; background: var(--surface-2);
+}
+.cert-row-inline {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 7px;
+  background: var(--surface); border: 1px solid var(--border);
+  font-size: 12.5px;
+}
+.cert-row-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.cert-dot--ok      { background: #0d9e6e; box-shadow: 0 0 4px rgba(13,158,110,.4); }
+.cert-dot--expired { background: #ef4444; box-shadow: 0 0 4px rgba(239,68,68,.4); }
+.cert-row-name { flex: 1; font-weight: 600; color: var(--text-1); }
+.cert-row-dates { font-size: 11px; color: var(--text-3); font-family: var(--font-data); }
+.cert-row-del {
+  width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0;
+  border: none; background: transparent; color: var(--text-3);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; transition: var(--t);
+}
+.cert-row-del:hover { background: rgba(239,68,68,.1); color: #ef4444; }
+.cert-empty { font-size: 12px; color: var(--text-3); font-style: italic; padding: 4px 4px; }
+.cert-add-row {
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  padding: 6px; border-radius: 8px;
+  border: 1px dashed var(--blue); background: rgba(45,122,255,.03);
+}
+.cert-add-name    { flex: 2; min-width: 160px; font-size: 12px; }
+.cert-add-date    { flex: 1; min-width: 120px; font-size: 12px; }
+.cert-add-renewal { flex: 0 0 70px; font-size: 12px; }
+.cert-add-trigger {
+  width: 100%; padding: 6px; border: 1px dashed var(--border);
+  border-radius: 7px; background: transparent; color: var(--text-3);
+  font-size: 12px; cursor: pointer; transition: var(--t);
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.cert-add-trigger:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
+
+/* ═══════════════════════════════════════════════════════════════
    DEPARTMENT CARDS — redesigned with contact + resident stats + unit occupancy
 ═══════════════════════════════════════════════════════════════ */
 .departments-grid {
