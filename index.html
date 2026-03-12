@@ -12,7 +12,7 @@
 <body>
 <div id="app" v-cloak>
 
-    <!-- ============ TOAST CONTAINER ==-=-=---======= -->
+    <!-- ============ TOAST CONTAINER ==-=-=--======= -->
     <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
              :class="['toast', `toast-${toast.type}`]"
@@ -763,41 +763,33 @@
                     <div class="card mb-6">
                         <div class="card-header">
                             <div class="card-title"><i class="fas fa-stethoscope"></i> Medical Staff</div>
-                            <button class="btn btn-primary" @click="showAddMedicalStaffModal" v-if="hasPermission('medical_staff', 'create')"><i class="fas fa-plus"></i> Add Staff Member</button>
+                            <div class="header-actions" style="display:flex;gap:12px;align-items:center">
+                                <div class="view-toggle">
+                                    <button class="btn-pill" :class="{ active: staffView === 'table' }" @click="staffView = 'table'">
+                                        <i class="fas fa-list"></i> Table
+                                    </button>
+                                    <button class="btn-pill" :class="{ active: staffView === 'compact' }" @click="staffView = 'compact'">
+                                        <i class="fas fa-compress-alt"></i> Compact
+                                    </button>
+                                </div>
+                                <button class="btn btn-primary" @click="showAddMedicalStaffModal" v-if="hasPermission('medical_staff', 'create')"><i class="fas fa-plus"></i> Add Staff</button>
+                            </div>
                         </div>
                         <div class="filter-bar">
-                            <input type="text" class="form-control" v-model="staffFilters.search" placeholder="Search name or email…" aria-label="Search staff">
+                            <input type="text" class="form-control" v-model="staffFilters.search" placeholder="Search name…" aria-label="Search staff">
                             <select class="form-select" v-model="staffFilters.staffType">
                                 <option value="">All Types</option>
                                 <option v-for="st in staffTypesList" :key="st.type_key" :value="st.type_key">{{ st.display_name }}</option>
                             </select>
                             <select v-if="staffFilters.staffType === 'medical_resident'" class="form-select" v-model="staffFilters.residentCategory">
                                 <option value="">All Residents</option>
-                                <option value="department_internal">🔵 Internal (Dept own)</option>
-                                <option value="rotating_other_dept">🟢 Rotating (from other depts)</option>
-                                <option value="external_resident">🟣 External (other institutions)</option>
+                                <option value="department_internal">Internal</option>
+                                <option value="rotating_other_dept">Rotating</option>
+                                <option value="external_resident">External</option>
                             </select>
                             <select class="form-select" v-model="staffFilters.department">
                                 <option value="">All Departments</option>
                                 <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
-                            </select>
-                            <select class="form-select" v-model="staffFilters.networkType">
-                                <option value="">All Networks</option>
-                                <option value="CHUAC">CHUAC</option>
-                                <option value="SERGAS">SERGAS (non-CHUAC)</option>
-                                <option value="external">External</option>
-                            </select>
-                            <select class="form-select" v-model="staffFilters.hospital" v-if="hospitalsList.length">
-                                <option value="">All Hospitals</option>
-                                <optgroup label="CHUAC">
-                                    <option v-for="h in hospitalsList.filter(x=>x.parent_complex==='CHUAC')" :key="h.id" :value="h.id">{{ h.name }}</option>
-                                </optgroup>
-                                <optgroup label="SERGAS">
-                                    <option v-for="h in hospitalsList.filter(x=>x.parent_complex==='SERGAS')" :key="h.id" :value="h.id">{{ h.name }}</option>
-                                </optgroup>
-                                <optgroup label="External">
-                                    <option v-for="h in hospitalsList.filter(x=>x.parent_complex==='external')" :key="h.id" :value="h.id">{{ h.name }}</option>
-                                </optgroup>
                             </select>
                             <select class="form-select" v-model="staffFilters.status">
                                 <option value="">All Status</option>
@@ -805,56 +797,62 @@
                                 <option value="on_leave">On Leave</option>
                                 <option value="inactive">Inactive</option>
                             </select>
-                        </div>
-                        <!-- ── View toggle ── -->
-                        <div class="staff-view-toggle">
-                            <button class="btn-pill" :class="{ active: staffView === 'table' }" @click="staffView = 'table'">
-                                <i class="fas fa-list"></i> Table
-                            </button>
-                            <button class="btn-pill" :class="{ active: staffView === 'compact' }" @click="staffView = 'compact'">
-                                <i class="fas fa-th-large"></i> Compact
+                            <button v-if="hasActiveStaffFilters" class="btn-pill btn-pill--clear" @click="clearStaffFilters" title="Clear all filters">
+                                <i class="fas fa-times"></i> Clear
                             </button>
                         </div>
 
                         <!-- ══════════════════════════════════════════════
                              COMPACT VIEW — card grid, same language as on-call/rotations
                              ══════════════════════════════════════════════ -->
-                        <div v-if="staffView === 'compact'" class="staff-compact-grid">
+                        <!-- COMPACT VIEW — horizontal rows, space-efficient -->
+                        <div v-if="staffView === 'compact'" class="scc-list">
+
                             <div v-for="staff in filteredMedicalStaff" :key="staff.id"
-                                 class="scc"
-                                 :class="{ 'scc--inactive': staff.employment_status === 'inactive', 'scc--leave': staff.employment_status === 'on_leave' }"
+                                 class="scc-row"
+                                 :class="{
+                                     'scc-row--leave':    staff.employment_status === 'on_leave',
+                                     'scc-row--inactive': staff.employment_status === 'inactive'
+                                 }"
                                  @click="viewStaffDetails(staff)">
 
-                                <!-- Avatar + status dot -->
-                                <div class="scc-avatar-wrap">
-                                    <div class="scc-avatar" :class="'scc-avatar--' + (staff.staff_type || 'default')">
-                                        <i class="fas" :class="{
-                                            'fa-user-md':       staff.staff_type === 'attending_physician',
-                                            'fa-user-graduate': isResidentType(staff.staff_type),
-                                            'fa-stethoscope':   staff.staff_type === 'fellow',
-                                            'fa-heartbeat':     staff.staff_type === 'nurse_practitioner',
-                                            'fa-user':          !['attending_physician','fellow','nurse_practitioner'].includes(staff.staff_type) && !isResidentType(staff.staff_type)
-                                        }"></i>
-                                    </div>
-                                    <span class="scc-status-dot" :class="'scc-dot--' + staff.employment_status" :title="formatEmploymentStatus(staff.employment_status)"></span>
+                                <!-- ① Avatar -->
+                                <div class="scc-row-avatar" :class="'scc-avatar--' + (staff.staff_type || 'default')">
+                                    <i class="fas" :class="{
+                                        'fa-user-md':       staff.staff_type === 'attending_physician',
+                                        'fa-user-graduate': isResidentType(staff.staff_type),
+                                        'fa-stethoscope':   staff.staff_type === 'fellow',
+                                        'fa-heartbeat':     staff.staff_type === 'nurse_practitioner',
+                                        'fa-user':          !['attending_physician','fellow','nurse_practitioner'].includes(staff.staff_type) && !isResidentType(staff.staff_type)
+                                    }"></i>
+                                    <span class="scc-row-dot" :class="'scc-dot--' + staff.employment_status"></span>
                                 </div>
 
-                                <!-- Name + type badge -->
-                                <div class="scc-info">
-                                    <div class="scc-name">{{ staff.full_name }}</div>
-                                    <div class="scc-meta-row">
-                                        <span class="badge scc-type-badge" :class="getStaffTypeClass(staff.staff_type)">{{ formatStaffTypeShortFn(staff.staff_type) }}</span>
-                                        <span v-if="staff.resident_category" class="scc-cat-pill" :class="staff.resident_category === 'external_resident' ? 'scc-cat--ext' : 'scc-cat--int'">
-                                            {{ staff.resident_category === 'external_resident' ? 'External' : 'Internal' }}
-                                        </span>
-                                    </div>
-                                    <div v-if="getDepartmentName(staff.department_id)" class="scc-dept">
-                                        <i class="fas fa-sitemap"></i> {{ getDepartmentName(staff.department_id) }}
-                                    </div>
+                                <!-- ② Name col -->
+                                <div class="scc-row-name">
+                                    <span class="scc-row-fullname">{{ staff.full_name }}</span>
+                                    <span v-if="!staff.professional_email || !staff.department_id"
+                                          class="scc-row-warn" title="Profile incomplete — missing email or department">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                    </span>
                                 </div>
 
-                                <!-- Current rotation chip -->
-                                <div class="scc-rotation">
+                                <!-- ③ Type badge -->
+                                <div class="scc-row-type">
+                                    <span class="badge scc-type-badge" :class="getStaffTypeClass(staff.staff_type)">{{ formatStaffTypeShortFn(staff.staff_type) }}</span>
+                                    <span v-if="staff.resident_category" class="scc-cat-pill"
+                                          :class="staff.resident_category === 'external_resident' ? 'scc-cat--ext' : 'scc-cat--int'">
+                                        {{ staff.resident_category === 'external_resident' ? 'Ext' : 'Int' }}
+                                    </span>
+                                </div>
+
+                                <!-- ④ Department -->
+                                <div class="scc-row-dept">
+                                    <span v-if="getDepartmentName(staff.department_id)">{{ getDepartmentName(staff.department_id) }}</span>
+                                </div>
+
+                                <!-- ⑤ Rotation (residents only — attendings show nothing) -->
+                                <div class="scc-row-rotation">
                                     <template v-if="getCurrentRotationForStaff(staff.id)">
                                         <div class="staff-rotation-chip">
                                             <span class="src-dot"></span>
@@ -862,16 +860,26 @@
                                             <span class="src-dur">{{ formatClinicalDuration(getCurrentRotationForStaff(staff.id).start_date, getCurrentRotationForStaff(staff.id).end_date) }}</span>
                                         </div>
                                     </template>
+                                    <!-- Resident with no rotation = data gap, flag it -->
+                                    <span v-else-if="isResidentType(staff.staff_type)" class="scc-no-rotation">
+                                        <i class="fas fa-circle-notch"></i> Unassigned
+                                    </span>
                                 </div>
 
-                                <!-- Quick actions -->
-                                <div class="scc-actions" @click.stop>
-                                    <button class="rot-action-btn" @click.stop="editMedicalStaff(staff)" v-if="hasPermission('medical_staff','update')" title="Edit"><i class="fas fa-edit"></i></button>
-                                    <button class="rot-action-btn rot-action-btn--danger" @click.stop="deleteMedicalStaff(staff)" v-if="hasPermission('medical_staff','delete')" title="Deactivate"><i class="fas fa-trash-alt"></i></button>
+                                <!-- ⑥ Actions -->
+                                <div class="scc-row-actions" @click.stop>
+                                    <button class="rot-action-btn" @click.stop="editMedicalStaff(staff)"
+                                            v-if="hasPermission('medical_staff','update')" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="rot-action-btn rot-action-btn--danger" @click.stop="deleteMedicalStaff(staff)"
+                                            v-if="hasPermission('medical_staff','delete')" title="Deactivate">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
                                 </div>
                             </div>
 
-                            <div v-if="filteredMedicalStaff.length === 0" class="empty-state" style="grid-column:1/-1">
+                            <div v-if="filteredMedicalStaff.length === 0" class="empty-state">
                                 <i class="fas fa-user-md empty-state-icon"></i>
                                 <div class="empty-state-title">No staff found</div>
                             </div>
@@ -916,8 +924,10 @@
                                                 <div class="staff-name-block">
                                                     <div class="staff-name-primary">
                                                         {{ staff.full_name }}
-                                                        <span v-if="!staff.professional_email || !staff.department_id" class="incomplete-flag">
-                                                            <i class="fas fa-exclamation"></i>
+                                                        <span v-if="!staff.professional_email || !staff.department_id"
+                                                              class="incomplete-flag"
+                                                              title="Profile incomplete — missing email or department">
+                                                            <i class="fas fa-exclamation-circle"></i>
                                                         </span>
                                                     </div>
                                                     <div v-if="isResidentType(staff.staff_type) && staff.resident_category" class="staff-name-sub">
