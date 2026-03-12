@@ -88,8 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Fallbacks for display while loading or for unknown keys
     const STAFF_TYPE_LABELS_FALLBACK = {
-      medical_resident: 'Medical Resident', attending_physician: 'Attending Physician',
-      fellow: 'Fellow', nurse_practitioner: 'Nurse Practitioner', administrator: 'Administrator',
+      medical_resident: 'Resident', attending_physician: 'Attending',
+      fellow: 'Fellow', nurse_practitioner: 'NP', administrator: 'Admin',
     }
     const STAFF_TYPE_CLASSES_FALLBACK = {
       medical_resident: 'badge-primary', attending_physician: 'badge-success',
@@ -97,6 +97,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // Global helpers used throughout the app
     const formatStaffTypeGlobal   = (key) => staffTypeMap.value[key]?.display_name || STAFF_TYPE_LABELS_FALLBACK[key] || key
+    // Short labels for table badges — keeps columns from overflowing
+    const SHORT_LABELS = {
+      attending_physician: 'Attending', medical_resident: 'Resident',
+      fellow: 'Fellow', nurse_practitioner: 'NP', administrator: 'Admin'
+    }
+    const formatStaffTypeShort = (key) => SHORT_LABELS[key] || (staffTypeMap.value[key]?.display_name?.split(' ')[0]) || key
     const getStaffTypeClassGlobal = (key) => staffTypeMap.value[key]?.badge_class  || STAFF_TYPE_CLASSES_FALLBACK[key] || 'badge-secondary'
     const isResidentType          = (key) => staffTypeMap.value[key]?.is_resident_type ?? (key === 'medical_resident')
     
@@ -1263,7 +1269,8 @@ document.addEventListener('DOMContentLoaded', () => {
         formatResidentCategoryDetailed: Utils.formatResidentCategoryDetailed, getResidentCategoryIcon: Utils.getResidentCategoryIcon,
         getResidentCategoryTooltip: Utils.getResidentCategoryTooltip, getRoleInfo: Utils.getRoleInfo, getStaffRoles: Utils.getStaffRoles,
         isRoleTaken, getCurrentRoleHolder, handleRoleAssignment, toggleCertificate, availableCertificates,
-        addStaffTypeInline
+        addStaffTypeInline,
+        staffView
       }
     }
 
@@ -3228,6 +3235,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const formatStaffType = (t) => formatStaffTypeGlobal(t)
+        const formatStaffTypeShortFn = (t) => formatStaffTypeShort(t)
         const getStaffTypeClass = (t) => getStaffTypeClassGlobal(t)
         const formatEmploymentStatus = (s) => ({ active: 'Active', on_leave: 'On Leave', inactive: 'Inactive' }[s] || s)
         const formatAbsenceReason = (r) => ABSENCE_REASON_LABELS[r] || r
@@ -3547,7 +3555,7 @@ document.addEventListener('DOMContentLoaded', () => {
           getCurrentRotationForStaff, isOnCallToday, getUpcomingOnCall,
           getUpcomingLeave, getRotationHistory, getRotationDaysLeft,
           getCurrentRotationSupervisor, hasProfessionalCredentials,
-          formatStaffType, getStaffTypeClass, formatEmploymentStatus, formatAbsenceReason,
+          formatStaffType, formatStaffTypeShortFn, getStaffTypeClass, formatEmploymentStatus, formatAbsenceReason,
           formatRotationStatus, getUserRoleDisplay, formatAudience,
           getCurrentViewTitle, getCurrentViewSubtitle, getSearchPlaceholder,
           showPassword, loginError, loginFieldErrors, clearLoginError, handleForgotPassword,
