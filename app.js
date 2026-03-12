@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
       CACHE_TTL: 300000
     }
 
-    // ============ 2. CONSTANTS ===-=-========
+    // ============ 2. CONSTANTS ====-========
     const ROLES = {
       ADMIN: 'system_admin',
       HEAD: 'department_head',
@@ -969,6 +969,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============ 6.3 useStaff ============
     function useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll }) {
       const medicalStaff = ref([])
+      const staffView = ref('table') // 'table' | 'compact'
       // allStaffLookup keeps ALL staff (including inactive) for name resolution
       // so deleted staff don't ghost as "Not assigned" in historical records
       const allStaffLookup = ref([])
