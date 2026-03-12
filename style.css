@@ -2175,38 +2175,265 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 /* ----------------------------------------------------------------
    LOGIN
 ---------------------------------------------------------------- */
+/* ================================================================
+   LOGIN PAGE — NeuomoCare MVP / neumAC brand
+================================================================ */
+
+/* ── Full-screen container with animated dark background ── */
 .login-container {
   min-height: 100vh;
   display: flex; align-items: center; justify-content: center;
   padding: 24px;
-  background: var(--ink);
-  background-image:
-    radial-gradient(circle at 20% 50%, rgba(45,122,255,.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(13,158,110,.1) 0%, transparent 50%),
-    radial-gradient(circle, rgba(255,255,255,.04) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 28px 28px;
-  overflow-y: auto;
+  background: #04111f;
+  overflow: hidden;
+  position: relative;
 }
+
+/* Animated background orbs */
+.lc-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+
+.lc-orb {
+  position: absolute; border-radius: 50%;
+  filter: blur(80px);
+  animation: lc-pulse 8s ease-in-out infinite;
+}
+.lc-orb--1 {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(0,119,182,.28) 0%, transparent 70%);
+  top: -150px; left: -150px;
+  animation-delay: 0s;
+}
+.lc-orb--2 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(0,180,216,.18) 0%, transparent 70%);
+  bottom: -100px; right: -100px;
+  animation-delay: -3s;
+}
+.lc-orb--3 {
+  width: 350px; height: 350px;
+  background: radial-gradient(circle, rgba(2,62,138,.25) 0%, transparent 70%);
+  top: 40%; left: 55%;
+  animation-delay: -6s;
+}
+@keyframes lc-pulse {
+  0%, 100% { transform: scale(1) translate(0, 0); opacity: .8; }
+  50%       { transform: scale(1.12) translate(20px, -20px); opacity: 1; }
+}
+
+/* Subtle dot grid */
+.lc-grid {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ── Card ── */
 .login-card {
-  background: var(--surface); border-radius: var(--r-2xl);
-  padding: 32px 28px; width: 100%; max-width: 390px;
-  box-shadow: var(--shadow-xl); animation: slideUp .35s cubic-bezier(.22,1,.36,1);
-  border: 1px solid var(--border);
+  position: relative; z-index: 1;
+  background: rgba(255,255,255,.97);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 36px 32px 28px;
+  width: 100%; max-width: 420px;
+  box-shadow:
+    0 0 0 1px rgba(0,119,182,.12),
+    0 4px 6px rgba(0,0,0,.06),
+    0 24px 60px rgba(0,0,0,.22),
+    0 0 80px rgba(0,119,182,.08);
+  animation: lc-rise .5s cubic-bezier(.22,1,.36,1);
 }
-.login-header { text-align: center; margin-bottom: 24px; }
-.login-logo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; }
-.login-logo i { font-size: 30px; color: var(--blue); filter: drop-shadow(0 0 10px rgba(45,122,255,.5)); }
-.login-title { font-family: var(--font-display); font-size: 26px; font-weight: 400; font-style: italic; color: var(--text-1); display: block; margin-bottom: 4px; letter-spacing: -.01em; }
-.login-subtitle { font-family: var(--font-data); color: var(--text-3); font-size: var(--t-10); text-transform: uppercase; letter-spacing: .09em; }
-.login-error { background: var(--danger-lt); border: 1px solid var(--danger); border-radius: var(--r); padding: 10px 14px; color: var(--danger); font-size: var(--t-12); display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+@keyframes lc-rise {
+  from { opacity: 0; transform: translateY(24px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Top brand strip: neumAC wordmark ── */
+.lc-brand {
+  display: flex; justify-content: center;
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(0,119,182,.1);
+}
+.lc-brand-logo {
+  display: flex; align-items: center; gap: 14px;
+}
+.lc-neumax-svg {
+  width: 108px; height: auto;
+}
+.lc-brand-divider {
+  width: 1.5px; height: 36px;
+  background: linear-gradient(to bottom, transparent, rgba(0,119,182,.4), transparent);
+}
+.lc-brand-area {
+  display: flex; flex-direction: column; gap: 1px;
+}
+.lc-brand-area span {
+  font-family: var(--font-ui);
+  font-size: 9.5px; font-weight: 600;
+  letter-spacing: .06em;
+  color: #0077b6;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+/* ── NeuomoCare product identity ── */
+.lc-product {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.lc-lungs-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; border-radius: 16px;
+  background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);
+  box-shadow: 0 8px 24px rgba(0,119,182,.35), 0 0 0 4px rgba(0,119,182,.08);
+  margin-bottom: 12px;
+}
+.lc-lungs-icon i {
+  font-size: 24px; color: #fff;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.2));
+}
+.lc-product-name {
+  font-family: var(--font-ui);
+  font-size: 28px; font-weight: 300;
+  color: #04111f;
+  letter-spacing: -.02em;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.lc-product-name span {
+  font-weight: 700;
+  background: linear-gradient(90deg, #0077b6, #00b4d8);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.lc-product-sub {
+  font-size: 11px; font-weight: 500;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: #7a90b0;
+}
+
+/* ── Divider ── */
+.lc-sep {
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(0,119,182,.15), transparent);
+  margin: 4px 0 20px;
+}
+
+/* ── Error ── */
+.login-error {
+  background: #fff0f1; border: 1px solid #fca5a5;
+  border-radius: 10px; padding: 10px 14px;
+  color: #dc2626; font-size: 13px;
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 16px;
+}
+
+/* ── Form fields ── */
+.lc-form { display: flex; flex-direction: column; gap: 14px; }
+
+.lc-field { display: flex; flex-direction: column; gap: 5px; }
+
+.lc-label {
+  font-size: 11.5px; font-weight: 600;
+  color: #3d5278; letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.lc-input-wrap {
+  position: relative; display: flex; align-items: center;
+}
+.lc-input-icon {
+  position: absolute; left: 14px;
+  font-size: 13px; color: #aab8cc;
+  pointer-events: none;
+  transition: color .2s;
+}
+.lc-input {
+  width: 100%; height: 46px;
+  padding: 0 44px 0 40px;
+  background: #f4f7fb;
+  border: 1.5px solid #e4e9f0;
+  border-radius: 11px;
+  font-size: 14px; color: #0a1628;
+  font-family: var(--font-ui);
+  outline: none;
+  transition: border-color .2s, background .2s, box-shadow .2s;
+}
+.lc-input::placeholder { color: #aab8cc; }
+.lc-input:focus {
+  border-color: #0077b6;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0,119,182,.12);
+}
+.lc-input:focus + .lc-input-icon,
+.lc-input-wrap:focus-within .lc-input-icon { color: #0077b6; }
+
+.lc-field--error .lc-input { border-color: #dc2626; }
+.lc-field-err { font-size: 11.5px; color: #dc2626; }
+
+.lc-eye {
+  position: absolute; right: 12px;
+  background: none; border: none; cursor: pointer;
+  color: #aab8cc; padding: 6px;
+  transition: color .2s;
+}
+.lc-eye:hover { color: #0077b6; }
+
+/* ── Remember / Forgot row ── */
+.lc-meta-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 2px;
+}
+.lc-remember {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12.5px; color: #7a90b0; cursor: pointer;
+}
+.lc-remember input { accent-color: #0077b6; width: 14px; height: 14px; }
+.lc-forgot {
+  font-size: 12.5px; color: #0077b6;
+  text-decoration: none; font-weight: 500;
+}
+.lc-forgot:hover { text-decoration: underline; }
+
+/* ── Submit button ── */
+.lc-submit {
+  margin-top: 6px;
+  width: 100%; height: 50px;
+  background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);
+  color: #fff; border: none; border-radius: 12px;
+  font-size: 15px; font-weight: 600;
+  font-family: var(--font-ui);
+  cursor: pointer; letter-spacing: .01em;
+  box-shadow: 0 4px 20px rgba(0,119,182,.4);
+  transition: opacity .2s, transform .15s, box-shadow .2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.lc-submit:hover:not(:disabled) {
+  opacity: .92;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(0,119,182,.5);
+}
+.lc-submit:active:not(:disabled) { transform: translateY(0); }
+.lc-submit:disabled { opacity: .6; cursor: not-allowed; }
+
+/* ── Demo hint ── */
+.lc-hint {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0,119,182,.08);
+  text-align: center;
+  font-size: 12px; color: #aab8cc;
+  line-height: 1.6;
+}
+.lc-hint i { color: #0077b6; margin-right: 4px; }
+.lc-hint strong { color: #7a90b0; font-weight: 600; }
+
+/* Keep password-toggle alias working if used elsewhere */
 .password-input-wrapper { position: relative; }
 .password-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-3); cursor: pointer; padding: 5px; min-width: 32px; min-height: 32px; display: flex; align-items: center; justify-content: center; }
 .password-toggle:hover { color: var(--blue); }
 .forgot-password { font-size: var(--t-12); color: var(--blue); text-decoration: none; }
 .forgot-password:hover { text-decoration: underline; }
-.login-hint { text-align: center; padding-top: 14px; border-top: 1px solid var(--border); margin-top: 16px; }
-.login-hint p { font-size: var(--t-11); color: var(--text-3); margin-bottom: 3px; }
-.login-hint p:last-child { font-size: var(--t-10); color: var(--text-4); }
 
 /* ----------------------------------------------------------------
    LIVE STATS SIDEBAR
