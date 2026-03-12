@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
       CACHE_TTL: 300000
     }
 
-    // ============ 2. CONSTANTS ====--========
+    // ============ 2. CONSTANTS ====-========
     const ROLES = {
       ADMIN: 'system_admin',
       HEAD: 'department_head',
@@ -85,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // staffTypeMap    → { type_key: { display_name, badge_class, is_resident_type } }
     const staffTypesList = ref([])
     const staffTypeMap   = ref({})
+    const academicDegrees = ref([])   // loaded from /api/academic-degrees
 
     // Fallbacks for display while loading or for unknown keys
     const STAFF_TYPE_LABELS_FALLBACK = {
@@ -1120,7 +1121,6 @@ document.addEventListener('DOMContentLoaded', () => {
           })
           // Refresh the global staff types list + map
           await loadStaffTypes()
-          await loadAcademicDegrees()
           // Auto-select the newly created type
           medicalStaffModal.form.staff_type = typeKey
           // Reset inline form
@@ -3553,7 +3553,7 @@ document.addEventListener('DOMContentLoaded', () => {
           try {
             // Load staff types FIRST — all dropdowns depend on them
             await loadStaffTypes()
-          await loadAcademicDegrees()
+            await loadAcademicDegrees()
             await Promise.all([staffOps.loadMedicalStaff(), loadDepartments(), loadTrainingUnits()])
             await Promise.all([rotationOps.loadRotations(), onCallOps.loadOnCallSchedule(), absenceOps.loadAbsences()])
             updateDashboardStats()
