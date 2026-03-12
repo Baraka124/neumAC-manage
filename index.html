@@ -12,7 +12,7 @@
 <body>
 <div id="app" v-cloak>
 
-    <!-- ============ TOAST CONTAINER ==-=--=---======= -->
+    <!-- ============ TOAST CONTAINER ==-=-=--======= -->
     <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
              :class="['toast', `toast-${toast.type}`]"
@@ -805,19 +805,19 @@
                         <!-- ══════════════════════════════════════════════
                              COMPACT VIEW — card grid, same language as on-call/rotations
                              ══════════════════════════════════════════════ -->
-                        <!-- COMPACT VIEW — horizontal rows, space-efficient -->
-                        <div v-if="staffView === 'compact'" class="scc-list">
+                        <!-- COMPACT VIEW — card grid, 2 columns, space-efficient -->
+                        <div v-if="staffView === 'compact'" class="scc-grid">
 
                             <div v-for="staff in filteredMedicalStaff" :key="staff.id"
-                                 class="scc-row"
+                                 class="scc"
                                  :class="{
-                                     'scc-row--leave':    staff.employment_status === 'on_leave',
-                                     'scc-row--inactive': staff.employment_status === 'inactive'
+                                     'scc--leave':    staff.employment_status === 'on_leave',
+                                     'scc--inactive': staff.employment_status === 'inactive'
                                  }"
                                  @click="viewStaffDetails(staff)">
 
-                                <!-- ① Avatar -->
-                                <div class="scc-row-avatar" :class="'scc-avatar--' + (staff.staff_type || 'default')">
+                                <!-- Left: avatar -->
+                                <div class="scc-avatar" :class="'scc-avatar--' + (staff.staff_type || 'default')">
                                     <i class="fas" :class="{
                                         'fa-user-md':       staff.staff_type === 'attending_physician',
                                         'fa-user-graduate': isResidentType(staff.staff_type),
@@ -825,49 +825,56 @@
                                         'fa-heartbeat':     staff.staff_type === 'nurse_practitioner',
                                         'fa-user':          !['attending_physician','fellow','nurse_practitioner'].includes(staff.staff_type) && !isResidentType(staff.staff_type)
                                     }"></i>
-                                    <span class="scc-row-dot" :class="'scc-dot--' + staff.employment_status"></span>
+                                    <span class="scc-dot" :class="'scc-dot--' + staff.employment_status"
+                                          :title="formatEmploymentStatus(staff.employment_status)"></span>
                                 </div>
 
-                                <!-- ② Name col -->
-                                <div class="scc-row-name">
-                                    <span class="scc-row-fullname">{{ staff.full_name }}</span>
-                                    <span v-if="!staff.professional_email || !staff.department_id"
-                                          class="scc-row-warn" title="Profile incomplete — missing email or department">
-                                        <i class="fas fa-exclamation-circle"></i>
-                                    </span>
+                                <!-- Right: all text info -->
+                                <div class="scc-body">
+
+                                    <!-- Row 1: name + warn icon -->
+                                    <div class="scc-name-row">
+                                        <span class="scc-name">{{ staff.full_name }}</span>
+                                        <span v-if="!staff.professional_email || !staff.department_id"
+                                              class="scc-warn" title="Profile incomplete — missing email or department">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                        </span>
+                                    </div>
+
+                                    <!-- Row 2: type badge + int/ext pill + department -->
+                                    <div class="scc-meta">
+                                        <span class="badge scc-type-badge" :class="getStaffTypeClass(staff.staff_type)">{{ formatStaffTypeShortFn(staff.staff_type) }}</span>
+                                        <span v-if="staff.resident_category" class="scc-cat-pill"
+                                              :class="staff.resident_category === 'external_resident' ? 'scc-cat--ext' : 'scc-cat--int'">
+                                            {{ staff.resident_category === 'external_resident' ? 'Ext' : 'Int' }}
+                                        </span>
+                                        <span v-if="getDepartmentName(staff.department_id)" class="scc-dept-text">
+                                            · {{ getDepartmentName(staff.department_id) }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Row 3: rotation chip OR unassigned warning for residents -->
+                                    <div class="scc-rotation-row">
+                                        <template v-if="getCurrentRotationForStaff(staff.id)">
+                                            <div class="staff-rotation-chip">
+                                                <span class="src-dot"></span>
+                                                <span class="src-unit">{{ getTrainingUnitName(getCurrentRotationForStaff(staff.id).training_unit_id) }}</span>
+                                                <span class="src-dur">{{ formatClinicalDuration(getCurrentRotationForStaff(staff.id).start_date, getCurrentRotationForStaff(staff.id).end_date) }}</span>
+                                            </div>
+                                        </template>
+                                        <span v-else-if="isResidentType(staff.staff_type)" class="scc-no-rotation">
+                                            <i class="fas fa-circle-notch"></i> No rotation
+                                        </span>
+                                    </div>
+
                                 </div>
 
-                                <!-- ③ Type badge -->
-                                <div class="scc-row-type">
-                                    <span class="badge scc-type-badge" :class="getStaffTypeClass(staff.staff_type)">{{ formatStaffTypeShortFn(staff.staff_type) }}</span>
-                                    <span v-if="staff.resident_category" class="scc-cat-pill"
-                                          :class="staff.resident_category === 'external_resident' ? 'scc-cat--ext' : 'scc-cat--int'">
-                                        {{ staff.resident_category === 'external_resident' ? 'Ext' : 'Int' }}
-                                    </span>
-                                </div>
-
-                                <!-- ④ Department -->
-                                <div class="scc-row-dept">
-                                    <span v-if="getDepartmentName(staff.department_id)">{{ getDepartmentName(staff.department_id) }}</span>
-                                </div>
-
-                                <!-- ⑤ Rotation (residents only — attendings show nothing) -->
-                                <div class="scc-row-rotation">
-                                    <template v-if="getCurrentRotationForStaff(staff.id)">
-                                        <div class="staff-rotation-chip">
-                                            <span class="src-dot"></span>
-                                            <span class="src-unit">{{ getTrainingUnitName(getCurrentRotationForStaff(staff.id).training_unit_id) }}</span>
-                                            <span class="src-dur">{{ formatClinicalDuration(getCurrentRotationForStaff(staff.id).start_date, getCurrentRotationForStaff(staff.id).end_date) }}</span>
-                                        </div>
-                                    </template>
-                                    <!-- Resident with no rotation = data gap, flag it -->
-                                    <span v-else-if="isResidentType(staff.staff_type)" class="scc-no-rotation">
-                                        <i class="fas fa-circle-notch"></i> Unassigned
-                                    </span>
-                                </div>
-
-                                <!-- ⑥ Actions -->
-                                <div class="scc-row-actions" @click.stop>
+                                <!-- Action buttons -->
+                                <div class="scc-actions" @click.stop>
+                                    <button class="rot-action-btn" @click.stop="viewStaffDetails(staff)"
+                                            title="View profile">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
                                     <button class="rot-action-btn" @click.stop="editMedicalStaff(staff)"
                                             v-if="hasPermission('medical_staff','update')" title="Edit">
                                         <i class="fas fa-edit"></i>
@@ -879,7 +886,7 @@
                                 </div>
                             </div>
 
-                            <div v-if="filteredMedicalStaff.length === 0" class="empty-state">
+                            <div v-if="filteredMedicalStaff.length === 0" class="empty-state" style="grid-column:1/-1">
                                 <i class="fas fa-user-md empty-state-icon"></i>
                                 <div class="empty-state-title">No staff found</div>
                             </div>
@@ -960,8 +967,9 @@
                                         </td>
                                         <td style="text-align:center">
                                             <div class="table-actions" style="justify-content:center">
-                                                <button class="btn-pill btn-pill-edit" @click.stop="editMedicalStaff(staff)" v-if="hasPermission('medical_staff', 'update')" aria-label="Edit"><i class="fas fa-edit"></i></button>
-                                                <button class="btn-pill btn-pill-danger" @click.stop="deleteMedicalStaff(staff)" v-if="hasPermission('medical_staff', 'delete')" aria-label="Delete"><i class="fas fa-trash-alt"></i></button>
+                                                <button class="btn btn-sm btn-outline" @click.stop="viewStaffDetails(staff)" aria-label="View profile"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-sm btn-outline" @click.stop="editMedicalStaff(staff)" v-if="hasPermission('medical_staff', 'update')" aria-label="Edit"><i class="fas fa-edit"></i></button>
+                                                <button class="btn btn-sm btn-outline btn-outline-danger" @click.stop="deleteMedicalStaff(staff)" v-if="hasPermission('medical_staff', 'delete')" aria-label="Delete"><i class="fas fa-trash-alt"></i></button>
                                             </div>
                                         </td>
                                     </tr>
