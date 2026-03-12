@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const { createApp, ref, reactive, computed, onMounted, watch, onUnmounted } = Vue
 
-    // ============ 1. CONFIGURATION =======-====-=
+    // ============ 1. CONFIGURATION ====---===-====-=
     const CONFIG = {
       API_BASE_URL: window.location.hostname.includes('localhost')
         ? 'http://localhost:3000'
@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
       CACHE_TTL: 300000
     }
 
-    // ============ 2. CONSTANTS ====--========
+    // ============ 2. CONSTANTS ====-========
     const ROLES = {
       ADMIN: 'system_admin',
       HEAD: 'department_head',
@@ -79,27 +79,34 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    const STAFF_TYPE_LABELS = {
-      medical_resident: 'Medical Resident', 
-      attending_physician: 'Attending Physician',
-      fellow: 'Fellow', 
-      nurse_practitioner: 'Nurse Practitioner'
+    // ── Staff types: loaded dynamically from /api/staff-types ──────────────
+    // Replaces the old hardcoded STAFF_TYPE_LABELS / STAFF_TYPE_CLASSES maps.
+    // staffTypesList  → raw array for v-for dropdowns
+    // staffTypeMap    → { type_key: { display_name, badge_class, is_resident_type } }
+    const staffTypesList = ref([])
+    const staffTypeMap   = ref({})
+    const academicDegrees = ref([])   // loaded from /api/academic-degrees
+
+    // Fallbacks for display while loading or for unknown keys
+    const STAFF_TYPE_LABELS_FALLBACK = {
+      medical_resident: 'Resident', attending_physician: 'Attending',
+      fellow: 'Fellow', nurse_practitioner: 'NP', administrator: 'Admin',
     }
-    
-    const STAFF_TYPE_CLASSES = {
-      medical_resident: 'badge-primary', 
-      attending_physician: 'badge-success',
-      fellow: 'badge-info', 
-      nurse_practitioner: 'badge-warning'
+    const STAFF_TYPE_CLASSES_FALLBACK = {
+      medical_resident: 'badge-primary', attending_physician: 'badge-success',
+      fellow: 'badge-info', nurse_practitioner: 'badge-warning', administrator: 'badge-secondary',
     }
-    
-    const BASE_STAFF_TYPES = [
-      { value: 'attending_physician', label: 'Attending Physician' },
-      { value: 'medical_resident',    label: 'Medical Resident' },
-      { value: 'fellow',              label: 'Fellow' },
-      { value: 'nurse_practitioner',  label: 'Nurse Practitioner' },
-      { value: 'administrator',       label: 'Administrator' },
-    ]
+    // Global helpers used throughout the app
+    const formatStaffTypeGlobal   = (key) => staffTypeMap.value[key]?.display_name || STAFF_TYPE_LABELS_FALLBACK[key] || key
+    // Short labels for table badges — keeps columns from overflowing
+    const SHORT_LABELS = {
+      attending_physician: 'Attending', medical_resident: 'Resident',
+      fellow: 'Fellow', nurse_practitioner: 'NP', administrator: 'Admin'
+    }
+    const _toTitle = (k) => k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    const formatStaffTypeShort = (key) => SHORT_LABELS[key] || (staffTypeMap.value[key]?.display_name?.split(' ')[0]) || _toTitle(key)
+    const getStaffTypeClassGlobal = (key) => staffTypeMap.value[key]?.badge_class  || STAFF_TYPE_CLASSES_FALLBACK[key] || 'badge-secondary'
+    const isResidentType          = (key) => staffTypeMap.value[key]?.is_resident_type ?? (key === 'medical_resident')
     
     const ABSENCE_REASON_LABELS = {
       vacation: 'Vacation', 
@@ -189,6 +196,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // ============ 3.1 RESIDENT FORMATTING ============
       
+      // Compute effective R-year: override wins over system-calc, system-calc over legacy training_year
+      static effectiveResidentYear(staff) {
+        if (staff.residency_year_override) return staff.residency_year_override
+        if (staff.residency_year_calc) return staff.residency_year_calc
+        // fallback: map legacy PGY- values
+        const t = staff.training_year
+        if (!t) return null
+        const map = { 'PGY-1':'R1','PGY-2':'R2','PGY-3':'R3','PGY-4':'R4','PGY-5':'R4+' }
+        return map[t] || t
+      }
+
       static formatTrainingYear(year) {
         if (!year && year !== 0) return null;
         const yearStr = String(year).trim();
@@ -609,13 +627,69 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // ============ 4.4 EXISTING ENDPOINTS ============
-      
+
+      // ── Staff Types (dynamic) ─────────────────────────────────────────────
+      async getStaffTypes(includeInactive = false) {
+        const url = '/api/staff-types' + (includeInactive ? '?include_inactive=true' : '')
+        return this.getList(url)
+      }
+      async createStaffType(data) { this.invalidate('/api/staff-types'); return this.request('/api/staff-types', { method: 'POST', body: data }) }
+      async updateStaffType(id, data) { this.invalidate('/api/staff-types'); return this.request(`/api/staff-types/${id}`, { method: 'PUT', body: data }) }
+      async deleteStaffType(id) { this.invalidate('/api/staff-types'); return this.request(`/api/staff-types/${id}`, { method: 'DELETE' }) }
+
+      // ── Academic Degrees ─────────────────────────────────────────────────
+      async getAcademicDegrees() { return this.getList('/api/academic-degrees') }
+      async createAcademicDegree(d) { this.invalidate('/api/academic-degrees'); return this.request('/api/academic-degrees', { method: 'POST', body: d }) }
+      async updateAcademicDegree(id, d) { this.invalidate('/api/academic-degrees'); return this.request(`/api/academic-degrees/${id}`, { method: 'PUT', body: d }) }
+      async deleteAcademicDegree(id) { this.invalidate('/api/academic-degrees'); return this.request(`/api/academic-degrees/${id}`, { method: 'DELETE' }) }
+
+      // ── Staff Certificates ───────────────────────────────────────────────
+      async getStaffCertificates(staffId) { return this.getList(`/api/medical-staff/${staffId}/certificates`) }
+      async createStaffCertificate(staffId, d) { return this.request(`/api/medical-staff/${staffId}/certificates`, { method: 'POST', body: d }) }
+      async updateStaffCertificate(staffId, certId, d) { return this.request(`/api/medical-staff/${staffId}/certificates/${certId}`, { method: 'PUT', body: d }) }
+      async deleteStaffCertificate(staffId, certId) { return this.request(`/api/medical-staff/${staffId}/certificates/${certId}`, { method: 'DELETE' }) }
+
       async getDepartments() { return this.getList('/api/departments') }
       async getAllDepartments() { return this.getList('/api/departments?include_inactive=true') }
       async getDepartmentImpact(id) { return this.request(`/api/departments/${id}/impact`) }
       async createDepartment(d) { this.invalidate('/api/departments'); return this.request('/api/departments', { method: 'POST', body: d }) }
       async updateDepartment(id, d) { this.invalidate('/api/departments'); return this.request(`/api/departments/${id}`, { method: 'PUT', body: d }) }
       async deleteDepartment(id, reassignments) { this.invalidate('/api/departments'); return this.request(`/api/departments/${id}`, { method: 'DELETE', body: reassignments ? { reassignments } : {} }) }
+
+      async getHospitals() {
+        try { const r = await this.request('/api/hospitals'); return (r?.success && Array.isArray(r.data)) ? r.data : Utils.ensureArray(r) } catch { return [] }
+      }
+      async createHospital(d) { this.invalidate('/api/hospitals'); return this.request('/api/hospitals', { method: 'POST', body: d }) }
+      async updateHospital(id, d) { this.invalidate('/api/hospitals'); return this.request(`/api/hospitals/${id}`, { method: 'PUT', body: d }) }
+
+      async getClinicalUnits(departmentId) {
+        const url = departmentId ? `/api/clinical-units?department_id=${departmentId}` : '/api/clinical-units'
+        try { const r = await this.request(url); return (r?.success && Array.isArray(r.data)) ? r.data : Utils.ensureArray(r) } catch { return [] }
+      }
+      async createClinicalUnit(d) { this.invalidate('/api/clinical-units'); return this.request('/api/clinical-units', { method: 'POST', body: d }) }
+      async updateClinicalUnit(id, d) { this.invalidate('/api/clinical-units'); return this.request(`/api/clinical-units/${id}`, { method: 'PUT', body: d }) }
+      async deleteClinicalUnit(id) { this.invalidate('/api/clinical-units'); return this.request(`/api/clinical-units/${id}`, { method: 'DELETE' }) }
+      async getClinicalUnitStaff(unitId) {
+        try { const r = await this.request(`/api/clinical-units/${unitId}/staff`); return (r?.success && Array.isArray(r.data)) ? r.data : [] } catch { return [] }
+      }
+      async assignStaffToUnit(unitId, d) { return this.request(`/api/clinical-units/${unitId}/staff`, { method: 'POST', body: d }) }
+      async removeStaffFromUnit(unitId, assignmentId) { return this.request(`/api/clinical-units/${unitId}/staff/${assignmentId}`, { method: 'DELETE' }) }
+
+      async getPartners() {
+        try { const r = await this.request('/api/partners'); return (r?.success && Array.isArray(r.data)) ? r.data : Utils.ensureArray(r) } catch { return [] }
+      }
+      async createPartner(d) { this.invalidate('/api/partners'); return this.request('/api/partners', { method: 'POST', body: d }) }
+      async updatePartner(id, d) { this.invalidate('/api/partners'); return this.request(`/api/partners/${id}`, { method: 'PUT', body: d }) }
+      async deletePartner(id) { this.invalidate('/api/partners'); return this.request(`/api/partners/${id}`, { method: 'DELETE' }) }
+      async getPartnerNeeds() {
+        try { const r = await this.request('/api/partner-needs'); return (r?.success && Array.isArray(r.data)) ? r.data : [] } catch { return [] }
+      }
+      async createPartnerNeed(d) { return this.request('/api/partner-needs', { method: 'POST', body: d }) }
+      async getProjectPartners(projectId) {
+        try { const r = await this.request(`/api/innovation-projects/${projectId}/partners`); return (r?.success && Array.isArray(r.data)) ? r.data : [] } catch { return [] }
+      }
+      async linkPartnerToProject(projectId, d) { return this.request(`/api/innovation-projects/${projectId}/partners`, { method: 'POST', body: d }) }
+      async unlinkPartnerFromProject(projectId, partnerId) { return this.request(`/api/innovation-projects/${projectId}/partners/${partnerId}`, { method: 'DELETE' }) }
 
       async getTrainingUnits() { return this.getList('/api/training-units') }
       async createTrainingUnit(d) { this.invalidate('/api/training-units'); return this.request('/api/training-units', { method: 'POST', body: d }) }
@@ -920,10 +994,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============ 6.3 useStaff ============
     function useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll }) {
       const medicalStaff = ref([])
+      const staffView = ref('table') // 'table' | 'compact'
       // allStaffLookup keeps ALL staff (including inactive) for name resolution
       // so deleted staff don't ghost as "Not assigned" in historical records
       const allStaffLookup = ref([])
-      const staffFilters = reactive({ search: '', staffType: '', department: '', status: '', residentCategory: '' })
+      const hospitalsList = ref([])   // all hospitals from DB
+      const clinicalUnits = ref([])   // clinical units (Pneumology + others)
+      const staffFilters = reactive({ search: '', staffType: '', department: '', status: '', residentCategory: '', hospital: '', networkType: '' })
+      const clearStaffFilters = () => { staffFilters.search = ''; staffFilters.staffType = ''; staffFilters.department = ''; staffFilters.status = ''; staffFilters.residentCategory = ''; staffFilters.hospital = ''; staffFilters.networkType = '' }
+      const hasActiveStaffFilters = computed(() => !!(staffFilters.search || staffFilters.staffType || staffFilters.department || staffFilters.status || staffFilters.residentCategory || staffFilters.hospital || staffFilters.networkType))
       const staffProfileModal = reactive({ 
         show: false, staff: null, activeTab: 'activity',
         researchProfile: null, supervisionData: null, leaveBalance: null,
@@ -932,30 +1011,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const medicalStaffModal = reactive({
         show: false, mode: 'add', activeTab: 'basic',
         _addingHospital: false, _newHospitalName: '', _newHospitalNetwork: 'external',
-        _showCustomType: false,   // true when user selects "Other / Define type"
+        _certs: [], _addingCert: false, _newCert: { name:'', issued_month:'', renewal_months: 24 },
+        _addingStaffType: false, _newStaffTypeName: '', _newStaffTypeIsResident: false, _savingStaffType: false,
         form: { 
-          full_name: '', staff_type: 'attending_physician', _customStaffType: '', staff_id: '', employment_status: 'active', 
+          full_name: '', staff_type: 'medical_resident', staff_id: '', employment_status: 'active', 
           professional_email: '', department_id: '', academic_degree: '', specialization: '', 
           training_year: '', clinical_certificate: '', certificate_status: '',
           mobile_phone: '', medical_license: '', can_supervise_residents: false, special_notes: '',
           can_be_pi: false, can_be_coi: false, other_certificate: '',
           resident_category: null, home_department: null, external_institution: null,
-          is_research_coordinator: false,
-          clinical_study_certificates: [],
+          home_department_id: null, external_contact_name: null, external_contact_email: null, external_contact_phone: null,
+          academic_degree_id: null, has_medical_license: false,
+          residency_start_date: null, residency_year_override: null,
+          is_chief_of_department: false, is_research_coordinator: false, 
+          is_resident_manager: false, is_oncall_manager: false, clinical_study_certificates: [],
           hospital_id: null, _networkHint: null
         }
-      })
-
-      // Compute all unique staff types: baseline + any types already in the DB not in baseline
-      const availableStaffTypes = computed(() => {
-        const baseValues = new Set(BASE_STAFF_TYPES.map(t => t.value))
-        const extra = []
-        for (const s of medicalStaff.value) {
-          if (s.staff_type && !baseValues.has(s.staff_type) && !extra.find(e => e.value === s.staff_type)) {
-            extra.push({ value: s.staff_type, label: s.staff_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) })
-          }
-        }
-        return [...BASE_STAFF_TYPES, ...extra]
       })
 
       const validateStaff = (form) => {
@@ -963,12 +1034,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!form.full_name?.trim()) { setErr('staff', 'full_name', 'Full name is required'); ok = false }
         if (form.professional_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.professional_email)) {
           setErr('staff', 'professional_email', 'Invalid email address'); ok = false
-        }
-        if (form.staff_type === 'medical_resident' && !form.training_year?.trim()) {
-          setErr('staff', 'training_year', 'Training year is required for residents'); ok = false
-        }
-        if (form.staff_type === '__custom__' && !form._customStaffType?.trim()) {
-          setErr('staff', 'staff_type', 'Please enter a staff type'); ok = false
         }
         return ok
       }
@@ -983,6 +1048,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (staffFilters.department) f = f.filter(x => x.department_id === staffFilters.department)
         if (staffFilters.status) f = f.filter(x => x.employment_status === staffFilters.status)
         if (staffFilters.residentCategory) f = f.filter(x => x.resident_category === staffFilters.residentCategory)
+        if (staffFilters.hospital) f = f.filter(x => x.hospital_id === staffFilters.hospital)
+        if (staffFilters.networkType) {
+          const ids = hospitalsList.value.filter(h => h.parent_complex === staffFilters.networkType).map(h => h.id)
+          f = f.filter(x => ids.includes(x.hospital_id))
+        }
         return applySort(f, 'medical_staff')
       })
 
@@ -993,19 +1063,86 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const loadMedicalStaff = async () => {
         try {
-          const raw = await API.getList('/api/medical-staff')
+          const [raw, hospitals, units] = await Promise.all([
+            API.getList('/api/medical-staff'),
+            API.getHospitals(),
+            API.getClinicalUnits()
+          ])
           if (Array.isArray(raw)) {
             allStaffLookup.value = raw.map(s => ({ id: s.id, full_name: s.full_name, staff_type: s.staff_type, employment_status: s.employment_status }))
           }
+          hospitalsList.value = hospitals
+          clinicalUnits.value = units
           medicalStaff.value = await API.getMedicalStaff()
         }
         catch { showToast('Error', 'Failed to load medical staff', 'error') }
+      }
+
+      const loadHospitals = async () => {
+        try { hospitalsList.value = await API.getHospitals() }
+        catch { console.error('Failed to load hospitals') }
+      }
+
+      // Create a new hospital inline from the staff form, append to list, auto-select it
+      const addHospitalInline = async (name, networkType = 'external') => {
+        if (!name?.trim()) return null
+        try {
+          const result = await API.createHospital({ name: name.trim(), network_type: networkType })
+          if (result?.success && result.data) {
+            hospitalsList.value = [...hospitalsList.value, result.data].sort((a, b) => a.name.localeCompare(b.name))
+            showToast('Success', `Hospital "${result.data.name}" added`, 'success')
+            return result.data
+          }
+          return null
+        } catch { showToast('Error', 'Failed to add hospital', 'error'); return null }
+      }
+
+      // Inline staff type creation — called from within the Add/Edit Staff modal
+      // Creates the type in DB, refreshes the list, auto-selects it in the form
+      const addStaffTypeInline = async () => {
+        const name = medicalStaffModal._newStaffTypeName?.trim()
+        if (!name) { showToast('Required', 'Please enter a staff type name', 'warning'); return }
+        // Generate a type_key from the display name: lowercase, spaces→underscores, strip special chars
+        const typeKey = name.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '_').substring(0, 60)
+        if (!typeKey) { showToast('Invalid', 'Name must contain letters or numbers', 'warning'); return }
+        medicalStaffModal._savingStaffType = true
+        try {
+          await API.createStaffType({
+            type_key: typeKey,
+            display_name: name,
+            badge_class: 'badge-secondary',
+            is_resident_type: medicalStaffModal._newStaffTypeIsResident,
+            can_supervise: false,
+            is_active: true,
+            display_order: staffTypesList.value.length * 10
+          })
+          // Refresh the global staff types list + map
+          await loadStaffTypes()
+          // Auto-select the newly created type
+          medicalStaffModal.form.staff_type = typeKey
+          // Reset inline form
+          medicalStaffModal._addingStaffType = false
+          medicalStaffModal._newStaffTypeName = ''
+          medicalStaffModal._newStaffTypeIsResident = false
+          showToast('Success', `Staff type "${name}" created and selected`, 'success')
+        } catch (e) {
+          showToast('Error', e?.message || 'Failed to create staff type', 'error')
+        } finally {
+          medicalStaffModal._savingStaffType = false
+        }
       }
 
       const showAddMedicalStaffModal = () => {
         clearAll('staff')
         medicalStaffModal.mode = 'add'
         medicalStaffModal.activeTab = 'basic'
+        medicalStaffModal._addingHospital = false
+        medicalStaffModal._newHospitalName = ''
+        medicalStaffModal._newHospitalNetwork = 'external'
+        medicalStaffModal._addingStaffType = false
+        medicalStaffModal._newStaffTypeName = ''
+        medicalStaffModal._newStaffTypeIsResident = false
+        medicalStaffModal._savingStaffType = false
         Object.assign(medicalStaffModal.form, {
           full_name: '', staff_type: 'medical_resident', staff_id: `MD-${Date.now().toString().slice(-6)}`,
           employment_status: 'active', professional_email: '', department_id: '', academic_degree: '',
@@ -1013,10 +1150,43 @@ document.addEventListener('DOMContentLoaded', () => {
           mobile_phone: '', medical_license: '', can_supervise_residents: false, special_notes: '',
           can_be_pi: false, can_be_coi: false, other_certificate: '',
           resident_category: null, home_department: null, external_institution: null,
-          is_research_coordinator: false,
-          clinical_study_certificates: [], hospital_id: null
+          home_department_id: null, external_contact_name: null, external_contact_email: null, external_contact_phone: null,
+          academic_degree_id: null, has_medical_license: false,
+          residency_start_date: null, residency_year_override: null,
+          is_chief_of_department: false, is_research_coordinator: false, 
+          is_resident_manager: false, is_oncall_manager: false, clinical_study_certificates: [],
+          hospital_id: null, _networkHint: null
         })
         medicalStaffModal.show = true
+      }
+
+      const loadStaffCertificates = async (staffId) => {
+        try {
+          medicalStaffModal._certs = await API.getStaffCertificates(staffId)
+        } catch { medicalStaffModal._certs = [] }
+      }
+
+      const saveCertificate = async () => {
+        const c = medicalStaffModal._newCert
+        if (!c.name?.trim()) return
+        try {
+          await API.createStaffCertificate(medicalStaffModal.form.id, {
+            certificate_name: c.name.trim(),
+            issued_date: c.issued_month ? c.issued_month + '-01' : null,
+            renewal_months: c.renewal_months || 24
+          })
+          medicalStaffModal._addingCert = false
+          await loadStaffCertificates(medicalStaffModal.form.id)
+          showToast('Saved', 'Certificate added', 'success')
+        } catch (e) { showToast('Error', e?.message || 'Failed to save certificate', 'error') }
+      }
+
+      const deleteCertificate = async (cert) => {
+        try {
+          await API.deleteStaffCertificate(medicalStaffModal.form.id, cert.id)
+          await loadStaffCertificates(medicalStaffModal.form.id)
+          showToast('Removed', 'Certificate removed', 'success')
+        } catch (e) { showToast('Error', e?.message || 'Failed to remove certificate', 'error') }
       }
 
       const editMedicalStaff = (staff) => {
@@ -1043,19 +1213,13 @@ document.addEventListener('DOMContentLoaded', () => {
           can_supervise_residents: staff.can_supervise_residents || false,
           can_be_pi: staff.can_be_pi || false,
           can_be_coi: staff.can_be_coi || false,
+          is_chief_of_department: staff.is_chief_of_department || false,
           is_research_coordinator: staff.is_research_coordinator || false,
+          is_resident_manager: staff.is_resident_manager || false,
+          is_oncall_manager: staff.is_oncall_manager || false,
           clinical_study_certificates: Array.isArray(staff.clinical_study_certificates) ? [...staff.clinical_study_certificates] : [],
-          hospital_id: staff.hospital_id || null
-        }
-        // Handle custom staff types: if not in baseline, show custom input
-        const isKnownType = BASE_STAFF_TYPES.some(t => t.value === staff.staff_type)
-        if (!isKnownType && staff.staff_type) {
-          medicalStaffModal._showCustomType = true
-          medicalStaffModal.form.staff_type = '__custom__'
-          medicalStaffModal.form._customStaffType = staff.staff_type
-        } else {
-          medicalStaffModal._showCustomType = false
-          medicalStaffModal.form._customStaffType = ''
+          hospital_id: staff.hospital_id || null,
+          _networkHint: null
         }
         medicalStaffModal.show = true
       }
@@ -1066,12 +1230,8 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
           const clean = v => (v == null) ? '' : String(v).trim()
           const f = medicalStaffModal.form
-          // If user selected 'other' and typed a custom type, use that value instead
-          const resolvedStaffType = (f.staff_type === '__custom__')
-            ? (f._customStaffType || '').trim().toLowerCase().replace(/\s+/g, '_') || 'other'
-            : f.staff_type || 'attending_physician'
           const data = {
-            full_name: f.full_name.trim(), staff_type: resolvedStaffType,
+            full_name: f.full_name.trim(), staff_type: f.staff_type || 'medical_resident',
             staff_id: f.staff_id || Utils.generateId('MD'), employment_status: f.employment_status || 'active',
             professional_email: f.professional_email || '', department_id: f.department_id || null,
             academic_degree: clean(f.academic_degree), specialization: clean(f.specialization),
@@ -1082,7 +1242,8 @@ document.addEventListener('DOMContentLoaded', () => {
             other_certificate: clean(f.other_certificate),
             special_notes: clean(f.special_notes), resident_category: f.resident_category || null,
             home_department: f.home_department || null, external_institution: f.external_institution || null,
-            is_research_coordinator: f.is_research_coordinator || false,
+            is_chief_of_department: f.is_chief_of_department || false, is_research_coordinator: f.is_research_coordinator || false,
+            is_resident_manager: f.is_resident_manager || false, is_oncall_manager: f.is_oncall_manager || false,
             clinical_study_certificates: f.clinical_study_certificates || []
           }
           if (medicalStaffModal.mode === 'add') {
@@ -1158,16 +1319,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const availableCertificates = ['GCP - Good Clinical Practice','ICH Guidelines','Clinical Research Coordinator','CITI Program','HIPAA Certification','Responsible Conduct of Research'];
 
       return {
-        medicalStaff, allStaffLookup, staffFilters, staffProfileModal, medicalStaffModal,
+        medicalStaff, allStaffLookup, hospitalsList, clinicalUnits,
+        staffFilters, staffProfileModal, medicalStaffModal,
         filteredMedicalStaff, filteredMedicalStaffAll, staffTotalPages,
-        loadMedicalStaff, showAddMedicalStaffModal, editMedicalStaff, saveMedicalStaff, deactivateStaffMember,
-        formatTrainingYear: Utils.formatTrainingYear, formatSpecialization: Utils.formatSpecialization,
+        loadMedicalStaff, loadHospitals, addHospitalInline,
+        loadStaffCertificates, saveCertificate, deleteCertificate,
+        showAddMedicalStaffModal, editMedicalStaff, saveMedicalStaff, deactivateStaffMember,
+        formatTrainingYear: Utils.formatTrainingYear, formatSpecialization: Utils.formatSpecialization, effectiveResidentYear: Utils.effectiveResidentYear,
         formatPhone: Utils.formatPhone, formatLicense: Utils.formatLicense,
         getResidentCategoryInfo: Utils.getResidentCategoryInfo, formatResidentCategorySimple: Utils.formatResidentCategorySimple,
         formatResidentCategoryDetailed: Utils.formatResidentCategoryDetailed, getResidentCategoryIcon: Utils.getResidentCategoryIcon,
         getResidentCategoryTooltip: Utils.getResidentCategoryTooltip, getRoleInfo: Utils.getRoleInfo, getStaffRoles: Utils.getStaffRoles,
         isRoleTaken, getCurrentRoleHolder, handleRoleAssignment, toggleCertificate, availableCertificates,
-        availableStaffTypes
+        addStaffTypeInline,
+        staffView,
+        clearStaffFilters,
+        hasActiveStaffFilters
       }
     }
 
@@ -1186,7 +1353,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!id) return 'Not assigned'
         return medicalStaff.value.find(x => x.id === id)?.full_name || id
       }
-      const formatStaffType = (t) => STAFF_TYPE_LABELS[t] || t
+      const formatStaffType = (t) => formatStaffTypeGlobal(t)
 
       const validateOnCall = (form) => {
         clearAll('oncall'); let ok = true
@@ -1198,9 +1365,17 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const checkExistingSchedule = async (date, shiftType, excludeId = null) => {
+        // FIX: Use the already-loaded local reactive array instead of a network call.
+        // The old approach called getOnCallSchedule({ start_date, end_date }) but that
+        // method ignores its argument — always fetching ALL schedules with no date filter,
+        // causing false positives when ANY date had a matching shift_type.
         try {
-          const schedules = await API.getOnCallSchedule({ start_date: date, end_date: date });
-          return schedules.filter(s => s.shift_type === shiftType && (!excludeId || s.id !== excludeId)).length > 0;
+          const normalizedDate = Utils.normalizeDate(date);
+          return onCallSchedule.value.some(s =>
+            Utils.normalizeDate(s.duty_date) === normalizedDate &&
+            s.shift_type === shiftType &&
+            (!excludeId || s.id !== excludeId)
+          );
         } catch (error) { console.error('Failed to check existing schedule:', error); return false; }
       };
 
@@ -1365,9 +1540,15 @@ document.addEventListener('DOMContentLoaded', () => {
         icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
         details: `Physician: ${getPhysicianName(schedule.primary_physician_id)}`,
         onConfirm: async () => {
-          await API.deleteOnCall(schedule.id)
-          onCallSchedule.value = onCallSchedule.value.filter(s => s.id !== schedule.id)
-          showToast('Success', 'Schedule deleted', 'success'); loadTodaysOnCall()
+          try {
+            await API.deleteOnCall(schedule.id)
+            onCallSchedule.value = onCallSchedule.value.filter(s => s.id !== schedule.id)
+            showToast('Success', 'Schedule deleted', 'success')
+            loadTodaysOnCall()
+          } catch (e) {
+            showToast('Error', e?.message || 'Failed to delete schedule', 'error')
+            await loadOnCallSchedule()
+          }
         }
       })
 
@@ -1699,13 +1880,21 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const deleteRotation = (rotation) => showConfirmation({
-        title: 'Delete Rotation', message: 'Delete this rotation?',
-        icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
+        title: 'Terminate Rotation', message: 'This will mark the rotation as terminated early. The record is kept for audit and reporting purposes.',
+        icon: 'fa-stop-circle', confirmButtonText: 'Terminate', confirmButtonClass: 'btn-danger',
         details: `Resident: ${getResidentName(rotation.resident_id)}`,
         onConfirm: async () => {
-          await API.deleteRotation(rotation.id)
-          rotations.value = rotations.value.filter(r => r.id !== rotation.id)
-          showToast('Success', 'Rotation deleted', 'success')
+          try {
+            await API.deleteRotation(rotation.id)
+            // Update local state immediately — backend sets rotation_status to 'terminated_early'
+            const idx = rotations.value.findIndex(r => r.id === rotation.id)
+            if (idx !== -1) rotations.value[idx] = { ...rotations.value[idx], rotation_status: 'terminated_early' }
+            showToast('Success', 'Rotation terminated', 'success')
+            await loadRotations()
+          } catch (e) {
+            showToast('Error', e?.message || 'Failed to terminate rotation', 'error')
+            await loadRotations()
+          }
         }
       })
 
@@ -1875,7 +2064,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============ 6.6 useAbsences ============
     function useAbsences({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff }) {
       const absences = ref([])
-      const absenceFilters = reactive({ staff: '', status: '', reason: '', startDate: '', search: '' })
+      const absenceFilters = reactive({ staff: '', status: '', reason: '', startDate: '', search: '', hideReturned: true })
       const absenceModal = reactive({
         show: false, mode: 'add',
         form: { staff_member_id: '', absence_type: 'planned', absence_reason: 'vacation', start_date: Utils.normalizeDate(new Date()), end_date: Utils.normalizeDate(new Date(Date.now() + 7 * 86400000)), covering_staff_id: '', coverage_notes: '', coverage_arranged: false, hod_notes: '' }
@@ -1942,6 +2131,10 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           return { ...a, current_status: derived, coverage_arranged: coverageOk }
         })
+        // Hide 'returned_to_duty' by default (past events) — toggle via "Show Past" filter
+        if (!absenceFilters.status && absenceFilters.hideReturned) {
+          f = f.filter(a => a.current_status !== 'returned_to_duty')
+        }
         if (absenceFilters.staff) f = f.filter(a => a.staff_member_id === absenceFilters.staff)
         if (absenceFilters.status) f = f.filter(a => a.current_status === absenceFilters.status)
         if (absenceFilters.reason) f = f.filter(a => a.absence_reason === absenceFilters.reason)
@@ -1973,7 +2166,10 @@ document.addEventListener('DOMContentLoaded', () => {
           const today = Utils.normalizeDate(new Date())
           const stalePatches = []
 
-          absences.value = raw.map(a => {
+          // Filter cancelled (soft-deleted) records — they must not reappear after refresh
+          const active = raw.filter(a => a.current_status !== 'cancelled')
+
+          absences.value = active.map(a => {
             const normalized = { ...a, start_date: Utils.normalizeDate(a.start_date), end_date: Utils.normalizeDate(a.end_date) }
             const derived = deriveAbsenceStatus(normalized)
             // Silently patch stale records (ended but still not 'completed' in DB)
@@ -2042,13 +2238,22 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const deleteAbsence = (absence) => showConfirmation({
-        title: 'Delete Absence', message: 'Delete this absence record?',
-        icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
+        title: 'Cancel Absence Record', message: 'This will mark the absence as cancelled. The record is retained for audit purposes but will no longer appear in the active list.',
+        icon: 'fa-ban', confirmButtonText: 'Cancel Absence', confirmButtonClass: 'btn-danger',
         details: `Staff: ${getStaffName(absence.staff_member_id)}`,
         onConfirm: async () => {
-          await API.deleteAbsence(absence.id)
-          absences.value = absences.value.filter(a => a.id !== absence.id)
-          showToast('Success', 'Absence deleted', 'success')
+          try {
+            await API.deleteAbsence(absence.id)
+            // Remove from local list immediately for instant feedback
+            absences.value = absences.value.filter(a => a.id !== absence.id)
+            showToast('Success', 'Absence record cancelled', 'success')
+            // Then reload to ensure DB state is reflected (catches any edge cases)
+            await loadAbsences()
+          } catch (e) {
+            showToast('Error', e?.message || 'Failed to cancel absence record', 'error')
+            // On error: reload so the UI reflects actual DB state
+            await loadAbsences()
+          }
         }
       })
 
@@ -2083,9 +2288,26 @@ document.addEventListener('DOMContentLoaded', () => {
       })
 
       // Use allDepartmentsLookup for name resolution so deactivated depts still resolve
-      const getDepartmentName = (id) => allDepartmentsLookup.value.find(d => d.id === id)?.name || departments.value.find(d => d.id === id)?.name || 'Not assigned'
+      const getDepartmentName = (id) => allDepartmentsLookup.value.find(d => d.id === id)?.name || departments.value.find(d => d.id === id)?.name || ''
       const getDepartmentUnits = (id) => trainingUnits.value.filter(u => u.department_id === id)
       const getDepartmentStaffCount = (id) => medicalStaff.value.filter(s => s.department_id === id).length
+
+      // Break down residents by category for a department
+      const getDeptResidentStats = (id) => {
+        const residents = medicalStaff.value.filter(s => s.department_id === id && isResidentType(s.staff_type))
+        return {
+          total: residents.length,
+          internal:  residents.filter(r => r.resident_category === 'department_internal').length,
+          rotating:  residents.filter(r => r.resident_category === 'rotating_other_dept').length,
+          external:  residents.filter(r => r.resident_category === 'external_resident').length,
+          list: residents
+        }
+      }
+
+      // Residents whose home_department_id points to this dept (rotating from here to elsewhere)
+      const getDeptHomeResidents = (id) => medicalStaff.value.filter(s =>
+        s.home_department_id === id && isResidentType(s.staff_type)
+      )
 
       const loadDepartments = async () => {
         try {
@@ -2191,14 +2413,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       return {
         departments, allDepartmentsLookup, departmentFilters, departmentModal, deptReassignModal,
-        filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount,
+        filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount, getDeptResidentStats, getDeptHomeResidents,
         loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment,
         deleteDepartment, confirmDeptReassignAndDeactivate, viewDepartmentStaff
       }
     }
 
     // ============ 6.8 useTrainingUnits ============
-    function useTrainingUnits({ showToast, showConfirmation, rotations }) {
+    function useTrainingUnits({ showToast, showConfirmation, rotations, allStaffLookup }) {
       const trainingUnits = ref([])
       const trainingUnitFilters = reactive({ search: '', department: '', status: '' })
       const trainingUnitModal = reactive({ show: false, mode: 'add', form: { unit_name: '', unit_code: '', department_id: '', maximum_residents: 10, unit_status: 'active', specialty: '', supervising_attending_id: '' } })
@@ -2214,6 +2436,90 @@ document.addEventListener('DOMContentLoaded', () => {
       })
 
       const getUnitActiveRotationCount = (id) => rotations.value.filter(r => r.training_unit_id === id && ['active', 'scheduled'].includes(r.rotation_status)).length
+
+      const getUnitRotations = (id) => rotations.value
+        .filter(r => r.training_unit_id === id && ['active', 'scheduled'].includes(r.rotation_status))
+        .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+
+      const getResidentShortName = (id) => {
+        const s = allStaffLookup.value.find(x => x.id === id)
+        if (!s) return '—'
+        const parts = (s.full_name || '').trim().split(' ')
+        return parts.length > 1 ? `${parts[0]} ${parts[parts.length-1][0]}.` : s.full_name
+      }
+
+      // ── Timeline view state ─────────────────────────────────────────────
+      const trainingUnitView    = ref('timeline')  // 'timeline' | 'detail'
+      const trainingUnitHorizon = ref(6)            // months to show: 3 | 6 | 12
+
+      // Generate the array of month objects for the timeline header
+      const getTimelineMonths = (horizonMonths) => {
+        const today = new Date()
+        const months = []
+        for (let i = 0; i < horizonMonths; i++) {
+          const d = new Date(today.getFullYear(), today.getMonth() + i, 1)
+          months.push({
+            key:       `${d.getFullYear()}-${d.getMonth()}`,
+            label:     d.toLocaleDateString('es-ES', { month: 'short', year: i === 0 || d.getMonth() === 0 ? '2-digit' : undefined }),
+            year:      d.getFullYear(),
+            month:     d.getMonth(),   // 0-based
+            isCurrent: i === 0
+          })
+        }
+        return months
+      }
+
+      // For each slot (1..max), compute monthly status across the horizon
+      const getUnitSlots = (unitId, maxResidents, horizonMonths) => {
+        const unitRots = rotations.value.filter(r =>
+          r.training_unit_id === unitId && ['active','scheduled'].includes(r.rotation_status)
+        ).sort((a,b) => new Date(a.start_date) - new Date(b.start_date))
+
+        const months = getTimelineMonths(horizonMonths)
+        const today  = new Date()
+
+        return Array.from({ length: maxResidents }, (_, slotIdx) => {
+          const rot = unitRots[slotIdx] // one rotation per slot (simplified: sorted by start)
+          const residentId   = rot?.resident_id   || null
+          const residentName = rot ? getResidentShortName(rot.resident_id) : null
+          const initials     = residentName
+            ? residentName.split(' ').map(p => p[0]).join('').slice(0,2).toUpperCase()
+            : null
+
+          const monthData = months.map(m => {
+            const mStart = new Date(m.year, m.month, 1)
+            const mEnd   = new Date(m.year, m.month + 1, 0)   // last day of month
+
+            let status  = 'free'
+            let tooltip = `Slot ${slotIdx + 1} — ${m.label}: Available`
+            let showName = false
+
+            if (rot) {
+              const rotStart = new Date(rot.start_date)
+              const rotEnd   = new Date(rot.end_date)
+              const overlaps = rotStart <= mEnd && rotEnd >= mStart
+
+              if (overlaps) {
+                const fullMonth = rotStart <= mStart && rotEnd >= mEnd
+                status   = fullMonth ? 'occupied' : 'partial'
+                showName = fullMonth
+                tooltip  = `${residentName} · ${rotStart.toLocaleDateString('es-ES',{day:'2-digit',month:'short'})} → ${rotEnd.toLocaleDateString('es-ES',{day:'2-digit',month:'short'})}`
+              }
+            }
+
+            return { key: m.key, label: m.label, isCurrent: m.isCurrent, status, tooltip, showName }
+          })
+
+          return { slotIdx, residentId, residentName, initials, months: monthData }
+        })
+      }
+
+      // Days until a rotation ends (for "Free in Xd" chip)
+      const getDaysUntilFree = (endDate) => {
+        const today = new Date(); today.setHours(0,0,0,0)
+        const end   = new Date(endDate)
+        return Math.ceil((end - today) / (1000 * 60 * 60 * 24))
+      }
 
       const loadTrainingUnits = async () => {
         try { trainingUnits.value = await API.getTrainingUnits() }
@@ -2245,9 +2551,15 @@ document.addEventListener('DOMContentLoaded', () => {
           confirmButtonText: 'Delete Unit', confirmButtonClass: 'btn-danger',
           details: activeRotations.length === 0 ? 'No active rotations are assigned to this unit.' : '',
           onConfirm: async () => {
-            await API.deleteTrainingUnit(unit.id)
-            trainingUnits.value = trainingUnits.value.filter(u => u.id !== unit.id)
-            showToast('Deleted', `${unit.unit_name} removed`, 'success')
+            try {
+              await API.deleteTrainingUnit(unit.id)
+              // Backend soft-deletes (sets unit_status = 'inactive') — remove from active list locally
+              trainingUnits.value = trainingUnits.value.filter(u => u.id !== unit.id)
+              showToast('Deactivated', `${unit.unit_name} deactivated`, 'success')
+            } catch (e) {
+              showToast('Error', e?.message || 'Failed to deactivate training unit', 'error')
+              try { trainingUnits.value = await API.getTrainingUnits() } catch {}
+            }
           }
         })
       }
@@ -2313,7 +2625,7 @@ document.addEventListener('DOMContentLoaded', () => {
         finally { saving.value = false }
       }
 
-      return { trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits, getUnitActiveRotationCount, loadTrainingUnits, showAddTrainingUnitModal, editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians, viewUnitResidents, saveTrainingUnit }
+      return { trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits, getUnitActiveRotationCount, getUnitRotations, getResidentShortName, loadTrainingUnits, showAddTrainingUnitModal, editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians, viewUnitResidents, saveTrainingUnit, trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree }
     }
 
     // ============ 6.9 useComms ============
@@ -2364,7 +2676,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const deleteAnnouncement = (ann) => showConfirmation({
         title: 'Delete Announcement', message: `Delete "${ann.title}"?`,
         icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
-        onConfirm: async () => { await API.deleteAnnouncement(ann.id); announcements.value = announcements.value.filter(a => a.id !== ann.id); showToast('Success', 'Announcement deleted', 'success') }
+        onConfirm: async () => {
+          try {
+            await API.deleteAnnouncement(ann.id)
+            announcements.value = announcements.value.filter(a => a.id !== ann.id)
+            showToast('Success', 'Announcement deleted', 'success')
+          } catch (e) {
+            showToast('Error', e?.message || 'Failed to delete announcement', 'error')
+          }
+        }
       })
 
       return { announcements, communicationsFilters, communicationsModal, filteredAnnouncements, recentAnnouncements, unreadAnnouncements, loadAnnouncements, showCommunicationsModal, viewAnnouncement, saveCommunication, deleteAnnouncement }
@@ -2853,10 +3173,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const tuOps = useTrainingUnits({ showToast, showConfirmation: () => {}, rotations: ref([]) })
 
         const staffOps = useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll })
-        const { medicalStaff, allStaffLookup } = staffOps
+        const { medicalStaff, allStaffLookup, hospitalsList, clinicalUnits } = staffOps
 
         const { departments, allDepartmentsLookup, departmentFilters, departmentModal, deptReassignModal,
-          filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount,
+          filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount, getDeptResidentStats, getDeptHomeResidents,
           loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment,
           deleteDepartment, confirmDeptReassignAndDeactivate, viewDepartmentStaff } = useDepartments({
           showToast, showConfirmation, medicalStaff, trainingUnits: tuOps.trainingUnits, rotations: ref([])
@@ -2873,10 +3193,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Full useTrainingUnits with real rotations ref (now declared above)
         const { trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal,
-          filteredTrainingUnits, getUnitActiveRotationCount, loadTrainingUnits, showAddTrainingUnitModal,
+          filteredTrainingUnits, getUnitActiveRotationCount, getUnitRotations, getResidentShortName,
+          loadTrainingUnits, showAddTrainingUnitModal,
           editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians,
-          viewUnitResidents, saveTrainingUnit } = useTrainingUnits({
-          showToast, showConfirmation, rotations
+          viewUnitResidents, saveTrainingUnit,
+          trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree
+        } = useTrainingUnits({
+          showToast, showConfirmation, rotations, allStaffLookup
         })
 
         // Sync real trainingUnits into the stub so rotationOps.getTrainingUnitName resolves correctly
@@ -3063,9 +3386,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const viewStaffDetails = async (staff) => {
+          // Guard: staff might be undefined if medicalStaff.find() returned nothing
+          if (!staff || !staff.id) { console.warn('viewStaffDetails: staff object is undefined or missing id'); return; }
           staffOps.staffProfileModal.staff = staff; staffOps.staffProfileModal.activeTab = 'activity'; staffOps.staffProfileModal.show = true
           if (hasPermission('analytics', 'read')) await analyticsOps.loadStaffResearchProfile(staffOps.staffProfileModal, staff.id)
-          if (staff.staff_type === 'attending_physician') {
+          if (staff.staff_type === 'attending_physician' || staffTypeMap.value[staff.staff_type]?.can_supervise) {
             staffOps.staffProfileModal.loadingSupervision = true
             try { staffOps.staffProfileModal.supervisionData = await API.getSupervisedResidents(staff.id) }
             catch { staffOps.staffProfileModal.supervisionData = { current: [], currentCount: 0, pastCount: 0, avgEvaluation: 0 } }
@@ -3077,8 +3402,9 @@ document.addEventListener('DOMContentLoaded', () => {
           finally { staffOps.staffProfileModal.loadingLeave = false }
         }
 
-        const formatStaffType = (t) => STAFF_TYPE_LABELS[t] || t
-        const getStaffTypeClass = (t) => STAFF_TYPE_CLASSES[t] || 'badge-secondary'
+        const formatStaffType = (t) => formatStaffTypeGlobal(t)
+        const formatStaffTypeShortFn = (t) => formatStaffTypeShort(t)
+        const getStaffTypeClass = (t) => getStaffTypeClassGlobal(t)
         const formatEmploymentStatus = (s) => ({ active: 'Active', on_leave: 'On Leave', inactive: 'Inactive' }[s] || s)
         const formatAbsenceReason = (r) => ABSENCE_REASON_LABELS[r] || r
         const formatRotationStatus = (s) => ROTATION_STATUS_LABELS[s] || s
@@ -3100,9 +3426,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const requestFullDossier = () => showToast('Info', 'Dossier request sent. Our team will contact you.', 'info')
 
         // All clinical staff eligible for on-call (attendings, fellows, NPs, and residents)
-        const availablePhysicians = computed(() => medicalStaff.value.filter(s => ['attending_physician', 'fellow', 'nurse_practitioner', 'medical_resident'].includes(s.staff_type) && s.employment_status === 'active'))
-        const availableResidents = computed(() => medicalStaff.value.filter(s => s.staff_type === 'medical_resident' && s.employment_status === 'active'))
-        const availableAttendings = computed(() => medicalStaff.value.filter(s => s.staff_type === 'attending_physician' && s.employment_status === 'active'))
+        // Dynamic: uses staffTypeMap flags instead of hardcoded type key lists
+        // Falls back to legacy keys so nothing breaks if staffTypeMap isn't loaded yet
+        const availablePhysicians = computed(() => medicalStaff.value.filter(s =>
+          s.employment_status === 'active' && s.staff_type &&
+          (staffTypeMap.value[s.staff_type] != null
+            ? true  // any active known type is eligible for scheduling
+            : ['attending_physician','fellow','nurse_practitioner','medical_resident'].includes(s.staff_type))
+        ))
+        const availableResidents = computed(() => medicalStaff.value.filter(s =>
+          s.employment_status === 'active' && s.staff_type &&
+          (staffTypeMap.value[s.staff_type] != null
+            ? staffTypeMap.value[s.staff_type].is_resident_type
+            : s.staff_type === 'medical_resident')
+        ))
+        const availableAttendings = computed(() => medicalStaff.value.filter(s =>
+          s.employment_status === 'active' && s.staff_type &&
+          (staffTypeMap.value[s.staff_type] != null
+            ? staffTypeMap.value[s.staff_type].can_supervise
+            : s.staff_type === 'attending_physician')
+        ))
         const availableHeadsOfDepartment = computed(() => availableAttendings.value)
         const availableReplacementStaff = computed(() => medicalStaff.value.filter(s => s.employment_status === 'active'))
 
@@ -3203,9 +3546,107 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const clearSearch = () => { globalSearchQuery.value = ''; ui.searchResultsOpen.value = false }
 
+        // ── Staff Types Management ─────────────────────────────────────────────
+        // Loads dynamic staff types from DB and builds the reactive lookup map
+        const loadStaffTypes = async (includeInactive = false) => {
+          try {
+            const raw = await API.getStaffTypes(includeInactive)
+            staffTypesList.value = raw
+            // Build the fast-lookup map: { type_key → { display_name, badge_class, is_resident_type, can_supervise } }
+            const map = {}
+            raw.forEach(t => { map[t.type_key] = t })
+            staffTypeMap.value = map
+          } catch { console.error('Failed to load staff types') }
+        }
+
+        // ── Academic Degrees ────────────────────────────────────────────────
+        const ACADEMIC_DEGREES_FALLBACK = [
+          { id: 'LMed',     name: 'Licenciado en Medicina',                abbreviation: 'LMed'     },
+          { id: 'GMed',     name: 'Grado en Medicina',                     abbreviation: 'GMed'     },
+          { id: 'MIR',      name: 'Médico Interno Residente',              abbreviation: 'MIR'      },
+          { id: 'PhD',      name: 'Doctor en Medicina (PhD)',              abbreviation: 'PhD'      },
+          { id: 'MU',       name: 'Máster Universitario',                  abbreviation: 'MU'       },
+          { id: 'EspNeum',  name: 'Especialista en Neumología',            abbreviation: 'Esp-Neum' },
+          { id: 'DUE',      name: 'Diplomado Universitario en Enfermería', abbreviation: 'DUE'      },
+          { id: 'GEnf',     name: 'Grado en Enfermería',                   abbreviation: 'GEnf'     },
+          { id: 'TSID',     name: 'Técnico Superior Imagen Diagnóstica',   abbreviation: 'TSID'     },
+          { id: 'LFarm',    name: 'Licenciado en Farmacia',                abbreviation: 'LFarm'    },
+        ]
+
+        const loadAcademicDegrees = async () => {
+          try {
+            const result = await API.getAcademicDegrees()
+            // Use DB results if we got real UUIDs back; fall back to hardcoded list otherwise
+            academicDegrees.value = (result && result.length > 0 && result[0].id?.includes('-'))
+              ? result
+              : ACADEMIC_DEGREES_FALLBACK
+          } catch (e) {
+            console.warn('Academic degrees API failed, using fallback:', e.message)
+            academicDegrees.value = ACADEMIC_DEGREES_FALLBACK
+          }
+        }
+
+        // Staff Types manager modal (lives in System Settings)
+        const staffTypeModal = reactive({
+          show: false, mode: 'add',
+          form: { type_key: '', display_name: '', badge_class: 'badge-secondary', is_resident_type: false, can_supervise: false, display_order: 0 },
+          saving: false, deleting: false
+        })
+        const openAddStaffType = () => {
+          Object.assign(staffTypeModal.form, { type_key: '', display_name: '', badge_class: 'badge-secondary', is_resident_type: false, can_supervise: false, display_order: staffTypesList.value.length * 10 })
+          staffTypeModal.mode = 'add'
+          staffTypeModal.show = true
+        }
+        const openEditStaffType = (t) => {
+          Object.assign(staffTypeModal.form, { ...t })
+          staffTypeModal.mode = 'edit'
+          staffTypeModal.show = true
+        }
+        const saveStaffType = async () => {
+          if (!staffTypeModal.form.display_name?.trim()) { showToast('Validation', 'Display name is required', 'error'); return }
+          if (staffTypeModal.mode === 'add' && !staffTypeModal.form.type_key?.trim()) { showToast('Validation', 'Type key is required', 'error'); return }
+          staffTypeModal.saving = true
+          try {
+            if (staffTypeModal.mode === 'add') {
+              await API.createStaffType(staffTypeModal.form)
+              showToast('Success', `Staff type "${staffTypeModal.form.display_name}" created`, 'success')
+            } else {
+              await API.updateStaffType(staffTypeModal.form.id, staffTypeModal.form)
+              showToast('Success', `Staff type updated`, 'success')
+            }
+            await loadStaffTypes(true)
+            staffTypeModal.show = false
+          } catch (e) { showToast('Error', e.message || 'Failed to save staff type', 'error') }
+          finally { staffTypeModal.saving = false }
+        }
+        const deleteStaffType = async (t) => {
+          showConfirmation({
+            title: 'Remove Staff Type',
+            message: `Remove "${t.display_name}"? If staff members use this type it will be deactivated rather than deleted.`,
+            icon: 'fa-trash', confirmButtonText: 'Remove', confirmButtonClass: 'btn-danger',
+            onConfirm: async () => {
+              try {
+                const res = await API.deleteStaffType(t.id)
+                showToast('Success', res?.message || 'Staff type removed', 'success')
+                await loadStaffTypes(true)
+              } catch (e) { showToast('Error', e.message || 'Failed to remove staff type', 'error') }
+            }
+          })
+        }
+        const toggleStaffTypeActive = async (t) => {
+          try {
+            await API.updateStaffType(t.id, { is_active: !t.is_active })
+            showToast('Success', `Staff type ${t.is_active ? 'deactivated' : 'activated'}`, 'success')
+            await loadStaffTypes(true)
+          } catch (e) { showToast('Error', 'Failed to update staff type', 'error') }
+        }
+
         const loadAllData = async () => {
           loading.value = true
           try {
+            // Load staff types FIRST — all dropdowns depend on them
+            await loadStaffTypes()
+            await loadAcademicDegrees()
             await Promise.all([staffOps.loadMedicalStaff(), loadDepartments(), loadTrainingUnits()])
             await Promise.all([rotationOps.loadRotations(), onCallOps.loadOnCallSchedule(), absenceOps.loadAbsences()])
             updateDashboardStats()
@@ -3252,18 +3693,19 @@ document.addEventListener('DOMContentLoaded', () => {
           ...onCallOps,
           ...rotationOps,
           ...absenceOps,
-          formatTrainingYear: Utils.formatTrainingYear, formatSpecialization: Utils.formatSpecialization,
+          formatTrainingYear: Utils.formatTrainingYear, formatSpecialization: Utils.formatSpecialization, effectiveResidentYear: Utils.effectiveResidentYear,
           formatPhone: Utils.formatPhone, formatLicense: Utils.formatLicense,
           getResidentCategoryInfo: Utils.getResidentCategoryInfo, formatResidentCategorySimple: Utils.formatResidentCategorySimple,
           formatResidentCategoryDetailed: Utils.formatResidentCategoryDetailed, getResidentCategoryIcon: Utils.getResidentCategoryIcon,
           getResidentCategoryTooltip: Utils.getResidentCategoryTooltip, getRoleInfo: Utils.getRoleInfo, getStaffRoles: Utils.getStaffRoles,
           getDaysRemainingColor: Utils.getDaysRemainingColor,
           departments, allDepartmentsLookup, departmentFilters, departmentModal, deptReassignModal,
-          filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount,
+          filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount, getDeptResidentStats, getDeptHomeResidents,
           loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment,
           deleteDepartment, confirmDeptReassignAndDeactivate, viewDepartmentStaff,
           trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits,
-          getUnitActiveRotationCount, loadTrainingUnits, showAddTrainingUnitModal,
+          getUnitActiveRotationCount, getUnitRotations, getResidentShortName, loadTrainingUnits, showAddTrainingUnitModal,
+        trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree,
           editTrainingUnit, deleteTrainingUnit, saveTrainingUnit,
           openUnitClinicians: (unit) => openUnitClinicians(unit, medicalStaff.value),
           saveUnitClinicians,
@@ -3279,6 +3721,8 @@ document.addEventListener('DOMContentLoaded', () => {
           ...dashOps,
           handleLogin, handleLogout,
           switchView, toggleStatsSidebar, handleGlobalSearch, globalSearchResults, clearSearch,
+          staffTypesList, staffTypeMap, academicDegrees, loadAcademicDegrees, formatStaffTypeGlobal, getStaffTypeClassGlobal, isResidentType,
+          staffTypeModal, openAddStaffType, openEditStaffType, saveStaffType, deleteStaffType, toggleStaffTypeActive, loadStaffTypes,
           searchResultsOpen: ui.searchResultsOpen,
           sortState, sortBy, sortIcon, pagination,
           goToPage: (view, page) => {
@@ -3308,7 +3752,7 @@ document.addEventListener('DOMContentLoaded', () => {
           getCurrentRotationForStaff, isOnCallToday, getUpcomingOnCall,
           getUpcomingLeave, getRotationHistory, getRotationDaysLeft,
           getCurrentRotationSupervisor, hasProfessionalCredentials,
-          formatStaffType, getStaffTypeClass, formatEmploymentStatus, formatAbsenceReason,
+          formatStaffType, formatStaffTypeShortFn, getStaffTypeClass, formatEmploymentStatus, formatAbsenceReason,
           formatRotationStatus, getUserRoleDisplay, formatAudience,
           getCurrentViewTitle, getCurrentViewSubtitle, getSearchPlaceholder,
           showPassword, loginError, loginFieldErrors, clearLoginError, handleForgotPassword,
