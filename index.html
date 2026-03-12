@@ -30,61 +30,116 @@
 
     <!-- ============ LOGIN SCREEN ============ -->
     <div v-if="!currentUser" class="login-container">
+
+        <!-- Animated background particles -->
+        <div class="lc-bg">
+            <div class="lc-orb lc-orb--1"></div>
+            <div class="lc-orb lc-orb--2"></div>
+            <div class="lc-orb lc-orb--3"></div>
+            <div class="lc-grid"></div>
+        </div>
+
+        <!-- Card -->
         <div class="login-card">
-            <div class="login-header">
-                <div class="login-logo">
-                    <i class="fas fa-lungs"></i>
-                    <span class="login-title">NeumoCare</span>
+
+            <!-- Top: neumAC brand -->
+            <div class="lc-brand">
+                <div class="lc-brand-logo">
+                    <!-- neumAC wordmark SVG — matches the real logo exactly -->
+                    <svg viewBox="0 0 110 32" fill="none" xmlns="http://www.w3.org/2000/svg" class="lc-neumax-svg">
+                        <defs>
+                            <linearGradient id="ng" x1="0" y1="0" x2="110" y2="0" gradientUnits="userSpaceOnUse">
+                                <stop offset="0%" stop-color="#00b4d8"/>
+                                <stop offset="55%" stop-color="#0077b6"/>
+                                <stop offset="100%" stop-color="#023e8a"/>
+                            </linearGradient>
+                        </defs>
+                        <text x="0" y="26" font-family="'DM Sans', sans-serif" font-weight="700"
+                              font-size="28" fill="url(#ng)" letter-spacing="-0.5">neum</text>
+                        <text x="72" y="26" font-family="'DM Sans', sans-serif" font-weight="800"
+                              font-size="28" fill="url(#ng)" letter-spacing="-0.5">AC</text>
+                    </svg>
+                    <div class="lc-brand-divider"></div>
+                    <div class="lc-brand-area">
+                        <span>ÁREA SANITARIA DE</span>
+                        <span>A CORUÑA Y CEE</span>
+                    </div>
                 </div>
-                <p class="login-subtitle">Pulmonology Management System</p>
             </div>
-            <div v-if="loginError" class="login-error mb-4">
+
+            <!-- Middle: NeuomoCare product identity -->
+            <div class="lc-product">
+                <div class="lc-lungs-icon">
+                    <i class="fas fa-lungs"></i>
+                </div>
+                <div class="lc-product-name">Neumo<span>Care</span></div>
+                <div class="lc-product-sub">Pulmonology Management System</div>
+            </div>
+
+            <!-- Divider -->
+            <div class="lc-sep"></div>
+
+            <!-- Error -->
+            <div v-if="loginError" class="login-error">
                 <i class="fas fa-exclamation-circle"></i>
                 <span>{{ loginError }}</span>
             </div>
-            <div class="form-group">
-                <label for="login-email" class="form-label"><i class="fas fa-envelope"></i> Email</label>
-                <input type="email" id="login-email" class="form-control" v-model="loginForm.email"
-                       placeholder="admin@neumocare.org" required aria-required="true"
-                       name="email" autocomplete="email"
-                       :class="{ 'is-invalid': loginFieldErrors.email }"
-                       @input="clearLoginError('email')">
-                <small v-if="loginFieldErrors.email" class="error-text">
-                    <i class="fas fa-exclamation-circle"></i> {{ loginFieldErrors.email }}
-                </small>
-            </div>
-            <div class="form-group">
-                <label for="login-password" class="form-label"><i class="fas fa-lock"></i> Password</label>
-                <div class="password-input-wrapper">
-                    <input :type="showPassword ? 'text' : 'password'" id="login-password" class="form-control"
-                           v-model="loginForm.password" placeholder="••••••••"
-                           required aria-required="true" name="password" autocomplete="current-password"
-                           :class="{ 'is-invalid': loginFieldErrors.password }"
-                           @input="clearLoginError('password')">
-                    <button type="button" class="password-toggle" @click="showPassword = !showPassword">
-                        <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-                    </button>
+
+            <!-- Form -->
+            <div class="lc-form">
+                <div class="lc-field" :class="{ 'lc-field--error': loginFieldErrors.email }">
+                    <label class="lc-label">Email</label>
+                    <div class="lc-input-wrap">
+                        <i class="fas fa-envelope lc-input-icon"></i>
+                        <input type="email" class="lc-input" v-model="loginForm.email"
+                               placeholder="your@email.com" autocomplete="email"
+                               @input="clearLoginError('email')"
+                               @keyup.enter="handleLogin">
+                    </div>
+                    <span v-if="loginFieldErrors.email" class="lc-field-err">{{ loginFieldErrors.email }}</span>
                 </div>
-                <small v-if="loginFieldErrors.password" class="error-text">
-                    <i class="fas fa-exclamation-circle"></i> {{ loginFieldErrors.password }}
-                </small>
+
+                <div class="lc-field" :class="{ 'lc-field--error': loginFieldErrors.password }">
+                    <label class="lc-label">Password</label>
+                    <div class="lc-input-wrap">
+                        <i class="fas fa-lock lc-input-icon"></i>
+                        <input :type="showPassword ? 'text' : 'password'" class="lc-input"
+                               v-model="loginForm.password" placeholder="••••••••"
+                               autocomplete="current-password"
+                               @input="clearLoginError('password')"
+                               @keyup.enter="handleLogin">
+                        <button type="button" class="lc-eye" @click="showPassword = !showPassword" tabindex="-1">
+                            <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                        </button>
+                    </div>
+                    <span v-if="loginFieldErrors.password" class="lc-field-err">{{ loginFieldErrors.password }}</span>
+                </div>
+
+                <div class="lc-meta-row">
+                    <label class="lc-remember">
+                        <input type="checkbox" v-model="loginForm.remember_me">
+                        <span>Remember me</span>
+                    </label>
+                    <a href="#" class="lc-forgot" @click.prevent="handleForgotPassword">Forgot password?</a>
+                </div>
+
+                <button class="lc-submit" @click="handleLogin" :disabled="loginLoading">
+                    <span v-if="loginLoading">
+                        <i class="fas fa-spinner fa-spin"></i>&nbsp; Authenticating…
+                    </span>
+                    <span v-else>
+                        Sign in &nbsp;<i class="fas fa-arrow-right"></i>
+                    </span>
+                </button>
             </div>
-            <div class="form-group flex items-center justify-between">
-                <label class="checkbox-label">
-                    <input type="checkbox" v-model="loginForm.remember_me">
-                    <span>Remember me</span>
-                </label>
-                <a href="#" class="forgot-password" @click.prevent="handleForgotPassword">Forgot?</a>
+
+            <!-- Demo hint -->
+            <div class="lc-hint">
+                <i class="fas fa-circle-info"></i>
+                Demo: <strong>admin@neumocare.org</strong> / any password
             </div>
-            <button class="btn btn-primary btn-lg w-100" @click="handleLogin" :disabled="loginLoading">
-                <span v-if="loginLoading"><i class="fas fa-spinner fa-spin"></i> Authenticating...</span>
-                <span v-else><i class="fas fa-sign-in-alt"></i> Login</span>
-            </button>
-            <div class="login-hint mt-4">
-                <p><i class="fas fa-info-circle"></i> Demo access</p>
-                <p><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bddcd9d0d4d3fdd3d8c8d0d2dedccfd893d2cfda">[email&#160;protected]</a> / any password</p>
-            </div>
-        </div>
+
+        </div><!-- /login-card -->
     </div>
 
     <!-- ============ MAIN APPLICATION ============ -->
