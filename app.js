@@ -1261,7 +1261,6 @@ document.addEventListener('DOMContentLoaded', () => {
             medical_license: clean(f.medical_license),
             has_medical_license: f.has_medical_license || false,
             can_supervise_residents: f.can_supervise_residents || false,
-            can_be_pi: f.can_be_pi || false, can_be_coi: f.can_be_coi || false,
             other_certificate: clean(f.other_certificate),
             special_notes: clean(f.special_notes), resident_category: f.resident_category || null,
             home_department: f.home_department || null,
@@ -1270,8 +1269,7 @@ document.addEventListener('DOMContentLoaded', () => {
             external_contact_name: f.external_contact_name || null,
             external_contact_email: f.external_contact_email || null,
             external_contact_phone: f.external_contact_phone || null,
-            is_chief_of_department: f.is_chief_of_department || false, is_research_coordinator: f.is_research_coordinator || false,
-            is_resident_manager: f.is_resident_manager || false, is_oncall_manager: f.is_oncall_manager || false,
+            is_research_coordinator: f.is_research_coordinator || false,
             hospital_id: f.hospital_id || null,
             clinical_study_certificates: f.clinical_study_certificates || []
           }
