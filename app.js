@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const { createApp, ref, reactive, computed, onMounted, watch, onUnmounted } = Vue
 
-    // ============ 1. CONFIGURATION ====----===--====-=
+    // ============ 1. CONFIGURATION ====---===--====-=
     const CONFIG = {
       API_BASE_URL: window.location.hostname.includes('localhost')
         ? 'http://localhost:3000'
@@ -3377,7 +3377,8 @@ document.addEventListener('DOMContentLoaded', () => {
           loadTrainingUnits, showAddTrainingUnitModal,
           editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians,
           viewUnitResidents, saveTrainingUnit,
-          trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree
+          trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree,
+          tlPopover, openCellPopover, closeCellPopover
         } = useTrainingUnits({
           showToast, showConfirmation, rotations, allStaffLookup
         })
