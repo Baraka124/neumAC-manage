@@ -857,15 +857,9 @@
                                  }"
                                  @click="viewStaffDetails(staff)">
 
-                                <!-- Left: avatar -->
+                                <!-- Left: avatar with initials -->
                                 <div class="scc-avatar" :class="'scc-avatar--' + (staff.staff_type || 'default')">
-                                    <i class="fas" :class="{
-                                        'fa-user-md':       staff.staff_type === 'attending_physician',
-                                        'fa-user-graduate': isResidentType(staff.staff_type),
-                                        'fa-stethoscope':   staff.staff_type === 'fellow',
-                                        'fa-heartbeat':     staff.staff_type === 'nurse_practitioner',
-                                        'fa-user':          !['attending_physician','fellow','nurse_practitioner'].includes(staff.staff_type) && !isResidentType(staff.staff_type)
-                                    }"></i>
+                                    <span class="scc-initials">{{ (staff.full_name || '').split(' ').filter(Boolean).map(w => w[0]).slice(0,2).join('') }}</span>
                                     <span class="scc-dot" :class="'scc-dot--' + staff.employment_status"
                                           :title="formatEmploymentStatus(staff.employment_status)"></span>
                                 </div>
