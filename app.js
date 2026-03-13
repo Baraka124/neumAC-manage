@@ -430,6 +430,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return { 'Phase I': '#4d9aff', 'Phase II': '#00e5a0', 'Phase III': '#ffbe3d', 'Phase IV': '#ff5566' }[phase] || '#7a90b0'
       }
 
+      static getPartnerTypeColor(type) {
+        return {
+          'Industry':      '#4d9aff',
+          'Academic':      '#a78bfa',
+          'Hospital':      '#34d399',
+          'Regulatory':    '#fbbf24',
+          'Government':    '#f97316',
+          'Non-profit':    '#60a5fa',
+          'International': '#fb7185',
+        }[type] || '#7a90b0'
+      }
+
       static getStageConfig(stage) {
         return PROJECT_STAGES_DATA.find(s => s.key === stage) || { key: stage, label: stage, icon: 'fa-circle', color: '#7a90b0', bg: 'rgba(122,144,176,.1)', step: 0 }
       }
@@ -2701,6 +2713,7 @@ document.addEventListener('DOMContentLoaded', () => {
         show: false, activeTab: 'announcement',
         form: { title: '', content: '', priority: 'normal', target_audience: 'all_staff', updateType: 'daily', dailySummary: '', highlight1: '', highlight2: '', alerts: { erBusy: false, icuFull: false, wardFull: false, staffShortage: false }, metricName: '', metricValue: '', metricTrend: 'stable', metricChange: '', metricNote: '', alertLevel: 'low', alertMessage: '', affectedAreas: { er: false, icu: false, ward: false, surgery: false } }
       })
+      const announcementReadModal = reactive({ show: false, announcement: null })
 
       const filteredAnnouncements = computed(() => {
         let f = announcements.value
@@ -2723,7 +2736,7 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.assign(communicationsModal.form, { title: '', content: '', priority: 'normal', target_audience: 'all_staff', updateType: 'daily', dailySummary: '', highlight1: '', highlight2: '', alerts: { erBusy: false, icuFull: false, wardFull: false, staffShortage: false }, metricName: '', metricValue: '', metricTrend: 'stable', metricChange: '', metricNote: '', alertLevel: 'low', alertMessage: '', affectedAreas: { er: false, icu: false, ward: false, surgery: false } })
       }
 
-      const viewAnnouncement = (a) => showToast(a.title, Utils.truncateText(a.content, 120), 'info')
+      const viewAnnouncement = (a) => { announcementReadModal.announcement = a; announcementReadModal.show = true }
 
       const saveCommunication = async (saving, saveClinicalStatus) => {
         saving.value = true
@@ -2752,7 +2765,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       })
 
-      return { announcements, communicationsFilters, communicationsModal, filteredAnnouncements, recentAnnouncements, unreadAnnouncements, loadAnnouncements, showCommunicationsModal, viewAnnouncement, saveCommunication, deleteAnnouncement }
+      return { announcements, communicationsFilters, communicationsModal, announcementReadModal, filteredAnnouncements, recentAnnouncements, unreadAnnouncements, loadAnnouncements, showCommunicationsModal, viewAnnouncement, saveCommunication, deleteAnnouncement }
     }
 
     // ============ 6.10 useLiveStatus ============
@@ -2866,6 +2879,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const researchLineModal = reactive({ show: false, mode: 'add', form: { line_number: null, name: '', description: '', capabilities: 'Alcance y capacidades', sort_order: 0, active: true } })
       const clinicalTrialModal = reactive({ show: false, mode: 'add', form: { protocol_id: '', title: '', research_line_id: '', phase: 'Phase III', status: 'Reclutando', description: '', inclusion_criteria: '', exclusion_criteria: '', principal_investigator_id: '', co_investigators: [], sub_investigators: [], contact_email: '', featured_in_website: true, display_order: 0, start_date: '', end_date: '' } })
       const trialDetailModal = reactive({ show: false, trial: null })
+      const projectReadModal = reactive({ show: false, project: null })
       const innovationProjectModal = reactive({ show: false, mode: 'add', form: { title: '', category: 'Dispositivo', current_stage: 'Idea', description: '', clinical_rationale: '', research_line_id: '', lead_investigator_id: '', co_investigators: [], partner_needs: [], partner_found: false, partner_name: '', funding_status: 'not_applicable', keywords: [], keywordsInput: '', featured_in_website: true, display_order: 0 } })
       const assignCoordinatorModal = reactive({ show: false, lineId: null, lineName: '', selectedCoordinatorId: '' })
 
@@ -2937,6 +2951,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const editTrial = (t) => { clinicalTrialModal.mode = 'edit'; clinicalTrialModal.form = { ...t, end_date: t.end_date || t.estimated_end_date || '', co_investigators: Array.isArray(t.co_investigators) ? [...t.co_investigators] : (t.co_investigator_id ? [t.co_investigator_id] : []), sub_investigators: Array.isArray(t.sub_investigators) ? [...t.sub_investigators] : (t.sub_investigator_id ? [t.sub_investigator_id] : []) }; clinicalTrialModal.show = true }
       const editProject = (p) => { innovationProjectModal.mode = 'edit'; const coI = Array.isArray(p.co_investigators) && p.co_investigators.length ? p.co_investigators : (Array.isArray(p.co_leads) ? p.co_leads : []); const kws = Array.isArray(p.keywords) && p.keywords.length ? p.keywords : (Array.isArray(p.tags) ? p.tags : []); innovationProjectModal.form = { ...p, current_stage: p.current_stage || p.development_stage || 'Idea', partner_needs: Array.isArray(p.partner_needs) ? [...p.partner_needs] : [], co_investigators: [...coI], keywords: [...kws], keywordsInput: kws.length ? kws.join(', ') : '', partner_found: p.partner_found || false, partner_name: p.partner_name || '', funding_status: p.funding_status || 'not_applicable', clinical_rationale: p.clinical_rationale || '' }; innovationProjectModal.show = true }
       const viewTrial = (t) => { trialDetailModal.trial = t; trialDetailModal.show = true }
+      const viewProject = (p) => { projectReadModal.project = p; projectReadModal.show = true }
 
       const saveResearchLine = async (saving) => {
         // Normalise: HTML form uses research_line_name, JS defaults use name — backend DB stores 'name'
@@ -3037,7 +3052,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const deleteClinicalTrial = (trial) => showConfirmation({ title: 'Delete Trial', message: `Delete "${trial.title}"?`, icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger', details: `Protocol: ${trial.protocol_id}`, onConfirm: async () => { await API.deleteClinicalTrial(trial.id); await loadClinicalTrials(); showToast('Success', 'Trial deleted', 'success'); loadAnalyticsSummary() } })
       const deleteInnovationProject = (project) => showConfirmation({ title: 'Delete Project', message: `Delete "${project.title}"?`, icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger', onConfirm: async () => { await API.deleteInnovationProject(project.id); await loadInnovationProjects(); showToast('Success', 'Project deleted', 'success'); loadAnalyticsSummary(); loadPartnerCollaborations() } })
 
-      return { researchLines, clinicalTrials, innovationProjects, researchLineFilters, trialFilters, projectFilters, researchLineModal, clinicalTrialModal, innovationProjectModal, assignCoordinatorModal, trialDetailModal, filteredResearchLines, filteredTrials, filteredTrialsAll, filteredProjects, filteredProjectsAll, trialTotalPages, projectTotalPages, getResearchLineName, getClinicianResearchLines, loadResearchLines, loadClinicalTrials, loadInnovationProjects, showAddResearchLineModal, showAddTrialModal, showAddProjectModal, openAssignCoordinatorModal, editResearchLine, editTrial, editProject, viewTrial, saveResearchLine, saveClinicalTrial, saveInnovationProject, saveCoordinatorAssignment, deleteResearchLine, deleteClinicalTrial, deleteInnovationProject, addKeyword, removeKeyword, handleKeywordKey }
+      return { researchLines, clinicalTrials, innovationProjects, researchLineFilters, trialFilters, projectFilters, researchLineModal, clinicalTrialModal, innovationProjectModal, assignCoordinatorModal, trialDetailModal, projectReadModal, filteredResearchLines, filteredTrials, filteredTrialsAll, filteredProjects, filteredProjectsAll, trialTotalPages, projectTotalPages, getResearchLineName, getClinicianResearchLines, loadResearchLines, loadClinicalTrials, loadInnovationProjects, showAddResearchLineModal, showAddTrialModal, showAddProjectModal, openAssignCoordinatorModal, editResearchLine, editTrial, editProject, viewTrial, viewProject, saveResearchLine, saveClinicalTrial, saveInnovationProject, saveCoordinatorAssignment, deleteResearchLine, deleteClinicalTrial, deleteInnovationProject, addKeyword, removeKeyword, handleKeywordKey }
     }
 
     // ============ 6.12 useAnalytics ============
@@ -3437,9 +3452,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const commsOps = useComms({ showToast, showConfirmation })
         const liveOps = useLiveStatus({ showToast, showConfirmation, medicalStaff, currentUser })
         const analyticsOps = useAnalytics({ showToast, hasPermission })
-        const { loadAnalyticsSummary, loadResearchLinesPerformance, loadPartnerCollaborations } = analyticsOps
+        const { loadAnalyticsSummary, loadPartnerCollaborations } = analyticsOps
 
-        const researchOps = useResearch({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, clearAll, medicalStaff, loadAnalyticsSummary, loadResearchLinesPerformance, loadPartnerCollaborations })
+        const researchOps = useResearch({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, clearAll, medicalStaff, loadAnalyticsSummary, loadResearchLinesPerformance: analyticsOps.loadResearchLinesPerformance, loadPartnerCollaborations })
+
+        // FIX 8: Override loadResearchLinesPerformance to enrich the API result with a
+        // client-side 'commercialized' count — projects that have reached 'Comercialización'
+        // stage per research line. The backend does not compute this field.
+        const loadResearchLinesPerformance = async () => {
+          await analyticsOps.loadResearchLinesPerformance()
+          const projects = researchOps.innovationProjects.value
+          analyticsOps.researchLinesPerformance.value = analyticsOps.researchLinesPerformance.value.map(line => {
+            const commercialized = projects.filter(p =>
+              p.research_line_id === line.id &&
+              (p.current_stage === 'Comercialización' || p.development_stage === 'Comercialización')
+            ).length
+            return { ...line, stats: { ...(line.stats || {}), commercialized } }
+          })
+        }
         const dashOps = useDashboard({ medicalStaff, rotations, absences, onCallSchedule, trainingUnits })
         const { systemStats, updateDashboardStats, loadSystemStats, situationItems } = dashOps
 
@@ -3538,9 +3568,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const formatAbsenceReason = (r) => ABSENCE_REASON_LABELS[r] || r
         const formatRotationStatus = (s) => ROTATION_STATUS_LABELS[s] || s
         const getUserRoleDisplay = (r) => USER_ROLE_LABELS[r] || r
-        const formatAudience = (a) => ({ all_staff: 'All Staff', medical_staff: 'Medical Staff', residents: 'Residents', attendings: 'Attending Physicians' }[a] || a)
-        const getCurrentViewTitle = () => VIEW_TITLES[currentView.value] || 'NeumoCare Dashboard'
-        const getCurrentViewSubtitle = () => VIEW_SUBTITLES[currentView.value] || 'Hospital Management System'
+        const formatAudience = (a) => ({ all_staff: 'Todo el Personal', medical_staff: 'Personal Médico', residents: 'Residentes', attendings: 'Médicos Adjuntos' }[a] || a)
+        const getCurrentViewTitle = () => {
+          if (currentView.value === 'analytics_dashboard') {
+            const tab = analyticsOps.analyticsActiveTab.value
+            if (tab === 'performance') return VIEW_TITLES['analytics_performance']
+            if (tab === 'partners')    return VIEW_TITLES['analytics_partners']
+          }
+          return VIEW_TITLES[currentView.value] || 'NeumoCare Dashboard'
+        }
+        const getCurrentViewSubtitle = () => {
+          if (currentView.value === 'analytics_dashboard') {
+            const tab = analyticsOps.analyticsActiveTab.value
+            if (tab === 'performance') return VIEW_SUBTITLES['analytics_performance']
+            if (tab === 'partners')    return VIEW_SUBTITLES['analytics_partners']
+          }
+          return VIEW_SUBTITLES[currentView.value] || 'Hospital Management System'
+        }
         const getSearchPlaceholder = () => 'Search...'
 
         const getStaffTypeIcon = (t) => ({ attending_physician: 'fa-user-md', medical_resident: 'fa-user-graduate', fellow: 'fa-user-tie', nurse_practitioner: 'fa-user-nurse' }[t] || 'fa-user')
@@ -3639,7 +3683,7 @@ document.addEventListener('DOMContentLoaded', () => {
           } else if (view === 'analytics_performance' && hasPermission('analytics', 'read')) {
             analyticsOps.analyticsActiveTab.value = 'performance'
             currentView.value = 'analytics_dashboard'
-            await analyticsOps.loadResearchLinesPerformance()
+            await loadResearchLinesPerformance()
             return
           } else if (view === 'analytics_partners' && hasPermission('analytics', 'read')) {
             analyticsOps.analyticsActiveTab.value = 'partners'
@@ -3860,6 +3904,7 @@ document.addEventListener('DOMContentLoaded', () => {
           saveClinicalTrial: () => researchOps.saveClinicalTrial(saving),
           saveInnovationProject: () => researchOps.saveInnovationProject(saving),
           ...analyticsOps,
+          loadResearchLinesPerformance,   // enriched override (adds commercialized count from local projects)
           ...dashOps,
           handleLogin, handleLogout,
           switchView, situationItems, toggleStatsSidebar, handleGlobalSearch, globalSearchResults, clearSearch,
@@ -3890,6 +3935,21 @@ document.addEventListener('DOMContentLoaded', () => {
           fieldErrors, clearFieldError: (form, field) => clearFieldError(form, field),
           viewStaffDetails, toggleProfileSection, showUserProfileModal, saveUserProfile,
           getStaffName, getSupervisorName, getPhysicianName, getResidentName, getTrainingUnitName,
+          // FIX 9: Returns true when current wall-clock time falls within a shift's start–end window.
+          // Handles overnight shifts where endTime < startTime (e.g. 22:00 → 08:00).
+          isShiftNow: (shift) => {
+            if (!shift?.startTime || !shift?.endTime) return false
+            const now = new Date()
+            const [sh, sm] = shift.startTime.split(':').map(Number)
+            const [eh, em] = shift.endTime.split(':').map(Number)
+            const nowMins = now.getHours() * 60 + now.getMinutes()
+            const startMins = sh * 60 + sm
+            const endMins   = eh * 60 + em
+            // overnight: startMins > endMins (e.g. 22:00 → 08:00 wraps midnight)
+            return startMins > endMins
+              ? nowMins >= startMins || nowMins < endMins   // crosses midnight
+              : nowMins >= startMins && nowMins < endMins   // same day
+          },
           calculateAbsenceDuration, getDaysRemaining, getDaysUntilStart, getRotationProgress,
           getCurrentRotationForStaff, isOnCallToday, getUpcomingOnCall,
           getUpcomingRotations, getUpcomingLeave, getRotationHistory, getRotationDaysLeft,
@@ -3912,7 +3972,7 @@ document.addEventListener('DOMContentLoaded', () => {
           getStaffTypeIcon, getAbsenceReasonIcon, calculateCapacityPercent,
           getPreviewCardClass, getPreviewIcon, getPreviewReasonText,
           getPreviewStatusClass, getPreviewStatusText, updatePreview, requestFullDossier,
-          getPhaseColor: Utils.getPhaseColor, getStageColor: Utils.getStageColor, getStageConfig: Utils.getStageConfig, PROJECT_STAGES: PROJECT_STAGES_DATA, formatPercentage: Utils.formatPercentage,
+          getPhaseColor: Utils.getPhaseColor, getPartnerTypeColor: Utils.getPartnerTypeColor, getStageColor: Utils.getStageColor, getStageConfig: Utils.getStageConfig, PROJECT_STAGES: PROJECT_STAGES_DATA, formatPercentage: Utils.formatPercentage,
           availablePhysicians, availableResidents, availableAttendings, availableHeadsOfDepartment, availableReplacementStaff,
           // FIX 11: Partner needs options with an "Other" escape hatch handled in template
           availablePartnerNeeds: ['Financiación', 'Distribución', 'Fabricación', 'Software', 'Regulatorio', 'Ensayos clínicos', 'Licencia de tecnología', 'Co-desarrollo'],
