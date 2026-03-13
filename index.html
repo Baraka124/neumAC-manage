@@ -12,7 +12,7 @@
 <body>
 <div id="app" v-cloak>
 
-    <!-- ============- TOAST CONTAINER ==-=--=---======= -->
+    <!-- ============- TOAST CONTAINER ==-=--=--======= -->
     <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
              :class="['toast', `toast-${toast.type}`]"
@@ -5493,7 +5493,7 @@
             <div class="modal-container tdm-container">
 
                 <!-- ── Hero header ─────────────────────────────────────── -->
-                <div class="tdm-hero">
+                <div class="tdm-hero" v-if="trialDetailModal.trial">
                     <div class="tdm-hero-top">
                         <div class="tdm-badges">
                             <span class="tdm-protocol"><i class="fas fa-hashtag"></i> {{ trialDetailModal.trial?.protocol_id }}</span>
