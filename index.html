@@ -1753,9 +1753,9 @@
                                 </div>
 
                                 <!-- Supervisor -->
-                                <div class="tuc-supervisor" v-if="unit.supervising_attending_id">
+                                <div class="tuc-supervisor" v-if="unit.supervisor_id || unit.supervising_attending_id">
                                     <i class="fas fa-user-md"></i>
-                                    <span>{{ getSupervisorName(unit.supervising_attending_id) }}</span>
+                                    <span>{{ getSupervisorName(unit.supervisor_id || unit.supervising_attending_id) }}</span>
                                     <span class="tuc-sup-badge">Supervisor</span>
                                 </div>
                                 <div class="tuc-supervisor tuc-supervisor--empty" v-else title="No supervisor assigned">
@@ -2087,9 +2087,9 @@
                             <select class="form-select" v-model="communicationsFilters.audience">
                                 <option value="">All Audiences</option>
                                 <option value="all_staff">All Staff</option>
-                                <option value="medical_staff">Medical Staff</option>
-                                <option value="residents">Residents</option>
-                                <option value="attendings">Attendings</option>
+                                <option value="all">All (incl. admin)</option>
+                                <option value="residents_only">Residents Only</option>
+                                <option value="attending_only">Attendings Only</option>
                             </select>
                         </div>
                         <div class="space-y-4">
@@ -2105,6 +2105,8 @@
                                 <div class="announcement-footer">
                                     <span>{{ formatAudience(announcement.target_audience) }}</span>
                                     <button class="btn-pill btn-pill-view" @click="viewAnnouncement(announcement)"><i class="fas fa-eye"></i> View</button>
+                                    <button v-if="hasPermission('communications','update')" class="btn-pill" @click="editAnnouncement(announcement)" style="background:var(--blue-lt);color:var(--blue);border-color:var(--blue-mid)"><i class="fas fa-pen"></i></button>
+                                    <button v-if="hasPermission('communications','delete')" class="btn-pill" @click="deleteAnnouncement(announcement)" style="background:var(--danger-lt);color:var(--danger);border-color:var(--danger-mid)"><i class="fas fa-trash-alt"></i></button>
                                 </div>
                             </div>
                             <div v-if="recentAnnouncements.length === 0" class="empty-state">
@@ -4442,7 +4444,7 @@
         <div v-if="tlPopover.show" class="tl-popover-backdrop" @click="closeCellPopover"></div>
 
         <!-- ============ ANNOUNCEMENT READ MODAL ============ -->
-        <div v-if="announcementReadModal.show" class="modal-overlay" @click.self="announcementReadModal.show = false">
+        <div v-if="announcementReadModal.show && announcementReadModal.announcement" class="modal-overlay" @click.self="announcementReadModal.show = false">
             <div class="modal-container">
                 <div class="modal-header">
                     <div>
@@ -4475,11 +4477,11 @@
         <div v-if="communicationsModal.show" class="modal-overlay">
             <div class="modal-container modal-wide">
                 <div class="modal-header">
-                    <div class="modal-title"><i class="fas fa-bullhorn"></i><span>Department Communications</span></div>
+                    <div class="modal-title"><i class="fas fa-bullhorn"></i><span>{{ communicationsModal.mode === 'edit' ? 'Edit Announcement' : 'Department Communications' }}</span></div>
                     <button class="modal-close" @click="communicationsModal.show = false"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
-                    <div class="comms-tabs">
+                    <div class="comms-tabs" v-if="communicationsModal.mode !== 'edit'">
                         <button class="comms-tab" :class="{ active: communicationsModal.activeTab === 'announcement' }" @click="communicationsModal.activeTab = 'announcement'"><i class="fas fa-bullhorn"></i><span>Announcement</span></button>
                         <button class="comms-tab" :class="{ active: communicationsModal.activeTab === 'stats_update' }" @click="communicationsModal.activeTab = 'stats_update'" v-if="hasPermission('communications', 'create')"><i class="fas fa-chart-line"></i><span>Clinical Update</span></button>
                     </div>
@@ -4513,7 +4515,7 @@
                                 <div class="form-group">
                                     <label class="form-label">Audience</label>
                                     <select class="form-select" v-model="communicationsModal.form.target_audience">
-                                        <option value="all_staff">All Staff</option><option value="medical_staff">Medical Staff</option><option value="residents">Residents</option><option value="attendings">Attendings</option>
+                                        <option value="all_staff">All Staff</option><option value="all">All (incl. admin)</option><option value="residents_only">Residents Only</option><option value="attending_only">Attendings Only</option>
                                     </select>
                                 </div>
                             </div>
@@ -4533,7 +4535,7 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @click="communicationsModal.show = false">Cancel</button>
-                    <button class="btn btn-primary" @click="saveCommunication(saving)"><i class="fas fa-paper-plane"></i> {{ communicationsModal.activeTab === 'announcement' ? 'Publish' : 'Update' }}</button>
+                    <button class="btn btn-primary" @click="saveCommunication(saving)"><i class="fas fa-paper-plane"></i> {{ communicationsModal.mode === 'edit' ? 'Save Changes' : (communicationsModal.activeTab === 'announcement' ? 'Publish' : 'Update') }}</button>
                 </div>
             </div>
         </div>
@@ -4675,7 +4677,7 @@
         </div>
 
         <!-- ============ UNIT RESIDENTS MODAL — names only ============ -->
-        <div v-if="unitResidentsModal.show" class="modal-overlay">
+        <div v-if="unitResidentsModal.show && unitResidentsModal.unit" class="modal-overlay">
             <div class="modal-container modal-unit-residents">
                 <div class="modal-header">
                     <div class="modal-title">
@@ -5407,7 +5409,7 @@
         </div>
 
         <!-- ============ TRIAL DETAIL MODAL ============ -->
-        <div v-if="trialDetailModal.show" class="modal-overlay" @click.self="trialDetailModal.show = false">
+        <div v-if="trialDetailModal.show && trialDetailModal.trial" class="modal-overlay" @click.self="trialDetailModal.show = false">
             <div class="modal-container tdm-container">
 
                 <!-- ── Hero header ─────────────────────────────────────── -->
