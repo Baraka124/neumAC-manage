@@ -732,6 +732,7 @@ document.addEventListener('DOMContentLoaded', () => {
       async createAbsence(d) { this.invalidate('/api/absence-records'); return this.request('/api/absence-records', { method: 'POST', body: d }) }
       async updateAbsence(id, d) { this.invalidate('/api/absence-records'); return this.request(`/api/absence-records/${id}`, { method: 'PUT', body: d }) }
       async deleteAbsence(id) { this.invalidate('/api/absence-records'); return this.request(`/api/absence-records/${id}`, { method: 'DELETE' }) }
+      async returnToDuty(id, d) { this.invalidate('/api/absence-records'); return this.request(`/api/absence-records/${id}/return`, { method: 'PUT', body: d }) }
 
       async getAnnouncements() { return this.getList('/api/announcements') }
       async createAnnouncement(d) { this.invalidate('/api/announcements'); return this.request('/api/announcements', { method: 'POST', body: d }) }
@@ -2293,23 +2294,80 @@ document.addEventListener('DOMContentLoaded', () => {
         onConfirm: async () => {
           try {
             await API.deleteAbsence(absence.id)
-            // Remove from local list immediately for instant feedback
             absences.value = absences.value.filter(a => a.id !== absence.id)
             showToast('Success', 'Absence record cancelled', 'success')
-            // Then reload to ensure DB state is reflected (catches any edge cases)
             await loadAbsences()
           } catch (e) {
             showToast('Error', e?.message || 'Failed to cancel absence record', 'error')
-            // On error: reload so the UI reflects actual DB state
             await loadAbsences()
           }
         }
       })
 
+      // ── Absence Resolution Workflow ───────────────────────────────────────
+      // Surfaces when an absence period has ended but no formal resolution has been recorded.
+      const absenceResolutionModal = reactive({
+        show: false,
+        absence: null,
+        action: null,        // 'confirm_return' | 'extend' | 'archive'
+        returnDate: Utils.normalizeDate(new Date()),
+        returnNotes: '',
+        extendedEndDate: '',
+        saving: false
+      })
+
+      const openResolutionModal = (absence) => {
+        absenceResolutionModal.absence = absence
+        absenceResolutionModal.action = 'confirm_return'
+        absenceResolutionModal.returnDate = Utils.normalizeDate(new Date())
+        absenceResolutionModal.returnNotes = ''
+        absenceResolutionModal.extendedEndDate = Utils.normalizeDate(new Date(Date.now() + 7 * 86400000))
+        absenceResolutionModal.saving = false
+        absenceResolutionModal.show = true
+      }
+
+      const resolveAbsence = async () => {
+        const m = absenceResolutionModal
+        if (!m.absence) return
+        m.saving = true
+        try {
+          if (m.action === 'confirm_return') {
+            // Call dedicated /return endpoint — updates end_date, sets returned_to_duty, writes audit
+            await API.returnToDuty(m.absence.id, {
+              return_date: m.returnDate,
+              notes: m.returnNotes || 'Staff confirmed returned to duty'
+            })
+            showToast('Confirmed', `${getStaffName(m.absence.staff_member_id)} marked as returned`, 'success')
+
+          } else if (m.action === 'extend') {
+            // Standard PUT update with new end date
+            await API.updateAbsence(m.absence.id, {
+              ...m.absence,
+              end_date: m.extendedEndDate,
+              hod_notes: (m.absence.hod_notes ? m.absence.hod_notes + '\n' : '') +
+                `[EXTENDED: ${new Date().toISOString()}] New end date: ${m.extendedEndDate}` +
+                (m.returnNotes ? ` — ${m.returnNotes}` : '')
+            })
+            showToast('Updated', 'Absence extended', 'success')
+
+          } else if (m.action === 'archive') {
+            // Soft-delete via DELETE endpoint — sets cancelled, writes audit note
+            await API.deleteAbsence(m.absence.id)
+            showToast('Archived', 'Absence record archived', 'success')
+          }
+
+          m.show = false
+          await loadAbsences()
+        } catch (e) {
+          showToast('Error', e?.message || 'Failed to resolve absence', 'error')
+        } finally { m.saving = false }
+      }
+
       return {
         absences, absenceFilters, absenceModal, absenceOverlapWarning,
         filteredAbsences, filteredAbsencesAll, absenceTotalPages,
-        loadAbsences, showAddAbsenceModal, editAbsence, saveAbsence, deleteAbsence
+        loadAbsences, showAddAbsenceModal, editAbsence, saveAbsence, deleteAbsence,
+        absenceResolutionModal, openResolutionModal, resolveAbsence
       }
     }
 
