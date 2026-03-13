@@ -7412,7 +7412,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   position: fixed; inset: 0; z-index: 299;
 }
 .tl-popover {
-  position: absolute; z-index: 300;
+  position: fixed; z-index: 300;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
