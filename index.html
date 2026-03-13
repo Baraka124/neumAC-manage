@@ -867,24 +867,24 @@
                                 <!-- Right: all text info -->
                                 <div class="scc-body">
 
-                                    <!-- Row 1: name + warn icon -->
+                                    <!-- Row 1: name + badge + int/ext pill + warn icon -->
                                     <div class="scc-name-row">
                                         <span class="scc-name">{{ staff.full_name }}</span>
+                                        <span class="badge scc-type-badge" :class="getStaffTypeClass(staff.staff_type)">{{ formatStaffTypeShortFn(staff.staff_type) }}</span>
+                                        <span v-if="staff.resident_category" class="scc-cat-pill"
+                                              :class="staff.resident_category === 'external_resident' ? 'scc-cat--ext' : 'scc-cat--int'">
+                                            {{ staff.resident_category === 'external_resident' ? 'Ext' : staff.resident_category === 'rotating_other_dept' ? 'Rot' : 'Int' }}
+                                        </span>
                                         <span v-if="!staff.professional_email || !staff.department_id"
                                               class="scc-warn" title="Profile incomplete — missing email or department">
                                             <i class="fas fa-exclamation-circle"></i>
                                         </span>
                                     </div>
 
-                                    <!-- Row 2: type badge + int/ext pill + department -->
-                                    <div class="scc-meta">
-                                        <span class="badge scc-type-badge" :class="getStaffTypeClass(staff.staff_type)">{{ formatStaffTypeShortFn(staff.staff_type) }}</span>
-                                        <span v-if="staff.resident_category" class="scc-cat-pill"
-                                              :class="staff.resident_category === 'external_resident' ? 'scc-cat--ext' : 'scc-cat--int'">
-                                            {{ staff.resident_category === 'external_resident' ? 'Ext' : staff.resident_category === 'rotating_other_dept' ? 'Rot' : 'Int' }}
-                                        </span>
+                                    <!-- Row 2: department only -->
+                                    <div class="scc-dept-row">
                                         <span v-if="getDepartmentName(staff.department_id)" class="scc-dept-text">
-                                            · {{ getDepartmentName(staff.department_id) }}
+                                            {{ getDepartmentName(staff.department_id) }}
                                         </span>
                                     </div>
                                     <!-- External contact (shown only for external residents) -->
@@ -1648,6 +1648,12 @@
                             <div v-for="i in 4" :key="i" class="skeleton-card"></div>
                         </div>
                         <div v-else class="training-units-grid">
+                            <!-- Shared legend — shown once above all cards, only in timeline mode -->
+                            <div v-if="trainingUnitView === 'timeline'" class="tuc-shared-legend">
+                                <span class="tuc-tl-leg-item"><span class="tuc-tl-leg-dot tuc-tl-leg-dot--occupied"></span>Occupied</span>
+                                <span class="tuc-tl-leg-item"><span class="tuc-tl-leg-dot tuc-tl-leg-dot--partial"></span>Partial</span>
+                                <span class="tuc-tl-leg-item"><span class="tuc-tl-leg-dot tuc-tl-leg-dot--free"></span>Available</span>
+                            </div>
                             <div v-for="unit in filteredTrainingUnits" :key="unit.id"
                                  class="tuc"
                                  :class="{
@@ -1726,12 +1732,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- Legend -->
-                                    <div class="tuc-tl-legend">
-                                        <span class="tuc-tl-leg-item"><span class="tuc-tl-leg-dot tuc-tl-leg-dot--occupied"></span>Occupied</span>
-                                        <span class="tuc-tl-leg-item"><span class="tuc-tl-leg-dot tuc-tl-leg-dot--partial"></span>Partial</span>
-                                        <span class="tuc-tl-leg-item"><span class="tuc-tl-leg-dot tuc-tl-leg-dot--free"></span>Available</span>
-                                    </div>
+                                    <!-- Legend suppressed per-card — shown once above grid -->
                                 </div>
 
                                 <!-- ══════════════════════════════════════
@@ -1776,9 +1777,9 @@
                                     <span>{{ getSupervisorName(unit.supervising_attending_id) }}</span>
                                     <span class="tuc-sup-badge">Supervisor</span>
                                 </div>
-                                <div class="tuc-supervisor tuc-supervisor--empty" v-else>
+                                <div class="tuc-supervisor tuc-supervisor--empty" v-else title="No supervisor assigned">
                                     <i class="fas fa-user-md"></i>
-                                    <span>No supervisor assigned</span>
+                                    <span class="tuc-sup-empty-label">No supervisor</span>
                                 </div>
 
                                 <!-- Actions -->
