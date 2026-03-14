@@ -2112,7 +2112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============ 6.6 useAbsences ============
-    function useAbsences({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff }) {
+    function useAbsences({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup }) {
       const absences = ref([])
       const absenceFilters = reactive({ staff: '', status: '', reason: '', startDate: '', search: '', hideReturned: true })
       const absenceModal = reactive({
@@ -2122,7 +2122,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const getStaffName = (id) => {
         if (!id) return 'Not assigned'
-        return medicalStaff.value.find(x => x.id === id)?.full_name || id
+        const lookup = allStaffLookup?.value || []
+        const all    = medicalStaff?.value || []
+        const s = lookup.find(x => x.id === id) || all.find(x => x.id === id)
+        return s?.full_name || 'Not assigned'
       }
 
       const validateAbsence = (form) => {
@@ -2223,10 +2226,21 @@ document.addEventListener('DOMContentLoaded', () => {
           absences.value = active.map(a => {
             const normalized = { ...a, start_date: Utils.normalizeDate(a.start_date), end_date: Utils.normalizeDate(a.end_date) }
             const derived = deriveAbsenceStatus(normalized)
-            // Silently patch stale records (ended but still not 'completed' in DB)
+            // Silently patch stale records (ended but still 'currently_absent' in DB)
             // Skip records already formally resolved — returned_to_duty must never be overwritten
             if (derived === 'completed' && a.current_status && a.current_status !== 'completed' && a.current_status !== 'cancelled' && a.current_status !== 'returned_to_duty') {
-              stalePatches.push(API.updateAbsence(a.id, { ...a, current_status: 'completed' }).catch(() => {}))
+              const patch = {
+                staff_member_id: a.staff_member_id,
+                absence_type:    a.absence_type,
+                absence_reason:  a.absence_reason,
+                start_date:      Utils.normalizeDate(a.start_date),
+                end_date:        Utils.normalizeDate(a.end_date),
+                coverage_arranged: a.coverage_arranged || false,
+                covering_staff_id: a.covering_staff_id || null,
+                coverage_notes:  a.coverage_notes || '',
+                hod_notes:       a.hod_notes || ''
+              }
+              stalePatches.push(API.updateAbsence(a.id, patch).catch(() => {}))
             }
             return { ...normalized, current_status: derived }
           })
@@ -3485,7 +3499,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Sync real trainingUnits into the stub so rotationOps.getTrainingUnitName resolves correctly
         watch(trainingUnits, (v) => { _tuStub.value = v }, { immediate: true })
 
-        const absenceOps = useAbsences({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff })
+        const absenceOps = useAbsences({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup })
         const { absences } = absenceOps
 
         // ============ STAFF DEACTIVATION WORKFLOW ============
