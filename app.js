@@ -1507,12 +1507,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch { todaysOnCall.value = [] }
       }
 
-      const showAddOnCallModal = () => {
+      const showAddOnCallModal = (physician = null) => {
         clearAll('oncall')
         onCallModal.mode = 'add'
         Object.assign(onCallModal.form, {
           duty_date: Utils.normalizeDate(new Date()), shift_type: 'primary_call',
-          start_time: '08:00', end_time: '17:00', primary_physician_id: '',
+          start_time: '08:00', end_time: '17:00',
+          primary_physician_id: physician?.id || '',
           backup_physician_id: '', coverage_area: 'emergency', coverage_notes: '',
           schedule_id: `SCH-${Date.now().toString().slice(-6)}`
         })
@@ -1843,10 +1844,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch { showToast('Error', 'Failed to load rotations', 'error') }
       }
 
-      const showAddRotationModal = () => {
+      const showAddRotationModal = (resident = null, unit = null) => {
         clearAll('rotation'); rotationModal.mode = 'add'
         Object.assign(rotationModal.form, {
-          rotation_id: `ROT-${Date.now().toString().slice(-6)}`, resident_id: '', training_unit_id: '',
+          rotation_id: `ROT-${Date.now().toString().slice(-6)}`,
+          resident_id: resident?.id || '',
+          training_unit_id: unit?.id || '',
           start_date: Utils.normalizeDate(new Date()), end_date: Utils.normalizeDate(new Date(Date.now() + 30 * 86400000)),
           rotation_status: 'scheduled', rotation_category: 'clinical_rotation', supervising_attending_id: ''
         })
@@ -2257,10 +2260,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch { showToast('Error', 'Failed to load absences', 'error') }
       }
 
-      const showAddAbsenceModal = () => {
+      const showAddAbsenceModal = (staff = null) => {
         clearAll('absence'); absenceModal.mode = 'add'
         Object.assign(absenceModal.form, {
-          staff_member_id: '', absence_type: 'planned', absence_reason: 'vacation',
+          staff_member_id: staff?.id || '', absence_type: 'planned', absence_reason: 'vacation',
           start_date: Utils.normalizeDate(new Date()), end_date: Utils.normalizeDate(new Date(Date.now() + 7 * 86400000)),
           covering_staff_id: '', coverage_notes: '', coverage_arranged: false, hod_notes: ''
         })
@@ -3132,8 +3135,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const loadInnovationProjects = async () => { try { innovationProjects.value = await API.getAllInnovationProjects() } catch { } }
 
       const showAddResearchLineModal = () => { clearAll('research'); researchLineModal.mode = 'add'; Object.assign(researchLineModal.form, { line_number: researchLines.value.length + 1, name: '', description: '', capabilities: '', sort_order: researchLines.value.length + 1, active: true, keywords: [], keywordsInput: '' }); researchLineModal.show = true }
-      const showAddTrialModal = () => { clinicalTrialModal.mode = 'add'; Object.assign(clinicalTrialModal.form, { protocol_id: `HUAC-${Date.now().toString().slice(-6)}`, title: '', research_line_id: '', phase: 'Phase III', status: 'Reclutando', description: '', inclusion_criteria: '', exclusion_criteria: '', principal_investigator_id: '', co_investigators: [], sub_investigators: [], contact_email: '', featured_in_website: true, display_order: clinicalTrials.value.length + 1, start_date: '', end_date: '' }); clinicalTrialModal.show = true }
-      const showAddProjectModal = () => { innovationProjectModal.mode = 'add'; Object.assign(innovationProjectModal.form, { title: '', category: 'Dispositivo', current_stage: 'Idea', description: '', clinical_rationale: '', research_line_id: '', lead_investigator_id: '', co_investigators: [], partner_needs: [], partner_found: false, partner_name: '', funding_status: 'not_applicable', keywords: [], keywordsInput: '', featured_in_website: true, display_order: innovationProjects.value.length + 1 }); innovationProjectModal.show = true }
+      const showAddTrialModal = (line = null) => { clinicalTrialModal.mode = 'add'; Object.assign(clinicalTrialModal.form, { protocol_id: `HUAC-${Date.now().toString().slice(-6)}`, title: '', research_line_id: line?.id || '', phase: 'Phase III', status: 'Reclutando', description: '', inclusion_criteria: '', exclusion_criteria: '', principal_investigator_id: '', co_investigators: [], sub_investigators: [], contact_email: '', featured_in_website: true, display_order: clinicalTrials.value.length + 1, start_date: '', end_date: '' }); clinicalTrialModal.show = true }
+      const showAddProjectModal = (line = null) => { innovationProjectModal.mode = 'add'; Object.assign(innovationProjectModal.form, { title: '', category: 'Dispositivo', current_stage: 'Idea', description: '', clinical_rationale: '', research_line_id: line?.id || '', lead_investigator_id: '', co_investigators: [], partner_needs: [], partner_found: false, partner_name: '', funding_status: 'not_applicable', keywords: [], keywordsInput: '', featured_in_website: true, display_order: innovationProjects.value.length + 1 }); innovationProjectModal.show = true }
 
       const openAssignCoordinatorModal = (line) => { assignCoordinatorModal.lineId = line.id; assignCoordinatorModal.lineName = line.research_line_name || line.name; assignCoordinatorModal.selectedCoordinatorId = line.coordinator_id || ''; assignCoordinatorModal.show = true }
       const editResearchLine = (l) => { researchLineModal.mode = 'edit'; researchLineModal.form = { ...l, keywordsInput: Array.isArray(l.keywords) ? l.keywords.join(', ') : (l.keywordsInput || '') }; researchLineModal.show = true }
