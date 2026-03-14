@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const { createApp, ref, reactive, computed, onMounted, watch, onUnmounted } = Vue
 
-    // ============ 1. CONFIGURATION ====-----===--====-=
+    // ============ 1. CONFIGURATION ====---===--====-=
     const CONFIG = {
       API_BASE_URL: window.location.hostname.includes('localhost')
         ? 'http://localhost:3000'
@@ -2334,7 +2334,7 @@ document.addEventListener('DOMContentLoaded', () => {
         icon: 'fa-trash-alt',
         confirmButtonText: 'Delete Permanently',
         confirmButtonClass: 'btn-danger',
-        details: `Staff: ${getStaffName(absence.staff_member_id)} · ${formatAbsenceReason(absence.absence_reason)} · ${Utils.formatDate(absence.start_date)} → ${Utils.formatDate(absence.end_date)}`,
+        details: `Staff: ${getStaffName(absence.staff_member_id)} · ${ABSENCE_REASON_LABELS[absence.absence_reason] || absence.absence_reason} · ${Utils.formatDate(absence.start_date)} → ${Utils.formatDate(absence.end_date)}`,
         onConfirm: async () => {
           try {
             await API.purgeAbsence(absence.id)
