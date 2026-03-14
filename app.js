@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const { createApp, ref, reactive, computed, onMounted, watch, onUnmounted } = Vue
 
-    // ============ 1. CONFIGURATION ====----===--====-=
+    // ============ 1. CONFIGURATION ====---===--====-=
     const CONFIG = {
       API_BASE_URL: window.location.hostname.includes('localhost')
         ? 'http://localhost:3000'
@@ -140,12 +140,13 @@ document.addEventListener('DOMContentLoaded', () => {
       staff_absence: 'Staff Absence Management',
       department_management: 'Department Management', 
       communications: 'Communications Center',
-      research_lines: 'Research Lines', 
-      clinical_trials: 'Clinical Trials',
-      innovation_projects: 'Innovation Projects', 
-      analytics_dashboard: 'Research Analytics Dashboard',
-      analytics_performance: 'Research Lines Performance', 
-      analytics_partners: 'Partner Collaborations'
+      research_hub: 'Research Hub',
+      research_lines: 'Research Hub', 
+      clinical_trials: 'Research Hub',
+      innovation_projects: 'Research Hub', 
+      analytics_dashboard: 'Research Hub',
+      analytics_performance: 'Research Hub', 
+      analytics_partners: 'Research Hub'
     }
     
     const VIEW_SUBTITLES = {
@@ -157,12 +158,13 @@ document.addEventListener('DOMContentLoaded', () => {
       staff_absence: 'Track staff absences and coverage assignments',
       department_management: 'Organizational structure and clinical units',
       communications: 'Department announcements and capacity updates',
-      research_lines: 'Research groups and coordinator assignments',
-      clinical_trials: 'Active clinical trials and studies',
-      innovation_projects: 'Innovation and development projects',
-      analytics_dashboard: 'Comprehensive research metrics and KPIs',
-      analytics_performance: 'Detailed performance by research line',
-      analytics_partners: 'Partner collaboration insights'
+      research_hub: 'Research lines, trials, projects and analytics',
+      research_lines: 'Research lines, trials, projects and analytics',
+      clinical_trials: 'Research lines, trials, projects and analytics',
+      innovation_projects: 'Research lines, trials, projects and analytics',
+      analytics_dashboard: 'Research lines, trials, projects and analytics',
+      analytics_performance: 'Research lines, trials, projects and analytics',
+      analytics_partners: 'Research lines, trials, projects and analytics'
     }
 
     // ============ 3. ENHANCED UTILS CLASS ============
@@ -732,6 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
       async createAbsence(d) { this.invalidate('/api/absence-records'); return this.request('/api/absence-records', { method: 'POST', body: d }) }
       async updateAbsence(id, d) { this.invalidate('/api/absence-records'); return this.request(`/api/absence-records/${id}`, { method: 'PUT', body: d }) }
       async deleteAbsence(id) { this.invalidate('/api/absence-records'); return this.request(`/api/absence-records/${id}`, { method: 'DELETE' }) }
+      async purgeAbsence(id) { this.invalidate('/api/absence-records'); return this.request(`/api/absence-records/${id}/purge`, { method: 'DELETE' }) }
       async returnToDuty(id, d) { this.invalidate('/api/absence-records'); return this.request(`/api/absence-records/${id}/return`, { method: 'PUT', body: d }) }
 
       async getAnnouncements() { return this.getList('/api/announcements') }
@@ -1367,7 +1370,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============ 6.4 useOnCall ============
-    function useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff }) {
+    function useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup }) {
       const onCallSchedule = ref([])
       const todaysOnCall = ref([])
       const loadingSchedule = ref(false)
@@ -1379,7 +1382,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const getPhysicianName = (id) => {
         if (!id) return 'Not assigned'
-        return medicalStaff.value.find(x => x.id === id)?.full_name || id
+        const s = allStaffLookup?.value?.find(x => x.id === id) || medicalStaff.value.find(x => x.id === id)
+        return s?.full_name || 'Not assigned'
       }
       const formatStaffType = (t) => formatStaffTypeGlobal(t)
 
@@ -1448,7 +1452,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (dutyDate < cutoff) return // skip very old shifts
           const id = shift.primary_physician_id
           if (!id) return
-          const staff = medicalStaff.value.find(s => s.id === id)
+          const staff = allStaffLookup?.value?.find(s => s.id === id) || medicalStaff.value.find(s => s.id === id)
           if (!staff) return
           if (!map[id]) map[id] = { id, name: staff.full_name, staffType: staff.staff_type, shifts: [] }
           map[id].shifts.push({
@@ -1457,7 +1461,7 @@ document.addEventListener('DOMContentLoaded', () => {
             isPast:  dutyDate < today,
             dayLabel:  new Date(dutyDate + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' }),
             dateLabel: new Date(dutyDate + 'T12:00:00').toLocaleDateString('en', { day: 'numeric', month: 'short' }),
-            backupName: shift.backup_physician_id ? (medicalStaff.value.find(s => s.id === shift.backup_physician_id)?.full_name || null) : null
+            backupName: shift.backup_physician_id ? ((allStaffLookup?.value?.find(s => s.id === shift.backup_physician_id) || medicalStaff.value.find(s => s.id === shift.backup_physician_id))?.full_name || null) : null
           })
         })
         Object.values(map).forEach(p => p.shifts.sort((a, b) => a.dutyDate.localeCompare(b.dutyDate)))
@@ -1642,7 +1646,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============ 6.5 useRotations ============
-    function useRotations({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, trainingUnits, currentUser }) {
+    function useRotations({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup, trainingUnits, currentUser }) {
       const rotations = ref([])
       const rotationFilters = reactive({ resident: '', status: '', trainingUnit: '', supervisor: '', search: '' })
       const rotationModal = reactive({
@@ -1674,7 +1678,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const pendingActivations = ref([])
       const activationModal = reactive({ show: false, rotations: [], selectedRotation: null, notes: '', action: 'activate' })
 
-      const getResidentName = (id) => medicalStaff.value.find(s => s.id === id)?.full_name || 'Not assigned'
+      const getResidentName = (id) => {
+        if (!id) return 'Not assigned'
+        const s = allStaffLookup?.value?.find(x => x.id === id) || medicalStaff.value.find(x => x.id === id)
+        return s?.full_name || 'Not assigned'
+      }
       const getTrainingUnitName = (id) => trainingUnits.value.find(u => u.id === id)?.unit_name || 'Not assigned'
 
       // Capacity info for rotation modal — reactive to selected unit
@@ -2320,6 +2328,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       })
 
+      const purgeAbsence = (absence) => showConfirmation({
+        title: 'Permanently Delete Record',
+        message: `This will permanently remove this absence record from the system. This action cannot be undone and the record will not appear in any future audit trail.`,
+        icon: 'fa-trash-alt',
+        confirmButtonText: 'Delete Permanently',
+        confirmButtonClass: 'btn-danger',
+        details: `Staff: ${getStaffName(absence.staff_member_id)} · ${formatAbsenceReason(absence.absence_reason)} · ${Utils.formatDate(absence.start_date)} → ${Utils.formatDate(absence.end_date)}`,
+        onConfirm: async () => {
+          try {
+            await API.purgeAbsence(absence.id)
+            absences.value = absences.value.filter(a => a.id !== absence.id)
+            showToast('Deleted', 'Absence record permanently removed', 'success')
+          } catch (e) {
+            showToast('Error', e?.message || 'Failed to delete record', 'error')
+            await loadAbsences()
+          }
+        }
+      })
+
       // ── Absence Resolution Workflow ───────────────────────────────────────
       // Surfaces when an absence period has ended but no formal resolution has been recorded.
       const absenceResolutionModal = reactive({
@@ -2382,7 +2409,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return {
         absences, absenceFilters, absenceModal, absenceOverlapWarning,
         filteredAbsences, filteredAbsencesAll, absenceTotalPages,
-        loadAbsences, showAddAbsenceModal, editAbsence, saveAbsence, deleteAbsence,
+        loadAbsences, showAddAbsenceModal, editAbsence, saveAbsence, deleteAbsence, purgeAbsence,
         absenceResolutionModal, openResolutionModal, resolveAbsence
       }
     }
@@ -3227,6 +3254,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const exportModal = reactive({ show: false, type: 'clinical-trials', format: 'csv', loading: false })
       const analyticsActiveTab = ref('dashboard') // 'dashboard' | 'performance' | 'partners'
 
+      // ── Research Hub unified state ────────────────────────────────────────
+      // researchHubTab drives the top tab bar: lines | trials | projects | analytics
+      // analyticsActiveTab still drives the analytics sub-tabs
+      const researchHubTab = ref('lines')   // 'lines' | 'trials' | 'projects' | 'analytics'
+      const selectedResearchLine = ref(null) // line object — drives the detail panel
+      const researchDetailPanel = ref(false) // panel open state
+
+      const openLineDetail = (line) => {
+        selectedResearchLine.value = line
+        researchDetailPanel.value = true
+      }
+      const closeLineDetail = () => {
+        researchDetailPanel.value = false
+        setTimeout(() => { selectedResearchLine.value = null }, 300)
+      }
+
       const loadResearchDashboard = async (localResearchLines, localTrials, localProjects) => {
         if (!hasPermission('analytics', 'read')) return
         loadingAnalytics.value = true
@@ -3298,7 +3341,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const showExportModal = () => { exportModal.type = 'clinical-trials'; exportModal.show = true }
 
-      return { researchDashboard, researchLinesPerformance, partnerCollaborations, trialsTimeline, analyticsSummary, loadingAnalytics, exportModal, analyticsActiveTab, loadResearchDashboard, loadResearchLinesPerformance, loadPartnerCollaborations, loadTrialsTimeline, loadAnalyticsSummary, loadStaffResearchProfile, handleExport, showExportModal }
+      return { researchDashboard, researchLinesPerformance, partnerCollaborations, trialsTimeline, analyticsSummary, loadingAnalytics, exportModal, analyticsActiveTab, researchHubTab, selectedResearchLine, researchDetailPanel, openLineDetail, closeLineDetail, loadResearchDashboard, loadResearchLinesPerformance, loadPartnerCollaborations, loadTrialsTimeline, loadAnalyticsSummary, loadStaffResearchProfile, handleExport, showExportModal }
     }
 
     // ============ 6.13 useDashboard ============
@@ -3475,13 +3518,13 @@ document.addEventListener('DOMContentLoaded', () => {
           showToast, showConfirmation, medicalStaff, trainingUnits: tuOps.trainingUnits, rotations: ref([])
         })
 
-        const onCallOps = useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff })
+        const onCallOps = useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup })
         const { onCallSchedule } = onCallOps
 
         // useTrainingUnits needs a stub here so trainingUnits ref is available for rotationOps
         const { trainingUnits: _tuStub } = useTrainingUnits({ showToast, showConfirmation: () => {}, rotations: ref([]) })
 
-        const rotationOps = useRotations({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, trainingUnits: _tuStub, currentUser })
+        const rotationOps = useRotations({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup, trainingUnits: _tuStub, currentUser })
         const { rotations } = rotationOps
 
         // Full useTrainingUnits with real rotations ref (now declared above)
@@ -3810,24 +3853,62 @@ document.addEventListener('DOMContentLoaded', () => {
           if (ca) { ca.classList.remove('content-view-enter'); void ca.offsetWidth; ca.classList.add('content-view-enter') }
           if (view === 'analytics_dashboard' && hasPermission('analytics', 'read')) {
             analyticsOps.analyticsActiveTab.value = 'dashboard'
+            analyticsOps.researchHubTab.value = 'analytics'
+            currentView.value = 'research_hub'
             await Promise.all([
               analyticsOps.loadResearchDashboard(researchOps.researchLines, researchOps.clinicalTrials, researchOps.innovationProjects),
               analyticsOps.loadTrialsTimeline()
             ])
+            return
           } else if (view === 'analytics_performance' && hasPermission('analytics', 'read')) {
             analyticsOps.analyticsActiveTab.value = 'performance'
-            currentView.value = 'analytics_dashboard'
+            analyticsOps.researchHubTab.value = 'analytics'
+            currentView.value = 'research_hub'
             await analyticsOps.loadResearchLinesPerformance()
             return
           } else if (view === 'analytics_partners' && hasPermission('analytics', 'read')) {
             analyticsOps.analyticsActiveTab.value = 'partners'
-            currentView.value = 'analytics_dashboard'
+            analyticsOps.researchHubTab.value = 'analytics'
+            currentView.value = 'research_hub'
             await analyticsOps.loadPartnerCollaborations()
+            return
+          } else if (view === 'research_hub') {
+            // Direct navigation — default to lines tab
+            if (!analyticsOps.researchHubTab.value) analyticsOps.researchHubTab.value = 'lines'
+            currentView.value = 'research_hub'
+            return
+          } else if (view === 'research_lines') {
+            analyticsOps.researchHubTab.value = 'lines'
+            currentView.value = 'research_hub'
+            if (filters.line) researchOps.trialFilters.line = filters.line
+            return
+          } else if (view === 'clinical_trials') {
+            analyticsOps.researchHubTab.value = 'trials'
+            currentView.value = 'research_hub'
+            if (filters.line) researchOps.trialFilters.line = filters.line
+            return
+          } else if (view === 'innovation_projects') {
+            analyticsOps.researchHubTab.value = 'projects'
+            currentView.value = 'research_hub'
             return
           }
         }
 
         const toggleStatsSidebar = () => { ui.statsSidebarOpen.value = !ui.statsSidebarOpen.value }
+
+        // Research Hub drill-down helpers — need access to both analyticsOps and researchOps
+        const drillToTrials = (lineId) => {
+          if (lineId) researchOps.trialFilters.line = lineId
+          analyticsOps.researchHubTab.value = 'trials'
+          analyticsOps.researchDetailPanel.value = false
+          currentView.value = 'research_hub'
+        }
+        const drillToProjects = (lineId) => {
+          if (lineId) researchOps.projectFilters.research_line_id = lineId
+          analyticsOps.researchHubTab.value = 'projects'
+          analyticsOps.researchDetailPanel.value = false
+          currentView.value = 'research_hub'
+        }
         const handleGlobalSearch = () => {
           if (!globalSearchQuery.value.trim()) { ui.searchResultsOpen.value = false; return }
           ui.searchResultsOpen.value = true
@@ -4041,6 +4122,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ...dashOps,
           handleLogin, handleLogout,
           switchView, situationItems, toggleStatsSidebar, handleGlobalSearch, globalSearchResults, clearSearch,
+          drillToTrials, drillToProjects,
           staffTypesList, staffTypeMap, academicDegrees, loadAcademicDegrees, formatStaffTypeGlobal, getStaffTypeClassGlobal, isResidentType,
           staffTypeModal, openAddStaffType, openEditStaffType, saveStaffType, deleteStaffType, toggleStaffTypeActive, loadStaffTypes,
           searchResultsOpen: ui.searchResultsOpen,
