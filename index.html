@@ -1071,7 +1071,7 @@
 
                                     <div v-if="hasPermission('oncall_schedule', 'create')"
                                          class="rot-orb rot-orb--add"
-                                         @click.stop="showAddOnCallModal()" title="Add shift">
+                                         @click.stop="showAddOnCallModal(physician)" title="Add shift">
                                         <i class="fas fa-plus"></i>
                                     </div>
 
@@ -2096,8 +2096,8 @@
                         </div>
                         <div class="rhub-header-right">
                             <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'lines' && hasPermission('research_lines','create')" @click="showAddResearchLineModal"><i class="fas fa-plus"></i> Add Line</button>
-                            <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'trials' && hasPermission('research_lines','create')" @click="showAddTrialModal"><i class="fas fa-plus"></i> Add Trial</button>
-                            <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'projects' && hasPermission('research_lines','create')" @click="showAddProjectModal"><i class="fas fa-plus"></i> Add Project</button>
+                            <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'trials' && hasPermission('research_lines','create')" @click="showAddTrialModal(trialFilters.line ? researchLines.find(l => l.id === trialFilters.line) : null)"><i class="fas fa-plus"></i> Add Trial</button>
+                            <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'projects' && hasPermission('research_lines','create')" @click="showAddProjectModal(projectFilters.research_line_id ? researchLines.find(l => l.id === projectFilters.research_line_id) : null)"><i class="fas fa-plus"></i> Add Project</button>
                             <button class="btn btn-outline btn-sm" v-if="researchHubTab === 'analytics'" @click="showExportModal" v-if="hasPermission('analytics','export')"><i class="fas fa-download"></i> Export</button>
                         </div>
                     </div>
@@ -2546,8 +2546,8 @@
                             </div>
                             <div class="rldp-footer">
                                 <button class="btn btn-outline btn-sm" @click="editResearchLine(selectedResearchLine); closeLineDetail()" v-if="hasPermission('research_lines','update')"><i class="fas fa-edit"></i> Edit Line</button>
-                                <button class="btn btn-primary btn-sm" @click="drillToTrials(selectedResearchLine.id)"><i class="fas fa-vial"></i> Trials</button>
-                                <button class="btn btn-primary btn-sm" @click="drillToProjects(selectedResearchLine.id)"><i class="fas fa-microscope"></i> Projects</button>
+                                <button class="btn btn-primary btn-sm" @click="showAddTrialModal(selectedResearchLine); closeLineDetail()"><i class="fas fa-vial"></i> Add Trial</button>
+                                <button class="btn btn-primary btn-sm" @click="showAddProjectModal(selectedResearchLine); closeLineDetail()"><i class="fas fa-microscope"></i> Add Project</button>
                             </div>
                         </template>
                     </div>
@@ -2749,6 +2749,28 @@
                             @click="editMedicalStaff(staffProfileModal.staff)">
                         <i class="fas fa-pen"></i> Edit Profile
                     </button>
+
+                    <!-- Quick actions: open pre-filled modals for this person -->
+                    <div class="pd-quick-actions" v-if="hasPermission('resident_rotations','create') || hasPermission('oncall_schedule','create') || hasPermission('staff_absence','create')">
+                        <button v-if="hasPermission('resident_rotations','create') && isResidentType(staffProfileModal.staff.staff_type)"
+                                class="pd-quick-btn"
+                                @click="staffProfileModal.show = false; showAddRotationModal(staffProfileModal.staff)"
+                                title="Add rotation for this resident">
+                            <i class="fas fa-calendar-check"></i> Add Rotation
+                        </button>
+                        <button v-if="hasPermission('oncall_schedule','create')"
+                                class="pd-quick-btn"
+                                @click="staffProfileModal.show = false; showAddOnCallModal(staffProfileModal.staff)"
+                                title="Schedule on-call for this person">
+                            <i class="fas fa-phone-medical"></i> Schedule On-call
+                        </button>
+                        <button v-if="hasPermission('staff_absence','create')"
+                                class="pd-quick-btn"
+                                @click="staffProfileModal.show = false; showAddAbsenceModal(staffProfileModal.staff)"
+                                title="Record absence for this person">
+                            <i class="fas fa-user-clock"></i> Record Absence
+                        </button>
+                    </div>
 
                     <!-- Divider -->
                     <div class="pd-divider"></div>
@@ -4687,7 +4709,7 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @click="unitResidentsModal.show = false">Close</button>
-                    <button class="btn btn-primary" @click="unitResidentsModal.show = false; showAddRotationModal()" v-if="hasPermission('resident_rotations', 'create')">
+                    <button class="btn btn-primary" @click="unitResidentsModal.show = false; showAddRotationModal(null, unitResidentsModal.unit)" v-if="hasPermission('resident_rotations', 'create')">
                         <i class="fas fa-plus"></i> Add Rotation
                     </button>
                 </div>
