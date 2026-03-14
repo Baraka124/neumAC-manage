@@ -1847,8 +1847,7 @@
                                             'row-currently_absent': absence.current_status === 'currently_absent',
                                             'row-planned_leave':    absence.current_status === 'planned_leave',
                                             'row-returned':         absence.current_status === 'returned_to_duty',
-                                            'row-completed':        absence.current_status === 'returned_to_duty',
-                                            'row-expired':          absence.current_status === 'returned_to_duty',
+                                            'row-completed':        absence.current_status === 'completed',
                                             'row-on_leave':         absence.absence_type === 'unplanned' && absence.current_status === 'currently_absent'
                                         }"
                                         @click="hasPermission('staff_absence', 'update') && editAbsence(absence)">
@@ -1868,11 +1867,13 @@
                                                 'status-active':    absence.current_status === 'currently_absent',
                                                 'status-scheduled': absence.current_status === 'planned_leave',
                                                 'status-completed': absence.current_status === 'returned_to_duty',
+                                                'status-warning':   absence.current_status === 'completed',
                                                 'status-inactive':  absence.current_status === 'cancelled'
                                             }">
                                                 <span v-if="absence.current_status === 'currently_absent'">Absent Now</span>
                                                 <span v-else-if="absence.current_status === 'planned_leave'">Planned</span>
                                                 <span v-else-if="absence.current_status === 'returned_to_duty'">Returned</span>
+                                                <span v-else-if="absence.current_status === 'completed'">Needs Review</span>
                                                 <span v-else-if="absence.current_status === 'cancelled'">Cancelled</span>
                                                 <span v-else>{{ absence.current_status }}</span>
                                             </span>
