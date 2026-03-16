@@ -12,7 +12,7 @@
 <body>
 <div id="app" v-cloak>
 
-    <!-- ============-- TOAST CONTAINER ==-=--=---======= -->
+    <!-- ============- TOAST CONTAINER ==-=--=---======= -->
     <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
              :class="['toast', `toast-${toast.type}`]"
@@ -2937,10 +2937,10 @@
                         <i class="fas fa-times"></i>
                     </button>
 
-                    <!-- Avatar block -->
+                    <!-- Avatar with icon -->
                     <div class="pd-avatar-block">
                         <div class="pd-avatar">
-                            <i class="fas" :class="{
+                            <i class="fas fa-2x" :class="{
                                 'fa-user-md':       staffProfileModal.staff.staff_type === 'attending_physician',
                                 'fa-user-graduate': staffProfileModal.staff.staff_type === 'medical_resident',
                                 'fa-stethoscope':   staffProfileModal.staff.staff_type === 'fellow',
@@ -3164,11 +3164,6 @@
                             <i class="fas fa-users"></i> Supervision
                         </button>
                         <div class="pd-tabs-spacer"></div>
-                        <div class="pd-who">
-                            <span class="pd-who-name">{{ staffProfileModal.staff.full_name }}</span>
-                            <span class="pd-who-sep">›</span>
-                            <span class="pd-who-tab">{{ staffProfileModal.activeTab }}</span>
-                        </div>
                     </div>
 
                     <!-- ── ACTIVITY TAB ── -->
