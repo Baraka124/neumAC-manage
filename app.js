@@ -2113,42 +2113,86 @@ document.addEventListener('DOMContentLoaded', () => {
       // ============ [NEW] Rotation detail sheet modal ============
       const rotationViewModal = reactive({ show: false, rotation: null })
 
-      // ============ [NEW] Week view ============
-      const weekOffset = ref(0)
+      // ============ Month Horizon view ============
+      const monthHorizon = ref(6)
+      const monthOffset  = ref(0)
 
-      const getWeekDayLabel = (dayIndex) => {
-        const today = new Date()
-        const monday = new Date(today)
-        monday.setDate(today.getDate() - today.getDay() + 1 + weekOffset.value * 7)
-        const d = new Date(monday)
-        d.setDate(monday.getDate() + dayIndex - 1)
-        const isToday = d.toDateString() === today.toDateString()
+      const getHorizonMonths = (n, offset) => {
+        const today  = new Date()
+        const months = []
+        for (let i = 0; i < n; i++) {
+          const d    = new Date(today.getFullYear(), today.getMonth() + offset + i, 1)
+          const prev = i > 0 ? new Date(today.getFullYear(), today.getMonth() + offset + i - 1, 1) : null
+          months.push({
+            key:         `${d.getFullYear()}-${d.getMonth()}`,
+            label:       d.toLocaleDateString('es-ES', { month: 'short' }),
+            year:        d.getFullYear(),
+            month:       d.getMonth(),
+            isCurrent:   d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth(),
+            isYearStart: !prev || d.getFullYear() !== prev.getFullYear(),
+            daysInMonth: new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+          })
+        }
+        return months
+      }
+
+      const getHorizonRangeLabel = () => {
+        const months = getHorizonMonths(monthHorizon.value, monthOffset.value)
+        if (!months.length) return ''
+        const first = months[0], last = months[months.length - 1]
+        if (first.year === last.year)
+          return `${first.label} – ${last.label} ${last.year}`
+        return `${first.label} ${first.year} – ${last.label} ${last.year}`
+      }
+
+      const getResidentRotationsInHorizon = (resident) => {
+        const months = getHorizonMonths(monthHorizon.value, monthOffset.value)
+        if (!months.length) return []
+        const n = months.length
+        const horizonStart = new Date(months[0].year, months[0].month, 1)
+        const horizonEnd   = new Date(months[n-1].year, months[n-1].month + 1, 0)
+        return rotations.value.filter(r =>
+          r.resident_id === resident.id &&
+          ['active','scheduled','completed'].includes(r.rotation_status) &&
+          new Date(r.start_date) <= horizonEnd && new Date(r.end_date) >= horizonStart
+        )
+      }
+
+      const getRotationBarStyle = (rotation) => {
+        const months = getHorizonMonths(monthHorizon.value, monthOffset.value)
+        const n = months.length
+        if (!n) return { display: 'none' }
+        const horizonStart = new Date(months[0].year, months[0].month, 1)
+        const horizonEnd   = new Date(months[n-1].year, months[n-1].month + 1, 0)
+        const rotStart     = new Date(rotation.start_date + 'T00:00:00')
+        const rotEnd       = new Date(rotation.end_date   + 'T00:00:00')
+        const cs = rotStart < horizonStart ? horizonStart : rotStart
+        const ce = rotEnd   > horizonEnd   ? horizonEnd   : rotEnd
+        if (cs > ce) return { display: 'none' }
+        const totalDays   = months.reduce((s, m) => s + m.daysInMonth, 0)
+        const daysToStart = Math.round((cs - horizonStart) / 86400000)
+        const daysToEnd   = Math.round((ce - horizonStart) / 86400000) + 1
+        const leftPct  = (daysToStart / totalDays) * 100
+        const widthPct = ((daysToEnd - daysToStart) / totalDays) * 100
         return {
-          dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
-          dayNum: d.getDate(),
-          isToday,
-          date: Utils.normalizeDate(d)
+          left:  `calc(${leftPct.toFixed(2)}% + 3px)`,
+          width: `calc(${widthPct.toFixed(2)}% - 6px)`
         }
       }
 
-      const getWeekRangeLabel = () => {
-        const today = new Date()
-        const monday = new Date(today)
-        monday.setDate(today.getDate() - today.getDay() + 1 + weekOffset.value * 7)
-        const sunday = new Date(monday)
-        sunday.setDate(monday.getDate() + 6)
-        const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        return `${fmt(monday)} – ${fmt(sunday)}, ${sunday.getFullYear()}`
+      const rotationStartsInHorizon = (rotation) => {
+        const months = getHorizonMonths(monthHorizon.value, monthOffset.value)
+        if (!months.length) return false
+        const horizonStart = new Date(months[0].year, months[0].month, 1)
+        return new Date(rotation.start_date + 'T00:00:00') >= horizonStart
       }
 
-      const isFirstDayOfRotation = (rotation, dayIndex) => {
-        const { date } = getWeekDayLabel(dayIndex)
-        return Utils.normalizeDate(rotation.start_date) === date
-      }
-
-      const isLastDayOfRotation = (rotation, dayIndex) => {
-        const { date } = getWeekDayLabel(dayIndex)
-        return Utils.normalizeDate(rotation.end_date) === date
+      const rotationEndsInHorizon = (rotation) => {
+        const months = getHorizonMonths(monthHorizon.value, monthOffset.value)
+        if (!months.length) return false
+        const n = months.length
+        const horizonEnd = new Date(months[n-1].year, months[n-1].month + 1, 0)
+        return new Date(rotation.end_date + 'T00:00:00') <= horizonEnd
       }
 
       // ── Resident gap warnings ─────────────────────────────────────────────
@@ -2204,11 +2248,14 @@ document.addEventListener('DOMContentLoaded', () => {
         viewRotationDetails,
         // Week view
         rotationViewModal,
-        weekOffset,
-        getWeekDayLabel,
-        getWeekRangeLabel,
-        isFirstDayOfRotation,
-        isLastDayOfRotation,
+        monthHorizon,
+        monthOffset,
+        getHorizonMonths,
+        getHorizonRangeLabel,
+        getResidentRotationsInHorizon,
+        getRotationBarStyle,
+        rotationStartsInHorizon,
+        rotationEndsInHorizon,
         residentGapWarnings
       }
     }
@@ -3897,9 +3944,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const { systemStats, updateDashboardStats, loadSystemStats, situationItems, dailyBriefing } = dashOps
 
         // ============ NEW COMPACT VIEW STATE ============
-        const rotationView = ref('detailed') // 'compact', 'detailed', or 'week'
-        const onCallView = ref('detailed') // 'compact' or 'detailed'
-        const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        const rotationView = ref('detailed') // 'compact', 'detailed', 'month'
+        const onCallView = ref('detailed')
 
         // ============ EXISTING COMPUTED PROPERTIES ============
         const getStaffName = (id) => {
@@ -4450,14 +4496,16 @@ document.addEventListener('DOMContentLoaded', () => {
           groupedOnCallSchedules: onCallOps.groupedOnCallSchedules,
           staffWithOnCallOrbs: onCallOps.staffWithOnCallOrbs,
           upcomingOnCallDays:  onCallOps.upcomingOnCallDays,
-          weekDays,
           getRotationsForDay: rotationOps.getRotationsForDay,
           rotationViewModal: rotationOps.rotationViewModal,
-          weekOffset: rotationOps.weekOffset,
-          getWeekDayLabel: rotationOps.getWeekDayLabel,
-          getWeekRangeLabel: rotationOps.getWeekRangeLabel,
-          isFirstDayOfRotation: rotationOps.isFirstDayOfRotation,
-          isLastDayOfRotation: rotationOps.isLastDayOfRotation,
+          monthHorizon: rotationOps.monthHorizon,
+          monthOffset:  rotationOps.monthOffset,
+          getHorizonMonths:              rotationOps.getHorizonMonths,
+          getHorizonRangeLabel:          rotationOps.getHorizonRangeLabel,
+          getResidentRotationsInHorizon: rotationOps.getResidentRotationsInHorizon,
+          getRotationBarStyle:           rotationOps.getRotationBarStyle,
+          rotationStartsInHorizon:       rotationOps.rotationStartsInHorizon,
+          rotationEndsInHorizon:         rotationOps.rotationEndsInHorizon,
           isRotationActive: rotationOps.isRotationActive,
           isShiftActive: onCallOps.isShiftActive,
           viewRotationDetails: rotationOps.viewRotationDetails,
