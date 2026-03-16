@@ -3737,7 +3737,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const newsModal      = reactive({
         show: false, mode: 'add',
         form: {
-          post_type: 'update', title: '', body: '', featured_image_url: '',
+          post_type: 'article', title: '', body: '', featured_image_url: '',
           author_id: '', research_line_id: '', is_public: false,
           status: 'draft', expires_at: '',
           journal_name: '', authors_text: '', doi: ''
@@ -3800,7 +3800,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const showAddNewsModal = () => {
         newsModal.mode = 'add'
         Object.assign(newsModal.form, {
-          post_type: 'update', title: '', body: '', featured_image_url: '',
+          post_type: 'article', title: '', body: '', featured_image_url: '',
           author_id: '', research_line_id: '', is_public: false,
           status: 'draft', expires_at: '', journal_name: '', authors_text: '', doi: ''
         })
