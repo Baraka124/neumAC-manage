@@ -3280,27 +3280,27 @@
                                 </div>
                             </div>
 
-                            <!-- Headline numbers -->
-                            <div class="pd-stat-row">
-                                <div class="pd-stat-block">
-                                    <div class="pd-stat-num">{{ staffProfileModal.researchProfile.trials?.asPI || 0 }}</div>
+                            <!-- Headline numbers — only when there's real activity -->
+                            <div class="pd-stat-row"
+                                 v-if="(staffProfileModal.researchProfile.trials?.asPI||0)+(staffProfileModal.researchProfile.trials?.asCoI||0)+(staffProfileModal.researchProfile.trials?.active||0)+(staffProfileModal.researchProfile.projects?.asLead||0) > 0">
+                                <div class="pd-stat-block" v-if="staffProfileModal.researchProfile.trials?.asPI > 0">
+                                    <div class="pd-stat-num">{{ staffProfileModal.researchProfile.trials.asPI }}</div>
                                     <div class="pd-stat-lbl">Principal Investigator</div>
                                 </div>
-                                <div class="pd-stat-block">
-                                    <div class="pd-stat-num">{{ staffProfileModal.researchProfile.trials?.asCoI || 0 }}</div>
+                                <div class="pd-stat-block" v-if="staffProfileModal.researchProfile.trials?.asCoI > 0">
+                                    <div class="pd-stat-num">{{ staffProfileModal.researchProfile.trials.asCoI }}</div>
                                     <div class="pd-stat-lbl">Co-Investigator</div>
                                 </div>
-                                <!-- FIX 19: SubI shown for all staff types, not just residents -->
                                 <div class="pd-stat-block" v-if="staffProfileModal.researchProfile.trials?.asSubI > 0">
                                     <div class="pd-stat-num">{{ staffProfileModal.researchProfile.trials.asSubI }}</div>
                                     <div class="pd-stat-lbl">Sub-Investigator</div>
                                 </div>
-                                <div class="pd-stat-block">
-                                    <div class="pd-stat-num">{{ staffProfileModal.researchProfile.trials?.active || 0 }}</div>
+                                <div class="pd-stat-block" v-if="staffProfileModal.researchProfile.trials?.active > 0">
+                                    <div class="pd-stat-num">{{ staffProfileModal.researchProfile.trials.active }}</div>
                                     <div class="pd-stat-lbl">Active Trials</div>
                                 </div>
-                                <div class="pd-stat-block">
-                                    <div class="pd-stat-num">{{ staffProfileModal.researchProfile.projects?.asLead || 0 }}</div>
+                                <div class="pd-stat-block" v-if="staffProfileModal.researchProfile.projects?.asLead > 0">
+                                    <div class="pd-stat-num">{{ staffProfileModal.researchProfile.projects.asLead }}</div>
                                     <div class="pd-stat-lbl">Projects Lead</div>
                                 </div>
                             </div>
@@ -3380,11 +3380,11 @@
                                 </div>
                                 <div class="pd-stat-block">
                                     <div class="pd-stat-num">{{ staffProfileModal.supervisionData.pastCount }}</div>
-                                    <div class="pd-stat-lbl">Past Residents</div>
+                                    <div class="pd-stat-lbl">Completed Rotations</div>
                                 </div>
-                                <div class="pd-stat-block">
-                                    <div class="pd-stat-num">{{ staffProfileModal.supervisionData.avgEvaluation }}</div>
-                                    <div class="pd-stat-lbl">Avg. Evaluation</div>
+                                <div class="pd-stat-block" v-if="staffProfileModal.supervisionData.totalDaysSupervised > 0">
+                                    <div class="pd-stat-num">{{ staffProfileModal.supervisionData.totalDaysSupervised }}</div>
+                                    <div class="pd-stat-lbl">Days Supervised</div>
                                 </div>
                             </div>
                             <div v-if="staffProfileModal.supervisionData.current?.length" class="pd-card">
@@ -3397,11 +3397,16 @@
                                     <div class="pd-resident-avatar"><i class="fas fa-user-graduate"></i></div>
                                     <div class="pd-resident-info">
                                         <span class="pd-resident-name">{{ resident.residentName }}</span>
-                                        <span class="pd-resident-unit">{{ resident.unitName }}</span>
+                                        <span class="pd-resident-unit">
+                                            {{ resident.unitName }}
+                                            <span v-if="resident.residentYear" class="pd-resident-year">· {{ formatTrainingYear(resident.residentYear) }}</span>
+                                        </span>
+                                        <span class="pd-resident-dates">{{ formatDate(resident.startDate) }} → {{ formatDate(resident.endDate) }}</span>
                                     </div>
                                     <div class="pd-resident-meta">
-                                        <span class="pd-badge" :class="resident.daysLeft < 7 ? 'pd-badge--warn' : 'pd-badge--blue'">{{ resident.daysLeft }}d left</span>
-                                        <span v-if="resident.evaluation" class="pd-eval">{{ resident.evaluation }}/5 ★</span>
+                                        <span class="pd-badge" :class="resident.daysLeft <= 7 ? 'pd-badge--warn' : resident.daysLeft <= 30 ? 'pd-badge--blue' : 'pd-badge--neutral'">
+                                            {{ resident.daysLeft }}d left
+                                        </span>
                                     </div>
                                 </div>
                             </div>
