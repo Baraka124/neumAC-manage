@@ -576,7 +576,7 @@
                 <!-- ============ DASHBOARD VIEW ============ -->
                 <div v-if="currentView === 'dashboard'">
 
-                    <!-- Greeting zone -->
+                    <!-- Greeting -->
                     <div class="db-greeting">
                         <div class="db-greeting-left">
                             <div class="db-greeting-time">{{ formatDate(currentTime) }}</div>
@@ -597,13 +597,12 @@
                         </div>
                     </div>
 
-                    <!-- Daily briefing strip — max 3 items, collapses when all clear -->
+                    <!-- Briefing strip -->
                     <div v-if="dailyBriefing.length > 0" class="dbr-strip">
                         <div class="dbr-label"><i class="fas fa-bolt"></i> Today</div>
                         <div class="dbr-items">
                             <div v-for="item in dailyBriefing" :key="item.text"
-                                 class="dbr-item"
-                                 :class="'dbr-item--' + item.type"
+                                 class="dbr-item" :class="'dbr-item--' + item.type"
                                  @click="switchView(item.action, item.actionFilter || {})">
                                 <i class="fas dbr-icon" :class="item.icon"></i>
                                 <span class="dbr-text" v-html="item.text"></span>
@@ -616,115 +615,161 @@
                         <span>All clear — no urgent items today</span>
                     </div>
 
-                    <!-- Stat cards -->
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-header"><i class="fas fa-stethoscope"></i><h3>Medical Staff</h3><button class="btn btn-sm btn-outline" @click="switchView('medical_staff')">View All</button></div>
-                            <div class="stat-main-value">{{ systemStats.totalStaff || 0 }}</div>
-                            <div class="stat-breakdown">
-                                <div class="breakdown-item"><span class="label">Attending Physicians</span><span class="value">{{ systemStats.activeAttending || 0 }}</span><span class="status-indicator status-active">Active</span></div>
-                                <div class="breakdown-item"><span class="label">Residents</span><span class="value">{{ systemStats.activeResidents || 0 }}</span></div>
-                                <div class="breakdown-item"><span class="label">On Leave</span><span class="value">{{ systemStats.onLeaveStaff || 0 }}</span></div>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-header"><i class="fas fa-calendar-check"></i><h3>Active Rotations</h3><button class="btn btn-sm btn-outline" @click="switchView('resident_rotations')">Manage</button></div>
-                            <div class="stat-main-value">{{ systemStats.activeRotations || 0 }}</div>
-                            <div class="stat-breakdown">
-                                <div class="breakdown-item"><span class="label">Currently Active</span><span class="value">{{ systemStats.activeRotations || 0 }}</span></div>
-                                <div class="breakdown-item" style="cursor:pointer" @click="switchView('resident_rotations', { rotationStatus: 'active' })" title="View active rotations">
-                                    <span class="label">Ending This Week</span>
-                                    <span class="value">{{ systemStats.endingThisWeek || 0 }}</span>
-                                    <span class="status-indicator status-busy">Alert</span>
-                                </div>
-                                <div class="breakdown-item"><span class="label">Starting Next Week</span><span class="value">{{ systemStats.startingNextWeek || 0 }}</span></div>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-header"><i class="fas fa-phone-medical"></i><h3>Today's On-call</h3><button class="btn btn-sm btn-outline" @click="switchView('oncall_schedule')">Schedule</button></div>
-                            <div class="stat-main-value">{{ todaysOnCallCount || 0 }}</div>
-                            <div class="stat-breakdown">
-                                <div v-for="shift in todaysOnCall.slice(0, 3)" :key="shift.id" class="breakdown-item">
-                                    <span class="label">{{ shift.physicianName }}</span>
-                                    <span class="value">{{ shift.startTime }}</span>
-                                    <span class="status-indicator status-oncall">On-call</span>
-                                </div>
-                                <div v-if="todaysOnCall.length === 0" class="breakdown-item">
-                                    <span class="label text-gray-500">No on-call scheduled</span>
+                    <!-- Compact KPI bar -->
+                    <div class="db-kpi-bar">
+                        <div class="db-kpi" @click="switchView('medical_staff')">
+                            <div class="db-kpi-icon db-kpi-icon--blue"><i class="fas fa-stethoscope"></i></div>
+                            <div class="db-kpi-body">
+                                <div class="db-kpi-val">{{ systemStats.totalStaff || 0 }}</div>
+                                <div class="db-kpi-label">Medical Staff</div>
+                                <div class="db-kpi-sub">
+                                    <span class="db-kpi-dot db-kpi-dot--ok"></span>{{ systemStats.activeAttending || 0 }} attending
+                                    <span class="db-kpi-dot db-kpi-dot--blue" style="margin-left:8px"></span>{{ systemStats.activeResidents || 0 }} residents
+                                    <span v-if="systemStats.onLeaveStaff > 0" style="margin-left:8px;color:var(--warn)"><span class="db-kpi-dot db-kpi-dot--warn"></span> {{ systemStats.onLeaveStaff }} on leave</span>
                                 </div>
                             </div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-header"><i class="fas fa-flask"></i><h3>Research Activity</h3><button class="btn btn-sm btn-outline" @click="switchView('analytics_dashboard')">Analytics</button></div>
-                            <div class="stat-main-value">{{ analyticsSummary?.researchLines || researchLines.length || 0 }}</div>
-                            <div class="stat-breakdown">
-                                <div class="breakdown-item"><span class="label">Research Lines</span><span class="value">{{ analyticsSummary?.researchLines || researchLines.length || 0 }}</span></div>
-                                <div class="breakdown-item">
-                                    <span class="label">Clinical Trials</span>
-                                    <span class="value">{{ analyticsSummary?.clinicalTrials?.total || clinicalTrials.length || 0 }}</span>
-                                    <span v-if="analyticsSummary?.clinicalTrials?.total > 0" class="status-indicator status-active">{{ formatPercentage(analyticsSummary?.clinicalTrials?.active, analyticsSummary?.clinicalTrials?.total) }} active</span>
+                        <div class="db-kpi" @click="switchView('resident_rotations')">
+                            <div class="db-kpi-icon db-kpi-icon--green"><i class="fas fa-calendar-check"></i></div>
+                            <div class="db-kpi-body">
+                                <div class="db-kpi-val">{{ systemStats.activeRotations || 0 }}</div>
+                                <div class="db-kpi-label">Active Rotations</div>
+                                <div class="db-kpi-sub">
+                                    <span class="db-kpi-dot" :class="systemStats.endingThisWeek > 0 ? 'db-kpi-dot--warn' : 'db-kpi-dot--ok'"></span>{{ systemStats.endingThisWeek || 0 }} ending this week
+                                    <span class="db-kpi-dot db-kpi-dot--ok" style="margin-left:8px"></span>{{ systemStats.startingNextWeek || 0 }} starting
                                 </div>
-                                <div class="breakdown-item"><span class="label">Innovation Projects</span><span class="value">{{ analyticsSummary?.innovationProjects?.total || innovationProjects.length || 0 }}</span></div>
+                            </div>
+                        </div>
+                        <div class="db-kpi" @click="switchView('oncall_schedule')">
+                            <div class="db-kpi-icon db-kpi-icon--amber"><i class="fas fa-phone-medical"></i></div>
+                            <div class="db-kpi-body">
+                                <div class="db-kpi-val">{{ todaysOnCallCount || 0 }}</div>
+                                <div class="db-kpi-label">On-call Today</div>
+                                <div class="db-kpi-sub" v-if="todaysOnCall.length > 0">
+                                    <span class="db-kpi-dot db-kpi-dot--ok"></span>
+                                    {{ todaysOnCall[0].physicianName.split(' ').slice(-1)[0] }} · {{ todaysOnCall[0].startTime }}–{{ todaysOnCall[0].endTime }}
+                                </div>
+                                <div class="db-kpi-sub" v-else style="color:var(--danger)">
+                                    <span class="db-kpi-dot" style="background:var(--danger)"></span> No coverage today
+                                </div>
+                            </div>
+                        </div>
+                        <div class="db-kpi" @click="switchView('research_lines')">
+                            <div class="db-kpi-icon db-kpi-icon--purple"><i class="fas fa-flask"></i></div>
+                            <div class="db-kpi-body">
+                                <div class="db-kpi-val">{{ analyticsSummary?.researchLines || researchLines.length || 0 }}</div>
+                                <div class="db-kpi-label">Research Lines</div>
+                                <div class="db-kpi-sub">
+                                    <span class="db-kpi-dot db-kpi-dot--blue"></span>{{ analyticsSummary?.clinicalTrials?.total || clinicalTrials.length || 0 }} trials
+                                    <span class="db-kpi-dot db-kpi-dot--purple" style="margin-left:8px"></span>{{ analyticsSummary?.innovationProjects?.total || innovationProjects.length || 0 }} projects
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <!-- On-call timeline — replaces the dense table -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-phone-medical"></i>
-                                Today's On-call Schedule
+
+                    <!-- Content grid -->
+                    <div class="db-content-grid">
+
+                        <!-- On-call next 3 days -->
+                        <div class="card db-content-card">
+                            <div class="db-cc-head">
+                                <span class="db-cc-title"><i class="fas fa-phone-medical"></i> On-call — Next 3 Days</span>
+                                <button class="db-cc-link" @click="switchView('oncall_schedule')">Full schedule <i class="fas fa-arrow-right"></i></button>
                             </div>
-                            <button class="btn btn-sm btn-primary" @click="showAddOnCallModal" v-if="hasPermission('oncall_schedule', 'create')"><i class="fas fa-plus"></i> Add</button>
+                            <div v-if="loadingSchedule" class="db-cc-loading"><i class="fas fa-spinner fa-spin"></i></div>
+                            <template v-else>
+                                <div v-for="day in upcomingOnCallDays.slice(0,3)" :key="day.date" class="db-oc-row">
+                                    <div class="db-oc-date" :class="{ 'db-oc-date--today': day.isToday }">
+                                        {{ day.label }}
+                                    </div>
+                                    <div class="db-oc-slot" :class="day.primary ? 'db-oc-slot--ok' : 'db-oc-slot--gap'"
+                                         @click="!day.primary && hasPermission('oncall_schedule','create') ? showAddOnCallModal() : null">
+                                        <template v-if="day.primary">
+                                            <div class="db-oc-avatar">{{ getPhysicianName(day.primary.primary_physician_id).split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }}</div>
+                                            <div class="db-oc-info">
+                                                <span class="db-oc-name">{{ getPhysicianName(day.primary.primary_physician_id).split(' ').slice(-1)[0] }}</span>
+                                                <span class="db-oc-time">{{ (day.primary.start_time||'').slice(0,5) }}–{{ (day.primary.end_time||'').slice(0,5) }}</span>
+                                            </div>
+                                            <span class="db-oc-badge db-oc-badge--primary">Primary</span>
+                                        </template>
+                                        <template v-else>
+                                            <i class="fas fa-exclamation-triangle" style="color:var(--danger);font-size:11px"></i>
+                                            <span class="db-oc-gap">No primary assigned</span>
+                                            <span v-if="hasPermission('oncall_schedule','create')" class="db-oc-assign" @click.stop="showAddOnCallModal()">＋ Assign</span>
+                                        </template>
+                                    </div>
+                                    <div class="db-oc-slot db-oc-slot--backup" :class="day.backup ? 'db-oc-slot--soft' : ''">
+                                        <template v-if="day.backup">
+                                            <div class="db-oc-avatar db-oc-avatar--backup">{{ getPhysicianName(day.backup.primary_physician_id).split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }}</div>
+                                            <span class="db-oc-name">{{ getPhysicianName(day.backup.primary_physician_id).split(' ').slice(-1)[0] }}</span>
+                                            <span class="db-oc-badge db-oc-badge--backup">Backup</span>
+                                        </template>
+                                        <template v-else>
+                                            <span class="db-oc-gap db-oc-gap--soft">No backup</span>
+                                        </template>
+                                    </div>
+                                </div>
+                                <div v-if="upcomingOnCallDays.length === 0" class="db-cc-empty">
+                                    <i class="fas fa-phone-slash"></i> No shifts scheduled
+                                    <button v-if="hasPermission('oncall_schedule','create')" class="btn btn-sm btn-primary" style="margin-left:10px" @click="showAddOnCallModal()">Schedule</button>
+                                </div>
+                            </template>
                         </div>
-                        <div style="padding: 4px 20px 20px;">
-                            <div v-if="loadingSchedule" style="padding:32px;text-align:center;color:var(--text-3)">
-                                <i class="fas fa-spinner fa-spin"></i>
+
+                        <!-- Rotations attention -->
+                        <div class="card db-content-card">
+                            <div class="db-cc-head">
+                                <span class="db-cc-title"><i class="fas fa-calendar-check"></i> Rotations — This Week</span>
+                                <button class="db-cc-link" @click="switchView('resident_rotations')">All rotations <i class="fas fa-arrow-right"></i></button>
                             </div>
-                            <div v-else-if="todaysOnCall.length === 0" class="empty-state" style="padding:40px 20px;">
-                                <i class="fas fa-phone-slash empty-state-icon"></i>
-                                <div class="empty-state-title">No on-call scheduled today</div>
-                                <div class="empty-state-description">No physicians are scheduled for on-call coverage</div>
-                                <button class="btn btn-primary btn-sm" @click="showAddOnCallModal" v-if="hasPermission('oncall_schedule', 'create')"><i class="fas fa-plus"></i> Schedule First Shift</button>
+                            <template v-if="rotations.filter(r => (r.rotation_status==='active'||r.rotation_status==='scheduled') && new Date(r.end_date||r.start_date) >= new Date() && new Date(r.end_date||r.start_date) <= new Date(Date.now()+7*86400000)).length > 0">
+                                <div v-for="rot in rotations.filter(r => r.rotation_status==='active' && new Date(r.end_date) >= new Date() && new Date(r.end_date) <= new Date(Date.now()+7*86400000)).slice(0,2)" :key="'end-'+rot.id" class="db-rot-row">
+                                    <div class="db-rot-avatar">{{ getResidentName(rot.resident_id).split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }}</div>
+                                    <div class="db-rot-info">
+                                        <span class="db-rot-name">{{ getResidentName(rot.resident_id).split(' ').slice(-1)[0] }}</span>
+                                        <span class="db-rot-unit">{{ getTrainingUnitName(rot.training_unit_id) }}</span>
+                                    </div>
+                                    <span class="db-rot-chip db-rot-chip--ending">ends {{ formatDateShort(rot.end_date) }}</span>
+                                </div>
+                                <div v-for="rot in rotations.filter(r => r.rotation_status==='scheduled' && new Date(r.start_date) >= new Date() && new Date(r.start_date) <= new Date(Date.now()+7*86400000)).slice(0,2)" :key="'start-'+rot.id" class="db-rot-row">
+                                    <div class="db-rot-avatar db-rot-avatar--start">{{ getResidentName(rot.resident_id).split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }}</div>
+                                    <div class="db-rot-info">
+                                        <span class="db-rot-name">{{ getResidentName(rot.resident_id).split(' ').slice(-1)[0] }}</span>
+                                        <span class="db-rot-unit">{{ getTrainingUnitName(rot.training_unit_id) }}</span>
+                                    </div>
+                                    <span class="db-rot-chip db-rot-chip--starting">starts {{ formatDateShort(rot.start_date) }}</span>
+                                </div>
+                            </template>
+                            <div v-else class="db-cc-empty" style="padding:20px 0">
+                                <i class="fas fa-check-circle" style="color:var(--ok)"></i> No urgent rotations this week
                             </div>
-                            <div v-else class="oncall-timeline">
-                                <div v-for="shift in todaysOnCall" :key="shift.id"
-                                     class="oncall-tl-item"
-                                     :class="{ 'is-now': true }">
-                                    <!-- Time -->
-                                    <div class="oncall-tl-time">
-                                        <div class="oncall-tl-from">{{ shift.startTime }}</div>
-                                        <div class="oncall-tl-to">→ {{ shift.endTime }}</div>
-                                        <div class="oncall-tl-date">{{ shift.endTime < shift.startTime ? 'next day' : 'today' }}</div>
+                        </div>
+
+                        <!-- Resident gaps — full width -->
+                        <div class="card db-content-card db-content-card--full" v-if="residentGapWarnings && residentGapWarnings.length > 0">
+                            <div class="db-cc-head">
+                                <span class="db-cc-title" style="color:var(--warn)"><i class="fas fa-exclamation-triangle"></i> Residents Unassigned — Next 3 Months</span>
+                                <button class="db-cc-link" @click="switchView('resident_rotations')">Assign <i class="fas fa-arrow-right"></i></button>
+                            </div>
+                            <div class="db-gap-grid">
+                                <div v-for="w in residentGapWarnings" :key="w.id" class="db-gap-item"
+                                     @click="showAddRotationModal({ id: w.id, full_name: w.name })">
+                                    <div class="db-gap-avatar">{{ w.name.split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase() }}</div>
+                                    <div class="db-gap-info">
+                                        <span class="db-gap-name">{{ w.name.split(' ').slice(-1)[0] }}</span>
+                                        <span class="db-gap-year" v-if="w.year">PGY-{{ w.year }}</span>
                                     </div>
-                                    <!-- Line -->
-                                    <div class="oncall-tl-connector">
-                                        <div class="oncall-tl-dot"></div>
+                                    <div class="db-gap-pills">
+                                        <span v-for="g in w.gaps" :key="g" class="db-gap-pill">{{ g }}</span>
                                     </div>
-                                    <!-- Card -->
-                                    <div class="oncall-tl-card">
-                                        <div class="oncall-tl-avatar">
-                                            {{ shift.physicianName ? shift.physicianName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() : '?' }}
-                                        </div>
-                                        <div class="oncall-tl-info">
-                                            <div class="oncall-tl-name">{{ shift.physicianName }}</div>
-                                            <div class="oncall-tl-role">{{ shift.staffType }}</div>
-                                        </div>
-                                        <div class="oncall-tl-badges">
-                                            <span class="badge" :class="shift.shiftTypeClass">{{ shift.shiftType }}</span>
-                                            <span class="oncall-now-badge">On-call</span>
-                                            <button class="btn btn-sm btn-outline" @click="contactPhysician(shift)"
-                                                    :disabled="!shift.contactInfo || shift.contactInfo === 'No contact info'"
-                                                    style="margin-left:4px">
-                                                <i class="fas" :class="shift.contactInfo && shift.contactInfo.includes('@') ? 'fa-envelope' : 'fa-phone'"></i>
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <i class="fas fa-plus db-gap-add"></i>
                                 </div>
                             </div>
                         </div>
+
                     </div>
                 </div>
+
 
                 <!-- ============ MEDICAL STAFF VIEW ============ -->
                 <div v-if="currentView === 'medical_staff'">
