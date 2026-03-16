@@ -2278,7 +2278,7 @@
                             <div class="rp-detail" v-if="activeMissionLine">
                                 <!-- Accent header -->
                                 <div class="rp-detail-head"
-                                     :style="{ background: getLineAccent(activeMissionLine.line_number).bg }">
+                                     :style="{ background: activeMissionLine ? getLineAccent(activeMissionLine.line_number).bg : '#2563eb' }">
                                     <div class="rp-detail-head-left">
                                         <span class="rp-detail-num">L{{ activeMissionLine.line_number }}</span>
                                         <h2 class="rp-detail-title">{{ activeMissionLine.research_line_name || activeMissionLine.name }}</h2>
@@ -2329,7 +2329,7 @@
                                         <div class="rp-detail-section-label">Coordinator</div>
                                         <div v-if="activeMissionLine.coordinator_id" class="rp-detail-coord">
                                             <div class="rp-detail-coord-avatar"
-                                                 :style="{ background: getLineAccent(activeMissionLine.line_number).bg }">
+                                                 :style="{ background: activeMissionLine ? getLineAccent(activeMissionLine.line_number).bg : '#2563eb' }">
                                                 {{ (activeMissionLine.coordinator_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }}
                                             </div>
                                             <div>
@@ -2372,7 +2372,7 @@
                                                     <div v-if="trial.enrollment_target > 0" class="rp-trial-bar">
                                                         <div class="rp-trial-bar-fill"
                                                              :style="{ width: Math.min(100, Math.round(((trial.actual_enrollment||0)/trial.enrollment_target)*100)) + '%',
-                                                                        background: getLineAccent(activeMissionLine.line_number).color }">
+                                                                        background: activeMissionLine ? getLineAccent(activeMissionLine.line_number).color : '#1e40af' }">
                                                         </div>
                                                     </div>
                                                     <div v-if="trial.enrollment_target > 0" class="rp-trial-enroll">{{ trial.actual_enrollment||0 }}/{{ trial.enrollment_target }}</div>
