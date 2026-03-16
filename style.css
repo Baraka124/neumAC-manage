@@ -3772,7 +3772,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .pd-section-icon i { font-size: 9px; color: #2563eb; opacity: .7; }
 .pd-section-title {
   font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .09em; color: var(--text-4); flex: 1;
+  letter-spacing: .09em; color: var(--text-3); flex: 1;
 }
 .pd-section-chevron { font-size: 8px; color: var(--text-4); transition: transform .2s; }
 .pd-section--collapsed .pd-section-chevron { transform: rotate(-90deg); }
@@ -3782,14 +3782,14 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 /* Data rows */
 .pd-row {
   display: flex; justify-content: space-between; align-items: flex-start;
-  padding: 5px 14px; gap: 8px; border-bottom: 1px solid var(--border);
+  padding: 6px 14px; gap: 8px; border-bottom: 1px solid var(--border);
 }
 .pd-row:last-child { border-bottom: none; }
 .pd-row-key {
   font-size: 10px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: .06em; color: var(--text-4); flex-shrink: 0;
+  letter-spacing: .06em; color: var(--text-3); flex-shrink: 0;
 }
-.pd-row-val { font-size: 11px; font-weight: 500; color: var(--text-1); text-align: right; line-height: 1.4; }
+.pd-row-val { font-size: 12px; font-weight: 500; color: var(--text-1); text-align: right; line-height: 1.4; }
 .pd-row-na  { color: var(--text-4) !important; font-style: italic; }
 
 /* Status bar (hidden — using dot now) */
@@ -3822,13 +3822,13 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 /* Contact rows */
 .pd-contact-row {
   display: flex; align-items: center; gap: 8px;
-  padding: 7px 14px; color: var(--text-2);
-  font-size: 11px; text-decoration: none;
+  padding: 8px 14px; color: var(--text-1);
+  font-size: 12px; text-decoration: none;
   border-bottom: 1px solid var(--border); transition: var(--t);
 }
 .pd-contact-row:last-child { border-bottom: none; }
 .pd-contact-row:hover { color: #2563eb; background: #eff6ff; }
-.pd-contact-row i { font-size: 10px; color: var(--text-4); width: 13px; flex-shrink: 0; }
+.pd-contact-row i { font-size: 10px; color: var(--text-3); width: 13px; flex-shrink: 0; }
 .pd-contact-row--disabled { opacity: .3; pointer-events: none; }
 
 /* Pills (kept for backwards compat on right panel) */
@@ -4817,16 +4817,9 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .sidebar-logo-name { color: rgba(255,255,255,.95) !important; }
 .sidebar-logo-sub  { color: rgba(255,255,255,.45) !important; }
 
-/* Profile drawer left panel — brighter text */
-.pd-name  { color: rgba(255,255,255,.97) !important; }
-.pd-role  { color: rgba(255,255,255,.55) !important; }
-.pd-section-title { color: rgba(255,255,255,.60) !important; }
-.pd-row-key { color: rgba(255,255,255,.42) !important; }
-.pd-row-val { color: rgba(255,255,255,.90) !important; }
-.pd-contact-row { color: rgba(255,255,255,.75) !important; }
-.pd-contact-row:hover { color: rgba(255,255,255,.98) !important; }
-.pd-research-lbl { color: rgba(255,255,255,.45) !important; }
-.pd-leave-type { color: rgba(255,255,255,.50) !important; }
+/* Profile drawer — hero text (white on blue hero area) */
+.pd-hero .pd-name  { color: #fff; }
+.pd-hero .pd-role  { color: rgba(255,255,255,.6); }
 .rot-who-name { color: var(--text-1) !important; }
 
 /* Week view dark header */
@@ -5384,7 +5377,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .tuc-occ-label { color: var(--text-3) !important; }
 
 /* stat-label in profile drawer */
-.pd-row-key { color: rgba(255,255,255,.55) !important; }
+/* pd-row-key color now handled by main CSS */
 
 
 /* ================================================================
