@@ -2196,66 +2196,226 @@
                     <!-- ══════════════════════════════════════════════════
                          TAB: LINES
                     ══════════════════════════════════════════════════ -->
-                    <div v-show="researchHubTab === 'lines'" class="rhub-panel">
-                        <div class="rhub-filter-bar">
-                            <input type="text" class="form-control" v-model="researchLineFilters.search" placeholder="Search lines…">
-                            <select class="form-select" v-model="researchLineFilters.active" style="max-width:140px">
-                                <option value="">All Status</option>
-                                <option value="true">Active</option>
-                                <option value="false">Inactive</option>
-                            </select>
-                        </div>
-                        <div class="rhub-lines-grid">
-                            <div v-for="line in filteredResearchLines" :key="line.id"
-                                 class="rhl-card"
-                                 :class="{ 'rhl-card--inactive': !line.active }"
-                                 @click="openLineDetail(line)">
-                                <div class="rhl-accent" :style="!line.active ? { background: 'var(--border)' } : {}"></div>
-                                <div class="rhl-top">
-                                    <span class="rhl-number">L{{ line.line_number }}</span>
-                                    <span v-if="!line.active" class="rhl-inactive-pill">Inactive</span>
-                                    <div class="rhl-actions" @click.stop>
-                                        <button class="rhl-btn" @click.stop="editResearchLine(line)" v-if="hasPermission('research_lines','update')" title="Edit"><i class="fas fa-edit"></i></button>
-                                        <button class="rhl-btn rhl-btn--danger" @click.stop="deleteResearchLine(line)" v-if="hasPermission('research_lines','delete')" title="Delete"><i class="fas fa-trash"></i></button>
-                                    </div>
-                                </div>
-                                <h3 class="rhl-name">{{ line.research_line_name || line.name }}</h3>
-                                <p class="rhl-desc" v-if="line.description">{{ line.description }}</p>
-                                <div class="rhl-stats">
-                                    <div class="rhl-stat" @click.stop="drillToTrials(line.id)" title="View trials">
-                                        <span class="rhl-stat-num">{{ line.stats?.totalTrials || 0 }}</span>
-                                        <span class="rhl-stat-label">Trials</span>
-                                        <span v-if="line.stats?.activeTrials > 0" class="rhl-stat-live">{{ line.stats.activeTrials }} active</span>
-                                    </div>
-                                    <div class="rhl-stat-divider"></div>
-                                    <div class="rhl-stat" @click.stop="drillToProjects(line.id)" title="View projects">
-                                        <span class="rhl-stat-num">{{ line.stats?.totalProjects || 0 }}</span>
-                                        <span class="rhl-stat-label">Projects</span>
-                                        <span v-if="line.stats?.activeProjects > 0" class="rhl-stat-live">{{ line.stats.activeProjects }} active</span>
-                                    </div>
-                                </div>
-                                <div class="rhl-coordinator">
-                                    <div v-if="line.coordinator_id" class="rhl-coord-row">
-                                        <div class="rhl-coord-avatar">{{ line.coordinator_name ? line.coordinator_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() : '?' }}</div>
-                                        <span class="rhl-coord-name">{{ line.coordinator_name }}</span>
-                                        <button class="rhl-coord-btn" @click.stop="openAssignCoordinatorModal(line)" v-if="hasPermission('research_lines','update')" title="Change"><i class="fas fa-exchange-alt"></i></button>
-                                    </div>
-                                    <div v-else class="rhl-coord-empty" @click.stop>
-                                        <i class="fas fa-user-slash"></i>
-                                        <span>No coordinator</span>
-                                        <button class="rhl-coord-btn" @click.stop="openAssignCoordinatorModal(line)" v-if="hasPermission('research_lines','update')"><i class="fas fa-user-plus"></i> Assign</button>
-                                    </div>
-                                </div>
-                                <div class="rhl-keywords" v-if="line.keywords && line.keywords.length">
-                                    <span v-for="kw in line.keywords.slice(0,4)" :key="kw" class="rhl-kw">{{ kw }}</span>
+                    <div v-show="researchHubTab === 'lines'" class="rhub-panel rhub-panel--mc">
+
+                        <!-- ── Portfolio KPI strip (Idea 3) ── -->
+                        <div class="rp-kpi-strip">
+                            <div class="rp-kpi">
+                                <div class="rp-kpi-val">{{ portfolioKPIs.activeLines }}</div>
+                                <div class="rp-kpi-label">Active Lines</div>
+                                <div class="rp-kpi-sub">of {{ portfolioKPIs.totalLines }} total</div>
+                            </div>
+                            <div class="rp-kpi-div"></div>
+                            <div class="rp-kpi">
+                                <div class="rp-kpi-val" :class="{ 'rp-kpi-val--ok': portfolioKPIs.activeTrials > 0 }">{{ portfolioKPIs.activeTrials }}</div>
+                                <div class="rp-kpi-label">Active Trials</div>
+                                <div class="rp-kpi-sub" v-if="portfolioKPIs.recruitingTrials > 0" style="color:var(--ok)">{{ portfolioKPIs.recruitingTrials }} recruiting</div>
+                                <div class="rp-kpi-sub" v-else>of {{ portfolioKPIs.totalTrials }} total</div>
+                            </div>
+                            <div class="rp-kpi-div"></div>
+                            <div class="rp-kpi">
+                                <div class="rp-kpi-val">{{ portfolioKPIs.totalProjects }}</div>
+                                <div class="rp-kpi-label">Projects</div>
+                                <div class="rp-kpi-sub" v-if="portfolioKPIs.lateStageProjects > 0" style="color:var(--blue)">{{ portfolioKPIs.lateStageProjects }} advanced stage</div>
+                                <div class="rp-kpi-sub" v-else>in pipeline</div>
+                            </div>
+                            <div class="rp-kpi-div"></div>
+                            <div class="rp-kpi">
+                                <div class="rp-kpi-val">{{ portfolioKPIs.totalEnrolled.toLocaleString() }}</div>
+                                <div class="rp-kpi-label">Participants</div>
+                                <div class="rp-kpi-sub" v-if="portfolioKPIs.totalTarget > 0">
+                                    {{ Math.round((portfolioKPIs.totalEnrolled / portfolioKPIs.totalTarget) * 100) }}% of target
                                 </div>
                             </div>
-                            <div v-if="filteredResearchLines.length === 0" class="rhub-empty">
-                                <i class="fas fa-flask"></i>
-                                <p>No research lines found</p>
-                                <button class="btn btn-primary btn-sm" @click="showAddResearchLineModal" v-if="hasPermission('research_lines','create')"><i class="fas fa-plus"></i> Add First Line</button>
+                            <div class="rp-kpi-search">
+                                <input type="text" class="form-control" v-model="researchLineFilters.search" placeholder="Search lines…" style="font-size:12px">
                             </div>
                         </div>
+
+                        <!-- ── Mission Control layout (Idea 1) ── -->
+                        <div class="rp-mc">
+
+                            <!-- LEFT: compact line navigator -->
+                            <div class="rp-nav">
+                                <div v-for="line in filteredResearchLines" :key="line.id"
+                                     class="rp-nav-item"
+                                     :class="{
+                                       'rp-nav-item--active':   activeMissionLine && activeMissionLine.id === line.id,
+                                       'rp-nav-item--inactive': !line.active
+                                     }"
+                                     @click="openLineDetail(line); activeMissionLine = line"
+                                     :style="activeMissionLine && activeMissionLine.id === line.id ? { borderLeftColor: getLineAccent(line.line_number).color } : {}">
+                                    <div class="rp-nav-badge"
+                                         :style="activeMissionLine && activeMissionLine.id === line.id
+                                           ? { background: getLineAccent(line.line_number).bg, color: '#fff' }
+                                           : {}">
+                                        L{{ line.line_number }}
+                                    </div>
+                                    <div class="rp-nav-info">
+                                        <div class="rp-nav-name">{{ line.research_line_name || line.name }}</div>
+                                        <div class="rp-nav-meta">
+                                            <span>{{ line.stats?.totalTrials || 0 }} trials</span>
+                                            <span class="rp-nav-dot"></span>
+                                            <span>{{ line.stats?.totalProjects || 0 }} projects</span>
+                                        </div>
+                                    </div>
+                                    <div class="rp-nav-status">
+                                        <span v-if="line.stats?.activeTrials > 0" class="rp-nav-live"></span>
+                                    </div>
+                                </div>
+                                <div v-if="filteredResearchLines.length === 0" class="rp-nav-empty">
+                                    <i class="fas fa-flask"></i>
+                                    <span>No lines found</span>
+                                </div>
+                            </div>
+
+                            <!-- RIGHT: rich detail panel -->
+                            <div class="rp-detail" v-if="activeMissionLine">
+                                <!-- Accent header -->
+                                <div class="rp-detail-head"
+                                     :style="{ background: getLineAccent(activeMissionLine.line_number).bg }">
+                                    <div class="rp-detail-head-left">
+                                        <span class="rp-detail-num">L{{ activeMissionLine.line_number }}</span>
+                                        <h2 class="rp-detail-title">{{ activeMissionLine.research_line_name || activeMissionLine.name }}</h2>
+                                    </div>
+                                    <div class="rp-detail-head-actions" @click.stop>
+                                        <button class="rp-detail-btn" @click="editResearchLine(activeMissionLine)" v-if="hasPermission('research_lines','update')" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="rp-detail-btn rp-detail-btn--danger" @click="deleteResearchLine(activeMissionLine)" v-if="hasPermission('research_lines','delete')" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="rp-detail-body">
+                                    <!-- Stats row -->
+                                    <div class="rp-detail-stats">
+                                        <div class="rp-ds-block" @click="drillToTrials(activeMissionLine.id)">
+                                            <div class="rp-ds-val">{{ activeMissionLine.stats?.totalTrials || 0 }}</div>
+                                            <div class="rp-ds-label">Clinical Trials</div>
+                                            <div class="rp-ds-sub" v-if="activeMissionLine.stats?.activeTrials > 0" style="color:var(--ok)">{{ activeMissionLine.stats.activeTrials }} active</div>
+                                        </div>
+                                        <div class="rp-ds-block" @click="drillToProjects(activeMissionLine.id)">
+                                            <div class="rp-ds-val">{{ activeMissionLine.stats?.totalProjects || 0 }}</div>
+                                            <div class="rp-ds-label">Projects</div>
+                                            <div class="rp-ds-sub" v-if="activeMissionLine.stats?.activeProjects > 0" style="color:var(--blue)">{{ activeMissionLine.stats.activeProjects }} active</div>
+                                        </div>
+                                        <div class="rp-ds-block" v-if="activeMissionLine.stats?.totalEnrollment > 0">
+                                            <div class="rp-ds-val">{{ activeMissionLine.stats.totalEnrollment }}</div>
+                                            <div class="rp-ds-label">Enrolled</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Description -->
+                                    <div class="rp-detail-section" v-if="activeMissionLine.description">
+                                        <div class="rp-detail-section-label">About this line</div>
+                                        <p class="rp-detail-desc">{{ activeMissionLine.description }}</p>
+                                    </div>
+
+                                    <!-- Capabilities -->
+                                    <div class="rp-detail-section" v-if="activeMissionLine.capabilities">
+                                        <div class="rp-detail-section-label">Capabilities</div>
+                                        <p class="rp-detail-desc">{{ activeMissionLine.capabilities }}</p>
+                                    </div>
+
+                                    <!-- Coordinator -->
+                                    <div class="rp-detail-section">
+                                        <div class="rp-detail-section-label">Coordinator</div>
+                                        <div v-if="activeMissionLine.coordinator_id" class="rp-detail-coord">
+                                            <div class="rp-detail-coord-avatar"
+                                                 :style="{ background: getLineAccent(activeMissionLine.line_number).bg }">
+                                                {{ (activeMissionLine.coordinator_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }}
+                                            </div>
+                                            <div>
+                                                <div class="rp-detail-coord-name">{{ activeMissionLine.coordinator_name }}</div>
+                                                <div class="rp-detail-coord-role">Line Coordinator</div>
+                                            </div>
+                                            <button class="rp-detail-btn" style="margin-left:auto"
+                                                    @click="openAssignCoordinatorModal(activeMissionLine)"
+                                                    v-if="hasPermission('research_lines','update')" title="Change coordinator">
+                                                <i class="fas fa-exchange-alt"></i>
+                                            </button>
+                                        </div>
+                                        <div v-else class="rp-detail-no-coord">
+                                            <i class="fas fa-user-slash"></i> No coordinator assigned
+                                            <button class="btn btn-sm btn-outline" style="margin-left:10px"
+                                                    @click="openAssignCoordinatorModal(activeMissionLine)"
+                                                    v-if="hasPermission('research_lines','update')">
+                                                <i class="fas fa-user-plus"></i> Assign
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Active trials for this line -->
+                                    <div class="rp-detail-section" v-if="clinicalTrials.filter(t => t.research_line_id === activeMissionLine.id).length > 0">
+                                        <div class="rp-detail-section-label">Clinical Trials</div>
+                                        <div class="rp-trial-list">
+                                            <div v-for="trial in clinicalTrials.filter(t => t.research_line_id === activeMissionLine.id).slice(0,4)"
+                                                 :key="trial.id" class="rp-trial-row">
+                                                <div class="rp-trial-info">
+                                                    <div class="rp-trial-title">{{ trial.title }}</div>
+                                                    <div class="rp-trial-meta">{{ trial.phase }} · {{ trial.protocol_id }}</div>
+                                                </div>
+                                                <div class="rp-trial-right">
+                                                    <span class="rp-trial-status"
+                                                          :class="{
+                                                            'rp-trial-status--recruiting': trial.status === 'Reclutando',
+                                                            'rp-trial-status--active':     trial.status === 'Activo',
+                                                            'rp-trial-status--done':       trial.status === 'Completado'
+                                                          }">{{ trial.status }}</span>
+                                                    <div v-if="trial.enrollment_target > 0" class="rp-trial-bar">
+                                                        <div class="rp-trial-bar-fill"
+                                                             :style="{ width: Math.min(100, Math.round(((trial.actual_enrollment||0)/trial.enrollment_target)*100)) + '%',
+                                                                        background: getLineAccent(activeMissionLine.line_number).color }">
+                                                        </div>
+                                                    </div>
+                                                    <div v-if="trial.enrollment_target > 0" class="rp-trial-enroll">{{ trial.actual_enrollment||0 }}/{{ trial.enrollment_target }}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button class="rp-view-all" @click="drillToTrials(activeMissionLine.id)">
+                                            View all trials <i class="fas fa-arrow-right"></i>
+                                        </button>
+                                    </div>
+
+                                    <!-- Keywords -->
+                                    <div class="rp-detail-section" v-if="activeMissionLine.keywords && activeMissionLine.keywords.length">
+                                        <div class="rp-detail-section-label">Keywords</div>
+                                        <div class="rhl-keywords">
+                                            <span v-for="kw in activeMissionLine.keywords" :key="kw" class="rhl-kw">{{ kw }}</span>
+                                        </div>
+                                    </div>
+
+                                </div><!-- end rp-detail-body -->
+
+                                <!-- Footer actions -->
+                                <div class="rp-detail-footer">
+                                    <button class="btn btn-sm btn-outline" @click="drillToTrials(activeMissionLine.id)">
+                                        <i class="fas fa-vial"></i> Trials
+                                    </button>
+                                    <button class="btn btn-sm btn-outline" @click="drillToProjects(activeMissionLine.id)">
+                                        <i class="fas fa-microscope"></i> Projects
+                                    </button>
+                                    <button class="btn btn-primary btn-sm" @click="showAddTrialModal(activeMissionLine)" v-if="hasPermission('research_lines','create')" style="margin-left:auto">
+                                        <i class="fas fa-plus"></i> Add Trial
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- RIGHT: empty state when no line selected -->
+                            <div class="rp-detail rp-detail--empty" v-else>
+                                <div class="rp-detail-empty-inner">
+                                    <div class="rp-detail-empty-icon"><i class="fas fa-flask"></i></div>
+                                    <div class="rp-detail-empty-title">Select a research line</div>
+                                    <div class="rp-detail-empty-sub">Click any line on the left to explore its trials, projects and team</div>
+                                    <button class="btn btn-primary btn-sm" @click="showAddResearchLineModal" v-if="hasPermission('research_lines','create')" style="margin-top:16px">
+                                        <i class="fas fa-plus"></i> Add First Line
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div><!-- end rp-mc -->
                     </div>
 
                     <!-- ══════════════════════════════════════════════════
