@@ -761,14 +761,14 @@ a { color: var(--blue); text-decoration: none; }
 /* The section title is the ANCHOR — it must be clearly smaller
    and more subdued than the items, acting as a label not a heading */
 .sidebar-section-title {
-  font-size: var(--t-10);
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .11em;
-  padding: 16px 4px 5px;
+  letter-spacing: .12em;
+  padding: 18px 4px 6px;
   white-space: nowrap; overflow: hidden;
   display: flex; align-items: center; gap: 8px;
-  opacity: .75;
+  opacity: .9;
 }
 
 /* First section needs less top space (sits under logo) */
@@ -776,115 +776,106 @@ a { color: var(--blue); text-decoration: none; }
   padding-top: 8px;
 }
 
-/* Thin full-width rule before each section title (except first)
-   This is the real visual separator — not font size */
+/* Thin full-width rule before each section title (except first) */
 .sidebar-section:not(:first-child) .sidebar-section-title::before {
   content: '';
   position: absolute;
   left: 10px; right: 10px;
   top: 0;
   height: 1px;
-  background: rgba(255,255,255,.1);
+  background: rgba(255,255,255,.12);
 }
 .sidebar-section:not(:first-child) .sidebar-section-title {
   position: relative;
 }
 
-/* Color the title text per-section accent — at low opacity
-   so it's a tint, not a shout */
-.sidebar-section:nth-child(1) .sidebar-section-title { color: rgba(77,154,255,.9); }
-.sidebar-section:nth-child(2) .sidebar-section-title { color: rgba(52,211,153,.9); }
-.sidebar-section:nth-child(3) .sidebar-section-title { color: rgba(34,211,238,.9); }
-.sidebar-section:nth-child(4) .sidebar-section-title { color: rgba(251,191,36,.9); }
-.sidebar-section:nth-child(5) .sidebar-section-title { color: rgba(167,139,250,.9); }
-.sidebar-section:nth-child(6) .sidebar-section-title { color: rgba(251,113,133,.9); }
+/* Section title accent colours */
+.sidebar-section:nth-child(1) .sidebar-section-title { color: rgba(99,179,255,1); }
+.sidebar-section:nth-child(2) .sidebar-section-title { color: rgba(52,211,153,1); }
+.sidebar-section:nth-child(3) .sidebar-section-title { color: rgba(56,189,248,1); }
+.sidebar-section:nth-child(4) .sidebar-section-title { color: rgba(251,191,36,1); }
+.sidebar-section:nth-child(5) .sidebar-section-title { color: rgba(167,139,250,1); }
+.sidebar-section:nth-child(6) .sidebar-section-title { color: rgba(251,113,133,1); }
 
 .sidebar-menu { list-style: none; margin: 0; padding: 0; }
 
 /* ── Nav link ─────────────────────────────────────────────── */
 .sidebar-menu-link {
-  display: flex; align-items: center; gap: 9px;
-  padding: 8px 10px;
-  border-radius: 7px;
-  color: rgba(255,255,255,.78);
-  font-size: 13px;
-  font-weight: 500;
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: rgba(255,255,255,.92);
+  font-size: 13.5px;
+  font-weight: 600;
   transition: background var(--t), color var(--t);
   white-space: nowrap; overflow: hidden;
   margin-bottom: 2px;
-  min-height: 36px;
+  min-height: 40px;
   position: relative;
   cursor: pointer;
   letter-spacing: -.01em;
   text-decoration: none;
 }
 
-/* Icon — slightly dimmer than text so text reads first */
+/* Icon */
 .sidebar-menu-link i {
   font-size: 13px; width: 16px; text-align: center;
   flex-shrink: 0;
   transition: color var(--t), transform var(--t);
-  opacity: .8;
+  opacity: .85;
 }
 
 /* Per-section icon accent colors */
-.sidebar-section:nth-child(1) .sidebar-menu-link i { color: rgba(99,179,255,.85); }
-.sidebar-section:nth-child(2) .sidebar-menu-link i { color: rgba(52,211,153,.85); }
-.sidebar-section:nth-child(3) .sidebar-menu-link i { color: rgba(56,189,248,.85); }
-.sidebar-section:nth-child(4) .sidebar-menu-link i { color: rgba(251,191,36,.85); }
-.sidebar-section:nth-child(5) .sidebar-menu-link i { color: rgba(167,139,250,.85); }
-.sidebar-section:nth-child(6) .sidebar-menu-link i { color: rgba(251,113,133,.85); }
+.sidebar-section:nth-child(1) .sidebar-menu-link i { color: rgba(99,179,255,.9); }
+.sidebar-section:nth-child(2) .sidebar-menu-link i { color: rgba(52,211,153,.9); }
+.sidebar-section:nth-child(3) .sidebar-menu-link i { color: rgba(56,189,248,.9); }
+.sidebar-section:nth-child(4) .sidebar-menu-link i { color: rgba(251,191,36,.9); }
+.sidebar-section:nth-child(5) .sidebar-menu-link i { color: rgba(167,139,250,.9); }
+.sidebar-section:nth-child(6) .sidebar-menu-link i { color: rgba(251,113,133,.9); }
 
-/* Hover — step up brightness, not colour */
+/* Hover */
 .sidebar-menu-link:hover {
-  background: rgba(255,255,255,.08);
-  color: rgba(255,255,255,.95);
+  background: rgba(255,255,255,.1);
+  color: #fff;
 }
 .sidebar-menu-link:hover i {
   opacity: 1;
-  transform: translateX(1px);
+  transform: translateX(2px);
 }
 
-/* ──────────────────────────────────────────────────────────
-   ACTIVE STATE — this needs to be unmistakeable.
-   Strategy: bold text weight + section-tinted background fill
-   + bright icon + left blade with glow. Four signals at once.
-   ────────────────────────────────────────────────────────── */
+/* ── ACTIVE STATE ──────────────────────────────────────────── */
 .sidebar-menu-link.active {
   color: #fff;
   font-weight: 700;
   letter-spacing: -.02em;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 2px 8px rgba(0,0,0,.2);
 }
-.sidebar-menu-link.active i {
-  opacity: 1 !important;
-}
+.sidebar-menu-link.active i { opacity: 1 !important; }
 
-/* Tinted background fill — unique per section so you instantly
-   know which category you're in just from the colour           */
-.sidebar-section:nth-child(1) .sidebar-menu-link.active { background: rgba(99,179,255,.18); }
-.sidebar-section:nth-child(2) .sidebar-menu-link.active { background: rgba(52,211,153,.16); }
-.sidebar-section:nth-child(3) .sidebar-menu-link.active { background: rgba(56,189,248,.16); }
-.sidebar-section:nth-child(4) .sidebar-menu-link.active { background: rgba(251,191,36,.15); }
-.sidebar-section:nth-child(5) .sidebar-menu-link.active { background: rgba(167,139,250,.17); }
-.sidebar-section:nth-child(6) .sidebar-menu-link.active { background: rgba(251,113,133,.15); }
+/* Vivid tinted background per section */
+.sidebar-section:nth-child(1) .sidebar-menu-link.active { background: rgba(99,179,255,.22); }
+.sidebar-section:nth-child(2) .sidebar-menu-link.active { background: rgba(52,211,153,.22); }
+.sidebar-section:nth-child(3) .sidebar-menu-link.active { background: rgba(56,189,248,.22); }
+.sidebar-section:nth-child(4) .sidebar-menu-link.active { background: rgba(251,191,36,.20); }
+.sidebar-section:nth-child(5) .sidebar-menu-link.active { background: rgba(167,139,250,.22); }
+.sidebar-section:nth-child(6) .sidebar-menu-link.active { background: rgba(251,113,133,.20); }
 
-/* Left blade — thicker, taller, glowing */
+/* Left blade — wider, taller, stronger glow */
 .sidebar-menu-link.active::before {
   content: '';
   position: absolute; left: 0; top: 50%;
   transform: translateY(-50%);
-  width: 3px; height: 22px;
-  border-radius: 0 3px 3px 0;
+  width: 4px; height: 26px;
+  border-radius: 0 4px 4px 0;
 }
-.sidebar-section:nth-child(1) .sidebar-menu-link.active::before { background: var(--sb-accent-1); box-shadow: 0 0 12px rgba(77,154,255,.8); }
-.sidebar-section:nth-child(2) .sidebar-menu-link.active::before { background: var(--sb-accent-2); box-shadow: 0 0 12px rgba(52,211,153,.8); }
-.sidebar-section:nth-child(3) .sidebar-menu-link.active::before { background: var(--sb-accent-3); box-shadow: 0 0 12px rgba(34,211,238,.8); }
-.sidebar-section:nth-child(4) .sidebar-menu-link.active::before { background: var(--sb-accent-4); box-shadow: 0 0 12px rgba(251,191,36,.8); }
-.sidebar-section:nth-child(5) .sidebar-menu-link.active::before { background: var(--sb-accent-5); box-shadow: 0 0 12px rgba(167,139,250,.8); }
-.sidebar-section:nth-child(6) .sidebar-menu-link.active::before { background: var(--sb-accent-6); box-shadow: 0 0 12px rgba(251,113,133,.8); }
+.sidebar-section:nth-child(1) .sidebar-menu-link.active::before { background: var(--sb-accent-1); box-shadow: 0 0 16px rgba(77,154,255,.9); }
+.sidebar-section:nth-child(2) .sidebar-menu-link.active::before { background: var(--sb-accent-2); box-shadow: 0 0 16px rgba(52,211,153,.9); }
+.sidebar-section:nth-child(3) .sidebar-menu-link.active::before { background: var(--sb-accent-3); box-shadow: 0 0 16px rgba(34,211,238,.9); }
+.sidebar-section:nth-child(4) .sidebar-menu-link.active::before { background: var(--sb-accent-4); box-shadow: 0 0 16px rgba(251,191,36,.9); }
+.sidebar-section:nth-child(5) .sidebar-menu-link.active::before { background: var(--sb-accent-5); box-shadow: 0 0 16px rgba(167,139,250,.9); }
+.sidebar-section:nth-child(6) .sidebar-menu-link.active::before { background: var(--sb-accent-6); box-shadow: 0 0 16px rgba(251,113,133,.9); }
 
-/* Active icon — full accent colour, no dimming */
+/* Active icon — full accent colour */
 .sidebar-section:nth-child(1) .sidebar-menu-link.active i { color: var(--sb-accent-1) !important; opacity: 1 !important; }
 .sidebar-section:nth-child(2) .sidebar-menu-link.active i { color: var(--sb-accent-2) !important; opacity: 1 !important; }
 .sidebar-section:nth-child(3) .sidebar-menu-link.active i { color: var(--sb-accent-3) !important; opacity: 1 !important; }
