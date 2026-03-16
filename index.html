@@ -3802,7 +3802,7 @@
                 <div class="modal-body">
                     <div class="grid grid-cols-2 gap-4">
                         <div class="form-group" :class="{ 'has-error': fieldErrors.oncall?.duty_date }">
-                            <label class="form-label">Date *</label>
+                            <label class="form-label">Start Date *</label>
                             <input type="date" class="form-control" v-model="onCallModal.form.duty_date" required @input="clearFieldError('oncall', 'duty_date')" :class="{ 'is-invalid': fieldErrors.oncall?.duty_date }">
                             <small v-if="fieldErrors.oncall?.duty_date" class="error-text"><i class="fas fa-exclamation-circle"></i> {{ fieldErrors.oncall.duty_date }}</small>
                         </div>
@@ -3846,6 +3846,13 @@
                             <label class="form-label">End Time *</label>
                             <input type="time" class="form-control" v-model="onCallModal.form.end_time" required @input="clearFieldError('oncall', 'end_time')" :class="{ 'is-invalid': fieldErrors.oncall?.end_time }">
                             <small v-if="fieldErrors.oncall?.end_time" class="error-text"><i class="fas fa-exclamation-circle"></i> {{ fieldErrors.oncall.end_time }}</small>
+                            <!-- Overnight indicator -->
+                            <div v-if="onCallModal.form.end_time && onCallModal.form.start_time && onCallModal.form.end_time < onCallModal.form.start_time && onCallModal.form.duty_date"
+                                 class="oc-overnight-hint">
+                                <i class="fas fa-moon"></i>
+                                Ends next day ·
+                                <strong>{{ new Date(new Date(onCallModal.form.duty_date + 'T12:00:00').getTime() + 86400000).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) }}</strong>
+                            </div>
                         </div>
                         <div class="form-group col-span-2">
                             <label class="form-label">Coverage Area</label>
