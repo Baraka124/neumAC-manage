@@ -289,6 +289,15 @@
                                 <span v-if="!sidebarCollapsed">Research Hub</span>
                             </a>
                         </li>
+                        <li class="sidebar-menu-item">
+                            <a href="#" class="sidebar-menu-link"
+                               :class="{ active: currentView === 'news' }"
+                               @click.prevent="switchView('news'); mobileMenuOpen = false"
+                               :aria-current="currentView === 'news' ? 'page' : null">
+                                <i class="fas fa-newspaper"></i>
+                                <span v-if="!sidebarCollapsed">News & Posts</span>
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </nav>
@@ -3430,6 +3439,319 @@
             </div><!-- /profile-drawer -->
         </transition>
 
+
+        <!-- ============================================================
+             NEWS & POSTS VIEW
+        ============================================================ -->
+        <div v-if="currentView === 'news'" class="news-view">
+
+            <!-- Tab bar + action -->
+            <div class="rhub-tabs">
+                <button class="rhub-tab" :class="{ 'rhub-tab--active': newsFilters.status === '' }" @click="newsFilters.status = ''">
+                    <i class="fas fa-layer-group"></i> All
+                    <span class="rhub-tab-count">{{ filteredNews.length }}</span>
+                </button>
+                <button class="rhub-tab" :class="{ 'rhub-tab--active': newsFilters.status === 'published' }" @click="newsFilters.status = 'published'">
+                    <i class="fas fa-check-circle"></i> Published
+                </button>
+                <button class="rhub-tab" :class="{ 'rhub-tab--active': newsFilters.status === 'draft' }" @click="newsFilters.status = 'draft'">
+                    <i class="fas fa-edit"></i> Drafts
+                </button>
+                <button class="rhub-tab" :class="{ 'rhub-tab--active': newsFilters.status === 'archived' }" @click="newsFilters.status = 'archived'">
+                    <i class="fas fa-archive"></i> Archived
+                </button>
+                <div style="margin-left:auto;display:flex;align-items:center;gap:8px;padding-bottom:1px">
+                    <button class="btn btn-primary btn-sm" @click="showAddNewsModal" v-if="hasPermission('research_lines','create')">
+                        <i class="fas fa-plus"></i> New Post
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filter bar -->
+            <div class="news-filter-bar">
+                <input type="text" class="form-control" v-model="newsFilters.search" placeholder="Search posts…" style="flex:1;max-width:320px">
+                <select class="form-select" v-model="newsFilters.type" style="max-width:140px">
+                    <option value="">All Types</option>
+                    <option value="update">Update</option>
+                    <option value="article">Article</option>
+                    <option value="publication">Publication</option>
+                </select>
+                <select class="form-select" v-model="newsFilters.scope" style="max-width:150px">
+                    <option value="">All Visibility</option>
+                    <option value="public">Public (website)</option>
+                    <option value="internal">Internal only</option>
+                </select>
+            </div>
+
+            <!-- Posts list -->
+            <div class="news-list" v-if="!newsLoading">
+                <div v-if="filteredNews.length === 0" class="news-empty">
+                    <i class="fas fa-newspaper"></i>
+                    <p>No posts yet. Create your first post to get started.</p>
+                    <button class="btn btn-primary btn-sm" @click="showAddNewsModal" v-if="hasPermission('research_lines','create')">
+                        <i class="fas fa-plus"></i> New Post
+                    </button>
+                </div>
+
+                <div v-for="post in filteredNews" :key="post.id" class="news-card" :class="'news-card--' + post.post_type">
+
+                    <!-- Left accent + type -->
+                    <div class="news-card-left">
+                        <span class="news-type-badge" :class="'ntb--' + post.post_type">
+                            <i class="fas" :class="{
+                                'fa-bolt':        post.post_type === 'update',
+                                'fa-file-alt':    post.post_type === 'article',
+                                'fa-book-open':   post.post_type === 'publication'
+                            }"></i>
+                            {{ post.post_type === 'update' ? 'Update' : post.post_type === 'article' ? 'Article' : 'Publication' }}
+                        </span>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="news-card-body">
+                        <div class="news-card-title">{{ post.title }}</div>
+
+                        <!-- Publication fields -->
+                        <div v-if="post.post_type === 'publication'" class="news-pub-meta">
+                            <span v-if="post.journal_name" class="news-journal">{{ post.journal_name }}</span>
+                            <span v-if="post.authors_text" class="news-authors">{{ post.authors_text }}</span>
+                            <a v-if="post.doi" :href="'https://doi.org/' + post.doi" target="_blank" class="news-doi">
+                                <i class="fas fa-external-link-alt"></i> DOI {{ post.doi }}
+                            </a>
+                        </div>
+
+                        <!-- Body preview -->
+                        <div v-if="post.body && post.post_type !== 'publication'" class="news-card-excerpt">{{ post.body }}</div>
+
+                        <!-- Meta row -->
+                        <div class="news-card-meta">
+                            <span v-if="post.author_id" class="news-meta-item">
+                                <i class="fas fa-user-md"></i> {{ newsAuthorName(post.author_id) }}
+                            </span>
+                            <span v-if="post.research_line_id" class="news-meta-item news-meta-line">
+                                <i class="fas fa-flask"></i> {{ newsLineName(post.research_line_id) }}
+                            </span>
+                            <span class="news-meta-item">
+                                <i class="fas fa-calendar-alt"></i>
+                                {{ formatDate(post.created_at) }}
+                            </span>
+                            <span v-if="post.word_count && post.post_type !== 'publication'" class="news-meta-item news-wc">
+                                {{ post.word_count }}w
+                            </span>
+                            <span v-if="post.expires_at && post.post_type !== 'publication'" class="news-meta-item news-expiry"
+                                  :class="{ 'news-expiry--warn': new Date(post.expires_at) < new Date(Date.now() + 14*86400000) }">
+                                <i class="fas fa-clock"></i> Expires {{ formatDate(post.expires_at) }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Right: status + visibility + actions -->
+                    <div class="news-card-right">
+                        <!-- Status badge -->
+                        <span class="news-status-badge" :class="'nsb--' + post.status">
+                            {{ post.status === 'published' ? 'Published' : post.status === 'draft' ? 'Draft' : 'Archived' }}
+                        </span>
+
+                        <!-- Visibility toggle -->
+                        <button class="news-vis-btn" @click="toggleNewsPublic(post)"
+                                :title="post.is_public ? 'Public on website — click to make internal' : 'Internal only — click to make public'"
+                                v-if="post.status === 'published' && hasPermission('research_lines','update')">
+                            <i class="fas" :class="post.is_public ? 'fa-globe' : 'fa-lock'"></i>
+                            <span>{{ post.is_public ? 'Public' : 'Internal' }}</span>
+                        </button>
+
+                        <!-- Actions -->
+                        <div class="news-actions">
+                            <button class="btn-icon" @click="editNews(post)" title="Edit" v-if="hasPermission('research_lines','update')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon btn-icon--ok" @click="publishNews(post)" title="Publish"
+                                    v-if="post.status === 'draft' && hasPermission('research_lines','update')">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                            <button class="btn-icon" @click="archiveNews(post)" title="Archive"
+                                    v-if="post.status === 'published' && hasPermission('research_lines','update')">
+                                <i class="fas fa-archive"></i>
+                            </button>
+                            <button class="btn-icon btn-icon--danger" @click="deleteNews(post)" title="Delete"
+                                    v-if="hasPermission('research_lines','delete')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading state -->
+            <div v-if="newsLoading" class="news-loading">
+                <i class="fas fa-spinner fa-spin"></i> Loading posts…
+            </div>
+        </div>
+
+        <!-- ============================================================
+             NEWS COMPOSE MODAL
+        ============================================================ -->
+        <div v-if="newsModal.show" class="modal-overlay" @click.self="newsModal.show = false">
+            <div class="modal-container modal-lg">
+                <div class="modal-header">
+                    <h3>
+                        <i class="fas fa-newspaper"></i>
+                        {{ newsModal.mode === 'add' ? 'New Post' : 'Edit Post' }}
+                    </h3>
+                    <button class="modal-close" @click="newsModal.show = false">&times;</button>
+                </div>
+                <div class="modal-body">
+
+                    <!-- Post type selector -->
+                    <div class="form-group" style="margin-bottom:16px">
+                        <label class="form-label">Post Type</label>
+                        <div class="toggle-group" style="display:flex;gap:8px">
+                            <button type="button"
+                                    :class="['toggle-opt', newsModal.form.post_type === 'update' && 'active']"
+                                    @click="newsModal.form.post_type = 'update'">
+                                <i class="fas fa-bolt"></i> Update
+                            </button>
+                            <button type="button"
+                                    :class="['toggle-opt', newsModal.form.post_type === 'article' && 'active']"
+                                    @click="newsModal.form.post_type = 'article'">
+                                <i class="fas fa-file-alt"></i> Article
+                            </button>
+                            <button type="button"
+                                    :class="['toggle-opt', newsModal.form.post_type === 'publication' && 'active']"
+                                    @click="newsModal.form.post_type = 'publication'">
+                                <i class="fas fa-book-open"></i> Publication
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Title -->
+                    <div class="form-group">
+                        <label class="form-label">Title <span class="req">*</span></label>
+                        <input type="text" class="form-control" v-model="newsModal.form.title" placeholder="Post title…">
+                    </div>
+
+                    <!-- Author + Research Line (side by side) -->
+                    <div class="form-row-2">
+                        <div class="form-group" v-if="newsModal.form.post_type !== 'publication'">
+                            <label class="form-label">Author <span class="req">*</span></label>
+                            <select class="form-select" v-model="newsModal.form.author_id">
+                                <option value="">Select author…</option>
+                                <optgroup label="Attending Physicians">
+                                    <option v-for="s in medicalStaff.filter(m => m.staff_type === 'attending_physician' && m.employment_status === 'active')"
+                                            :key="s.id" :value="s.id">
+                                        {{ 'Dr. ' + (s.full_name || '').trim().split(' ').slice(-1)[0] }} — {{ s.full_name }}
+                                    </option>
+                                </optgroup>
+                                <optgroup label="Other Staff">
+                                    <option v-for="s in medicalStaff.filter(m => m.staff_type !== 'attending_physician' && m.employment_status === 'active')"
+                                            :key="s.id" :value="s.id">
+                                        {{ s.full_name }}
+                                    </option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Research Line <span style="color:var(--text-3);font-weight:400">(optional)</span></label>
+                            <select class="form-select" v-model="newsModal.form.research_line_id">
+                                <option value="">No specific line</option>
+                                <option v-for="l in researchLines" :key="l.id" :value="l.id">
+                                    L{{ l.line_number }} — {{ l.research_line_name || l.name }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Body with word counter (not for publications) -->
+                    <div class="form-group" v-if="newsModal.form.post_type !== 'publication'">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                            <label class="form-label" style="margin-bottom:0">Content <span class="req">*</span></label>
+                            <div class="news-wc-counter" :class="{ 'news-wc-counter--warn': newsWordCount > newsWordLimit * 0.9, 'news-wc-counter--over': newsWordCount > newsWordLimit }">
+                                <div class="news-wc-bar">
+                                    <div class="news-wc-fill" :style="{ width: Math.min(100, (newsWordCount/newsWordLimit)*100) + '%' }"></div>
+                                </div>
+                                <span>{{ newsWordCount }} / {{ newsWordLimit }}w</span>
+                            </div>
+                        </div>
+                        <textarea class="form-control" v-model="newsModal.form.body"
+                                  :rows="newsModal.form.post_type === 'update' ? 4 : 8"
+                                  :placeholder="newsModal.form.post_type === 'update' ? 'Short update — max 80 words…' : 'Article content — max 400 words…'">
+                        </textarea>
+                    </div>
+
+                    <!-- Publication-specific fields -->
+                    <template v-if="newsModal.form.post_type === 'publication'">
+                        <div class="form-row-2">
+                            <div class="form-group">
+                                <label class="form-label">Journal Name</label>
+                                <input type="text" class="form-control" v-model="newsModal.form.journal_name" placeholder="European Respiratory Journal…">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">DOI</label>
+                                <input type="text" class="form-control" v-model="newsModal.form.doi" placeholder="10.1183/13993003.xxxxx">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Authors</label>
+                            <input type="text" class="form-control" v-model="newsModal.form.authors_text" placeholder="Surname A, Surname B, et al.">
+                        </div>
+                    </template>
+
+                    <!-- Article image URL -->
+                    <div class="form-group" v-if="newsModal.form.post_type === 'article'">
+                        <label class="form-label">Featured Image URL <span style="color:var(--text-3);font-weight:400">(optional)</span></label>
+                        <input type="url" class="form-control" v-model="newsModal.form.featured_image_url" placeholder="https://…">
+                    </div>
+
+                    <!-- Visibility + Status row -->
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label class="form-label">Visibility</label>
+                            <div class="toggle-group" style="display:flex;gap:8px">
+                                <button type="button"
+                                        :class="['toggle-opt', !newsModal.form.is_public && 'active']"
+                                        @click="newsModal.form.is_public = false">
+                                    <i class="fas fa-lock"></i> Internal only
+                                </button>
+                                <button type="button"
+                                        :class="['toggle-opt toggle-opt--public', newsModal.form.is_public && 'active']"
+                                        @click="newsModal.form.is_public = true">
+                                    <i class="fas fa-globe"></i> Public website
+                                </button>
+                            </div>
+                            <p class="form-hint" v-if="newsModal.form.is_public">This post will appear on the public website.</p>
+                            <p class="form-hint" v-else>Only visible inside this app.</p>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" v-model="newsModal.form.status">
+                                <option value="draft">Draft — not visible yet</option>
+                                <option value="published">Published</option>
+                                <option value="archived">Archived</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Expiry (not for publications) -->
+                    <div class="form-group" v-if="newsModal.form.post_type !== 'publication'">
+                        <label class="form-label">
+                            Expiry Date
+                            <span style="color:var(--text-3);font-weight:400">
+                                (auto: {{ newsModal.form.post_type === 'update' ? '90 days' : '18 months' }})
+                            </span>
+                        </label>
+                        <input type="date" class="form-control" v-model="newsModal.form.expires_at">
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="newsModal.show = false">Cancel</button>
+                    <button type="button" class="btn btn-primary" @click="saveNews">
+                        <i class="fas fa-save"></i>
+                        {{ newsModal.mode === 'add' ? 'Create Post' : 'Save Changes' }}
+                    </button>
+                </div>
+            </div>
+        </div>
 
         <!-- ============ ROTATION ACTIVATION MODAL ============ -->
         <div v-if="activationModal?.show" class="modal-overlay">
