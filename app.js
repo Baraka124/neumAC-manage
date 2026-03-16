@@ -3809,15 +3809,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const editNews = (post) => {
         newsModal.mode = 'edit'
+        const _s = (v) => v == null ? '' : String(v)
         Object.assign(newsModal.form, {
           ...post,
-          expires_at: post.expires_at ? post.expires_at.split('T')[0] : ''
+          body:               _s(post.body),
+          featured_image_url: _s(post.featured_image_url),
+          journal_name:       _s(post.journal_name),
+          authors_text:       _s(post.authors_text),
+          doi:                _s(post.doi),
+          research_line_id:   post.research_line_id || '',
+          author_id:          post.author_id || '',
+          expires_at:         post.expires_at ? post.expires_at.split('T')[0] : ''
         })
         newsModal.show = true
       }
 
       const saveNews = async () => {
-        if (!newsModal.form.title.trim()) { showToast('Validation', 'Title is required', 'warn'); return }
+        const _t = (v) => (v == null ? '' : String(v)).trim()
+        if (!_t(newsModal.form.title)) { showToast('Validation', 'Title is required', 'warn'); return }
         if (newsModal.form.post_type !== 'publication' && !newsModal.form.author_id) {
           showToast('Validation', 'Author is required', 'warn'); return
         }
@@ -3826,17 +3835,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const payload = {
           post_type:          newsModal.form.post_type,
-          title:              newsModal.form.title.trim(),
-          body:               newsModal.form.body.trim() || null,
+          title:              _t(newsModal.form.title),
+          body:               _t(newsModal.form.body) || null,
           author_id:          newsModal.form.author_id || null,
           research_line_id:   newsModal.form.research_line_id || null,
           is_public:          newsModal.form.is_public,
           status:             newsModal.form.status,
-          featured_image_url: newsModal.form.featured_image_url.trim() || null,
+          featured_image_url: _t(newsModal.form.featured_image_url) || null,
           expires_at:         newsModal.form.expires_at || null,
-          journal_name:       newsModal.form.journal_name.trim() || null,
-          authors_text:       newsModal.form.authors_text.trim() || null,
-          doi:                newsModal.form.doi.trim() || null,
+          journal_name:       _t(newsModal.form.journal_name) || null,
+          authors_text:       _t(newsModal.form.authors_text) || null,
+          doi:                _t(newsModal.form.doi) || null,
           word_count:         newsWordCount.value
         }
         if (payload.status === 'published' && !payload.expires_at && newsModal.form.post_type !== 'publication') {
