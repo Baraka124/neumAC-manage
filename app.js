@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
       CACHE_TTL: 300000
     }
 
-    // ============ 2. CONSTANTS =-===-========
+    // ============ 2. CONSTANTS ====-========
     const ROLES = {
       ADMIN: 'system_admin',
       HEAD: 'department_head',
@@ -2954,6 +2954,99 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const closeCellPopover = () => { tlPopover.show = false }
 
+      // ── Units Occupancy Panel ─────────────────────────────────────────────
+      const occupancyPanel   = reactive({ show: false })
+      const unitDetailDrawer = reactive({ show: false, unit: null })
+
+      const getUnitMonthOccupancy = (unitId, year, month) => {
+        const mStart = new Date(year, month, 1)
+        const mEnd   = new Date(year, month + 1, 0)
+        const unit   = trainingUnits.value.find(u => u.id === unitId)
+        if (!unit) return { status: 'free', occupied: 0, total: 0 }
+        const maxSlots = unit.maximum_residents
+        const touching = rotations.value.filter(r =>
+          r.training_unit_id === unitId &&
+          ['active','scheduled'].includes(r.rotation_status) &&
+          new Date(r.start_date) <= mEnd && new Date(r.end_date) >= mStart
+        )
+        const occupied = touching.length
+        if (occupied === 0) return { status: 'free', occupied: 0, total: maxSlots }
+        const isClosing = touching.some(r => {
+          const e = new Date(r.end_date)
+          return e.getFullYear() === year && e.getMonth() === month && e < mEnd
+        })
+        if (occupied >= maxSlots) return { status: isClosing ? 'closing' : 'occupied', occupied, total: maxSlots }
+        return { status: isClosing ? 'closing' : 'partial', occupied, total: maxSlots }
+      }
+
+      const getNextFreeMonth = (unitId) => {
+        const today = new Date()
+        const unit  = trainingUnits.value.find(u => u.id === unitId)
+        if (!unit) return null
+        for (let i = 0; i < 24; i++) {
+          const d = new Date(today.getFullYear(), today.getMonth() + i, 1)
+          const occ = getUnitMonthOccupancy(unitId, d.getFullYear(), d.getMonth())
+          if (occ.occupied < occ.total) {
+            return {
+              label:      d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }),
+              shortLabel: d.toLocaleDateString('es-ES', { month: 'short', year: '2-digit' }),
+              date:       `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`,
+              monthsAway: i,
+              freeSlots:  occ.total - occ.occupied
+            }
+          }
+        }
+        return null
+      }
+
+      const occupancyHeatmap = computed(() => {
+        const today = new Date()
+        const activeUnits = trainingUnits.value.filter(u => u.unit_status === 'active')
+        return Array.from({ length: 12 }, (_, i) => {
+          const d = new Date(today.getFullYear(), today.getMonth() + i, 1)
+          let free = 0, partial = 0, closing = 0, full = 0
+          for (const u of activeUnits) {
+            const occ = getUnitMonthOccupancy(u.id, d.getFullYear(), d.getMonth())
+            if      (occ.status === 'free')    free++
+            else if (occ.status === 'closing') closing++
+            else if (occ.status === 'partial') partial++
+            else                               full++
+          }
+          return {
+            key: `${d.getFullYear()}-${d.getMonth()}`,
+            label: d.toLocaleDateString('es-ES', { month: 'short' }),
+            yearLabel: (i === 0 || d.getMonth() === 0) ? `'${d.getFullYear().toString().slice(-2)}` : '',
+            isCurrent: i === 0,
+            free, partial, closing, full, total: activeUnits.length
+          }
+        })
+      })
+
+      const occupancyPanelUnits = computed(() => {
+        const today = new Date()
+        return trainingUnits.value
+          .filter(u => u.unit_status === 'active')
+          .map(u => {
+            const occ      = getUnitMonthOccupancy(u.id, today.getFullYear(), today.getMonth())
+            const nextFree = getNextFreeMonth(u.id)
+            return { ...u, occ, nextFree }
+          })
+          .sort((a, b) => {
+            const order = { free: 0, closing: 1, partial: 2, occupied: 3 }
+            const diff  = (order[a.occ.status] ?? 4) - (order[b.occ.status] ?? 4)
+            if (diff !== 0) return diff
+            return (a.nextFree?.monthsAway ?? 99) - (b.nextFree?.monthsAway ?? 99)
+          })
+      })
+
+      const openUnitDetail = (unit) => {
+        const today = new Date()
+        const occ      = getUnitMonthOccupancy(unit.id, today.getFullYear(), today.getMonth())
+        const nextFree = getNextFreeMonth(unit.id)
+        unitDetailDrawer.unit = { ...unit, occ, nextFree }
+        unitDetailDrawer.show = true
+      }
+
       const loadTrainingUnits = async () => {
         try { trainingUnits.value = await API.getTrainingUnits() }
         catch { showToast('Error', 'Failed to load training units', 'error') }
@@ -3058,7 +3151,8 @@ document.addEventListener('DOMContentLoaded', () => {
         finally { saving.value = false }
       }
 
-      return { trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits, getUnitActiveRotationCount, getUnitRotations, getResidentShortName, loadTrainingUnits, showAddTrainingUnitModal, editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians, viewUnitResidents, saveTrainingUnit, trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree, tlPopover, openCellPopover, closeCellPopover }
+      return { trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits, getUnitActiveRotationCount, getUnitRotations, getResidentShortName, loadTrainingUnits, showAddTrainingUnitModal, editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians, viewUnitResidents, saveTrainingUnit, trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree, tlPopover, openCellPopover, closeCellPopover,
+        occupancyPanel, unitDetailDrawer, occupancyHeatmap, occupancyPanelUnits, getUnitMonthOccupancy, getNextFreeMonth, openUnitDetail }
     }
 
     // ============ 6.9 useComms ============
@@ -3516,16 +3610,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Portfolio KPIs — computed from local refs, instant, no API needed
       const portfolioKPIs = computed(() => {
-        const totalLines    = researchLines.value.length
-        const activeLines   = researchLines.value.filter(l => l.active !== false).length
-        const totalTrials   = clinicalTrials.value.length
-        const activeTrials  = clinicalTrials.value.filter(t => ['Activo','Reclutando'].includes(t.status)).length
-        const recruitingTrials = clinicalTrials.value.filter(t => t.status === 'Reclutando').length
-        const totalProjects = innovationProjects.value.length
-        const lateStageProjects = innovationProjects.value.filter(p => ['Piloto','Validación','Escalado','Mercado'].includes(p.current_stage)).length
-        const totalEnrolled = clinicalTrials.value.reduce((s, t) => s + (t.actual_enrollment || 0), 0)
-        const totalTarget   = clinicalTrials.value.reduce((s, t) => s + (t.enrollment_target || 0), 0)
-        return { totalLines, activeLines, totalTrials, activeTrials, recruitingTrials, totalProjects, lateStageProjects, totalEnrolled, totalTarget }
+        try {
+          const totalLines    = (researchLines.value || []).length
+          const activeLines   = (researchLines.value || []).filter(l => l.active !== false).length
+          const totalTrials   = (clinicalTrials.value || []).length
+          const activeTrials  = (clinicalTrials.value || []).filter(t => ['Activo','Reclutando'].includes(t.status)).length
+          const recruitingTrials = (clinicalTrials.value || []).filter(t => t.status === 'Reclutando').length
+          const totalProjects = (innovationProjects.value || []).length
+          const lateStageProjects = (innovationProjects.value || []).filter(p => ['Piloto','Validación','Escalado','Mercado'].includes(p.current_stage)).length
+          const totalEnrolled = (clinicalTrials.value || []).reduce((s, t) => s + (t.actual_enrollment || 0), 0)
+          const totalTarget   = (clinicalTrials.value || []).reduce((s, t) => s + (t.enrollment_target || 0), 0)
+          return { totalLines, activeLines, totalTrials, activeTrials, recruitingTrials, totalProjects, lateStageProjects, totalEnrolled, totalTarget }
+        } catch { return { totalLines: 0, activeLines: 0, totalTrials: 0, activeTrials: 0, recruitingTrials: 0, totalProjects: 0, lateStageProjects: 0, totalEnrolled: 0, totalTarget: 0 } }
       })
 
       // Line accent colours — cycles through 6 department colours
@@ -3840,7 +3936,9 @@ document.addEventListener('DOMContentLoaded', () => {
           editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians,
           viewUnitResidents, saveTrainingUnit,
           trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree,
-          tlPopover, openCellPopover, closeCellPopover
+          tlPopover, openCellPopover, closeCellPopover,
+          occupancyPanel, unitDetailDrawer, occupancyHeatmap, occupancyPanelUnits,
+          getUnitMonthOccupancy, getNextFreeMonth, openUnitDetail
         } = useTrainingUnits({
           showToast, showConfirmation, rotations, allStaffLookup
         })
@@ -3968,6 +4066,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const researchOps = useResearch({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, clearAll, medicalStaff, loadAnalyticsSummary, loadResearchLinesPerformance, loadPartnerCollaborations })
         const dashOps = useDashboard({ medicalStaff, rotations, absences, onCallSchedule, trainingUnits })
+
+        const openAssignRotationFromUnit = (unit, startDate) => {
+          occupancyPanel.show   = false
+          unitDetailDrawer.show = false
+          rotationOps.showAddRotationModal(null, unit)
+          if (startDate) rotationOps.rotationModal.form.start_date = startDate
+        }
         const { systemStats, updateDashboardStats, loadSystemStats, situationItems, dailyBriefing } = dashOps
 
         // ============ NEW COMPACT VIEW STATE ============
@@ -4415,6 +4520,8 @@ document.addEventListener('DOMContentLoaded', () => {
           trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits,
           getUnitActiveRotationCount, getUnitRotations, getResidentShortName, loadTrainingUnits, showAddTrainingUnitModal,
         trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree, tlPopover, openCellPopover, closeCellPopover,
+          occupancyPanel, unitDetailDrawer, occupancyHeatmap, occupancyPanelUnits,
+          getUnitMonthOccupancy, getNextFreeMonth, openUnitDetail, openAssignRotationFromUnit,
           editTrainingUnit, deleteTrainingUnit, saveTrainingUnit,
           openUnitClinicians: (unit) => openUnitClinicians(unit, medicalStaff.value),
           saveUnitClinicians,
