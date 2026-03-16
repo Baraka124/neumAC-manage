@@ -12,7 +12,7 @@
 <body>
 <div id="app" v-cloak>
 
-    <!-- ============- TOAST CONTAINER ==--=--=---======= -->
+    <!-- ============- TOAST CONTAINER ==-=--=---======= -->
     <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
              :class="['toast', `toast-${toast.type}`]"
@@ -2156,29 +2156,7 @@
                 <!-- ============ RESEARCH HUB (unified) ============ -->
                 <div v-if="currentView === 'research_hub'" class="research-hub">
 
-                    <!-- ── Hub header ───────────────────────────────────── -->
-                    <div class="rhub-header">
-                        <div class="rhub-header-left">
-                            <div class="rhub-title-block">
-                                <span class="rhub-eyebrow">Research &amp; Innovation</span>
-                                <h1 class="rhub-title">Research Hub</h1>
-                            </div>
-                            <!-- Context pill — shows active line filter if set -->
-                            <div v-if="trialFilters.line" class="rhub-context-pill">
-                                <i class="fas fa-flask"></i>
-                                <span>{{ getResearchLineName(trialFilters.line) }}</span>
-                                <button @click="trialFilters.line = ''; projectFilters.research_line_id = ''" class="rhub-ctx-clear"><i class="fas fa-times"></i></button>
-                            </div>
-                        </div>
-                        <div class="rhub-header-right">
-                            <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'lines' && hasPermission('research_lines','create')" @click="showAddResearchLineModal"><i class="fas fa-plus"></i> Add Line</button>
-                            <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'trials' && hasPermission('research_lines','create')" @click="showAddTrialModal(trialFilters.line ? researchLines.find(l => l.id === trialFilters.line) : null)"><i class="fas fa-plus"></i> Add Trial</button>
-                            <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'projects' && hasPermission('research_lines','create')" @click="showAddProjectModal(projectFilters.research_line_id ? researchLines.find(l => l.id === projectFilters.research_line_id) : null)"><i class="fas fa-plus"></i> Add Project</button>
-                            <button class="btn btn-outline btn-sm" v-if="researchHubTab === 'analytics' && hasPermission('analytics','export')" @click="showExportModal"><i class="fas fa-download"></i> Export</button>
-                        </div>
-                    </div>
-
-                    <!-- ── Tab bar ───────────────────────────────────────── -->
+                    <!-- Tab bar + contextual action button — no redundant title needed -->
                     <div class="rhub-tabs">
                         <button class="rhub-tab" :class="{ 'rhub-tab--active': researchHubTab === 'lines' }" @click="researchHubTab = 'lines'">
                             <i class="fas fa-flask"></i>
@@ -2200,6 +2178,19 @@
                             <i class="fas fa-chart-pie"></i>
                             <span>Analytics</span>
                         </button>
+                        <!-- Context pill when a line filter is active -->
+                        <div v-if="trialFilters.line" class="rhub-context-pill" style="margin-left:8px;align-self:center">
+                            <i class="fas fa-flask"></i>
+                            <span>{{ getResearchLineName(trialFilters.line) }}</span>
+                            <button @click="trialFilters.line = ''; projectFilters.research_line_id = ''" class="rhub-ctx-clear"><i class="fas fa-times"></i></button>
+                        </div>
+                        <!-- Action button — right-aligned -->
+                        <div style="margin-left:auto;display:flex;align-items:center;padding-bottom:1px">
+                            <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'lines' && hasPermission('research_lines','create')" @click="showAddResearchLineModal"><i class="fas fa-plus"></i> Add Line</button>
+                            <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'trials' && hasPermission('research_lines','create')" @click="showAddTrialModal(trialFilters.line ? researchLines.find(l => l.id === trialFilters.line) : null)"><i class="fas fa-plus"></i> Add Trial</button>
+                            <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'projects' && hasPermission('research_lines','create')" @click="showAddProjectModal(projectFilters.research_line_id ? researchLines.find(l => l.id === projectFilters.research_line_id) : null)"><i class="fas fa-plus"></i> Add Project</button>
+                            <button class="btn btn-outline btn-sm" v-if="researchHubTab === 'analytics' && hasPermission('analytics','export')" @click="showExportModal"><i class="fas fa-download"></i> Export</button>
+                        </div>
                     </div>
 
                     <!-- ══════════════════════════════════════════════════
