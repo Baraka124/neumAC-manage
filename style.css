@@ -8750,3 +8750,52 @@ tr:not(:hover) .btn-pill-purge {
   padding: 12px 20px; border-top: 1px solid var(--border);
   display: flex; gap: 8px; justify-content: flex-end; flex-shrink: 0; background: var(--surface-2);
 }
+
+
+/* ═══════════════════════════════════════════════════════════
+   RESEARCH KEYWORDS — beautiful colour-cycled chips
+═══════════════════════════════════════════════════════════ */
+.rp-kw-cloud {
+  display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0;
+}
+.rp-kw-chip {
+  display: inline-flex; align-items: center;
+  padding: 4px 11px; border-radius: 20px;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: .01em; cursor: default;
+  transition: transform var(--t), box-shadow var(--t);
+  border: 1px solid transparent;
+}
+.rp-kw-chip:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,.12); }
+
+/* 6 rotating colour presets */
+.rp-kw-chip--0 { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+.rp-kw-chip--1 { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+.rp-kw-chip--2 { background: #fdf4ff; border-color: #e9d5ff; color: #7e22ce; }
+.rp-kw-chip--3 { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
+.rp-kw-chip--4 { background: #ecfeff; border-color: #a5f3fc; color: #0e7490; }
+.rp-kw-chip--5 { background: #fff1f2; border-color: #fecdd3; color: #be123c; }
+
+/* Left nav keyword preview — smaller versions */
+.rp-nav-kws {
+  display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px;
+}
+.rp-nav-kw {
+  display: inline-flex; align-items: center;
+  padding: 2px 7px; border-radius: 20px;
+  font-size: 9px; font-weight: 600; letter-spacing: .01em;
+  border: 1px solid transparent;
+}
+.rp-nav-kw-more {
+  font-size: 9px; font-weight: 600; color: var(--text-4);
+  padding: 2px 4px;
+}
+
+/* Override old grey rhl-kw with the new system everywhere */
+.rhl-kw {
+  display: inline-flex; align-items: center;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: 10px; font-weight: 600; letter-spacing: .01em;
+  background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8;
+}
+.rhl-keywords { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
