@@ -1,4 +1,4 @@
-/*-- ═══════════════════════════════════════════════════════════════
+/*- ═══════════════════════════════════════════════════════════════
    RESIDENCY YEAR — auto/override display
 ═══════════════════════════════════════════════════════════════ */
 .form-hint { font-size: 10.5px; color: var(--text-3); font-weight: 400; margin-left: 4px; }
@@ -7613,9 +7613,9 @@ tr:not(:hover) .btn-pill-purge {
 
 /* ── Tab bar ────────────────────────────────────────────────── */
 .rhub-tabs {
-  display: flex; gap: 2px;
+  display: flex; align-items: center; gap: 2px;
   border-bottom: 2px solid var(--border);
-  margin-bottom: 0;
+  margin-bottom: 0; padding-bottom: 0;
 }
 .rhub-tab {
   display: flex; align-items: center; gap: 7px;
