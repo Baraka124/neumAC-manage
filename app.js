@@ -1634,15 +1634,96 @@ document.addEventListener('DOMContentLoaded', () => {
         return currentTime >= shift.start_time && currentTime <= shift.end_time
       }
 
+      // ── Upcoming on-call: next 14 days grouped by date (for dashboard) ──
+      const upcomingOnCallDays = computed(() => {
+        const today    = Utils.normalizeDate(new Date())
+        const cutoff   = Utils.normalizeDate(new Date(Date.now() + 14 * 86400000))
+        const fmt      = (d) => new Date(d + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
+        const dayLabel = (d) => {
+          const tomorrow = Utils.normalizeDate(new Date(Date.now() + 86400000))
+          if (d === today)    return 'Today'
+          if (d === tomorrow) return 'Tomorrow'
+          return fmt(d)
+        }
+        const map = {}
+        onCallSchedule.value.forEach(s => {
+          const d = Utils.normalizeDate(s.duty_date)
+          if (d < today || d > cutoff) return
+          if (!map[d]) map[d] = { date: d, label: dayLabel(d), isToday: d === today, primary: null, backup: null }
+          if (['primary_call','primary'].includes(s.shift_type)) map[d].primary = s
+          else map[d].backup = s
+        })
+        return Object.values(map).sort((a,b) => a.date.localeCompare(b.date))
+      })
+
+      // ── Coverage grid: 28-day rolling calendar for Coverage view ──
+      const coverageGridOffset = ref(0)   // weeks offset (0 = current 4 weeks)
+
+      const onCallCoverageGrid = computed(() => {
+        const today   = new Date(); today.setHours(0,0,0,0)
+        const start   = new Date(today); start.setDate(today.getDate() + coverageGridOffset.value * 28)
+        const rows    = []
+        for (let i = 0; i < 28; i++) {
+          const d     = new Date(start); d.setDate(start.getDate() + i)
+          const dateStr = Utils.normalizeDate(d)
+          const shifts  = onCallSchedule.value.filter(s => Utils.normalizeDate(s.duty_date) === dateStr)
+          const primary = shifts.find(s => ['primary_call','primary'].includes(s.shift_type)) || null
+          const backup  = shifts.find(s => !['primary_call','primary'].includes(s.shift_type)) || null
+          const isToday = dateStr === Utils.normalizeDate(new Date())
+          const isPast  = d < today
+          const isWeekend = d.getDay() === 0 || d.getDay() === 6
+          rows.push({
+            date: dateStr,
+            label: d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }),
+            shortDay: d.toLocaleDateString('es-ES', { weekday: 'short' }),
+            dayNum: d.getDate(),
+            monthLabel: d.toLocaleDateString('es-ES', { month: 'short' }),
+            isToday, isPast, isWeekend,
+            isMonthStart: d.getDate() === 1,
+            primary, backup
+          })
+        }
+        return rows
+      })
+
+      const coverageRangeLabel = computed(() => {
+        const rows = onCallCoverageGrid.value
+        if (!rows.length) return ''
+        const first = new Date(rows[0].date + 'T12:00:00')
+        const last  = new Date(rows[rows.length-1].date + 'T12:00:00')
+        const fmt   = (d) => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: first.getFullYear() !== last.getFullYear() ? 'numeric' : undefined })
+        return `${fmt(first)} – ${fmt(last)}`
+      })
+
+      // ── Fairness tally: shift counts per physician this month ──
+      const onCallFairnessTally = computed(() => {
+        const today      = new Date()
+        const monthStart = Utils.normalizeDate(new Date(today.getFullYear(), today.getMonth(), 1))
+        const monthEnd   = Utils.normalizeDate(new Date(today.getFullYear(), today.getMonth() + 1, 0))
+        const map = {}
+        onCallSchedule.value.forEach(s => {
+          const d = Utils.normalizeDate(s.duty_date)
+          if (d < monthStart || d > monthEnd) return
+          const id = s.primary_physician_id; if (!id) return
+          const staff = allStaffLookup?.value?.find(x => x.id === id) || medicalStaff.value.find(x => x.id === id)
+          if (!staff) return
+          if (!map[id]) map[id] = { id, name: staff.full_name, total: 0, primary: 0, backup: 0 }
+          if (['primary_call','primary'].includes(s.shift_type)) { map[id].primary++; map[id].total++ }
+          else { map[id].backup++; map[id].total++ }
+        })
+        return Object.values(map).sort((a,b) => b.total - a.total)
+      })
+
+      const coveragePanel = reactive({ show: false })
+
       return {
         onCallSchedule, todaysOnCall, loadingSchedule, onCallFilters, onCallModal,
         filteredOnCallSchedules, filteredOnCallAll, oncallTotalPages, todaysOnCallCount,
         loadOnCallSchedule, loadTodaysOnCall, showAddOnCallModal,
         editOnCallSchedule, saveOnCallSchedule, deleteOnCallSchedule, contactPhysician,
-        // NEW compact view properties
-        groupedOnCallSchedules,
-        isShiftActive,
-        staffWithOnCallOrbs
+        groupedOnCallSchedules, isShiftActive, staffWithOnCallOrbs,
+        upcomingOnCallDays, onCallCoverageGrid, coverageRangeLabel,
+        coverageGridOffset, onCallFairnessTally, coveragePanel
       }
     }
 
@@ -4379,6 +4460,12 @@ document.addEventListener('DOMContentLoaded', () => {
           residentsWithRotations: rotationOps.residentsWithRotations,
           groupedOnCallSchedules: onCallOps.groupedOnCallSchedules,
           staffWithOnCallOrbs: onCallOps.staffWithOnCallOrbs,
+          upcomingOnCallDays:    onCallOps.upcomingOnCallDays,
+          onCallCoverageGrid:    onCallOps.onCallCoverageGrid,
+          coverageRangeLabel:    onCallOps.coverageRangeLabel,
+          coverageGridOffset:    onCallOps.coverageGridOffset,
+          onCallFairnessTally:   onCallOps.onCallFairnessTally,
+          coveragePanel:         onCallOps.coveragePanel,
           getRotationsForDay: rotationOps.getRotationsForDay,
           rotationViewModal: rotationOps.rotationViewModal,
           monthHorizon: rotationOps.monthHorizon,
