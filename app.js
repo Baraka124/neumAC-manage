@@ -15,6 +15,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============ 2. CONSTANTS ====-========
+    // Research line accent colours — available globally, not just inside useResearch
+    const LINE_ACCENTS_GLOBAL = [
+      { bg: 'linear-gradient(135deg,#3b82f6,#6366f1)', light: '#eff6ff', color: '#1e40af' },
+      { bg: 'linear-gradient(135deg,#10b981,#0891b2)', light: '#d1fae5', color: '#065f46' },
+      { bg: 'linear-gradient(135deg,#22d3ee,#0ea5e9)', light: '#e0f7fa', color: '#0e7490' },
+      { bg: 'linear-gradient(135deg,#f59e0b,#f97316)', light: '#fef3c7', color: '#92400e' },
+      { bg: 'linear-gradient(135deg,#a78bfa,#8b5cf6)', light: '#ede9fe', color: '#5b21b6' },
+      { bg: 'linear-gradient(135deg,#fb7185,#ec4899)', light: '#fce7f3', color: '#9d174d' },
+    ]
+    const getLineAccentGlobal = (lineNumber) => LINE_ACCENTS_GLOBAL[((lineNumber || 1) - 1) % 6]
+
     const ROLES = {
       ADMIN: 'system_admin',
       HEAD: 'department_head',
@@ -4535,7 +4546,7 @@ document.addEventListener('DOMContentLoaded', () => {
           drillToTrials, drillToProjects,
           activeMissionLine: researchOps.activeMissionLine,
           portfolioKPIs:     researchOps.portfolioKPIs,
-          getLineAccent:     researchOps.getLineAccent,
+          getLineAccent:     getLineAccentGlobal,
           staffTypesList, staffTypeMap, academicDegrees, loadAcademicDegrees, formatStaffTypeGlobal, getStaffTypeClassGlobal, isResidentType,
           staffTypeModal, openAddStaffType, openEditStaffType, saveStaffType, deleteStaffType, toggleStaffTypeActive, loadStaffTypes,
           searchResultsOpen: ui.searchResultsOpen,
