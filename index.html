@@ -2263,6 +2263,11 @@
                                             <span class="rp-nav-dot"></span>
                                             <span>{{ line.stats?.totalProjects || 0 }} projects</span>
                                         </div>
+                                        <div class="rp-nav-kws" v-if="line.keywords && line.keywords.length">
+                                            <span v-for="(kw,i) in line.keywords.slice(0,3)" :key="kw"
+                                                  class="rp-nav-kw" :class="'rp-kw-chip--' + (i % 6)">{{ kw }}</span>
+                                            <span v-if="line.keywords.length > 3" class="rp-nav-kw-more">+{{ line.keywords.length - 3 }}</span>
+                                        </div>
                                     </div>
                                     <div class="rp-nav-status">
                                         <span v-if="line.stats?.activeTrials > 0" class="rp-nav-live"></span>
@@ -2387,8 +2392,10 @@
                                     <!-- Keywords -->
                                     <div class="rp-detail-section" v-if="activeMissionLine.keywords && activeMissionLine.keywords.length">
                                         <div class="rp-detail-section-label">Keywords</div>
-                                        <div class="rhl-keywords">
-                                            <span v-for="kw in activeMissionLine.keywords" :key="kw" class="rhl-kw">{{ kw }}</span>
+                                        <div class="rp-kw-cloud">
+                                            <span v-for="(kw, i) in activeMissionLine.keywords" :key="kw"
+                                                  class="rp-kw-chip"
+                                                  :class="'rp-kw-chip--' + (i % 6)">{{ kw }}</span>
                                         </div>
                                     </div>
 
