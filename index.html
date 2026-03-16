@@ -2174,7 +2174,7 @@
                             <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'lines' && hasPermission('research_lines','create')" @click="showAddResearchLineModal"><i class="fas fa-plus"></i> Add Line</button>
                             <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'trials' && hasPermission('research_lines','create')" @click="showAddTrialModal(trialFilters.line ? researchLines.find(l => l.id === trialFilters.line) : null)"><i class="fas fa-plus"></i> Add Trial</button>
                             <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'projects' && hasPermission('research_lines','create')" @click="showAddProjectModal(projectFilters.research_line_id ? researchLines.find(l => l.id === projectFilters.research_line_id) : null)"><i class="fas fa-plus"></i> Add Project</button>
-                            <button class="btn btn-outline btn-sm" v-if="researchHubTab === 'analytics'" @click="showExportModal" v-if="hasPermission('analytics','export')"><i class="fas fa-download"></i> Export</button>
+                            <button class="btn btn-outline btn-sm" v-if="researchHubTab === 'analytics' && hasPermission('analytics','export')" @click="showExportModal"><i class="fas fa-download"></i> Export</button>
                         </div>
                     </div>
 
