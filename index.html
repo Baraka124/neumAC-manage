@@ -3534,7 +3534,7 @@
                             </span>
                             <span class="news-meta-item">
                                 <i class="fas fa-calendar-alt"></i>
-                                {{ formatDate(post.created_at) }}
+                                {{ formatNewsDate(post.published_at || post.created_at) }}
                             </span>
                             <span v-if="post.word_count && post.post_type !== 'publication'" class="news-meta-item news-wc">
                                 {{ post.word_count }}w
