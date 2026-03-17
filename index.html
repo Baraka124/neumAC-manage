@@ -3802,8 +3802,8 @@
               <!-- Eyebrow -->
               <div class="nrd-eyebrow">
                 <span class="nrd-type-badge">
-                  <i class="fas" :class="{ 'fa-bolt': newsDrawer.post.post_type==='update', 'fa-file-alt': newsDrawer.post.post_type==='article', 'fa-book-open': newsDrawer.post.post_type==='publication' }"></i>
-                  {{ newsDrawer.post.post_type === 'update' ? 'Update' : newsDrawer.post.post_type === 'article' ? 'Article' : 'Publication' }}
+                  <i class="fas" :class="{ 'fa-bolt': newsDrawer.post.post_type==='update', 'fa-file-alt': newsDrawer.post.post_type==='article', 'fa-book-open': newsDrawer.post.post_type==='publication', 'fa-camera': newsDrawer.post.post_type==='photo_story' }"></i>
+                  {{ newsDrawer.post.post_type === 'update' ? 'Update' : newsDrawer.post.post_type === 'article' ? 'Article' : newsDrawer.post.post_type === 'photo_story' ? 'Photo Story' : 'Publication' }}
                 </span>
                 <span v-if="newsDrawerLineName" class="nrd-line-tag">
                   <i class="fas fa-flask" style="font-size:9px;opacity:.6;margin-right:2px"></i>{{ newsDrawerLineName }}
@@ -3852,6 +3852,19 @@
               <div v-else-if="newsDrawer.post.post_type === 'article'" class="nrd-content">
                 <p v-for="(para, i) in newsDrawerBodyParagraphs" :key="i">{{ para }}</p>
               </div>
+
+              <!-- PHOTO STORY content — gallery + caption -->
+              <template v-else-if="newsDrawer.post.post_type === 'photo_story'">
+                <div class="nrd-photo-gallery" v-if="newsDrawer.post.featured_image_url">
+                  <div v-for="(url, i) in newsDrawer.post.featured_image_url.split(',').map(s => s.trim()).filter(Boolean)"
+                       :key="i" class="nrd-photo-slide">
+                    <img :src="url" :alt="newsDrawer.post.title" :loading="i === 0 ? 'eager' : 'lazy'" class="nrd-photo-img">
+                  </div>
+                </div>
+                <div v-if="newsDrawer.post.body" class="nrd-photo-caption">
+                  {{ newsDrawer.post.body }}
+                </div>
+              </template>
 
               <!-- Prev / Next navigation -->
               <div v-if="newsDrawerPrev || newsDrawerNext" style="display:flex;justify-content:space-between;margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--border);gap:1rem;">
