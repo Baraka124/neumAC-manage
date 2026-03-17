@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
       CACHE_TTL: 300000
     }
 
-    // ============ 2. CONSTANTS ====-========-
+    // ============ 2. CONSTANTS ====-========
     // Research line accent colours — available globally, not just inside useResearch
     const LINE_ACCENTS_GLOBAL = [
       { bg: 'linear-gradient(135deg,#3b82f6,#6366f1)', light: '#eff6ff', color: '#1e40af' },
@@ -400,6 +400,18 @@ document.addEventListener('DOMContentLoaded', () => {
           if (diff < 1440) return `${Math.floor(diff / 60)}h ago`
           return `${Math.floor(diff / 1440)}d ago`
         } catch { return 'Just now' }
+      }
+
+      static formatNewsDate(d) {
+        if (!d) return ''
+        try {
+          const diff = Math.floor((new Date() - new Date(d)) / 60000)
+          if (diff < 1)    return 'Just now'
+          if (diff < 60)   return `${diff}m ago`
+          if (diff < 1440) return `${Math.floor(diff / 60)}h ago`
+          if (diff < 10080) return `${Math.floor(diff / 1440)}d ago`
+          return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+        } catch { return '' }
       }
 
       static dateDiff(start, end) {
@@ -3899,22 +3911,30 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const archiveNews = async (post) => {
-        showConfirmation('Archive Post', `Archive "${post.title}"? It will be hidden from view but not deleted.`, async () => {
-          try {
-            await API.request(`/api/news/${post.id}`, { method: 'PUT', body: { ...cleanPost(post), status: 'archived' }})
-            showToast('Archived', 'Post archived', 'info')
-            await loadNews()
-          } catch (e) { showToast('Error', e.message, 'error') }
+        showConfirmation({
+          title: 'Archive Post',
+          message: `Archive "${post.title}"? It will be hidden from view but not deleted.`,
+          onConfirm: async () => {
+            try {
+              await API.request(`/api/news/${post.id}`, { method: 'PUT', body: { ...cleanPost(post), status: 'archived' }})
+              showToast('Archived', 'Post archived', 'info')
+              await loadNews()
+            } catch (e) { showToast('Error', e.message, 'error') }
+          }
         })
       }
 
       const deleteNews = async (post) => {
-        showConfirmation('Delete Post', `Permanently delete "${post.title}"? This cannot be undone.`, async () => {
-          try {
-            await API.request(`/api/news/${post.id}`, { method: 'DELETE' })
-            showToast('Deleted', 'Post deleted', 'success')
-            await loadNews()
-          } catch (e) { showToast('Error', e.message, 'error') }
+        showConfirmation({
+          title: 'Delete Post',
+          message: `Permanently delete "${post.title}"? This cannot be undone.`,
+          onConfirm: async () => {
+            try {
+              await API.request(`/api/news/${post.id}`, { method: 'DELETE' })
+              showToast('Deleted', 'Post deleted', 'success')
+              await loadNews()
+            } catch (e) { showToast('Error', e.message, 'error') }
+          }
         })
       }
 
@@ -4865,6 +4885,7 @@ document.addEventListener('DOMContentLoaded', () => {
           showPassword, loginError, loginFieldErrors, clearLoginError, handleForgotPassword,
           normalizeDate: (d) => Utils.normalizeDate(d),
           formatDate: (d) => Utils.formatDate(d),
+          formatNewsDate: (d) => Utils.formatNewsDate(d),
           formatDateShort: (d) => Utils.formatDateShort(d),
           formatDatePlusDays: (d, n) => Utils.formatDatePlusDays(d, n),
           formatRelativeDate: (d) => Utils.formatRelativeDate(d),
