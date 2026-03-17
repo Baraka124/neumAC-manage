@@ -3771,6 +3771,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return d.toISOString().split('T')[0]
       }
 
+      // Auto-update expiry when post type changes in add mode
+      watch(() => newsModal.form.post_type, (newType) => {
+        if (newsModal.mode === 'add' && newType !== 'publication') {
+          newsModal.form.expires_at = autoExpiry(newType)
+        }
+        if (newType === 'publication') {
+          newsModal.form.expires_at = ''
+        }
+      })
+
       // ── Filtered list ────────────────────────────────────────
       const filteredNews = computed(() => {
         let posts = newsPosts.value || []
@@ -3803,7 +3813,8 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.assign(newsModal.form, {
           post_type: 'article', title: '', body: '', featured_image_url: '',
           author_id: '', research_line_id: '', is_public: false,
-          status: 'draft', expires_at: '', journal_name: '', authors_text: '', doi: ''
+          status: 'draft', expires_at: autoExpiry('article'),
+          journal_name: '', authors_text: '', doi: ''
         })
         newsModal.show = true
       }
