@@ -1,4 +1,4 @@
-/*-- ═══════════════════════════════════════════════════════════════
+/*- ═══════════════════════════════════════════════════════════════
    RESIDENCY YEAR — auto/override display
 ═══════════════════════════════════════════════════════════════ */
 .form-hint { font-size: 10.5px; color: var(--text-3); font-weight: 400; margin-left: 4px; }
@@ -9557,3 +9557,25 @@ input, select, textarea { font-size: 16px !important; } /* prevents iOS zoom on 
 }
 .splash-fade-leave-active { transition: opacity .35s ease; }
 .splash-fade-leave-to { opacity: 0; }
+
+/* Session expired — login error variant */
+.login-error--warn {
+  background: rgba(245,158,11,.1);
+  border-color: rgba(245,158,11,.3);
+  color: var(--warning);
+}
+.login-error--warn .fa-clock { color: var(--warning); }
+
+/* External resident field in rotation view */
+.rds-field--ext {
+  background: var(--violet-lt);
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin: 2px 0;
+}
+.rds-field--ext .rds-field-key { color: var(--violet); }
+.rds-mail-link {
+  margin-left: 6px; color: var(--blue); font-size: 11px;
+  opacity: .7; transition: opacity .15s;
+}
+.rds-mail-link:hover { opacity: 1; }
