@@ -135,6 +135,29 @@
     <!-- ============ MAIN APPLICATION ============ -->
     <div v-else class="app-layout">
 
+    <!-- ── Loading splash — shown while initial data loads ── -->
+    <transition name="splash-fade">
+    <div v-if="loading" class="app-loading-splash">
+        <div class="als-inner">
+            <svg viewBox="0 0 108 30" fill="none" xmlns="http://www.w3.org/2000/svg" class="als-logo">
+                <defs>
+                    <linearGradient id="alsg" x1="0" y1="0" x2="108" y2="0" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stop-color="#48cae4"/>
+                        <stop offset="45%" stop-color="#4d9aff"/>
+                        <stop offset="100%" stop-color="#a5b4fc"/>
+                    </linearGradient>
+                </defs>
+                <text x="1" y="23" font-family="'DM Sans', sans-serif" font-weight="600" font-size="24" fill="url(#alsg)" letter-spacing="-0.5">neum</text>
+                <text x="62" y="23" font-family="'DM Sans', sans-serif" font-weight="800" font-size="24" fill="url(#alsg)" letter-spacing="-1">AC</text>
+            </svg>
+            <div class="als-bar-wrap">
+                <div class="als-bar"></div>
+            </div>
+            <div class="als-label">Loading clinical data…</div>
+        </div>
+    </div>
+    </transition>
+
         <!-- Mobile sidebar backdrop -->
         <div class="sidebar-backdrop" :class="{ active: mobileMenuOpen }" @click="mobileMenuOpen = false"></div>
 
