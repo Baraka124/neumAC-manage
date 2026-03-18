@@ -12,7 +12,7 @@
 <body>
 <div id="app" v-cloak>
 
-    <!-- ============- TOAST CONTAINER ==-=--=----======= -->
+    <!-- ============- TOAST CONTAINER ==-=--=---======= -->
     <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
              :class="['toast', `toast-${toast.type}`]"
@@ -6274,6 +6274,194 @@
                 </div>
             </div>
         </div>
+
+        <!-- ═══ DEPARTMENT DETAIL PANEL ═══ -->
+        <transition name="dp-slide">
+        <div v-if="deptPanel.show" class="uop-backdrop" @click.self="closeDeptPanel">
+            <div class="uop-panel uop-panel--open dp-panel">
+
+                <!-- ── Header ── -->
+                <div class="uop-header">
+                    <div class="uop-header-left">
+                        <div class="uop-header-icon" style="background:linear-gradient(135deg,#2563eb,#7c3aed)">
+                            <i class="fas fa-sitemap"></i>
+                        </div>
+                        <div>
+                            <div class="uop-title">{{ deptPanel.dept?.name }}</div>
+                            <div class="uop-subtitle">
+                                {{ deptPanel.dept?.code }}
+                                <span v-if="deptPanel.dept?.head_of_department?.full_name"> · {{ deptPanel.dept.head_of_department.full_name }}</span>
+                                <span v-if="deptPanel.dept?.hospital_id"> · {{ hospitalsList.find(h=>h.id===deptPanel.dept.hospital_id)?.name }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="uop-close" @click="closeDeptPanel"><i class="fas fa-times"></i></button>
+                </div>
+
+                <!-- ── Stat bar ── -->
+                <div class="dp-stat-bar">
+                    <div class="dp-stat" @click="deptPanel.tab='staff'" :class="{active: deptPanel.tab==='staff'}">
+                        <span class="dp-stat-num">{{ deptPanelAttending.length + deptPanelResidents.length }}</span>
+                        <span class="dp-stat-label">Staff</span>
+                    </div>
+                    <div class="dp-stat" @click="deptPanel.tab='units'" :class="{active: deptPanel.tab==='units'}">
+                        <span class="dp-stat-num">{{ deptPanelUnits.length }}</span>
+                        <span class="dp-stat-label">Units</span>
+                    </div>
+                    <div class="dp-stat" @click="deptPanel.tab='rotations'" :class="{active: deptPanel.tab==='rotations'}">
+                        <span class="dp-stat-num">{{ deptPanelRotations.length }}</span>
+                        <span class="dp-stat-label">Active Rotations</span>
+                    </div>
+                    <div class="dp-stat">
+                        <span class="dp-stat-num">{{ deptPanelResidents.length }}</span>
+                        <span class="dp-stat-label">Residents</span>
+                    </div>
+                </div>
+
+                <!-- ── Body ── -->
+                <div class="uop-body">
+
+                    <!-- TAB: STAFF -->
+                    <template v-if="deptPanel.tab === 'staff'">
+
+                        <!-- Attending -->
+                        <div class="dp-section">
+                            <div class="dp-section-head">
+                                <span class="dp-section-title"><i class="fas fa-user-md"></i> Attending Staff</span>
+                                <span class="dp-section-count">{{ deptPanelAttending.length }}</span>
+                            </div>
+                            <div v-if="deptPanelAttending.length === 0" class="dp-empty">No attending staff assigned to this department</div>
+                            <div v-for="s in deptPanelAttending" :key="s.id" class="dp-staff-row">
+                                <div class="dp-staff-avatar">{{ s.full_name.split(' ').map(w=>w[0]).slice(0,2).join('') }}</div>
+                                <div class="dp-staff-info">
+                                    <div class="dp-staff-name">{{ s.full_name }}</div>
+                                    <div class="dp-staff-meta">
+                                        {{ s.staff_type }}
+                                        <span v-if="s.can_supervise_residents" class="dp-sup-badge">
+                                            <i class="fas fa-chalkboard-teacher"></i> Supervisor
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="dp-staff-unit" v-if="trainingUnits.find(u => u.supervisor_id === s.id && u.department_id === deptPanel.dept?.id)">
+                                    <i class="fas fa-clinic-medical" style="font-size:9px;color:var(--text-4)"></i>
+                                    {{ trainingUnits.find(u => u.supervisor_id === s.id && u.department_id === deptPanel.dept?.id)?.unit_name }}
+                                </div>
+                                <span class="dp-status-dot" :class="s.employment_status === 'active' ? 'dp-dot--ok' : 'dp-dot--warn'"></span>
+                            </div>
+                        </div>
+
+                        <!-- Residents -->
+                        <div class="dp-section">
+                            <div class="dp-section-head">
+                                <span class="dp-section-title"><i class="fas fa-user-graduate"></i> Residents</span>
+                                <span class="dp-section-count">{{ deptPanelResidents.length }}</span>
+                            </div>
+                            <div v-if="deptPanelResidents.length === 0" class="dp-empty">No residents assigned to this department</div>
+                            <div v-for="s in deptPanelResidents" :key="s.id" class="dp-staff-row">
+                                <div class="dp-staff-avatar dp-staff-avatar--res">{{ s.full_name.split(' ').map(w=>w[0]).slice(0,2).join('') }}</div>
+                                <div class="dp-staff-info">
+                                    <div class="dp-staff-name">{{ s.full_name }}</div>
+                                    <div class="dp-staff-meta">
+                                        {{ s.training_year || s.residency_year_calc || '—' }}
+                                        <span class="dp-cat-badge" :class="{
+                                            'dp-cat--int': s.resident_category==='department_internal',
+                                            'dp-cat--rot': s.resident_category==='rotating_other_dept',
+                                            'dp-cat--ext': s.resident_category==='external_resident'
+                                        }">
+                                            {{ s.resident_category==='department_internal' ? 'Internal' : s.resident_category==='rotating_other_dept' ? 'Rotating' : 'External' }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <!-- Current rotation -->
+                                <div class="dp-staff-rotation" v-if="rotations.find(r => r.resident_id === s.id && r.rotation_status === 'active')">
+                                    <i class="fas fa-arrows-rotate" style="font-size:9px;color:var(--blue)"></i>
+                                    <span>{{ rotations.find(r => r.resident_id === s.id && r.rotation_status === 'active')?.training_unit?.unit_name || '—' }}</span>
+                                    <span class="dp-days-left">{{ rotDaysLeft(rotations.find(r => r.resident_id === s.id && r.rotation_status === 'active')) }}d</span>
+                                </div>
+                                <span class="dp-status-dot" :class="s.employment_status === 'active' ? 'dp-dot--ok' : 'dp-dot--warn'"></span>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- TAB: UNITS -->
+                    <template v-if="deptPanel.tab === 'units'">
+                        <div class="dp-section">
+                            <div class="dp-section-head">
+                                <span class="dp-section-title"><i class="fas fa-clinic-medical"></i> Units</span>
+                                <button class="dp-action-btn" @click="switchView('training_units', {department: deptPanel.dept?.id}); closeDeptPanel()" title="Manage units">
+                                    <i class="fas fa-external-link-alt"></i> Manage
+                                </button>
+                            </div>
+                            <div v-if="deptPanelUnits.length === 0" class="dp-empty">No units assigned to this department</div>
+                            <div v-for="unit in deptPanelUnits" :key="unit.id" class="dp-unit-row">
+                                <div class="dp-unit-icon"><i class="fas fa-clinic-medical"></i></div>
+                                <div class="dp-unit-info">
+                                    <div class="dp-unit-name">{{ unit.unit_name }}</div>
+                                    <div class="dp-unit-meta">
+                                        <span class="tuc-type-badge" :class="'tuc-type--' + (unit.unit_type || 'training_unit')" style="margin:0">
+                                            {{ unit.unit_type === 'clinical_unit' ? 'Ward' : unit.unit_type === 'icu' ? 'ICU' : unit.unit_type === 'outpatient' ? 'Outpatient' : unit.unit_type === 'surgical' ? 'Surgical' : unit.unit_type === 'research' ? 'Research' : 'Training' }}
+                                        </span>
+                                        <span v-if="getUnitSupervisorName(unit)" style="font-size:11px;color:var(--text-3)">
+                                            <i class="fas fa-user-md" style="font-size:9px"></i> {{ getUnitSupervisorName(unit) }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <!-- Occupancy bar -->
+                                <div class="dp-unit-occ">
+                                    <div class="dp-occ-track">
+                                        <div class="dp-occ-fill"
+                                             :style="{width: Math.min(100, (getUnitActiveRotationCount(unit.id)/unit.maximum_residents)*100) + '%'}"
+                                             :class="{
+                                               'dp-occ-fill--full':    getUnitActiveRotationCount(unit.id) >= unit.maximum_residents,
+                                               'dp-occ-fill--partial': getUnitActiveRotationCount(unit.id) > 0 && getUnitActiveRotationCount(unit.id) < unit.maximum_residents,
+                                               'dp-occ-fill--free':    getUnitActiveRotationCount(unit.id) === 0
+                                             }">
+                                        </div>
+                                    </div>
+                                    <span class="dp-occ-label">{{ getUnitActiveRotationCount(unit.id) }}/{{ unit.maximum_residents }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- TAB: ROTATIONS -->
+                    <template v-if="deptPanel.tab === 'rotations'">
+                        <div class="dp-section">
+                            <div class="dp-section-head">
+                                <span class="dp-section-title"><i class="fas fa-arrows-rotate"></i> Active & Scheduled Rotations</span>
+                                <span class="dp-section-count">{{ deptPanelRotations.length }}</span>
+                            </div>
+                            <div v-if="deptPanelRotations.length === 0" class="dp-empty">No active rotations in this department</div>
+                            <div v-for="r in deptPanelRotations" :key="r.id" class="dp-rot-row">
+                                <div class="dp-rot-status-bar" :class="{
+                                    'dp-rot-bar--active':    r.rotation_status === 'active',
+                                    'dp-rot-bar--scheduled': r.rotation_status === 'scheduled'
+                                }"></div>
+                                <div class="dp-rot-info">
+                                    <div class="dp-rot-resident">{{ r.resident?.full_name || '—' }}</div>
+                                    <div class="dp-rot-unit">
+                                        <i class="fas fa-clinic-medical" style="font-size:9px;color:var(--text-4)"></i>
+                                        {{ r.training_unit?.unit_name || '—' }}
+                                        <span v-if="r.supervising_attending?.full_name" style="color:var(--text-4)">
+                                            · <i class="fas fa-user-md" style="font-size:9px"></i> {{ r.supervising_attending.full_name.split(' ').slice(-1)[0] }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="dp-rot-dates">
+                                    <div class="dp-rot-period">{{ r.start_date }} → {{ r.end_date }}</div>
+                                    <div class="dp-rot-remaining" :class="rotDaysLeft(r) < 14 ? 'dp-rot-remaining--urgent' : ''">
+                                        {{ rotDaysLeft(r) }}d left
+                                    </div>
+                                </div>
+                                <span class="status-indicator" :class="'status-' + r.rotation_status" style="font-size:9px">{{ r.rotation_status }}</span>
+                            </div>
+                        </div>
+                    </template>
+
+                </div><!-- end uop-body -->
+            </div>
+        </div>
+        </transition>
 
         <!-- ═══ UNITS OCCUPANCY PANEL ═══ -->
         <teleport to="body">
