@@ -12,7 +12,7 @@
 <body>
 <div id="app" v-cloak>
 
-    <!-- ============- TOAST CONTAINER ==-=---=---======= -->
+    <!-- ============- TOAST CONTAINER ==-=--=---======= -->
     <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
              :class="['toast', `toast-${toast.type}`]"
@@ -4747,10 +4747,37 @@
                 <div class="modal-body">
                     <div class="grid grid-cols-2 gap-4">
                         <div class="form-group">
-                            <label class="form-label">Status *</label>
-                            <select class="form-select" v-model="rotationModal.form.rotation_status" required>
-                                <option value="scheduled">Scheduled</option><option value="active">Active</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option>
-                            </select>
+                            <label class="form-label">Status</label>
+                            <!-- Status is derived from dates — not manually selectable -->
+                            <div class="rot-status-derived"
+                                 :class="{
+                                   'rot-status-active':    rotationModal.form.rotation_status === 'active',
+                                   'rot-status-scheduled': rotationModal.form.rotation_status === 'scheduled',
+                                   'rot-status-completed': rotationModal.form.rotation_status === 'completed'
+                                 }">
+                                <i class="fas"
+                                   :class="{
+                                     'fa-play-circle':  rotationModal.form.rotation_status === 'active',
+                                     'fa-clock':        rotationModal.form.rotation_status === 'scheduled',
+                                     'fa-check-circle': rotationModal.form.rotation_status === 'completed'
+                                   }"></i>
+                                <span>{{ rotationModal.form.rotation_status === 'active' ? 'Active' : rotationModal.form.rotation_status === 'scheduled' ? 'Scheduled' : 'Completed' }}</span>
+                            </div>
+                            <!-- Friendly explanation based on dates -->
+                            <p class="rot-status-hint" v-if="rotationModal.form.start_date && rotationModal.form.end_date">
+                                <template v-if="rotationModal.form.rotation_status === 'active'">
+                                    <i class="fas fa-info-circle"></i>
+                                    Set to <strong>Active</strong> because the start date is today or has already passed — the resident is currently in this rotation.
+                                </template>
+                                <template v-else-if="rotationModal.form.rotation_status === 'scheduled'">
+                                    <i class="fas fa-info-circle"></i>
+                                    Set to <strong>Scheduled</strong> because the start date is in the future. Status will automatically become Active on {{ rotationModal.form.start_date }}.
+                                </template>
+                                <template v-else-if="rotationModal.form.rotation_status === 'completed'">
+                                    <i class="fas fa-info-circle"></i>
+                                    Set to <strong>Completed</strong> because the end date has already passed.
+                                </template>
+                            </p>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Category *</label>
