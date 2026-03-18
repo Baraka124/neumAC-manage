@@ -707,7 +707,8 @@ document.addEventListener('DOMContentLoaded', () => {
       async updateHospital(id, d) { this.invalidate('/api/hospitals'); return this.request(`/api/hospitals/${id}`, { method: 'PUT', body: d }) }
 
       async getClinicalUnits(departmentId) {
-        const url = departmentId ? `/api/clinical-units?department_id=${departmentId}` : '/api/clinical-units'
+        // clinical_units merged into training_units — hit training-units directly
+        const url = departmentId ? `/api/training-units?department_id=${departmentId}` : '/api/training-units'
         try { const r = await this.request(url); return (r?.success && Array.isArray(r.data)) ? r.data : Utils.ensureArray(r) } catch { return [] }
       }
       async createClinicalUnit(d) { this.invalidate('/api/clinical-units'); return this.request('/api/clinical-units', { method: 'POST', body: d }) }
@@ -2769,7 +2770,63 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { showToast('Error', e?.message || 'Failed to deactivate department', 'error') }
       }
 
-      const viewDepartmentStaff = (dept) => showToast('Department Staff', `Viewing staff for ${dept.name}`, 'info')
+      // Department detail panel
+      const deptPanel = reactive({ show: false, dept: null, tab: 'staff' })
+
+      const openDeptPanel = (dept) => {
+        deptPanel.dept = dept
+        deptPanel.tab = 'staff'
+        deptPanel.show = true
+      }
+
+      const closeDeptPanel = () => { deptPanel.show = false }
+
+      // Staff in this department grouped by type
+      const deptPanelAttending = computed(() => {
+        if (!deptPanel.dept) return []
+        return medicalStaff.value.filter(s =>
+          s.department_id === deptPanel.dept.id && !isResidentType(s.staff_type)
+        ).sort((a,b) => a.full_name.localeCompare(b.full_name))
+      })
+
+      const deptPanelResidents = computed(() => {
+        if (!deptPanel.dept) return []
+        return medicalStaff.value.filter(s =>
+          s.department_id === deptPanel.dept.id && isResidentType(s.staff_type)
+        ).sort((a,b) => a.full_name.localeCompare(b.full_name))
+      })
+
+      // Units belonging to this department
+      const deptPanelUnits = computed(() => {
+        if (!deptPanel.dept) return []
+        return trainingUnits.value.filter(u => u.department_id === deptPanel.dept.id)
+      })
+
+      // Active rotations in this department's units
+      const deptPanelRotations = computed(() => {
+        if (!deptPanel.dept) return []
+        const unitIds = new Set(deptPanelUnits.value.map(u => u.id))
+        return rotations.value.filter(r =>
+          unitIds.has(r.training_unit_id) &&
+          ['active','scheduled'].includes(r.rotation_status)
+        ).sort((a,b) => new Date(a.end_date) - new Date(b.end_date))
+      })
+
+      // Get supervisor name for a unit
+      const getUnitSupervisorName = (unit) => {
+        if (!unit) return null
+        const supId = unit.supervisor_id || unit.default_supervisor_id
+        if (!supId) return null
+        return medicalStaff.value.find(s => s.id === supId)?.full_name || null
+      }
+
+      // Days remaining for a rotation
+      const rotDaysLeft = (r) => {
+        const diff = Math.ceil((new Date(r.end_date) - new Date()) / 86400000)
+        return diff > 0 ? diff : 0
+      }
+
+      const viewDepartmentStaff = (dept) => openDeptPanel(dept)
 
       return {
         departments, allDepartmentsLookup, departmentFilters, departmentModal, deptReassignModal,
@@ -2783,7 +2840,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function useTrainingUnits({ showToast, showConfirmation, rotations, allStaffLookup }) {
       const trainingUnits = ref([])
       const trainingUnitFilters = reactive({ search: '', department: '', status: '' })
-      const trainingUnitModal = reactive({ show: false, mode: 'add', form: { unit_name: '', unit_code: '', department_id: '', maximum_residents: 10, unit_status: 'active', specialty: '', supervising_attending_id: '' } })
+      const trainingUnitModal = reactive({ show: false, mode: 'add', form: { unit_name: '', unit_code: '', department_id: '', maximum_residents: 10, unit_status: 'active', unit_type: 'training_unit', unit_description: '', specialty: '', supervising_attending_id: '' } })
       const unitResidentsModal = reactive({ show: false, unit: null, rotations: [] })
       const unitCliniciansModal = reactive({ show: false, unit: null, clinicians: [], supervisorId: '', allStaff: [] })
 
@@ -3080,7 +3137,7 @@ document.addEventListener('DOMContentLoaded', () => {
         catch { showToast('Error', 'Failed to load training units', 'error') }
       }
 
-      const showAddTrainingUnitModal = () => { trainingUnitModal.mode = 'add'; Object.assign(trainingUnitModal.form, { unit_name: '', unit_code: '', department_id: '', maximum_residents: 10, unit_status: 'active', specialty: '', supervising_attending_id: '' }); trainingUnitModal.show = true }
+      const showAddTrainingUnitModal = () => { trainingUnitModal.mode = 'add'; Object.assign(trainingUnitModal.form, { unit_name: '', unit_code: '', department_id: '', maximum_residents: 10, unit_status: 'active', unit_type: 'training_unit', unit_description: '', specialty: '', supervising_attending_id: '' }); trainingUnitModal.show = true }
       const editTrainingUnit = (u) => { trainingUnitModal.mode = 'edit'; trainingUnitModal.form = { ...u }; trainingUnitModal.show = true }
 
       const deleteTrainingUnit = (unit) => {
@@ -4814,6 +4871,9 @@ document.addEventListener('DOMContentLoaded', () => {
           filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount, getDeptResidentStats, getDeptHomeResidents,
           loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment,
           deleteDepartment, confirmDeptReassignAndDeactivate, viewDepartmentStaff,
+          deptPanel, openDeptPanel, closeDeptPanel,
+          deptPanelAttending, deptPanelResidents, deptPanelUnits, deptPanelRotations,
+          getUnitSupervisorName, rotDaysLeft,
           trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits,
           getUnitActiveRotationCount, getUnitRotations, getResidentShortName, loadTrainingUnits, showAddTrainingUnitModal,
         trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree, tlPopover, openCellPopover, closeCellPopover,
