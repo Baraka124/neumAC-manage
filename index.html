@@ -1998,6 +1998,11 @@
                                     <div class="dept-card-title-block">
                                         <div class="dept-card-name">{{ department.name }}</div>
                                         <div class="dept-card-code">{{ department.code }}</div>
+                                        <!-- Institution badge -->
+                                        <div v-if="department.hospital_id" class="dept-institution-badge">
+                                            <i class="fas fa-landmark" style="font-size:9px"></i>
+                                            {{ hospitalsList.find(h => h.id === department.hospital_id)?.name || 'Unknown institution' }}
+                                        </div>
                                     </div>
                                     <span class="status-indicator" :class="'status-' + department.status">{{ department.status }}</span>
                                 </div>
@@ -5039,13 +5044,35 @@
                     <button class="modal-close" @click="departmentModal.show = false"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
+                    <!-- Institution -->
+                    <div class="form-group" style="margin-bottom:1rem;">
+                        <label class="form-label">
+                            <i class="fas fa-hospital" style="color:var(--blue);margin-right:4px"></i>
+                            Institution *
+                        </label>
+                        <select class="form-select" v-model="departmentModal.form.hospital_id">
+                            <option value="">Select institution…</option>
+                            <option v-for="h in hospitalsList" :key="h.id" :value="h.id">
+                                {{ h.name }} <span v-if="h.parent_complex"> · {{ h.parent_complex }}</span>
+                            </option>
+                        </select>
+                        <p style="font-size:10px;color:var(--text-4);margin-top:3px;">The hospital or institution this department belongs to</p>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="form-group"><label class="form-label">Department Name *</label><input type="text" class="form-control" v-model="departmentModal.form.name" required></div>
-                        <div class="form-group"><label class="form-label">Department Code *</label><input type="text" class="form-control" v-model="departmentModal.form.code" required></div>
+                        <div class="form-group">
+                            <label class="form-label">Department Name *</label>
+                            <input type="text" class="form-control" v-model="departmentModal.form.name" placeholder="e.g. Department of Pulmonology" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Department Code *</label>
+                            <input type="text" class="form-control" v-model="departmentModal.form.code" placeholder="e.g. NEUM-2026" required>
+                        </div>
                         <div class="form-group">
                             <label class="form-label">Status *</label>
                             <select class="form-select" v-model="departmentModal.form.status" required>
-                                <option value="active">Active</option><option value="inactive">Inactive</option><option value="archived">Archived</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -5054,6 +5081,18 @@
                                 <option value="">Select Head</option>
                                 <option v-for="s in availableHeadsOfDepartment" :key="s.id" :value="s.id">{{ s.full_name }}</option>
                             </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Contact Email</label>
+                            <input type="email" class="form-control" v-model="departmentModal.form.contact_email" placeholder="dept@hospital.es">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Contact Phone</label>
+                            <input type="text" class="form-control" v-model="departmentModal.form.contact_phone" placeholder="981 XXX XXX">
+                        </div>
+                        <div class="form-group" style="grid-column:1/-1">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" v-model="departmentModal.form.description" rows="2" placeholder="Brief description of this department's scope…"></textarea>
                         </div>
                     </div>
                 </div>
