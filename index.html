@@ -12,7 +12,7 @@
 <body>
 <div id="app" v-cloak>
 
-    <!-- ============- TOAST CONTAINER ==-=--=----======= -->
+    <!-- ============- TOAST CONTAINER ==-=--=---======= -->
     <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
              :class="['toast', `toast-${toast.type}`]"
@@ -1302,10 +1302,6 @@
                                     </button>
                                 </div>
                                 <div class="header-actions-right">
-                                    <button class="btn btn-outline-primary btn-with-badge" @click="forceActivationCheck" v-if="hasPermission('resident_rotations', 'update')">
-                                        <i class="fas fa-sync-alt"></i> Check Pending
-                                        <span v-if="pendingActivations?.length > 0" class="badge badge-danger badge-sm">{{ pendingActivations.length }}</span>
-                                    </button>
                                     <button class="btn btn-primary" @click="showAddRotationModal" v-if="hasPermission('resident_rotations', 'create')">
                                         <i class="fas fa-plus"></i> Add Rotation
                                     </button>
@@ -1593,17 +1589,7 @@
                                         <td>
                                             <div class="table-actions">
                                                 <button class="btn-pill btn-pill-edit" @click="editRotation(rotation)" v-if="hasPermission('resident_rotations', 'update')" title="Edit rotation"><i class="fas fa-edit"></i></button>
-                                                <!-- Activate: only if start date has arrived but status still scheduled -->
-                                                <button v-if="rotation.rotation_status === 'scheduled' && rotation.start_date <= new Date(new Date() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10) && hasPermission('resident_rotations', 'update')"
-                                                        class="btn-pill btn-pill-primary" @click.stop="quickActivate(rotation)" title="Start date reached — activate">
-                                                    <i class="fas fa-play"></i>
-                                                </button>
-                                                <!-- Terminate early: only if active and end date not yet reached -->
-                                                <button v-if="rotation.rotation_status === 'active' && rotation.end_date > new Date(new Date() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10) && hasPermission('resident_rotations', 'update')"
-                                                        class="btn-pill btn-pill-danger" @click.stop="deleteRotation(rotation)" title="Terminate early — end date not reached">
-                                                    <i class="fas fa-stop-circle"></i>
-                                                </button>
-                                                <button class="btn-pill btn-pill-danger" @click.stop="deleteRotation(rotation)" v-if="hasPermission('resident_rotations', 'delete') && !['active','scheduled'].includes(rotation.rotation_status)" title="Delete"><i class="fas fa-trash"></i></button>
+                                                <button class="btn-pill btn-pill-danger" @click.stop="deleteRotation(rotation)" v-if="hasPermission('resident_rotations', 'delete') && !['active','scheduled'].includes(rotation.rotation_status)" title="Delete record"><i class="fas fa-trash"></i></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -4725,20 +4711,6 @@
                     <i class="fas fa-times"></i> Close
                 </button>
                 <div style="display:flex;gap:8px">
-                    <!-- Activate: only shown if start date has arrived but system hasn't caught up yet -->
-                    <button v-if="rotationViewModal.rotation.rotation_status === 'scheduled' && rotationViewModal.rotation.start_date <= new Date(new Date() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10) && hasPermission('resident_rotations', 'update')"
-                            class="btn btn-outline-primary"
-                            @click="quickActivate(rotationViewModal.rotation); rotationViewModal.show = false"
-                            title="Start date has arrived — activate this rotation">
-                        <i class="fas fa-play"></i> Activate now
-                    </button>
-                    <!-- Terminate early: only for active rotations before their end date -->
-                    <button v-if="rotationViewModal.rotation.rotation_status === 'active' && rotationViewModal.rotation.end_date > new Date(new Date() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10) && hasPermission('resident_rotations', 'update')"
-                            class="btn btn-outline-danger"
-                            @click="deleteRotation(rotationViewModal.rotation); rotationViewModal.show = false"
-                            title="End this rotation before its scheduled end date">
-                        <i class="fas fa-stop-circle"></i> Terminate early
-                    </button>
                     <button v-if="hasPermission('resident_rotations', 'update')"
                             class="btn btn-primary"
                             @click="editRotation(rotationViewModal.rotation); rotationViewModal.show = false">
