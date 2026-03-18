@@ -2629,7 +2629,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const departments = ref([])
       const allDepartmentsLookup = ref([])  // includes inactive — for name resolution only
       const departmentFilters = reactive({ search: '', status: '' })
-      const departmentModal = reactive({ show: false, mode: 'add', form: { name: '', code: '', status: 'active', head_of_department_id: '', description: '', contact_email: '', contact_phone: '' } })
+      const departmentModal = reactive({ show: false, mode: 'add', form: { name: '', code: '', status: 'active', head_of_department_id: '', hospital_id: '', description: '', contact_email: '', contact_phone: '' } })
 
       // Department reassignment modal — shown when dept has active staff/units
       const deptReassignModal = reactive({
@@ -2679,7 +2679,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const showAddDepartmentModal = () => {
         departmentModal.mode = 'add'
-        Object.assign(departmentModal.form, { name: '', code: '', status: 'active', head_of_department_id: '', description: '', contact_email: '', contact_phone: '' })
+        Object.assign(departmentModal.form, { name: '', code: '', status: 'active', head_of_department_id: '', hospital_id: '', description: '', contact_email: '', contact_phone: '' })
         departmentModal.show = true
       }
       const editDepartment = (d) => { departmentModal.mode = 'edit'; Object.assign(departmentModal.form, { ...d }); departmentModal.show = true }
