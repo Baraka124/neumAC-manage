@@ -145,7 +145,63 @@
   font-size: 14px; font-weight: 700; color: var(--text-1);
   letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.dept-card-code { font-size: 10px; font-weight: 700; color: var(--text-3); letter-spacing: .08em; text-transform: uppercase; }
+/* ── DEPARTMENT TABLE ──────────────────────────────────────────── */
+.dept-summary-strip {
+  display:flex;gap:0;border-bottom:1px solid var(--border);
+  padding:10px 16px;background:var(--surface-2);
+}
+.dept-summary-item {
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  padding:4px 8px;border-right:1px solid var(--border);
+}
+.dept-summary-item:last-child { border-right:none; }
+.dept-summary-num { font-size:1.25rem;font-weight:700;color:var(--text-1);line-height:1; }
+.dept-summary-num.dept-summary-warn { color:var(--warning); }
+.dept-summary-warn { color:var(--warning); }
+.dept-summary-label { font-size:10px;color:var(--text-3);margin-top:2px;text-transform:uppercase;letter-spacing:.05em; }
+
+.dept-table-row { cursor:default; }
+.dept-table-row:hover { background:var(--surface-2); }
+
+.dept-tbl-name { font-size:13px;font-weight:600;color:var(--text-1); }
+.dept-tbl-code { font-size:10px;font-weight:700;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase;margin-top:1px; }
+.dept-tbl-head { display:flex;align-items:center;gap:6px; }
+.dept-tbl-head-name { font-size:12px;color:var(--text-2); }
+.dept-tbl-mail { color:var(--blue);font-size:11px;opacity:.7;transition:opacity .15s; }
+.dept-tbl-mail:hover { opacity:1; }
+.dept-tbl-empty { font-size:11px;color:var(--text-4);font-style:italic; }
+
+.dept-tbl-units { display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer; }
+.dept-tbl-count { font-size:13px;font-weight:700;color:var(--text-1); }
+.dept-tbl-occ-bars { display:flex;gap:2px;align-items:flex-end; }
+.dept-tbl-occ-bar {
+  width:6px;height:14px;border-radius:2px;
+  transition:height .2s;
+}
+.dept-tbl-units:hover .dept-tbl-occ-bar { height:18px; }
+.occ-full    { background:var(--danger);opacity:.8; }
+.occ-partial { background:var(--warning);opacity:.8; }
+.occ-free    { background:var(--ok);opacity:.6; }
+
+.dept-tbl-res { display:flex;gap:3px;justify-content:center;flex-wrap:wrap; }
+.dept-tbl-res-pill {
+  font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;
+  cursor:pointer;transition:opacity .15s;white-space:nowrap;
+}
+.dept-tbl-res-pill:hover { opacity:.75; }
+.res-int { background:var(--ok-lt);color:var(--ok);border:1px solid var(--ok-mid); }
+.res-rot { background:var(--partial-lt);color:var(--partial);border:1px solid var(--partial-mid); }
+.res-ext { background:var(--violet-lt);color:var(--violet);border:1px solid var(--violet-mid); }
+
+.btn-icon-sm {
+  width:26px;height:26px;border-radius:5px;border:1px solid var(--border);
+  background:transparent;color:var(--text-3);cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:11px;transition:all .15s;
+}
+.btn-icon-sm:hover { background:var(--blue-lt);color:var(--blue);border-color:var(--blue-mid); }
+.btn-icon-sm--danger:hover { background:var(--danger-lt);color:var(--danger);border-color:var(--danger-mid); }
+.row-actions { display:flex;gap:3px;justify-content:flex-end; }
 .dept-institution-badge {
   display:inline-flex;align-items:center;gap:4px;
   margin-top:3px;
@@ -155,6 +211,18 @@
   border-radius:3px;padding:2px 6px;
   max-width:200px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
 }
+.tuc-type-badge {
+  display:inline-flex;align-items:center;
+  margin-top:3px;
+  font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  border-radius:3px;padding:1px 5px;
+}
+.tuc-type--training_unit { background:rgba(58,191,191,.12);color:var(--teal);border:1px solid rgba(58,191,191,.25); }
+.tuc-type--clinical_unit { background:rgba(99,102,241,.12);color:#6366f1;border:1px solid rgba(99,102,241,.25); }
+.tuc-type--icu           { background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2); }
+.tuc-type--outpatient    { background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.2); }
+.tuc-type--surgical      { background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.2); }
+.tuc-type--research      { background:rgba(124,111,207,.12);color:var(--violet);border:1px solid rgba(124,111,207,.25); }
 
 /* Contact block */
 .dept-contact-block {
