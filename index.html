@@ -77,8 +77,8 @@
             <div class="lc-sep"></div>
 
             <!-- Error -->
-            <div v-if="loginError" class="login-error">
-                <i class="fas fa-exclamation-circle"></i>
+            <div v-if="loginError" class="login-error" :class="{'login-error--warn': loginError.includes('expired') || loginError.includes('session')}">
+                <i class="fas" :class="loginError.includes('expired') || loginError.includes('session') ? 'fa-clock' : 'fa-exclamation-circle'"></i>
                 <span>{{ loginError }}</span>
             </div>
 
@@ -4683,6 +4683,26 @@
                         <span class="rds-field-key"><i class="fas fa-sticky-note"></i> Notes</span>
                         <span class="rds-field-val">{{ rotationViewModal.rotation.notes }}</span>
                     </div>
+                    <!-- External resident close-out info -->
+                    <template v-if="medicalStaff.find(s => s.id === rotationViewModal.rotation.resident_id)?.resident_category === 'external_resident'">
+                        <div class="rds-field rds-field--ext">
+                            <span class="rds-field-key"><i class="fas fa-globe"></i> External</span>
+                            <span class="rds-field-val">
+                                {{ medicalStaff.find(s => s.id === rotationViewModal.rotation.resident_id)?.external_institution || '—' }}
+                            </span>
+                        </div>
+                        <div class="rds-field" v-if="medicalStaff.find(s => s.id === rotationViewModal.rotation.resident_id)?.external_contact_name">
+                            <span class="rds-field-key"><i class="fas fa-user-tie"></i> Contact</span>
+                            <span class="rds-field-val">
+                                {{ medicalStaff.find(s => s.id === rotationViewModal.rotation.resident_id).external_contact_name }}
+                                <a v-if="medicalStaff.find(s => s.id === rotationViewModal.rotation.resident_id)?.external_contact_email"
+                                   :href="'mailto:' + medicalStaff.find(s => s.id === rotationViewModal.rotation.resident_id).external_contact_email"
+                                   class="rds-mail-link" title="Email contact">
+                                    <i class="fas fa-envelope"></i>
+                                </a>
+                            </span>
+                        </div>
+                    </template>
                     <div class="rds-field" v-if="rotationViewModal.rotation.goals">
                         <span class="rds-field-key"><i class="fas fa-bullseye"></i> Goals</span>
                         <span class="rds-field-val">{{ rotationViewModal.rotation.goals }}</span>
@@ -5277,7 +5297,15 @@
                                 <div class="form-group">
                                     <label class="form-label">Audience</label>
                                     <select class="form-select" v-model="communicationsModal.form.target_audience">
-                                        <option value="all_staff">All Staff</option><option value="all">All (incl. admin)</option><option value="residents_only">Residents Only</option><option value="attending_only">Attendings Only</option>
+                                        <option value="all_staff">All Staff</option>
+                                        <option value="all">All (incl. admin)</option>
+                                        <option value="residents_only">Residents Only</option>
+                                        <option value="attending_only">Attendings Only</option>
+                                        <optgroup label="Specific Department">
+                                            <option v-for="d in departments" :key="d.id" :value="'dept_' + d.id">
+                                                {{ d.name }}
+                                            </option>
+                                        </optgroup>
                                     </select>
                                 </div>
                             </div>
@@ -5324,6 +5352,11 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @click="userProfileModal.show = false">Cancel</button>
+                    <button v-if="userProfileModal.form.linked_staff_id"
+                            class="btn btn-ghost" style="font-size:12px;color:var(--blue);margin-right:auto"
+                            @click="saveUserProfile">
+                        <i class="fas fa-id-card"></i> View clinical profile
+                    </button>
                     <button class="btn btn-primary" @click="saveUserProfile" :disabled="saving">
                         <i class="fas fa-save" :class="{ 'fa-spinner fa-spin': saving }"></i>
                         {{ saving ? 'Saving...' : 'Save Changes' }}
