@@ -734,7 +734,7 @@ a { color: var(--blue); text-decoration: none; }
   --sb-accent-3: #22d3ee;   /* Training   — cyan      */
   --sb-accent-4: #fbbf24;   /* Admin      — amber     */
   --sb-accent-5: #a78bfa;   /* Research   — violet    */
-  --sb-accent-6: #fb7185;   /* Analytics  — rose      */
+  --sb-accent-6: #fb7185;   
 }
 
 .sidebar {
@@ -2786,10 +2786,10 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .preview-footer { display: flex; justify-content: space-between; font-size: var(--t-11); color: var(--text-3); padding-top: 8px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
 .preview-footer i { color: var(--blue); margin-right: 4px; }
 
-.comms-tabs { display: flex; gap: 3px; background: var(--surface-2); border-radius: var(--r); padding: 3px; margin-bottom: 16px; flex-wrap: wrap; }
-.comms-tab { flex: 1; padding: 8px 12px; background: none; border: none; border-radius: var(--r-sm); font-size: var(--t-12); font-weight: 600; color: var(--text-2); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: var(--t); font-family: var(--font-ui); min-width: 110px; min-height: 40px; }
+
+
 .comms-tab.active { background: var(--surface); color: var(--blue); box-shadow: var(--shadow-xs); }
-.comms-content { padding: 0; }
+
 
 .quick-status h4 { font-size: var(--t-12); font-weight: 700; display: flex; align-items: center; gap: 7px; margin-bottom: 12px; }
 .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
@@ -6587,33 +6587,15 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   border-radius: 20px; padding: 2px 7px;
 }
 
-/* ================================================================
-   ANALYTICS — unified tab navigation
-================================================================ */
-.analytics-tab-bar {
-  display: flex; align-items: center; gap: 2px;
-  padding: 0 4px; margin-bottom: 20px;
-  border-bottom: 2px solid var(--border);
-}
-.analytics-tab {
-  display: flex; align-items: center; gap: 6px;
-  padding: 10px 16px; font-size: 13px; font-weight: 500;
-  color: var(--text-2); border: none; background: transparent;
-  cursor: pointer; border-bottom: 2px solid transparent;
-  margin-bottom: -2px; transition: color .15s, border-color .15s;
-  white-space: nowrap; border-radius: var(--r-sm) var(--r-sm) 0 0;
-}
-.analytics-tab:hover { color: var(--text-1); background: var(--surface-2); }
-.analytics-tab--active {
-  color: var(--blue); border-bottom-color: var(--blue);
-  font-weight: 600;
-}
-.analytics-tab i { font-size: 12px; opacity: .8; }
-.analytics-tab-spacer { flex: 1; }
 
-/* ================================================================
-   ANALYTICS — trials timeline chart (horizontal bars by month)
-================================================================ */
+
+
+.analytics-tab:hover { color: var(--text-1); background: var(--surface-2); }
+
+.analytics-tab i { font-size: 12px; opacity: .8; }
+
+
+
 .timeline-chart {
   display: flex; align-items: flex-end; gap: 4px;
   padding: 16px 20px 8px;
@@ -6777,9 +6759,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .tdm-contact-link:hover { text-decoration: underline; }
 .tdm-footer { border-top: 1px solid var(--border); padding: 12px 24px; flex-shrink: 0; }
 
-/* ================================================================
-   ANALYTICS — upgraded chart cards
-================================================================ */
+
 .chart-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -6797,7 +6777,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .bar-fill { height: 100%; border-radius: 6px; transition: width .5s cubic-bezier(.34,1.56,.64,1); }
 .bar-value { font-family: var(--font-data); font-size: 11px; font-weight: 700; color: var(--text-2); min-width: 20px; text-align: right; }
 
-/* Analytics performance table — row sparkbars */
+
 .perf-bar-cell { display: flex; align-items: center; gap: 6px; }
 .perf-mini-bar { flex: 1; height: 6px; background: var(--surface-3); border-radius: 4px; overflow: hidden; min-width: 40px; }
 .perf-mini-fill { height: 100%; border-radius: 4px; background: var(--blue); transition: width .4s ease; }
@@ -7846,7 +7826,7 @@ tr:not(:hover) .btn-pill-purge {
 .rht-actions { display: flex; gap: 3px; opacity: 0; transition: opacity var(--t); flex-shrink: 0; }
 .rht-row:hover .rht-actions { opacity: 1; }
 
-/* ── Analytics sub-tabs ─────────────────────────────────────── */
+
 .rha-subtabs {
   display: flex; gap: 4px; margin-bottom: 16px;
   border-bottom: 1px solid var(--border); padding-bottom: 0;
@@ -7861,7 +7841,7 @@ tr:not(:hover) .btn-pill-purge {
 .rha-subtab:hover { color: var(--text-1); }
 .rha-subtab.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
 
-/* ── Analytics KPI strip ────────────────────────────────────── */
+
 .rha-kpi-strip {
   display: flex; gap: 10px; margin-bottom: 16px;
 }
@@ -7873,7 +7853,7 @@ tr:not(:hover) .btn-pill-purge {
 .rha-kpi-label { font-size: 11px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: .06em; margin-top: 4px; }
 .rha-kpi-sub { font-size: 11px; color: var(--ok); font-weight: 600; margin-top: 2px; }
 
-/* ── Analytics charts ───────────────────────────────────────── */
+
 .rha-charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
 .rha-chart-card {
   background: var(--surface); border: 1px solid var(--border);
@@ -7892,7 +7872,7 @@ tr:not(:hover) .btn-pill-purge {
   letter-spacing: 0; text-transform: none;
 }
 
-/* ── Lines overview table in analytics ─────────────────────── */
+
 .rha-lines-overview { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 10px; }
 .rha-lines-table { display: flex; flex-direction: column; gap: 0; }
 .rha-lt-header {
@@ -9727,3 +9707,33 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
 .status-completed    { background: var(--surface-3); color: var(--neutral); border-color: var(--border); }
 .status-extended     { background: var(--warn-lt);   color: #92400e; border-color: var(--warn-mid); }
 .status-terminated_early { background: var(--danger-lt); color: #991b1b; border-color: var(--danger-mid); }
+
+/* ── Sidebar department context ── */
+.sidebar-dept-ctx {
+    display: flex;
+    align-items: center;
+    gap: .625rem;
+    padding: .875rem 1.25rem;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    margin-bottom: .25rem;
+}
+.sidebar-dept-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--color-teal, #00B3B3);
+    flex-shrink: 0;
+}
+.sidebar-dept-name {
+    font-size: .75rem;
+    font-weight: 600;
+    color: rgba(255,255,255,.78);
+    letter-spacing: .01em;
+    line-height: 1.2;
+}
+.sidebar-dept-sub {
+    font-size: .6rem;
+    color: rgba(255,255,255,.28);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-top: .15rem;
+}
