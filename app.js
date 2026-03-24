@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
       TOKEN_KEY: 'neumocare_token',
       USER_KEY: 'neumocare_user',
       CACHE_TTL: 300000
-    }
+    } 
 
     // ============ 2. CONSTANTS ====-========
     // Research line accent colours — available globally, not just inside useResearch
