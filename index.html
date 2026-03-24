@@ -10,10 +10,10 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="app" v-cloak> 
+<div id="app" v-cloak>
 
     <!-- ============- TOAST CONTAINER ==-=--=---======= -->
-    <div class="toast-container"> 
+    <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
              :class="['toast', `toast-${toast.type}`]"
              role="alert" aria-live="polite" aria-atomic="true"> 
@@ -226,7 +226,7 @@
                                @click.prevent="switchView('medical_staff'); mobileMenuOpen = false"
                                v-if="hasPermission('medical_staff', 'read')"
                                :aria-current="currentView === 'medical_staff' ? 'page' : null">
-                                <i class="fas fa-stethoscope"></i>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 4C7 4 5 4 5 7V13C5 17 9 19 12 19C15 19 19 17 19 13"/><circle cx="19" cy="11" r="2"/><path d="M5 9H9"/></svg>
                                 <span v-if="!sidebarCollapsed">Medical Staff</span>
                             </a>
                         </li>
@@ -359,7 +359,7 @@
                         </div>
                         <div class="status-card current">
                             <div class="status-header">
-                                <div class="status-title"><i class="fas fa-stethoscope"></i> Clinical Status</div>
+                                <div class="status-title"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 4C7 4 5 4 5 7V13C5 17 9 19 12 19C15 19 19 17 19 13"/><circle cx="19" cy="11" r="2"/><path d="M5 9H9"/></svg> Clinical Status</div>
                                 <div class="status-badge live">LIVE</div>
                             </div>
                             <div class="status-content">
@@ -398,7 +398,7 @@
                         </div>
                     </div>
                     <div class="empty-timeline" v-if="!clinicalStatus && (!recentStatuses || recentStatuses.length === 0)">
-                        <i class="fas fa-stethoscope"></i>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 4C7 4 5 4 5 7V13C5 17 9 19 12 19C15 19 19 17 19 13"/><circle cx="19" cy="11" r="2"/><path d="M5 9H9"/></svg>
                         <h5>No Status Updates</h5>
                         <p>No clinical status has been recorded</p>
                     </div>
@@ -459,7 +459,7 @@
                         </div>
                     </div>
                     <div class="availability-card">
-                        <div class="availability-icon resident"><i class="fas fa-user-graduate"></i></div>
+                        <div class="availability-icon resident"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg></div>
                         <div class="availability-content">
                             <div class="availability-role">Residents</div>
                             <div class="availability-count">{{ systemStats.activeResidents || 0 }}</div>
@@ -606,9 +606,9 @@
                         </div>
                         <div class="quick-actions-bar" style="margin-bottom:0; flex:0 1 auto;">
                             <button class="action-btn" @click="showAddMedicalStaffModal" v-if="hasPermission('medical_staff', 'create')"><i class="fas fa-user-plus"></i> Add Staff</button>
-                            <button class="action-btn" @click="showAddOnCallModal" v-if="hasPermission('oncall_schedule', 'create')"><i class="fas fa-phone-medical"></i> Schedule On-call</button>
+                            <button class="action-btn" @click="showAddOnCallModal" v-if="hasPermission('oncall_schedule', 'create')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.8A9 9 0 1111.2 3C11.2 3 9 7.5 12 11C15 14.5 21 12.8 21 12.8Z"/></svg> Schedule On-call</button>
                             <button class="action-btn" @click="showAddAbsenceModal" v-if="hasPermission('staff_absence', 'create')"><i class="fas fa-user-clock"></i> Record Absence</button>
-                            <button class="action-btn" @click="showAddRotationModal" v-if="hasPermission('resident_rotations', 'create')"><i class="fas fa-calendar-check"></i> Add Rotation</button>
+                            <button class="action-btn" @click="showAddRotationModal" v-if="hasPermission('resident_rotations', 'create')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12C4 16.4 7.6 20 12 20C16.4 20 20 16.4 20 12C20 7.6 16.4 4 12 4"/><path d="M8 4H12V8"/></svg> Add Rotation</button>
                             <div class="ml-auto">
                                 <button class="btn btn-primary btn-sm" @click="showCommunicationsModal" v-if="hasPermission('communications', 'create')">
                                     <i class="fas fa-bullhorn"></i> Announce
@@ -638,7 +638,7 @@
                     <!-- Compact KPI bar -->
                     <div class="db-kpi-bar">
                         <div class="db-kpi" @click="switchView('medical_staff')">
-                            <div class="db-kpi-icon db-kpi-icon--blue"><i class="fas fa-stethoscope"></i></div>
+                            <div class="db-kpi-icon db-kpi-icon--blue"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 4C7 4 5 4 5 7V13C5 17 9 19 12 19C15 19 19 17 19 13"/><circle cx="19" cy="11" r="2"/><path d="M5 9H9"/></svg></div>
                             <div class="db-kpi-body" style="min-width:0;flex:1">
                                 <div class="db-kpi-val">{{ systemStats.totalStaff || 0 }}</div>
                                 <div class="db-kpi-label">Medical Staff</div>
@@ -675,7 +675,7 @@
                             </div>
                         </div>
                         <div class="db-kpi" @click="switchView('research_lines')">
-                            <div class="db-kpi-icon db-kpi-icon--purple"><i class="fas fa-flask"></i></div>
+                            <div class="db-kpi-icon db-kpi-icon--purple"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg></div>
                             <div class="db-kpi-body" style="min-width:0;flex:1">
                                 <div class="db-kpi-val">{{ analyticsSummary?.researchLines || researchLines.length || 0 }}</div>
                                 <div class="db-kpi-label">Research Lines</div>
@@ -693,7 +693,7 @@
                         <!-- On-call next 3 days -->
                         <div class="card db-content-card">
                             <div class="db-cc-head">
-                                <span class="db-cc-title"><i class="fas fa-phone-medical"></i> On-call — Next 3 Days</span>
+                                <span class="db-cc-title"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.8A9 9 0 1111.2 3C11.2 3 9 7.5 12 11C15 14.5 21 12.8 21 12.8Z"/></svg> On-call — Next 3 Days</span>
                                 <button class="db-cc-link" @click="switchView('oncall_schedule')">Full schedule <i class="fas fa-arrow-right"></i></button>
                             </div>
                             <div v-if="loadingSchedule" class="db-cc-loading"><i class="fas fa-spinner fa-spin"></i></div>
@@ -739,7 +739,7 @@
                         <!-- Rotations attention -->
                         <div class="card db-content-card">
                             <div class="db-cc-head">
-                                <span class="db-cc-title"><i class="fas fa-calendar-check"></i> Rotations — This Week</span>
+                                <span class="db-cc-title"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12C4 16.4 7.6 20 12 20C16.4 20 20 16.4 20 12C20 7.6 16.4 4 12 4"/><path d="M8 4H12V8"/></svg> Rotations — This Week</span>
                                 <button class="db-cc-link" @click="switchView('resident_rotations')">All rotations <i class="fas fa-arrow-right"></i></button>
                             </div>
                             <template v-if="rotations.filter(r => (r.rotation_status==='active'||r.rotation_status==='scheduled') && new Date(r.end_date||r.start_date) >= new Date() && new Date(r.end_date||r.start_date) <= new Date(Date.now()+7*86400000)).length > 0">
@@ -813,7 +813,7 @@
                     </nav>
                     <div class="card mb-6">
                         <div class="card-header">
-                            <div class="card-title"><i class="fas fa-stethoscope"></i> Medical Staff</div>
+                            <div class="card-title"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 4C7 4 5 4 5 7V13C5 17 9 19 12 19C15 19 19 17 19 13"/><circle cx="19" cy="11" r="2"/><path d="M5 9H9"/></svg> Medical Staff</div>
                             <div class="header-actions" style="display:flex;gap:12px;align-items:center">
                                 <div class="view-toggle">
                                     <button class="btn-pill" :class="{ active: staffView === 'table' }" @click="staffView = 'table'">
@@ -1056,7 +1056,7 @@
                 <div v-if="currentView === 'oncall_schedule'">
                     <div class="card mb-6">
                         <div class="card-header">
-                            <div class="card-title"><i class="fas fa-phone-medical"></i> On-call Schedule</div>
+                            <div class="card-title"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.8A9 9 0 1111.2 3C11.2 3 9 7.5 12 11C15 14.5 21 12.8 21 12.8Z"/></svg> On-call Schedule</div>
                             <div class="header-actions" style="display: flex; gap: 12px; align-items: center;">
                                 <div class="view-toggle">
                                     <button class="btn-pill" :class="{ active: onCallView === 'compact' }" 
@@ -1333,7 +1333,7 @@
                                 <!-- Resident identity -->
                                 <div class="rot-who">
                                     <div class="rot-who-avatar">
-                                        <i class="fas fa-user-graduate"></i>
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg>
                                     </div>
                                     <div class="rot-who-info">
                                         <span class="rot-who-name">{{ resident.full_name }}</span>
@@ -1465,7 +1465,7 @@
                                 <!-- Resident rows -->
                                 <template v-for="resident in residentsWithRotations" :key="resident.id">
                                     <div class="mv-name-cell">
-                                        <div class="mv-resident-icon"><i class="fas fa-user-graduate"></i></div>
+                                        <div class="mv-resident-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg></div>
                                         <div class="mv-resident-text">
                                             <div class="mv-resident-name">{{ resident.full_name }}</div>
                                             <div class="mv-resident-year">{{ formatTrainingYear(resident.training_year) || 'PGY-?' }}</div>
@@ -1627,7 +1627,7 @@
                             <div class="card-title"><i class="fas fa-hospital-user"></i> Clinical Units</div>
                             <div style="display:flex;gap:8px;align-items:center">
                                 <button class="btn btn-ghost uop-trigger-btn" @click="occupancyPanel.show = true" title="View units availability at a glance">
-                                    <i class="fas fa-layer-group"></i> Units Occupancy
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7L12 12L22 7L12 2Z"/><path d="M2 17L12 22L22 17"/><path d="M2 12L12 17L22 12"/></svg> Units Occupancy
                                 </button>
                                 <button class="btn btn-primary" @click="showAddTrainingUnitModal" v-if="hasPermission('training_units', 'create')"><i class="fas fa-plus"></i> Add Unit</button>
                             </div>
@@ -1819,7 +1819,7 @@
                                 <!-- Actions -->
                                 <div class="tuc-actions">
                                     <button class="tuc-btn tuc-btn--ghost" @click="viewUnitResidents(unit)" title="View residents">
-                                        <i class="fas fa-user-graduate"></i>
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg>
                                         <span>Residents</span>
                                         <span v-if="getUnitActiveRotationCount(unit.id) > 0" class="tuc-count-badge">{{ getUnitActiveRotationCount(unit.id) }}</span>
                                     </button>
@@ -2037,7 +2037,7 @@
                     <!-- Tab bar + contextual action button — no redundant title needed -->
                     <div class="rhub-tabs">
                         <button class="rhub-tab" :class="{ 'rhub-tab--active': researchHubTab === 'lines' }" @click="researchHubTab = 'lines'">
-                            <i class="fas fa-flask"></i>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg>
                             <span>Lines</span>
                             <span class="rhub-tab-count">{{ researchLines.length }}</span>
                         </button>
@@ -2058,7 +2058,7 @@
                         </button>
                         <!-- Context pill when a line filter is active -->
                         <div v-if="trialFilters.line" class="rhub-context-pill" style="margin-left:8px;align-self:center">
-                            <i class="fas fa-flask"></i>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg>
                             <span>{{ getResearchLineName(trialFilters.line) }}</span>
                             <button @click="trialFilters.line = ''; projectFilters.research_line_id = ''" class="rhub-ctx-clear"><i class="fas fa-times"></i></button>
                         </div>
@@ -2147,7 +2147,7 @@
                                     </div>
                                 </div>
                                 <div v-if="filteredResearchLines.length === 0" class="rp-nav-empty">
-                                    <i class="fas fa-flask"></i>
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg>
                                     <span>No lines found</span>
                                 </div>
                             </div>
@@ -2291,7 +2291,7 @@
                             <!-- RIGHT: empty state when no line selected -->
                             <div class="rp-detail rp-detail--empty" v-else>
                                 <div class="rp-detail-empty-inner">
-                                    <div class="rp-detail-empty-icon"><i class="fas fa-flask"></i></div>
+                                    <div class="rp-detail-empty-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg></div>
                                     <div class="rp-detail-empty-title">Select a research line</div>
                                     <div class="rp-detail-empty-sub">Click any line on the left to explore its trials, projects and team</div>
                                     <button class="btn btn-primary btn-sm" @click="showAddResearchLineModal" v-if="hasPermission('research_lines','create')" style="margin-top:16px">
@@ -2426,7 +2426,7 @@
                                 </div>
                                 <p class="inno-card-description" v-if="project.description">{{ project.description }}</p>
                                 <div class="inno-meta-row">
-                                    <span class="inno-line-badge"><i class="fas fa-flask"></i> {{ getResearchLineName(project.research_line_id) }}</span>
+                                    <span class="inno-line-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg> {{ getResearchLineName(project.research_line_id) }}</span>
                                     <span v-if="project.funding_status && project.funding_status !== 'not_applicable'" class="inno-funding-badge" :class="'inno-funding--' + project.funding_status">
                                         <i class="fas" :class="{ 'fa-search-dollar': project.funding_status==='seeking', 'fa-file-alt': project.funding_status==='applied', 'fa-check-circle': project.funding_status==='funded' }"></i>
                                         {{ { seeking: 'Seeking Funding', applied: 'Applied', funded: 'Funded' }[project.funding_status] }}
@@ -2523,7 +2523,7 @@
                                 </div>
                                 <!-- Lines overview -->
                                 <div class="rha-lines-overview" v-if="researchDashboard.researchLines?.length">
-                                    <div class="rha-chart-title" style="padding:0 0 10px"><i class="fas fa-flask"></i> Research Lines Overview</div>
+                                    <div class="rha-chart-title" style="padding:0 0 10px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg> Research Lines Overview</div>
                                     <div class="rha-lines-table">
                                         <div class="rha-lt-header">
                                             <span>Line</span><span>Name</span><span>Coordinator</span><span>Trials</span><span>Projects</span><span>Status</span>
@@ -2813,20 +2813,13 @@
 
                     <!-- ── HERO HEADER ── -->
                     <div class="pd-hero">
-                        <button class="pd-close" @click="staffProfileModal.show = false" title="Close">
-                            <i class="fas fa-times"></i>
-                        </button>
+                        <button class="pd-close" @click="staffProfileModal.show = false" title="Close"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg></button>
 
-                        <!-- Avatar icon -->
+                        <!-- Avatar initials -->
                         <div class="pd-avatar-block">
-                            <div class="pd-avatar">
-                                <i class="fas" :class="{
-                                    'fa-user-md':       staffProfileModal.staff.staff_type === 'attending_physician',
-                                    'fa-user-graduate': staffProfileModal.staff.staff_type === 'medical_resident',
-                                    'fa-stethoscope':   staffProfileModal.staff.staff_type === 'fellow',
-                                    'fa-heartbeat':     staffProfileModal.staff.staff_type === 'nurse_practitioner',
-                                    'fa-user-tie':      !['attending_physician','medical_resident','fellow','nurse_practitioner'].includes(staffProfileModal.staff.staff_type)
-                                }"></i>
+                            <div class="pd-avatar"
+                                 :class="{'pd-avatar--resident': isResidentType(staffProfileModal.staff.staff_type)}"
+                                 :data-initials="staffProfileModal.staff.full_name ? staffProfileModal.staff.full_name.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase() : '?'">
                             </div>
                             <div class="pd-status-dot" :class="'dot--' + staffProfileModal.staff.employment_status"
                                  :title="formatEmploymentStatus(staffProfileModal.staff.employment_status)"></div>
@@ -2839,41 +2832,68 @@
                         <!-- Compact meta chips -->
                         <div class="pd-hero-meta">
                             <span class="pd-hero-chip" v-if="getDepartmentName(staffProfileModal.staff.department_id)">
-                                <i class="fas fa-hospital-alt"></i>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21"/></svg>
                                 {{ getDepartmentName(staffProfileModal.staff.department_id) }}
                             </span>
                             <span class="pd-hero-chip" v-if="staffProfileModal.staff.specialization">
-                                <i class="fas fa-stethoscope"></i>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 4C7 4 5 4 5 7V13C5 17 9 19 12 19C15 19 19 17 19 13"/><circle cx="19" cy="11" r="2"/><path d="M5 9H9"/></svg>
                                 {{ formatSpecialization(staffProfileModal.staff.specialization) }}
                             </span>
                             <span class="pd-hero-chip" v-if="isResidentType(staffProfileModal.staff.staff_type) && staffProfileModal.staff.training_year">
-                                <i class="fas fa-layer-group"></i>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7L12 12L22 7L12 2Z"/><path d="M2 17L12 22L22 17"/><path d="M2 12L12 17L22 12"/></svg>
                                 {{ formatTrainingYear(staffProfileModal.staff.training_year) }}
                             </span>
                         </div>
                     </div>
 
                     <!-- Edit button -->
+                    <!-- Stats strip -->
+                    <div class="pd-stats-strip">
+                        <!-- Attending: active trials + residents supervised -->
+                        <template v-if="!isResidentType(staffProfileModal.staff.staff_type)">
+                            <div class="pd-stat">
+                                <div class="pd-stat-n pd-stat-n--teal">{{ staffProfileModal.staff.is_research_coordinator ? researchOps?.researchLines?.filter(l=>l.coordinator_id===staffProfileModal.staff.id).length || 0 : getResearchForStaff(staffProfileModal.staff.id).length }}</div>
+                                <div class="pd-stat-l">Trials</div>
+                            </div>
+                            <div class="pd-stat">
+                                <div class="pd-stat-n">{{ trainingUnits.filter(u=>u.supervisor_id===staffProfileModal.staff.id).length }}</div>
+                                <div class="pd-stat-l">Supervising</div>
+                            </div>
+                        </template>
+                        <!-- Resident: active + completed rotations -->
+                        <template v-else>
+                            <div class="pd-stat">
+                                <div class="pd-stat-n pd-stat-n--teal">{{ rotations.filter(r=>r.resident_id===staffProfileModal.staff.id && r.rotation_status==='active').length }}</div>
+                                <div class="pd-stat-l">Active rot.</div>
+                            </div>
+                            <div class="pd-stat">
+                                <div class="pd-stat-n">{{ rotations.filter(r=>r.resident_id===staffProfileModal.staff.id && r.rotation_status==='completed').length }}</div>
+                                <div class="pd-stat-l">Completed</div>
+                            </div>
+                        </template>
+                    </div>
+
                     <button v-if="hasPermission('medical_staff','update')"
                             class="pd-edit-btn"
                             @click="editMedicalStaff(staffProfileModal.staff)">
-                        <i class="fas fa-pen"></i> Edit Profile
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/><path d="M14 6L18 10"/></svg>
+                        Edit Profile
                     </button>
 
                     <div class="pd-body">
                         <!-- Credentials -->
                         <div class="pd-section" :class="{ 'pd-section--collapsed': staffProfileModal.collapsed?.credentials }">
-                            <button class="pd-section-head" @click="toggleProfileSection('credentials')">
-                                <span class="pd-section-icon"><i class="fas fa-id-card"></i></span>
+                            <div class="pd-section-head">
+                                <span class="pd-section-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M13 10H18"/></svg></span>
                                 <span class="pd-section-title">Credentials</span>
-                                <i class="fas fa-chevron-down pd-section-chevron"></i>
-                            </button>
+                                
+                            </div>
                             <div class="pd-section-body">
                                 <div class="pd-row"
                                      v-if="!isResidentType(staffProfileModal.staff.staff_type) && trainingUnits.find(u => u.supervisor_id === staffProfileModal.staff.id)">
                                     <span class="pd-row-key">Primary Unit</span>
                                     <span class="pd-row-val" style="color:var(--blue)">
-                                        <i class="fas fa-clinic-medical" style="font-size:13px;margin-right:3px"></i>
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:3px"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21M12 8V11M10.5 9.5H13.5"/></svg>
                                         {{ trainingUnits.find(u => u.supervisor_id === staffProfileModal.staff.id)?.unit_name }}
                                     </span>
                                 </div>
@@ -2886,11 +2906,11 @@
 
                         <!-- Resident info (conditional) -->
                         <div v-if="isResidentType(staffProfileModal.staff.staff_type)" class="pd-section" :class="{ 'pd-section--collapsed': staffProfileModal.collapsed?.resident }">
-                            <button class="pd-section-head" @click="toggleProfileSection('resident')">
-                                <span class="pd-section-icon"><i class="fas fa-user-graduate"></i></span>
+                            <div class="pd-section-head">
+                                <span class="pd-section-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg></span>
                                 <span class="pd-section-title">Resident Info</span>
-                                <i class="fas fa-chevron-down pd-section-chevron"></i>
-                            </button>
+                                
+                            </div>
                             <div class="pd-section-body">
                                 <div class="pd-row">
                                     <span class="pd-row-key">Category</span>
@@ -2905,35 +2925,50 @@
                                         <span v-else class="pd-row-na">—</span>
                                     </span>
                                 </div>
-                                <div class="pd-row" v-if="staffProfileModal.staff.resident_category === 'rotating_other_dept'">
-                                    <span class="pd-row-key">Home Dept</span>
-                                    <span class="pd-row-val">{{ getDepartmentName(staffProfileModal.staff.home_department_id) || staffProfileModal.staff.home_department || '—' }}</span>
+                                <!-- Origin department for rotating residents -->
+                                <div v-if="staffProfileModal.staff.resident_category === 'rotating_other_dept'" class="pd-origin-block" style="margin-top:6px;">
+                                    <div class="pd-origin-name">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="1.5" stroke-linecap="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21"/></svg>
+                                        {{ getDepartmentName(staffProfileModal.staff.home_department_id) || staffProfileModal.staff.home_department || '—' }}
+                                    </div>
+                                    <div class="pd-origin-contact" v-if="staffProfileModal.staff.external_contact_name">{{ staffProfileModal.staff.external_contact_name }}<template v-if="staffProfileModal.staff.external_contact_phone"> · {{ staffProfileModal.staff.external_contact_phone }}</template></div>
                                 </div>
-                                <template v-if="staffProfileModal.staff.resident_category === 'external_resident'">
-                                    <div class="pd-row"><span class="pd-row-key">Institution</span><span class="pd-row-val">{{ staffProfileModal.staff.external_institution || '—' }}</span></div>
-                                </template>
-                            </div>
+                                <!-- External institution -->
+                                <div v-if="staffProfileModal.staff.resident_category === 'external_resident'" class="pd-origin-block" style="margin-top:6px;background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.15);">
+                                    <div class="pd-origin-name">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M2 12H22M12 2C12 2 8 7 8 12C8 17 12 22 12 22M12 2C12 2 16 7 16 12C16 17 12 22 12 22"/></svg>
+                                        {{ staffProfileModal.staff.external_institution || '—' }}
+                                    </div>
+                                    <div class="pd-origin-contact" style="color:rgba(245,158,11,.45);" v-if="staffProfileModal.staff.external_contact_name">{{ staffProfileModal.staff.external_contact_name }}<template v-if="staffProfileModal.staff.external_contact_email"> · {{ staffProfileModal.staff.external_contact_email }}</template></div>
+                                </div>
+                                    <!-- Residency period -->
+                                <div class="pd-dates-block" style="margin-top:8px;" v-if="staffProfileModal.staff.residency_start_date">
+                                    <div class="pd-date-kv"><div class="pd-date-k">From</div><div class="pd-date-v">{{ formatDate(staffProfileModal.staff.residency_start_date) }}</div></div>
+                                    <div class="pd-date-arrow">→</div>
+                                    <div class="pd-date-kv" style="text-align:right"><div class="pd-date-k">Until</div><div class="pd-date-v">{{ formatDate(staffProfileModal.staff.residency_end_date_calc) || '—' }}</div></div>
+                                </div>
+                        </div>
                         </div>
 
                         <!-- Research Capabilities -->
                         <div v-if="staffProfileModal.staff.can_be_pi || staffProfileModal.staff.can_be_coi || staffProfileModal.staff.can_supervise_residents"
                              class="pd-section" :class="{ 'pd-section--collapsed': staffProfileModal.collapsed?.capabilities }">
-                            <button class="pd-section-head" @click="toggleProfileSection('capabilities')">
-                                <span class="pd-section-icon"><i class="fas fa-flask"></i></span>
+                            <div class="pd-section-head">
+                                <span class="pd-section-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg></span>
                                 <span class="pd-section-title">Research</span>
-                                <i class="fas fa-chevron-down pd-section-chevron"></i>
-                            </button>
+                                
+                            </div>
                             <div class="pd-section-body">
                                 <div v-if="staffProfileModal.staff.can_be_pi" class="pd-capability-row">
-                                    <span class="pd-cap-icon pd-cap-icon--pi"><i class="fas fa-crown"></i></span>
+                                    <span class="pd-cap-icon pd-cap-icon--pi"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20H22M3 9L8 14L12 5L16 14L21 9L19 20H5L3 9Z"/></svg></span>
                                     <span class="pd-cap-label">Principal Investigator</span>
                                 </div>
                                 <div v-if="staffProfileModal.staff.can_be_coi" class="pd-capability-row">
-                                    <span class="pd-cap-icon pd-cap-icon--coi"><i class="fas fa-user-friends"></i></span>
+                                    <span class="pd-cap-icon pd-cap-icon--coi"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 19C3 16 5.7 14 9 14C12.3 14 15 16 15 19"/></svg></span>
                                     <span class="pd-cap-label">Co-Investigator</span>
                                 </div>
                                 <div v-if="staffProfileModal.staff.can_supervise_residents" class="pd-capability-row">
-                                    <span class="pd-cap-icon pd-cap-icon--sup"><i class="fas fa-chalkboard-teacher"></i></span>
+                                    <span class="pd-cap-icon pd-cap-icon--sup"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21H16M12 17V21"/></svg></span>
                                     <span class="pd-cap-label">Resident Supervisor</span>
                                 </div>
                             </div>
@@ -2941,11 +2976,11 @@
 
                         <!-- Dept. Roles -->
                         <div v-if="getStaffRoles(staffProfileModal.staff).length > 0" class="pd-section" :class="{ 'pd-section--collapsed': staffProfileModal.collapsed?.roles }">
-                            <button class="pd-section-head" @click="toggleProfileSection('roles')">
-                                <span class="pd-section-icon"><i class="fas fa-user-tag"></i></span>
+                            <div class="pd-section-head">
+                                <span class="pd-section-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M4 19C4 16.2 6.2 14 9 14"/><path d="M15 11L21 11M15 15H19M15 19H17"/></svg></span>
                                 <span class="pd-section-title">Dept. Roles</span>
-                                <i class="fas fa-chevron-down pd-section-chevron"></i>
-                            </button>
+                                
+                            </div>
                             <div class="pd-section-body">
                                 <div v-for="role in getStaffRoles(staffProfileModal.staff)" :key="role.key" class="pd-role-item">
                                     <i :class="['fas', role.icon]" :style="{ color: role.color }"></i>
@@ -2957,21 +2992,21 @@
                         <!-- Contact — always visible, no collapse -->
                         <div class="pd-section">
                             <div class="pd-section-head" style="cursor:default">
-                                <span class="pd-section-icon"><i class="fas fa-at"></i></span>
+                                <span class="pd-section-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M16 12V14C16 15.1 16.9 16 18 16C19.1 16 20 15.1 20 14V12C20 7.6 16.4 4 12 4C7.6 4 4 7.6 4 12C4 16.4 7.6 20 12 20H16"/></svg></span>
                                 <span class="pd-section-title">Contact</span>
                             </div>
                             <div class="pd-section-body">
                                 <a :href="staffProfileModal.staff?.professional_email ? 'mailto:' + staffProfileModal.staff.professional_email : '#'"
                                    class="pd-contact-row" :class="{ 'pd-contact-row--disabled': !staffProfileModal.staff?.professional_email }">
-                                    <i class="fas fa-envelope"></i>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 9L12 15L21 9"/></svg>
                                     <span>{{ staffProfileModal.staff.professional_email || 'No email' }}</span>
                                 </a>
                                 <div class="pd-contact-row" :class="{ 'pd-contact-row--disabled': !staffProfileModal.staff.mobile_phone }">
-                                    <i class="fas fa-phone"></i>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 4H10L12 9L9.5 10.5C10.5 12.6 11.4 13.5 13.5 14.5L15 12L20 14V18C20 18 18 21 14 20C10 19 5 14 4 10C3 6 6 4 6 4Z"/></svg>
                                     <span>{{ formatPhone(staffProfileModal.staff.mobile_phone) || 'No phone' }}</span>
                                 </div>
                                 <div class="pd-contact-row" v-if="staffProfileModal.staff.office_phone" >
-                                    <i class="fas fa-building"></i>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V5H19V21M9 21V16H15V21M9 9H10M14 9H15M9 13H10M14 13H15"/></svg>
                                     <span>{{ staffProfileModal.staff.office_phone }}</span>
                                 </div>
                             </div>
@@ -2996,17 +3031,17 @@
                     <!-- Tab bar -->
                     <div class="pd-tabs">
                         <button class="pd-tab" :class="{ active: staffProfileModal.activeTab === 'activity' }" @click="staffProfileModal.activeTab = 'activity'">
-                            <i class="fas fa-pulse"></i> Activity
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 12H7L9 6L13 18L15 12H21"/></svg> Activity
                         </button>
                         <button class="pd-tab" :class="{ active: staffProfileModal.activeTab === 'rotations' }" @click="staffProfileModal.activeTab = 'rotations'"
                                 v-if="isResidentType(staffProfileModal.staff?.staff_type)">
-                            <i class="fas fa-calendar-check"></i> Rotations
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12C4 16.4 7.6 20 12 20C16.4 20 20 16.4 20 12C20 7.6 16.4 4 12 4"/><path d="M8 4H12V8"/></svg> Rotations
                         </button>
                         <button class="pd-tab" :class="{ active: staffProfileModal.activeTab === 'research' }" @click="staffProfileModal.activeTab = 'research'" v-if="hasPermission('analytics', 'read')">
-                            <i class="fas fa-flask"></i> Research
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg> Research
                         </button>
                         <button class="pd-tab" :class="{ active: staffProfileModal.activeTab === 'supervision' }" @click="staffProfileModal.activeTab = 'supervision'" v-if="staffProfileModal.staff.staff_type === 'attending_physician'">
-                            <i class="fas fa-users"></i> Supervision
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 19C3 16 5.7 14 9 14C12.3 14 15 16 15 19M17 14C18.7 14 20.5 15 21 17"/></svg> Supervision
                         </button>
                         <div class="pd-tabs-spacer"></div>
                         <!-- Contextual actions — right side of tab bar -->
@@ -3014,17 +3049,17 @@
                             <button v-if="hasPermission('resident_rotations','create') && isResidentType(staffProfileModal.staff.staff_type)"
                                     class="pd-tab-action-btn"
                                     @click="staffProfileModal.show = false; showAddRotationModal(staffProfileModal.staff)">
-                                <i class="fas fa-calendar-check"></i> Add Rotation
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12C4 16.4 7.6 20 12 20C16.4 20 20 16.4 20 12C20 7.6 16.4 4 12 4"/><path d="M8 4H12V8"/></svg> Add Rotation
                             </button>
                             <button v-if="hasPermission('oncall_schedule','create')"
                                     class="pd-tab-action-btn"
                                     @click="staffProfileModal.show = false; showAddOnCallModal(staffProfileModal.staff)">
-                                <i class="fas fa-phone-alt"></i> On-call
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.8A9 9 0 1111.2 3C11.2 3 9 7.5 12 11C15 14.5 21 12.8 21 12.8Z"/></svg> On-call
                             </button>
                             <button v-if="hasPermission('staff_absence','create')"
                                     class="pd-tab-action-btn"
                                     @click="staffProfileModal.show = false; showAddAbsenceModal(staffProfileModal.staff)">
-                                <i class="fas fa-user-clock"></i> Absence
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10H21M8 3V7M16 3V7M10 14L14 18M14 14L10 18"/></svg> Absence
                             </button>
                         </div>
                     </div>
@@ -3035,7 +3070,7 @@
                         <!-- Current Rotation (residents only) -->
                         <div v-if="isResidentType(staffProfileModal.staff.staff_type)" class="pd-card">
                             <div class="pd-card-head">
-                                <span class="pd-card-icon pd-card-icon--blue"><i class="fas fa-clinic-medical"></i></span>
+                                <span class="pd-card-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21M12 8V11M10.5 9.5H13.5"/></svg></span>
                                 <span class="pd-card-title">Current Rotation</span>
                                 <span v-if="getCurrentRotationForStaff(staffProfileModal.staff.id)" class="pd-badge pd-badge--ok">Active</span>
                                 <span v-else class="pd-badge pd-badge--neutral">None</span>
@@ -3049,20 +3084,20 @@
                                     <div class="pd-kv"><span class="pd-kv-k">Supervisor</span><span class="pd-kv-v">{{ getCurrentRotationSupervisor(staffProfileModal.staff.id) }}</span></div>
                                 </div>
                             </template>
-                            <div v-else class="pd-nil"><i class="fas fa-info-circle"></i> No active rotation assigned</div>
+                            <div v-else class="pd-nil"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8V12M12 16H12.01"/></svg> No active rotation assigned</div>
                         </div>
 
                         <!-- On-call + Leave — merged smart card -->
                         <div class="pd-card" v-if="getUpcomingOnCall(staffProfileModal.staff.id).length > 0 || isOnCallToday(staffProfileModal.staff.id) || getUpcomingLeave(staffProfileModal.staff.id).length > 0 || staffProfileModal.staff.employment_status === 'on_leave'">
                             <div class="pd-card-head">
-                                <span class="pd-card-icon pd-card-icon--amber"><i class="fas fa-calendar-week"></i></span>
+                                <span class="pd-card-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10H21M8 3V7M16 3V7"/></svg></span>
                                 <span class="pd-card-title">Schedule</span>
                                 <span v-if="isOnCallToday(staffProfileModal.staff.id)" class="pd-badge pd-badge--danger">On Call Today</span>
                                 <span v-if="staffProfileModal.staff.employment_status === 'on_leave'" class="pd-badge pd-badge--warn">On Leave</span>
                             </div>
                             <div class="pd-schedule-grid">
                                 <div class="pd-schedule-col" v-if="getUpcomingOnCall(staffProfileModal.staff.id).length > 0 || isOnCallToday(staffProfileModal.staff.id)">
-                                    <div class="pd-schedule-label"><i class="fas fa-phone-medical"></i> On-Call Shifts</div>
+                                    <div class="pd-schedule-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.8A9 9 0 1111.2 3C11.2 3 9 7.5 12 11C15 14.5 21 12.8 21 12.8Z"/></svg> On-Call Shifts</div>
                                     <div v-for="shift in getUpcomingOnCall(staffProfileModal.staff.id).slice(0, 4)" :key="shift.id" class="pd-shift-row">
                                         <span class="pd-shift-date">{{ formatDate(shift.duty_date) }}</span>
                                         <span class="pd-shift-time">{{ shift.start_time }}–{{ shift.end_time }}</span>
@@ -3071,7 +3106,7 @@
                                     <div v-if="getUpcomingOnCall(staffProfileModal.staff.id).length > 4" class="pd-more">+{{ getUpcomingOnCall(staffProfileModal.staff.id).length - 4 }} more</div>
                                 </div>
                                 <div class="pd-schedule-col" v-if="getUpcomingLeave(staffProfileModal.staff.id).length > 0">
-                                    <div class="pd-schedule-label"><i class="fas fa-plane-departure"></i> Upcoming Leave</div>
+                                    <div class="pd-schedule-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10L4 4L7 10L4 16L20 10Z"/></svg> Upcoming Leave</div>
                                     <div v-for="leave in getUpcomingLeave(staffProfileModal.staff.id).slice(0, 4)" :key="leave.id" class="pd-shift-row">
                                         <span class="pd-shift-date">{{ formatDate(leave.start_date) }}</span>
                                         <span class="pd-shift-time">→ {{ formatDate(leave.end_date) }}</span>
@@ -3083,14 +3118,14 @@
 
                         <!-- All clear row when nothing scheduled -->
                         <div class="pd-clear-row" v-if="!getUpcomingOnCall(staffProfileModal.staff.id).length && !isOnCallToday(staffProfileModal.staff.id) && !getUpcomingLeave(staffProfileModal.staff.id).length && staffProfileModal.staff.employment_status !== 'on_leave'">
-                            <i class="fas fa-check-circle"></i>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17L4 12"/></svg>
                             <span>No upcoming on-call shifts or leave</span>
                         </div>
 
                         <!-- Rotation History (residents only) -->
                         <div v-if="isResidentType(staffProfileModal.staff.staff_type)" class="pd-card">
                             <div class="pd-card-head">
-                                <span class="pd-card-icon pd-card-icon--purple"><i class="fas fa-history"></i></span>
+                                <span class="pd-card-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3,#6b7280)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8V12L15 15"/></svg></span>
                                 <span class="pd-card-title">Rotation History</span>
                                 <span class="pd-badge pd-badge--neutral">{{ getRotationHistory(staffProfileModal.staff.id).length }} completed</span>
                             </div>
@@ -3156,7 +3191,7 @@
 
                             <!-- FIX 16: Coordinator banner — shown when staff manages research lines -->
                             <div v-if="staffProfileModal.researchProfile.isCoordinator" class="research-coordinator-banner">
-                                <div class="rcb-icon"><i class="fas fa-crown"></i></div>
+                                <div class="rcb-icon"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20H22M3 9L8 14L12 5L16 14L21 9L19 20H5L3 9Z"/></svg></div>
                                 <div class="rcb-body">
                                     <div class="rcb-title">Research Coordinator</div>
                                     <div class="rcb-lines">
@@ -3196,7 +3231,7 @@
                             <!-- FIX 2+17: Research Lines with multi-role badges -->
                             <div v-if="staffProfileModal.researchProfile.allResearchLines?.length" class="pd-card">
                                 <div class="pd-card-head">
-                                    <span class="pd-card-icon pd-card-icon--blue"><i class="fas fa-flask"></i></span>
+                                    <span class="pd-card-icon pd-card-icon--blue"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg></span>
                                     <span class="pd-card-title">Research Lines</span>
                                     <span class="pd-badge pd-badge--blue">{{ (staffProfileModal.researchProfile?.allResearchLines || []).length }}</span>
                                 </div>
@@ -3249,7 +3284,7 @@
 
                         </template>
                         <div v-else class="pd-empty">
-                            <div class="pd-empty-icon"><i class="fas fa-flask"></i></div>
+                            <div class="pd-empty-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg></div>
                             <div class="pd-empty-title">No Research Activity</div>
                             <div class="pd-empty-sub">This clinician has no active research involvement</div>
                         </div>
@@ -3277,12 +3312,12 @@
                             </div>
                             <div v-if="staffProfileModal.supervisionData.current?.length" class="pd-card">
                                 <div class="pd-card-head">
-                                    <span class="pd-card-icon pd-card-icon--ok"><i class="fas fa-user-graduate"></i></span>
+                                    <span class="pd-card-icon pd-card-icon--ok"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg></span>
                                     <span class="pd-card-title">Currently Supervising</span>
                                     <span class="pd-badge pd-badge--ok">{{ (staffProfileModal.supervisionData?.current || []).length }}</span>
                                 </div>
                                 <div v-for="resident in staffProfileModal.supervisionData.current" :key="resident.id" class="pd-resident-row">
-                                    <div class="pd-resident-avatar"><i class="fas fa-user-graduate"></i></div>
+                                    <div class="pd-resident-avatar"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg></div>
                                     <div class="pd-resident-info">
                                         <span class="pd-resident-name">{{ resident.residentName }}</span>
                                         <span class="pd-resident-unit">
@@ -3320,7 +3355,7 @@
             <!-- Tab bar + action -->
             <div class="rhub-tabs">
                 <button class="rhub-tab" :class="{ 'rhub-tab--active': newsFilters.status === '' }" @click="newsFilters.status = ''">
-                    <i class="fas fa-layer-group"></i> All
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7L12 12L22 7L12 2Z"/><path d="M2 17L12 22L22 17"/><path d="M2 12L12 17L22 12"/></svg> All
                     <span class="rhub-tab-count">{{ filteredNews.length }}</span>
                 </button>
                 <button class="rhub-tab" :class="{ 'rhub-tab--active': newsFilters.status === 'published' }" @click="newsFilters.status = 'published'">
@@ -3402,7 +3437,7 @@
                                 <i class="fas fa-user-md"></i> {{ newsAuthorName(post.author_id) }}
                             </span>
                             <span v-if="post.research_line_id" class="news-meta-item news-meta-line">
-                                <i class="fas fa-flask"></i> {{ newsLineName(post.research_line_id) }}
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg> {{ newsLineName(post.research_line_id) }}
                             </span>
                             <span class="news-meta-item">
                                 <i class="fas fa-calendar-alt"></i>
@@ -3636,7 +3671,7 @@
                         <input type="date" class="form-control" v-model="newsModal.form.expires_at"
                                :min="new Date().toISOString().split('T')[0]">
                         <p style="font-size:12px;color:var(--text-4);margin-top:4px;">
-                            <i class="fas fa-info-circle"></i>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8V12M12 16H12.01"/></svg>
                             Leave blank to apply the default automatically on publish. Set a date to override.
                         </p>
                     </div>
@@ -3806,7 +3841,7 @@
                 </div>
                 <div class="modal-body" v-if="activationModal.selectedRotation">
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> {{ activationModal.selectedRotation.message }}
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8V12M12 16H12.01"/></svg> {{ activationModal.selectedRotation.message }}
                     </div>
                     <div class="rotation-preview">
                         <div class="preview-header">
@@ -3879,7 +3914,7 @@
                     <div class="modal-tabs">
                         <button class="modal-tab" :class="{ active: medicalStaffModal.activeTab === 'basic' }" @click="medicalStaffModal.activeTab = 'basic'"><i class="fas fa-user"></i> Basic</button>
                         <button class="modal-tab" :class="{ active: medicalStaffModal.activeTab === 'professional' }" @click="medicalStaffModal.activeTab = 'professional'"><i class="fas fa-graduation-cap"></i> Professional</button>
-                        <button class="modal-tab" :class="{ active: medicalStaffModal.activeTab === 'roles' }" @click="medicalStaffModal.activeTab = 'roles'"><i class="fas fa-user-tag"></i> Department Roles</button>
+                        <button class="modal-tab" :class="{ active: medicalStaffModal.activeTab === 'roles' }" @click="medicalStaffModal.activeTab = 'roles'"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M4 19C4 16.2 6.2 14 9 14"/><path d="M15 11L21 11M15 15H19M15 19H17"/></svg> Department Roles</button>
                     </div>
 
                     <!-- Basic Tab -->
@@ -3929,7 +3964,7 @@
                                         </button>
                                     </div>
                                     <div style="font-size:13px;opacity:.5;margin-top:6px">
-                                        <i class="fas fa-info-circle"></i>
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8V12M12 16H12.01"/></svg>
                                         The type key is auto-generated. You can rename or adjust it later in System Settings.
                                     </div>
                                 </div>
@@ -4249,13 +4284,13 @@
 
                     <!-- Roles Tab -->
                     <div v-if="medicalStaffModal.activeTab === 'roles'" class="mt-6">
-                        <div class="roles-info-box mb-4"><i class="fas fa-info-circle"></i><span>Fixed positions - one person per role</span></div>
+                        <div class="roles-info-box mb-4"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8V12M12 16H12.01"/></svg><span>Fixed positions - one person per role</span></div>
                         <div v-if="!medicalStaff || medicalStaff.length === 0" class="text-center py-6">
                             <i class="fas fa-spinner fa-spin mb-2"></i><p class="text-sm text-gray-400">Loading staff...</p>
                         </div>
                         <template v-else>
                             <div class="role-assignment-card">
-                                <div class="role-header"><i class="fas fa-crown"></i><h4>Chief of Department</h4>
+                                <div class="role-header"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20H22M3 9L8 14L12 5L16 14L21 9L19 20H5L3 9Z"/></svg><h4>Chief of Department</h4>
                                     <span class="role-badge" :class="getCurrentRoleHolder('chief_of_department')?.id === medicalStaffModal.form.id ? 'role-current' : ''">{{ getCurrentRoleHolder('chief_of_department') ? 'Assigned' : 'Available' }}</span>
                                 </div>
                                 <div class="role-current-holder" v-if="getCurrentRoleHolder('chief_of_department')">
@@ -4274,7 +4309,7 @@
                                 </div>
                             </div>
                             <div class="role-assignment-card">
-                                <div class="role-header"><i class="fas fa-flask"></i><h4>Research Coordinator</h4>
+                                <div class="role-header"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg><h4>Research Coordinator</h4>
                                     <span class="role-badge" :class="getCurrentRoleHolder('research_coordinator')?.id === medicalStaffModal.form.id ? 'role-current' : ''">{{ getCurrentRoleHolder('research_coordinator') ? 'Assigned' : 'Available' }}</span>
                                 </div>
                                 <div class="role-current-holder" v-if="getCurrentRoleHolder('research_coordinator')">
@@ -4293,7 +4328,7 @@
                                 </div>
                             </div>
                             <div class="role-assignment-card">
-                                <div class="role-header"><i class="fas fa-user-graduate"></i><h4>Resident Manager</h4>
+                                <div class="role-header"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg><h4>Resident Manager</h4>
                                     <span class="role-badge" :class="getCurrentRoleHolder('resident_manager')?.id === medicalStaffModal.form.id ? 'role-current' : ''">{{ getCurrentRoleHolder('resident_manager') ? 'Assigned' : 'Available' }}</span>
                                 </div>
                                 <div class="role-current-holder" v-if="getCurrentRoleHolder('resident_manager')">
@@ -4347,7 +4382,7 @@
         <div v-if="onCallModal.show" class="modal-overlay">
             <div class="modal-container">
                 <div class="modal-header">
-                    <div class="modal-title"><i class="fas fa-phone-medical"></i>{{ onCallModal.mode === 'add' ? 'Schedule On-call' : 'Edit On-call' }}</div>
+                    <div class="modal-title"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.8A9 9 0 1111.2 3C11.2 3 9 7.5 12 11C15 14.5 21 12.8 21 12.8Z"/></svg>{{ onCallModal.mode === 'add' ? 'Schedule On-call' : 'Edit On-call' }}</div>
                     <button class="modal-close" @click="onCallModal.show = false"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
@@ -4490,11 +4525,11 @@
                 <!-- Data fields -->
                 <div class="rds-fields">
                     <div class="rds-field">
-                        <span class="rds-field-key"><i class="fas fa-hospital-alt"></i> Training Unit</span>
+                        <span class="rds-field-key"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21"/></svg> Training Unit</span>
                         <span class="rds-field-val">{{ rotationViewModal.rotation.unitName }}</span>
                     </div>
                     <div class="rds-field">
-                        <span class="rds-field-key"><i class="fas fa-user-graduate"></i> Resident</span>
+                        <span class="rds-field-key"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg> Resident</span>
                         <span class="rds-field-val">{{ rotationViewModal.rotation.residentName }}</span>
                     </div>
                     <div class="rds-field">
@@ -4520,7 +4555,7 @@
                                 <a v-if="medicalStaff.find(s => s.id === rotationViewModal.rotation.resident_id)?.external_contact_email"
                                    :href="'mailto:' + medicalStaff.find(s => s.id === rotationViewModal.rotation.resident_id).external_contact_email"
                                    class="rds-mail-link" title="Email contact">
-                                    <i class="fas fa-envelope"></i>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 9L12 15L21 9"/></svg>
                                 </a>
                             </span>
                         </div>
@@ -4578,15 +4613,15 @@
                             <!-- Friendly explanation based on dates -->
                             <p class="rot-status-hint" v-if="rotationModal.form.start_date && rotationModal.form.end_date">
                                 <template v-if="rotationModal.form.rotation_status === 'active'">
-                                    <i class="fas fa-info-circle"></i>
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8V12M12 16H12.01"/></svg>
                                     Set to <strong>Active</strong> — start date is today, the resident begins this rotation now.
                                 </template>
                                 <template v-else-if="rotationModal.form.rotation_status === 'scheduled'">
-                                    <i class="fas fa-info-circle"></i>
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8V12M12 16H12.01"/></svg>
                                     Set to <strong>Scheduled</strong> — start date is in the future. Will automatically become Active on {{ rotationModal.form.start_date }}.
                                 </template>
                                 <template v-else-if="rotationModal.form.rotation_status === 'completed'">
-                                    <i class="fas fa-info-circle"></i>
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8V12M12 16H12.01"/></svg>
                                     Set to <strong>Completed</strong> — end date has already passed.
                                 </template>
                             </p>
@@ -4843,7 +4878,7 @@
 
                     <!-- Archive confirmation -->
                     <div v-if="absenceResolutionModal.action === 'archive'" class="arm-archive-notice" style="margin-top:16px">
-                        <i class="fas fa-info-circle"></i>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8V12M12 16H12.01"/></svg>
                         <span>The record will be marked as <strong>cancelled</strong> and removed from the active list. It is permanently retained in the audit log and cannot be deleted.</span>
                     </div>
 
@@ -4929,7 +4964,7 @@
                             <label class="form-label">Reason *</label>
                             <div class="reason-grid">
                                 <label class="reason-option" :class="{ 'reason-selected': absenceModal.form.absence_reason === 'vacation' }"><input type="radio" v-model="absenceModal.form.absence_reason" value="vacation" class="hidden"><div><i class="fas fa-umbrella-beach"></i><span>Vacation</span></div></label>
-                                <label class="reason-option" :class="{ 'reason-selected': absenceModal.form.absence_reason === 'conference' }"><input type="radio" v-model="absenceModal.form.absence_reason" value="conference" class="hidden"><div><i class="fas fa-chalkboard-teacher"></i><span>Conference</span></div></label>
+                                <label class="reason-option" :class="{ 'reason-selected': absenceModal.form.absence_reason === 'conference' }"><input type="radio" v-model="absenceModal.form.absence_reason" value="conference" class="hidden"><div><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21H16M12 17V21"/></svg><span>Conference</span></div></label>
                                 <label class="reason-option" :class="{ 'reason-selected': absenceModal.form.absence_reason === 'sick_leave' }"><input type="radio" v-model="absenceModal.form.absence_reason" value="sick_leave" class="hidden"><div><i class="fas fa-heartbeat"></i><span>Sick Leave</span></div></label>
                                 <label class="reason-option" :class="{ 'reason-selected': absenceModal.form.absence_reason === 'training' }"><input type="radio" v-model="absenceModal.form.absence_reason" value="training" class="hidden"><div><i class="fas fa-graduation-cap"></i><span>Training</span></div></label>
                                 <label class="reason-option" :class="{ 'reason-selected': absenceModal.form.absence_reason === 'personal' }"><input type="radio" v-model="absenceModal.form.absence_reason" value="personal" class="hidden"><div><i class="fas fa-home"></i><span>Personal</span></div></label>
@@ -5194,7 +5229,7 @@
                     <button v-if="userProfileModal.form.linked_staff_id"
                             class="btn btn-ghost" style="font-size:12px;color:var(--blue);margin-right:auto"
                             @click="saveUserProfile">
-                        <i class="fas fa-id-card"></i> View clinical profile
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M13 10H18"/></svg> View clinical profile
                     </button>
                     <button class="btn btn-primary" @click="saveUserProfile" :disabled="saving">
                         <i class="fas fa-save" :class="{ 'fa-spinner fa-spin': saving }"></i>
@@ -5220,7 +5255,7 @@
                 <div class="modal-body modal-confirm-body">
                     <p class="confirm-message">{{ confirmationModal.message }}</p>
                     <div v-if="confirmationModal.details" class="confirm-details-block">
-                        <i class="fas fa-info-circle"></i>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8V12M12 16H12.01"/></svg>
                         <span>{{ confirmationModal.details }}</span>
                     </div>
                     <!-- Destructive action warning -->
@@ -5350,7 +5385,7 @@
                              @click="{ const _s = medicalStaff.find(s => s.id === rotation.resident_id); if (_s) viewStaffDetails(_s); }"
                              title="View profile">
                             <div class="urm-avatar" :class="'role-icon--medical_resident'">
-                                <i class="fas fa-user-graduate"></i>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg>
                             </div>
                             <div class="urm-info">
                                 <div class="urm-name">{{ getResidentName(rotation.resident_id) }}</div>
@@ -5375,7 +5410,7 @@
                                         {{ medicalStaff.find(s=>s.id===rotation.resident_id).external_contact_name }}
                                         <a v-if="medicalStaff.find(s=>s.id===rotation.resident_id).external_contact_email"
                                            :href="'mailto:' + medicalStaff.find(s=>s.id===rotation.resident_id).external_contact_email"
-                                           @click.stop style="color:inherit"><i class="fas fa-envelope"></i></a>
+                                           @click.stop style="color:inherit"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 9L12 15L21 9"/></svg></a>
                                     </span>
                                 </div>
                             </div>
@@ -5393,7 +5428,7 @@
                         </div>
                     </div>
                     <div class="unit-empty" v-else>
-                        <i class="fas fa-user-graduate"></i>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg>
                         <h5>No residents assigned</h5>
                         <p>No active or scheduled rotations in this unit</p>
                     </div>
@@ -5463,14 +5498,14 @@
             <div class="modal-container">
                 <div class="modal-header">
                     <div class="modal-title">
-                        <i class="fas fa-flask"></i>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg>
                         {{ researchLineModal.mode === 'add' ? 'Add Research Line' : 'Edit Research Line' }}
                     </div>
                     <button class="modal-close" @click="researchLineModal.show = false"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
                     <div v-if="researchLineModal.mode === 'edit'" class="modal-edit-context">
-                        <i class="fas fa-flask"></i>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg>
                         <span>Editing: <strong>{{ researchLineModal.form.research_line_name || researchLineModal.form.name }}</strong></span>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
@@ -5903,7 +5938,7 @@
                                 </span>
                                 <span><span class="rsm-role-badge rsm-role--neutral">{{ rot.role }}</span></span>
                                 <span class="rsm-cell-note" v-if="rot.role === 'resident'">
-                                    <i class="fas fa-info-circle"></i> Resident reassignment requires manual update
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8V12M12 16H12.01"/></svg> Resident reassignment requires manual update
                                 </span>
                                 <span v-if="rot.role === 'supervisor'">
                                     <select class="rsm-select"
@@ -5948,7 +5983,7 @@
                     </div>
 
                     <div class="rsm-notice">
-                        <i class="fas fa-info-circle"></i>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8V12M12 16H12.01"/></svg>
                         Historical records (completed rotations, past on-call, past absences) are retained unchanged for audit purposes.
                         Leaving a slot unassigned will mark it as open coverage.
                     </div>
@@ -5972,7 +6007,7 @@
         <div v-if="deptReassignModal.show" class="modal-overlay">
             <div class="modal-container rsm-container">
                 <div class="modal-header">
-                    <div class="modal-title"><i class="fas fa-building"></i> Deactivate Department</div>
+                    <div class="modal-title"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V5H19V21M9 21V16H15V21M9 9H10M14 9H15M9 13H10M14 13H15"/></svg> Deactivate Department</div>
                     <button class="modal-close" @click="deptReassignModal.show = false"><i class="fas fa-times"></i></button>
                 </div>
 
@@ -6013,7 +6048,7 @@
                     <!-- Active Clinical Units Reassignment -->
                     <div v-if="deptReassignModal.impact.activeUnits.length" class="rsm-section">
                         <div class="rsm-section-header">
-                            <i class="fas fa-layer-group"></i> Clinical Units
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7L12 12L22 7L12 2Z"/><path d="M2 17L12 22L22 17"/><path d="M2 12L12 17L22 12"/></svg> Clinical Units
                             <span class="rsm-count">{{ deptReassignModal.impact.activeUnits.length }}</span>
                         </div>
                         <div class="rsm-row rsm-row-header">
@@ -6066,7 +6101,7 @@
                                 'status-suspended':  trialDetailModal.trial.status === 'Suspendido'
                               }">{{ formatTrialStatus(trialDetailModal.trial.status) }}</span>
                         <span class="tdm-meta-sep">·</span>
-                        <span class="tdm-line"><i class="fas fa-flask"></i> {{ getResearchLineName(trialDetailModal.trial.research_line_id) }}</span>
+                        <span class="tdm-line"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg> {{ getResearchLineName(trialDetailModal.trial.research_line_id) }}</span>
                         <span class="tdm-meta-sep" v-if="trialDetailModal.trial.start_date">·</span>
                         <span class="tdm-dates" v-if="trialDetailModal.trial.start_date">
                             <i class="fas fa-calendar-alt"></i>
@@ -6166,9 +6201,9 @@
 
                             <!-- Contact -->
                             <div class="tdm-section" v-if="trialDetailModal.trial.contact_email">
-                                <div class="tdm-section-label"><i class="fas fa-envelope"></i> Contacto</div>
+                                <div class="tdm-section-label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 9L12 15L21 9"/></svg> Contacto</div>
                                 <a :href="'mailto:' + trialDetailModal.trial.contact_email" class="tdm-contact-link">
-                                    <i class="fas fa-envelope"></i> {{ trialDetailModal.trial.contact_email }}
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 9L12 15L21 9"/></svg> {{ trialDetailModal.trial.contact_email }}
                                 </a>
                             </div>
                         </div>
@@ -6247,7 +6282,7 @@
                                     <div class="dp-staff-meta">
                                         {{ s.staff_type }}
                                         <span v-if="s.can_supervise_residents" class="dp-sup-badge">
-                                            <i class="fas fa-chalkboard-teacher"></i> Supervisor
+                                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21H16M12 17V21"/></svg> Supervisor
                                         </span>
                                     </div>
                                 </div>
@@ -6267,7 +6302,7 @@
                         <!-- Residents -->
                         <div class="dp-section">
                             <div class="dp-section-head">
-                                <span class="dp-section-title"><i class="fas fa-user-graduate"></i> Residents</span>
+                                <span class="dp-section-title"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg> Residents</span>
                                 <div style="display:flex;gap:5px;align-items:center">
                                     <span class="dp-section-count">{{ deptPanelResidents.length }}</span>
                                     <button class="dp-action-btn" v-if="hasPermission('medical_staff','create')"
@@ -6396,7 +6431,7 @@
             <div class="uop-panel" :class="{ 'uop-panel--open': occupancyPanel.show }">
                 <div class="uop-header">
                     <div class="uop-header-left">
-                        <div class="uop-header-icon"><i class="fas fa-layer-group"></i></div>
+                        <div class="uop-header-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7L12 12L22 7L12 2Z"/><path d="M2 17L12 22L22 17"/><path d="M2 12L12 17L22 12"/></svg></div>
                         <div>
                             <div class="uop-title">Units Occupancy</div>
                             <div class="uop-subtitle">{{ (occupancyPanelUnits || []).filter(u => u.occ.status === 'free').length }} available now · {{ (occupancyPanelUnits || []).filter(u => u.occ.status === 'closing').length }} closing soon</div>
@@ -6521,7 +6556,7 @@
                     </div>
                 </div>
                 <div class="udd-section">
-                    <div class="udd-section-label"><i class="fas fa-user-graduate"></i> Active &amp; Scheduled Rotations</div>
+                    <div class="udd-section-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg> Active &amp; Scheduled Rotations</div>
                     <div class="udd-rot-list">
                         <div v-for="rot in getUnitRotations(unitDetailDrawer.unit.id)" :key="rot.id" class="udd-rot-row">
                             <div class="udd-rot-avatar">{{ getResidentShortName(rot.resident_id).split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase() }}</div>
