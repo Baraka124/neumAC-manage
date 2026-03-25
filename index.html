@@ -3887,578 +3887,522 @@
 
         <!-- ============ ADD/EDIT MEDICAL STAFF MODAL ============ -->
         <div v-if="medicalStaffModal.show" class="modal-overlay">
-            <div class="modal-container modal-wide">
+            <div class="sm-modal">
 
-                <!-- ── Header ── -->
-                <div class="modal-header" style="background:#07172e;border-radius:var(--r-xl) var(--r-xl) 0 0;border-bottom:0.5px solid rgba(255,255,255,.07);">
-                    <div class="modal-title" style="color:#fff;gap:10px;">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00B3B3" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                            <circle cx="8.5" cy="7" r="4"/>
-                            <path v-if="medicalStaffModal.mode==='add'" d="M20 8v6M23 11h-6"/>
-                            <path v-else d="M20 8L18 10M22 4L20 8L16 6"/>
-                        </svg>
-                        {{ medicalStaffModal.mode === 'add' ? 'New Staff Member' : 'Edit Staff Record' }}
-                        <span v-if="medicalStaffModal.mode==='edit'" class="modal-title-badge" style="background:rgba(0,179,179,.15);color:#00B3B3;">{{ formatStaffType(medicalStaffModal.form.staff_type) }}</span>
+                <!-- ══ LEFT: IDENTITY PREVIEW PANEL ══ -->
+                <div class="sm-left">
+
+                    <!-- Live preview -->
+                    <div class="sm-preview">
+                        <div class="sm-preview-avatar"
+                             :class="{
+                                 'sm-preview-avatar--attending': medicalStaffModal.form.full_name && !isResidentType(medicalStaffModal.form.staff_type),
+                                 'sm-preview-avatar--resident':  medicalStaffModal.form.full_name && isResidentType(medicalStaffModal.form.staff_type),
+                                 'sm-preview-avatar--empty':     !medicalStaffModal.form.full_name
+                             }">
+                            <span v-if="medicalStaffModal.form.full_name">
+                                {{ medicalStaffModal.form.full_name.split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                            </span>
+                            <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </div>
+                        <div class="sm-preview-name" :class="{'sm-preview-name--empty': !medicalStaffModal.form.full_name}">
+                            {{ medicalStaffModal.form.full_name || 'Full name…' }}
+                        </div>
+                        <div class="sm-preview-role" v-if="medicalStaffModal.form.staff_type">
+                            {{ formatStaffType(medicalStaffModal.form.staff_type) }}
+                        </div>
+                        <div class="sm-preview-chips" v-if="medicalStaffModal.form.staff_type">
+                            <span v-if="!isResidentType(medicalStaffModal.form.staff_type)" class="sm-preview-chip">Pulmonology</span>
+                            <span v-if="isResidentType(medicalStaffModal.form.staff_type) && medicalStaffModal.form.resident_category"
+                                  class="sm-preview-chip sm-preview-chip--resident">
+                                {{ medicalStaffModal.form.resident_category === 'department_internal' ? 'Internal' : medicalStaffModal.form.resident_category === 'rotating_other_dept' ? 'Rotating' : 'External' }}
+                            </span>
+                            <span v-if="isResidentType(medicalStaffModal.form.staff_type) && (medicalStaffModal.form.residency_year_calc || medicalStaffModal.form.training_year || medicalStaffModal.form.residency_year_override)"
+                                  class="sm-preview-chip">
+                                {{ medicalStaffModal.form.residency_year_override || medicalStaffModal.form.residency_year_calc || medicalStaffModal.form.training_year }}
+                            </span>
+                        </div>
                     </div>
-                    <button class="modal-close" @click="medicalStaffModal.show = false" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1);color:rgba(255,255,255,.5);">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg>
-                    </button>
+
+                    <!-- Vertical step nav -->
+                    <div class="sm-step-nav">
+                        <!-- Step 1 -->
+                        <div class="sm-step-item"
+                             :class="{ active: medicalStaffModal.activeTab==='basic', done: ['professional','roles'].includes(medicalStaffModal.activeTab) }"
+                             @click="medicalStaffModal.activeTab='basic'">
+                            <div class="sm-step-num">
+                                <svg v-if="['professional','roles'].includes(medicalStaffModal.activeTab)" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17L4 12"/></svg>
+                                <span v-else>1</span>
+                            </div>
+                            <div class="sm-step-info">
+                                <div class="sm-step-label">Identity</div>
+                                <div class="sm-step-hint">Name · type · contact</div>
+                            </div>
+                        </div>
+                        <div class="sm-step-connector" :class="{ done: ['professional','roles'].includes(medicalStaffModal.activeTab) }"></div>
+
+                        <!-- Step 2 -->
+                        <div class="sm-step-item"
+                             :class="{ active: medicalStaffModal.activeTab==='professional', done: medicalStaffModal.activeTab==='roles' }"
+                             @click="medicalStaffModal.activeTab='professional'">
+                            <div class="sm-step-num">
+                                <svg v-if="medicalStaffModal.activeTab==='roles'" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17L4 12"/></svg>
+                                <span v-else>2</span>
+                            </div>
+                            <div class="sm-step-info">
+                                <div class="sm-step-label">Professional</div>
+                                <div class="sm-step-hint">{{ isResidentType(medicalStaffModal.form.staff_type) ? 'Degree · residency' : 'Degree · capabilities' }}</div>
+                            </div>
+                        </div>
+                        <div class="sm-step-connector" :class="{ done: medicalStaffModal.activeTab==='roles' }"></div>
+
+                        <!-- Step 3 -->
+                        <div class="sm-step-item"
+                             :class="{ active: medicalStaffModal.activeTab==='roles' }"
+                             @click="medicalStaffModal.activeTab='roles'">
+                            <div class="sm-step-num">3</div>
+                            <div class="sm-step-info">
+                                <div class="sm-step-label">Roles</div>
+                                <div class="sm-step-hint">Department positions</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sm-req-note">
+                        <div class="sm-req-dot"></div>
+                        Required fields
+                    </div>
                 </div>
 
-                <!-- ── Edit context banner ── -->
-                <div v-if="medicalStaffModal.mode === 'edit'" class="modal-edit-context">
-                    <div class="mec-icon" :class="'role-icon--' + medicalStaffModal.form.staff_type">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                            <circle cx="9" cy="7" r="4"/>
-                        </svg>
-                    </div>
-                    <div class="mec-info">
-                        <div class="mec-name">{{ medicalStaffModal.form.full_name }}</div>
-                        <div class="mec-meta">{{ formatStaffType(medicalStaffModal.form.staff_type) }}
-                            <span class="mec-sep">·</span>
-                            <span class="status-indicator" :class="'status-' + medicalStaffModal.form.employment_status">{{ formatEmploymentStatus(medicalStaffModal.form.employment_status) }}</span>
+                <!-- ══ RIGHT: FORM PANEL ══ -->
+                <div class="sm-right">
+
+                    <!-- Header -->
+                    <div class="sm-form-header">
+                        <div class="sm-form-title">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="8.5" cy="7" r="4"/>
+                                <path v-if="medicalStaffModal.mode==='add'" d="M20 8v6M23 11h-6"/>
+                                <path v-else d="M20 8L18 10M22 4L20 8L16 6"/>
+                            </svg>
+                            {{ medicalStaffModal.mode === 'add' ? 'New Staff Member' : 'Edit Staff Record' }}
+                            <span v-if="medicalStaffModal.mode==='edit' && medicalStaffModal.form.staff_type" class="modal-title-badge" style="background:rgba(0,179,179,.1);color:#00B3B3;">{{ formatStaffType(medicalStaffModal.form.staff_type) }}</span>
                         </div>
-                    </div>
-                    <button class="mec-delete-btn" v-if="hasPermission('medical_staff', 'delete')"
-                            @click="deleteMedicalStaff(medicalStaffModal.form); medicalStaffModal.show = false">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-                        Delete
-                    </button>
-                </div>
-
-                <!-- ── Step indicator (ADD mode only) ── -->
-                <div v-if="medicalStaffModal.mode === 'add'" class="sm-steps">
-                    <div class="sm-step" :class="{ active: medicalStaffModal.activeTab==='basic', done: ['professional','roles'].includes(medicalStaffModal.activeTab) }">
-                        <div class="sm-step-num">
-                            <svg v-if="['professional','roles'].includes(medicalStaffModal.activeTab)" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17L4 12"/></svg>
-                            <span v-else>1</span>
-                        </div>
-                        <span>Identity</span>
-                    </div>
-                    <div class="sm-step-line" :class="{ done: ['professional','roles'].includes(medicalStaffModal.activeTab) }"></div>
-                    <div class="sm-step" :class="{ active: medicalStaffModal.activeTab==='professional', done: medicalStaffModal.activeTab==='roles' }">
-                        <div class="sm-step-num">
-                            <svg v-if="medicalStaffModal.activeTab==='roles'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17L4 12"/></svg>
-                            <span v-else>2</span>
-                        </div>
-                        <span>Professional</span>
-                    </div>
-                    <div class="sm-step-line" :class="{ done: medicalStaffModal.activeTab==='roles' }"></div>
-                    <div class="sm-step" :class="{ active: medicalStaffModal.activeTab==='roles' }">
-                        <div class="sm-step-num">3</div>
-                        <span>Roles</span>
-                    </div>
-                </div>
-
-                <!-- ── Edit mode: tab bar ── -->
-                <div v-if="medicalStaffModal.mode === 'edit'" class="modal-tabs">
-                    <button class="modal-tab" :class="{ active: medicalStaffModal.activeTab === 'basic' }" @click="medicalStaffModal.activeTab = 'basic'">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                        Identity
-                    </button>
-                    <button class="modal-tab" :class="{ active: medicalStaffModal.activeTab === 'professional' }" @click="medicalStaffModal.activeTab = 'professional'">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg>
-                        Professional
-                    </button>
-                    <button class="modal-tab" :class="{ active: medicalStaffModal.activeTab === 'roles' }" @click="medicalStaffModal.activeTab = 'roles'">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M4 19C4 16.2 6.2 14 9 14"/><path d="M15 11L21 11M15 15H19M15 19H17"/></svg>
-                        Roles
-                    </button>
-                </div>
-
-                <div class="modal-body">
-
-                    <!-- ══ STEP 1 / TAB: IDENTITY ══ -->
-                    <div v-if="medicalStaffModal.activeTab === 'basic'" class="sm-section">
-
-                        <!-- Section label -->
-                        <div class="sm-section-title">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M13 10H18M13 14H16"/></svg>
-                            Basic information
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <!-- Full name -->
-                            <div class="form-group" :class="{ 'has-error': fieldErrors.staff?.full_name }">
-                                <label class="form-label">Full Name <span class="form-required">*</span></label>
-                                <input type="text" class="form-control" v-model="medicalStaffModal.form.full_name"
-                                       placeholder="Dr. / Dra. First Last"
-                                       @input="clearFieldError('staff', 'full_name')"
-                                       :class="{ 'is-invalid': fieldErrors.staff?.full_name }">
-                                <small v-if="fieldErrors.staff?.full_name" class="error-text">{{ fieldErrors.staff.full_name }}</small>
-                            </div>
-
-                            <!-- Staff type -->
-                            <div class="form-group">
-                                <label class="form-label">Staff Type <span class="form-required">*</span></label>
-                                <div style="display:flex;gap:8px;align-items:center">
-                                    <select class="form-select" v-model="medicalStaffModal.form.staff_type" required style="flex:1">
-                                        <option value="" disabled>Select a type…</option>
-                                        <option v-for="st in staffTypesList" :key="st.type_key" :value="st.type_key">{{ st.display_name }}</option>
-                                    </select>
-                                    <button type="button" class="btn btn-sm btn-outline" style="white-space:nowrap;flex-shrink:0"
-                                        @click="medicalStaffModal._addingStaffType = !medicalStaffModal._addingStaffType">
-                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path :d="medicalStaffModal._addingStaffType ? 'M7 7L17 17M17 7L7 17' : 'M12 5v14M5 12h14'"/></svg>
-                                        {{ medicalStaffModal._addingStaffType ? 'Cancel' : 'New type' }}
-                                    </button>
-                                </div>
-                                <div v-if="medicalStaffModal._addingStaffType" class="inline-add-hospital" style="margin-top:8px">
-                                    <div class="iah-label">Define new staff type</div>
-                                    <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:end">
-                                        <div class="form-group" style="margin:0">
-                                            <label class="form-label" style="font-size:13px">Display Name *</label>
-                                            <input type="text" class="form-control" v-model="medicalStaffModal._newStaffTypeName" placeholder="e.g. Biomedical Engineer" @keyup.enter="addStaffTypeInline()">
-                                        </div>
-                                        <div class="form-group" style="margin:0">
-                                            <label class="form-label" style="font-size:13px">Is trainee?</label>
-                                            <select class="form-select" v-model="medicalStaffModal._newStaffTypeIsResident" style="min-width:90px">
-                                                <option :value="false">No</option>
-                                                <option :value="true">Yes</option>
-                                            </select>
-                                        </div>
-                                        <button type="button" class="btn btn-primary btn-sm" style="height:36px;white-space:nowrap"
-                                            @click="addStaffTypeInline()" :disabled="medicalStaffModal._savingStaffType || !medicalStaffModal._newStaffTypeName?.trim()">
-                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-                                            {{ medicalStaffModal._savingStaffType ? 'Saving…' : 'Add & Select' }}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Email -->
-                            <div class="form-group" :class="{ 'has-error': fieldErrors.staff?.professional_email }">
-                                <label class="form-label">Professional Email <span class="form-required">*</span></label>
-                                <input type="email" class="form-control" v-model="medicalStaffModal.form.professional_email"
-                                       placeholder="name@sergas.es"
-                                       @input="clearFieldError('staff', 'professional_email')"
-                                       :class="{ 'is-invalid': fieldErrors.staff?.professional_email }">
-                                <small v-if="fieldErrors.staff?.professional_email" class="error-text">{{ fieldErrors.staff.professional_email }}</small>
-                            </div>
-
-                            <!-- Phone -->
-                            <div class="form-group">
-                                <label class="form-label">Mobile Phone</label>
-                                <input type="tel" class="form-control" v-model="medicalStaffModal.form.mobile_phone" placeholder="+34 600 000 000">
-                            </div>
-
-                            <!-- Status -->
-                            <div class="form-group">
-                                <label class="form-label">Employment Status</label>
-                                <select class="form-select" v-model="medicalStaffModal.form.employment_status">
-                                    <option value="active">Active</option>
-                                    <option value="on_leave">On Leave</option>
-                                    <option value="inactive">Inactive</option>
-                                </select>
-                            </div>
-
-                            <!-- License toggle -->
-                            <div class="form-group">
-                                <label class="form-label">Medical License</label>
-                                <label class="license-toggle">
-                                    <input type="checkbox" v-model="medicalStaffModal.form.has_medical_license">
-                                    <span class="license-toggle-track"><span class="license-toggle-thumb"></span></span>
-                                    <span class="license-toggle-label">{{ medicalStaffModal.form.has_medical_license ? 'Licensed' : 'Not licensed' }}</span>
-                                </label>
-                                <input v-if="medicalStaffModal.form.has_medical_license" type="text" class="form-control mt-2"
-                                       v-model="medicalStaffModal.form.medical_license" placeholder="License number">
-                            </div>
-                        </div>
-
-                        <!-- Resident category — appears immediately when resident type selected -->
-                        <div v-if="isResidentType(medicalStaffModal.form.staff_type)" class="sm-resident-block">
-                            <div class="sm-section-title" style="margin-bottom:12px;">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg>
-                                Resident category
-                            </div>
-                            <div class="resident-category-selector">
-                                <label class="category-option" :class="{ 'selected': medicalStaffModal.form.resident_category === 'department_internal' }">
-                                    <input type="radio" v-model="medicalStaffModal.form.resident_category" value="department_internal" class="hidden">
-                                    <div>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21"/></svg>
-                                        <span>Internal</span>
-                                    </div>
-                                    <small>Belongs to Pulmonology</small>
-                                </label>
-                                <label class="category-option" :class="{ 'selected': medicalStaffModal.form.resident_category === 'rotating_other_dept' }">
-                                    <input type="radio" v-model="medicalStaffModal.form.resident_category" value="rotating_other_dept" class="hidden">
-                                    <div>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12C4 16.4 7.6 20 12 20C16.4 20 20 16.4 20 12C20 7.6 16.4 4 12 4"/><path d="M8 4H12V8"/></svg>
-                                        <span>Rotating</span>
-                                    </div>
-                                    <small>From another dept at HUAC</small>
-                                </label>
-                                <label class="category-option" :class="{ 'selected': medicalStaffModal.form.resident_category === 'external_resident' }">
-                                    <input type="radio" v-model="medicalStaffModal.form.resident_category" value="external_resident" class="hidden">
-                                    <div>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M2 12H22M12 2C12 2 8 7 8 12C8 17 12 22 12 22M12 2C12 2 16 7 16 12C16 17 12 22 12 22"/></svg>
-                                        <span>External</span>
-                                    </div>
-                                    <small>From another institution</small>
-                                </label>
-                            </div>
-
-                            <!-- Rotating: home dept -->
-                            <div v-if="medicalStaffModal.form.resident_category === 'rotating_other_dept'" class="mt-3">
-                                <label class="form-label">Home Department <span class="form-hint">— where this resident is based</span></label>
-                                <select class="form-select" v-model="medicalStaffModal.form.home_department_id">
-                                    <option value="">Select department…</option>
-                                    <option v-for="d in departments" :key="d.id" :value="d.id">{{ d.name }}</option>
-                                </select>
-                            </div>
-
-                            <!-- External: institution + contacts -->
-                            <div v-if="medicalStaffModal.form.resident_category === 'external_resident'" class="mt-3 external-contact-block">
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div class="form-group">
-                                        <label class="form-label">External Institution</label>
-                                        <input type="text" class="form-control" v-model="medicalStaffModal.form.external_institution" placeholder="e.g. Hospital El Tajo, Madrid">
-                                    </div>
-                                    <div class="form-group" :class="{'has-error': fieldErrors.staff?.external_contact_name}">
-                                        <label class="form-label">Contact Person <span class="form-required">*</span></label>
-                                        <input type="text" class="form-control" v-model="medicalStaffModal.form.external_contact_name" placeholder="Tutor / coordinator name"
-                                               :class="{'is-invalid': fieldErrors.staff?.external_contact_name}">
-                                    </div>
-                                    <div class="form-group" :class="{'has-error': fieldErrors.staff?.external_contact_email}">
-                                        <label class="form-label">Contact Email <span class="form-required">*</span></label>
-                                        <input type="email" class="form-control" v-model="medicalStaffModal.form.external_contact_email" placeholder="contact@institution.es"
-                                               :class="{'is-invalid': fieldErrors.staff?.external_contact_email}">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Contact Phone</label>
-                                        <input type="tel" class="form-control" v-model="medicalStaffModal.form.external_contact_phone" placeholder="+34 …">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Hospital assignment -->
-                        <div class="sm-section-title" style="margin-top:8px;">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21M12 8V11M10.5 9.5H13.5"/></svg>
-                            Hospital assignment
-                        </div>
-                        <div class="hospital-network-strip">
-                            <label class="hns-option" :class="{ active: medicalStaffModal.form._networkHint === 'CHUAC' || hospitalsList.find(h=>h.id===medicalStaffModal.form.hospital_id)?.parent_complex === 'CHUAC' }">
-                                <input type="radio" name="hns" value="CHUAC" @change="medicalStaffModal.form._networkHint = 'CHUAC'; medicalStaffModal.form.hospital_id = null">
-                                <span class="hns-dot hns-dot--chuac"></span> CHUAC
-                                <small style="opacity:.5;font-size:12px;margin-left:2px">A Coruña complex</small>
-                            </label>
-                            <label class="hns-option" :class="{ active: medicalStaffModal.form._networkHint === 'SERGAS' || hospitalsList.find(h=>h.id===medicalStaffModal.form.hospital_id)?.parent_complex === 'SERGAS' }">
-                                <input type="radio" name="hns" value="SERGAS" @change="medicalStaffModal.form._networkHint = 'SERGAS'; medicalStaffModal.form.hospital_id = null">
-                                <span class="hns-dot hns-dot--sergas"></span> SERGAS
-                                <small style="opacity:.5;font-size:12px;margin-left:2px">Galician network</small>
-                            </label>
-                            <label class="hns-option" :class="{ active: medicalStaffModal.form._networkHint === 'external' || hospitalsList.find(h=>h.id===medicalStaffModal.form.hospital_id)?.parent_complex === 'external' }">
-                                <input type="radio" name="hns" value="external" @change="medicalStaffModal.form._networkHint = 'external'; medicalStaffModal.form.hospital_id = null">
-                                <span class="hns-dot hns-dot--external"></span> External
-                                <small style="opacity:.5;font-size:12px;margin-left:2px">Outside SERGAS</small>
-                            </label>
-                        </div>
-                        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
-                            <select class="form-select" v-model="medicalStaffModal.form.hospital_id" style="flex:1">
-                                <option :value="null">— select hospital —</option>
-                                <template v-if="medicalStaffModal.form._networkHint">
-                                    <option v-for="h in hospitalsList.filter(x=>x.parent_complex===medicalStaffModal.form._networkHint)" :key="h.id" :value="h.id">{{ h.name }}</option>
-                                </template>
-                                <template v-else>
-                                    <optgroup label="CHUAC"><option v-for="h in hospitalsList.filter(x=>x.parent_complex==='CHUAC')" :key="h.id" :value="h.id">{{ h.name }}</option></optgroup>
-                                    <optgroup label="SERGAS"><option v-for="h in hospitalsList.filter(x=>x.parent_complex==='SERGAS')" :key="h.id" :value="h.id">{{ h.name }}</option></optgroup>
-                                    <optgroup label="External"><option v-for="h in hospitalsList.filter(x=>x.parent_complex==='external')" :key="h.id" :value="h.id">{{ h.name }}</option></optgroup>
-                                </template>
-                            </select>
-                            <button type="button" class="btn btn-sm btn-outline" style="white-space:nowrap;flex-shrink:0"
-                                @click="medicalStaffModal._addingHospital = !medicalStaffModal._addingHospital">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path :d="medicalStaffModal._addingHospital ? 'M7 7L17 17M17 7L7 17' : 'M12 5v14M5 12h14'"/></svg>
-                                {{ medicalStaffModal._addingHospital ? 'Cancel' : 'Add new' }}
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <button v-if="medicalStaffModal.mode==='edit' && hasPermission('medical_staff','delete')"
+                                    class="btn btn-sm btn-secondary" style="font-size:.72rem;padding:4px 10px;"
+                                    @click="deleteMedicalStaff(medicalStaffModal.form); medicalStaffModal.show=false">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                                Delete
+                            </button>
+                            <button class="sm-form-close" @click="medicalStaffModal.show = false">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg>
                             </button>
                         </div>
-                        <div v-if="medicalStaffModal._addingHospital" class="inline-add-hospital">
-                            <div class="iah-label">Register new hospital</div>
-                            <div style="display:grid;grid-template-columns:1fr 140px auto;gap:8px;align-items:end">
-                                <div class="form-group" style="margin:0">
-                                    <label class="form-label" style="font-size:13px">Name *</label>
-                                    <input type="text" class="form-control" v-model="medicalStaffModal._newHospitalName" placeholder="e.g. Hospital Santa María">
-                                </div>
-                                <div class="form-group" style="margin:0">
-                                    <label class="form-label" style="font-size:13px">Network</label>
-                                    <select class="form-select" v-model="medicalStaffModal._newHospitalNetwork">
-                                        <option value="CHUAC">CHUAC</option>
-                                        <option value="SERGAS">SERGAS</option>
-                                        <option value="external">External</option>
-                                    </select>
-                                </div>
-                                <button type="button" class="btn btn-primary btn-sm" style="height:36px"
-                                    @click="addHospitalInline(medicalStaffModal._newHospitalName, medicalStaffModal._newHospitalNetwork).then(h => { if(h){ medicalStaffModal.form.hospital_id = h.id; medicalStaffModal.form._networkHint = h.parent_complex; medicalStaffModal._addingHospital = false; medicalStaffModal._newHospitalName = ''; } })">
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v13a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                                    Save
-                                </button>
-                            </div>
-                        </div>
-
                     </div>
 
-                    <!-- ══ STEP 2 / TAB: PROFESSIONAL ══ -->
-                    <div v-if="medicalStaffModal.activeTab === 'professional'" class="sm-section">
+                    <!-- Edit mode: tab bar -->
+                    <div v-if="medicalStaffModal.mode === 'edit'" class="sm-edit-tabs">
+                        <button class="sm-edit-tab" :class="{ active: medicalStaffModal.activeTab === 'basic' }" @click="medicalStaffModal.activeTab = 'basic'">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                            Identity
+                        </button>
+                        <button class="sm-edit-tab" :class="{ active: medicalStaffModal.activeTab === 'professional' }" @click="medicalStaffModal.activeTab = 'professional'">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg>
+                            Professional
+                        </button>
+                        <button class="sm-edit-tab" :class="{ active: medicalStaffModal.activeTab === 'roles' }" @click="medicalStaffModal.activeTab = 'roles'">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M4 19C4 16.2 6.2 14 9 14"/><path d="M15 11L21 11M15 15H19M15 19H17"/></svg>
+                            Roles
+                        </button>
+                    </div>
 
-                        <div class="sm-section-title">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg>
-                            Credentials & Qualifications
-                        </div>
+                    <!-- ── BODY ── -->
+                    <div class="sm-form-body">
 
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="form-group">
-                                <label class="form-label">Academic Degree</label>
-                                <select class="form-select"
-                                        :value="medicalStaffModal.form.academic_degree_id || medicalStaffModal.form.academic_degree"
-                                        @change="e => { const d = academicDegrees.find(x => x.id === e.target.value); if (d && d.id.includes('-')) { medicalStaffModal.form.academic_degree_id = d.id; medicalStaffModal.form.academic_degree = d.name } else { medicalStaffModal.form.academic_degree_id = null; medicalStaffModal.form.academic_degree = e.target.value } }">
-                                    <option value="">Select degree</option>
-                                    <option v-for="d in academicDegrees" :key="d.id" :value="d.id">{{ d.name }}{{ d.abbreviation ? ' (' + d.abbreviation + ')' : '' }}</option>
+                        <!-- ══ STEP 1: IDENTITY ══ -->
+                        <template v-if="medicalStaffModal.activeTab === 'basic'">
+                            <div class="sm-row">
+                                <div class="sm-field" :class="{ 'has-error': fieldErrors.staff?.full_name }">
+                                    <div class="sm-label">Full Name <span class="req">·</span></div>
+                                    <input class="sm-input" :class="{ filled: medicalStaffModal.form.full_name, 'is-invalid': fieldErrors.staff?.full_name }"
+                                           type="text" v-model="medicalStaffModal.form.full_name"
+                                           placeholder="Dr. / Dra. First Last"
+                                           @input="clearFieldError('staff','full_name')">
+                                    <small v-if="fieldErrors.staff?.full_name" class="error-text">{{ fieldErrors.staff.full_name }}</small>
+                                </div>
+                                <div class="sm-field">
+                                    <div class="sm-label">Staff Type <span class="req">·</span></div>
+                                    <div style="display:flex;gap:7px;align-items:center;">
+                                        <select class="sm-select" v-model="medicalStaffModal.form.staff_type" style="flex:1;">
+                                            <option value="" disabled>Select type…</option>
+                                            <option v-for="st in staffTypesList" :key="st.type_key" :value="st.type_key">{{ st.display_name }}</option>
+                                        </select>
+                                        <button type="button" class="btn btn-sm btn-outline" style="white-space:nowrap;flex-shrink:0;font-size:.7rem;padding:4px 8px;"
+                                                @click="medicalStaffModal._addingStaffType = !medicalStaffModal._addingStaffType">
+                                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path :d="medicalStaffModal._addingStaffType ? 'M7 7L17 17M17 7L7 17' : 'M12 5v14M5 12h14'"/></svg>
+                                        </button>
+                                    </div>
+                                    <div v-if="medicalStaffModal._addingStaffType" class="sm-inline-add">
+                                        <div class="sm-inline-add-label">New staff type</div>
+                                        <div style="display:grid;grid-template-columns:1fr auto auto;gap:7px;align-items:end;">
+                                            <div class="sm-field" style="margin:0;">
+                                                <div class="sm-label" style="font-size:.65rem;">Display Name *</div>
+                                                <input type="text" class="sm-input" v-model="medicalStaffModal._newStaffTypeName" placeholder="e.g. Biomedical Engineer" @keyup.enter="addStaffTypeInline()">
+                                            </div>
+                                            <div class="sm-field" style="margin:0;">
+                                                <div class="sm-label" style="font-size:.65rem;">Trainee?</div>
+                                                <select class="sm-select" v-model="medicalStaffModal._newStaffTypeIsResident" style="min-width:80px;">
+                                                    <option :value="false">No</option>
+                                                    <option :value="true">Yes</option>
+                                                </select>
+                                            </div>
+                                            <button type="button" class="sm-btn-next" style="height:34px;margin-top:18px;" @click="addStaffTypeInline()" :disabled="medicalStaffModal._savingStaffType || !medicalStaffModal._newStaffTypeName?.trim()">
+                                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                                                Add
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="sm-row">
+                                <div class="sm-field" :class="{ 'has-error': fieldErrors.staff?.professional_email }">
+                                    <div class="sm-label">Email <span class="req">·</span></div>
+                                    <input class="sm-input" :class="{ filled: medicalStaffModal.form.professional_email, 'is-invalid': fieldErrors.staff?.professional_email }"
+                                           type="email" v-model="medicalStaffModal.form.professional_email"
+                                           placeholder="name@sergas.es"
+                                           @input="clearFieldError('staff','professional_email')">
+                                    <small v-if="fieldErrors.staff?.professional_email" class="error-text">{{ fieldErrors.staff.professional_email }}</small>
+                                </div>
+                                <div class="sm-field">
+                                    <div class="sm-label">Mobile Phone</div>
+                                    <input class="sm-input" :class="{ filled: medicalStaffModal.form.mobile_phone }" type="tel" v-model="medicalStaffModal.form.mobile_phone" placeholder="+34 600 000 000">
+                                </div>
+                            </div>
+
+                            <div class="sm-row">
+                                <div class="sm-field">
+                                    <div class="sm-label">Employment Status</div>
+                                    <select class="sm-select" v-model="medicalStaffModal.form.employment_status">
+                                        <option value="active">Active</option>
+                                        <option value="on_leave">On Leave</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
+                                <div class="sm-field">
+                                    <div class="sm-label">Medical License</div>
+                                    <label class="license-toggle" style="margin-bottom:4px;">
+                                        <input type="checkbox" v-model="medicalStaffModal.form.has_medical_license">
+                                        <span class="license-toggle-track"><span class="license-toggle-thumb"></span></span>
+                                        <span class="license-toggle-label">{{ medicalStaffModal.form.has_medical_license ? 'Licensed' : 'No license' }}</span>
+                                    </label>
+                                    <input v-if="medicalStaffModal.form.has_medical_license" type="text" class="sm-input" v-model="medicalStaffModal.form.medical_license" placeholder="License number">
+                                </div>
+                            </div>
+
+                            <!-- Resident category — appears instantly when resident type selected -->
+                            <template v-if="isResidentType(medicalStaffModal.form.staff_type)">
+                                <div class="sm-divider">Resident category</div>
+                                <div class="sm-cat-grid">
+                                    <div class="sm-cat-card" :class="{ active: medicalStaffModal.form.resident_category === 'department_internal' }"
+                                         @click="medicalStaffModal.form.resident_category = 'department_internal'">
+                                        <div class="sm-cat-icon">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" :stroke="medicalStaffModal.form.resident_category==='department_internal' ? '#00B3B3' : 'var(--text-3,#6b7280)'" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21"/></svg>
+                                        </div>
+                                        <div class="sm-cat-name">Internal</div>
+                                        <div class="sm-cat-desc">Belongs to Pulmonology</div>
+                                    </div>
+                                    <div class="sm-cat-card" :class="{ active: medicalStaffModal.form.resident_category === 'rotating_other_dept' }"
+                                         @click="medicalStaffModal.form.resident_category = 'rotating_other_dept'">
+                                        <div class="sm-cat-icon">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" :stroke="medicalStaffModal.form.resident_category==='rotating_other_dept' ? '#00B3B3' : 'var(--text-3,#6b7280)'" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12C4 16.4 7.6 20 12 20C16.4 20 20 16.4 20 12C20 7.6 16.4 4 12 4"/><path d="M8 4H12V8"/></svg>
+                                        </div>
+                                        <div class="sm-cat-name">Rotating</div>
+                                        <div class="sm-cat-desc">From another dept · HUAC</div>
+                                    </div>
+                                    <div class="sm-cat-card" :class="{ active: medicalStaffModal.form.resident_category === 'external_resident' }"
+                                         @click="medicalStaffModal.form.resident_category = 'external_resident'">
+                                        <div class="sm-cat-icon">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" :stroke="medicalStaffModal.form.resident_category==='external_resident' ? '#00B3B3' : 'var(--text-3,#6b7280)'" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M2 12H22M12 2C12 2 8 7 8 12C8 17 12 22 12 22M12 2C12 2 16 7 16 12C16 17 12 22 12 22"/></svg>
+                                        </div>
+                                        <div class="sm-cat-name">External</div>
+                                        <div class="sm-cat-desc">From another institution</div>
+                                    </div>
+                                </div>
+
+                                <!-- Rotating: origin department -->
+                                <div v-if="medicalStaffModal.form.resident_category === 'rotating_other_dept'" class="sm-origin-block">
+                                    <div class="sm-field">
+                                        <div class="sm-label">Origin Department <span class="req">·</span></div>
+                                        <select class="sm-select" v-model="medicalStaffModal.form.home_department_id">
+                                            <option value="">Select department…</option>
+                                            <option v-for="d in departments" :key="d.id" :value="d.id">{{ d.name }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="sm-row">
+                                        <div class="sm-field">
+                                            <div class="sm-label">Contact Person</div>
+                                            <input type="text" class="sm-input" v-model="medicalStaffModal.form.external_contact_name" placeholder="Tutor / coordinator">
+                                        </div>
+                                        <div class="sm-field">
+                                            <div class="sm-label">Contact Phone</div>
+                                            <input type="tel" class="sm-input" v-model="medicalStaffModal.form.external_contact_phone" placeholder="+34 …">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- External: institution + contact -->
+                                <div v-if="medicalStaffModal.form.resident_category === 'external_resident'" class="sm-origin-block">
+                                    <div class="sm-field">
+                                        <div class="sm-label">Institution <span class="req">·</span></div>
+                                        <input type="text" class="sm-input" v-model="medicalStaffModal.form.external_institution" placeholder="e.g. Hospital El Tajo, Madrid">
+                                    </div>
+                                    <div class="sm-row">
+                                        <div class="sm-field" :class="{'has-error': fieldErrors.staff?.external_contact_name}">
+                                            <div class="sm-label">Contact Person <span class="req">·</span></div>
+                                            <input type="text" class="sm-input" v-model="medicalStaffModal.form.external_contact_name" placeholder="Full name" :class="{'is-invalid': fieldErrors.staff?.external_contact_name}">
+                                        </div>
+                                        <div class="sm-field" :class="{'has-error': fieldErrors.staff?.external_contact_email}">
+                                            <div class="sm-label">Contact Email <span class="req">·</span></div>
+                                            <input type="email" class="sm-input" v-model="medicalStaffModal.form.external_contact_email" placeholder="contact@institution.es" :class="{'is-invalid': fieldErrors.staff?.external_contact_email}">
+                                        </div>
+                                    </div>
+                                    <div class="sm-field">
+                                        <div class="sm-label">Contact Phone</div>
+                                        <input type="tel" class="sm-input" v-model="medicalStaffModal.form.external_contact_phone" placeholder="+34 …">
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Hospital -->
+                            <div class="sm-divider">Hospital</div>
+                            <div class="sm-network">
+                                <div class="sm-network-opt" :class="{ active: medicalStaffModal.form._networkHint === 'CHUAC' }"
+                                     @click="medicalStaffModal.form._networkHint = 'CHUAC'; medicalStaffModal.form.hospital_id = null">
+                                    CHUAC<small>A Coruña</small>
+                                </div>
+                                <div class="sm-network-opt" :class="{ active: medicalStaffModal.form._networkHint === 'SERGAS' }"
+                                     @click="medicalStaffModal.form._networkHint = 'SERGAS'; medicalStaffModal.form.hospital_id = null">
+                                    SERGAS<small>Galicia</small>
+                                </div>
+                                <div class="sm-network-opt" :class="{ active: medicalStaffModal.form._networkHint === 'external' }"
+                                     @click="medicalStaffModal.form._networkHint = 'external'; medicalStaffModal.form.hospital_id = null">
+                                    External<small>Outside SERGAS</small>
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:7px;align-items:center;">
+                                <select class="sm-select" v-model="medicalStaffModal.form.hospital_id" style="flex:1;">
+                                    <option :value="null">— select hospital —</option>
+                                    <template v-if="medicalStaffModal.form._networkHint">
+                                        <option v-for="h in hospitalsList.filter(x=>x.parent_complex===medicalStaffModal.form._networkHint)" :key="h.id" :value="h.id">{{ h.name }}</option>
+                                    </template>
+                                    <template v-else>
+                                        <optgroup label="CHUAC"><option v-for="h in hospitalsList.filter(x=>x.parent_complex==='CHUAC')" :key="h.id" :value="h.id">{{ h.name }}</option></optgroup>
+                                        <optgroup label="SERGAS"><option v-for="h in hospitalsList.filter(x=>x.parent_complex==='SERGAS')" :key="h.id" :value="h.id">{{ h.name }}</option></optgroup>
+                                        <optgroup label="External"><option v-for="h in hospitalsList.filter(x=>x.parent_complex==='external')" :key="h.id" :value="h.id">{{ h.name }}</option></optgroup>
+                                    </template>
                                 </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Specialization</label>
-                                <input type="text" class="form-control" v-model="medicalStaffModal.form.specialization" placeholder="e.g. Pulmonology, Thoracic Surgery">
-                            </div>
-
-                            <!-- Resident: residency period -->
-                            <div v-if="isResidentType(medicalStaffModal.form.staff_type)" class="form-group">
-                                <label class="form-label">
-                                    Residency Start
-                                    <span class="form-hint">— MIR programme start month</span>
-                                </label>
-                                <input type="month" class="form-control"
-                                       :value="medicalStaffModal.form.residency_start_date ? medicalStaffModal.form.residency_start_date.slice(0,7) : ''"
-                                       @change="e => medicalStaffModal.form.residency_start_date = e.target.value ? e.target.value + '-01' : null">
-                            </div>
-
-                            <div v-if="isResidentType(medicalStaffModal.form.staff_type)" class="form-group">
-                                <label class="form-label">
-                                    Resident Year
-                                    <span v-if="medicalStaffModal.form.residency_start_date && !medicalStaffModal.form.residency_year_override" class="form-hint form-hint--auto">— auto-calculated</span>
-                                    <span v-else-if="medicalStaffModal.form.residency_year_override" class="form-hint form-hint--override">— manually set</span>
-                                </label>
-                                <div v-if="medicalStaffModal.form.residency_start_date && !medicalStaffModal.form.residency_year_override" class="ryear-auto-row">
-                                    <span class="ryear-chip">{{ effectiveResidentYear(medicalStaffModal.form) || '—' }}</span>
-                                    <button type="button" class="ryear-override-btn" @click="medicalStaffModal.form.residency_year_override = Utils.effectiveResidentYear(medicalStaffModal.form) || 'R1'">
-                                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg>
-                                        Override
-                                    </button>
-                                </div>
-                                <div v-else class="ryear-auto-row">
-                                    <select class="form-select" v-model="medicalStaffModal.form.residency_year_override" style="flex:1">
-                                        <option value="">Select year…</option>
-                                        <option value="R1">R1</option>
-                                        <option value="R2">R2</option>
-                                        <option value="R3">R3</option>
-                                        <option value="R4">R4</option>
-                                        <option value="R4+">R4+</option>
-                                    </select>
-                                    <button v-if="medicalStaffModal.form.residency_start_date && medicalStaffModal.form.residency_year_override"
-                                            type="button" class="ryear-override-btn ryear-override-btn--clear"
-                                            @click="medicalStaffModal.form.residency_year_override = null">
-                                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg>
-                                    </button>
-                                </div>
-                                <div v-if="medicalStaffModal.form.residency_start_date" class="ryear-end-preview">
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10H21M8 3V7M16 3V7M9 15L11 17L15 13"/></svg>
-                                    Est. completion: {{ new Date(new Date(medicalStaffModal.form.residency_start_date).setMonth(new Date(medicalStaffModal.form.residency_start_date).getMonth() + 48)).toLocaleDateString('es-ES', {month:'long', year:'numeric'}) }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Research capabilities — attendings only -->
-                        <div v-if="!isResidentType(medicalStaffModal.form.staff_type)" class="sm-capabilities">
-                            <div class="sm-section-title" style="margin-bottom:12px;">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/><path d="M7.5 16H12"/></svg>
-                                Research capabilities
-                            </div>
-                            <div class="capabilities-grid">
-                                <label class="capability-check">
-                                    <input type="checkbox" v-model="medicalStaffModal.form.can_be_pi">
-                                    <span>Can be Principal Investigator (PI)</span>
-                                </label>
-                                <label class="capability-check">
-                                    <input type="checkbox" v-model="medicalStaffModal.form.can_be_coi">
-                                    <span>Can be Co-Investigator</span>
-                                </label>
-                                <label class="capability-check">
-                                    <input type="checkbox" v-model="medicalStaffModal.form.can_supervise_residents">
-                                    <span>Can supervise residents</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Certificates — edit mode only -->
-                        <div class="form-group col-span-2" v-if="medicalStaffModal.mode === 'edit'">
-                            <div class="sm-section-title" style="margin-bottom:10px;">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="5"/><path d="M9 15L8 21L12 19L16 21L15 15"/><path d="M10 9L11.5 11L15 8"/></svg>
-                                Clinical Certificates
-                            </div>
-                            <div v-if="medicalStaffModal.mode === 'edit' && medicalStaffModal.form.id" class="cert-list-inline">
-                                <div v-if="medicalStaffModal._certs && medicalStaffModal._certs.length > 0"
-                                     v-for="cert in medicalStaffModal._certs" :key="cert.id" class="cert-row-inline">
-                                    <span class="cert-row-dot" :class="cert.expiry_date && new Date(cert.expiry_date) < new Date() ? 'cert-dot--expired' : 'cert-dot--ok'"></span>
-                                    <span class="cert-row-name">{{ cert.certificate_name }}</span>
-                                    <span class="cert-row-dates" v-if="cert.expiry_date">exp. {{ new Date(cert.expiry_date).toLocaleDateString('es-ES', {month:'short', year:'numeric'}) }}</span>
-                                    <button type="button" class="cert-row-del" @click="deleteCertificate(cert)" title="Remove">
-                                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg>
-                                    </button>
-                                </div>
-                                <div v-else class="cert-empty">No certificates recorded yet</div>
-                                <div class="cert-add-row" v-if="medicalStaffModal._addingCert">
-                                    <input type="text" class="form-control cert-add-name" v-model="medicalStaffModal._newCert.name" placeholder="Certificate name (e.g. BLS, GCP ICH E6)">
-                                    <input type="month" class="form-control cert-add-date" v-model="medicalStaffModal._newCert.issued_month" title="Issue date">
-                                    <select class="form-select cert-add-renewal" v-model="medicalStaffModal._newCert.renewal_months">
-                                        <option :value="12">1 yr</option>
-                                        <option :value="24">2 yr</option>
-                                        <option :value="36">3 yr</option>
-                                        <option :value="60">5 yr</option>
-                                    </select>
-                                    <button type="button" class="btn-pill btn-pill-save" @click="saveCertificate()">Save</button>
-                                    <button type="button" class="btn-pill" @click="medicalStaffModal._addingCert = false">Cancel</button>
-                                </div>
-                                <button v-else type="button" class="cert-add-trigger"
-                                        @click="medicalStaffModal._addingCert = true; medicalStaffModal._newCert = { name:'', issued_month:'', renewal_months: 24 }">
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-                                    Add Certificate
+                                <button type="button" class="btn btn-sm btn-outline" style="white-space:nowrap;flex-shrink:0;font-size:.7rem;padding:4px 8px;"
+                                    @click="medicalStaffModal._addingHospital = !medicalStaffModal._addingHospital">
+                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path :d="medicalStaffModal._addingHospital ? 'M7 7L17 17M17 7L7 17' : 'M12 5v14M5 12h14'"/></svg>
                                 </button>
                             </div>
-                            <div v-else class="cert-empty">Save the staff record first to manage certificates</div>
-                        </div>
-
-                    </div>
-
-                    <!-- ══ STEP 3 / TAB: ROLES ══ -->
-                    <div v-if="medicalStaffModal.activeTab === 'roles'" class="sm-section">
-                        <div class="roles-info-box mb-4">
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8V12M12 16H12.01"/></svg>
-                            <span>Fixed departmental positions — one person per role at a time</span>
-                        </div>
-                        <div v-if="!medicalStaff || medicalStaff.length === 0" class="text-center py-6">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" class="mb-2" style="animation:spin 1s linear infinite"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                            <p style="font-size:13px;color:var(--text-3)">Loading staff...</p>
-                        </div>
-                        <template v-else>
-                            <div class="role-assignment-card">
-                                <div class="role-header">
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20H22M3 9L8 14L12 5L16 14L21 9L19 20H5L3 9Z"/></svg>
-                                    <h4>Chief of Department</h4>
-                                    <span class="role-badge" :class="getCurrentRoleHolder('chief_of_department')?.id === medicalStaffModal.form.id ? 'role-current' : ''">{{ getCurrentRoleHolder('chief_of_department') ? 'Assigned' : 'Available' }}</span>
-                                </div>
-                                <div class="role-current-holder" v-if="getCurrentRoleHolder('chief_of_department')">
-                                    <span class="holder-label">Current holder:</span>
-                                    <span class="holder-name">{{ getCurrentRoleHolder('chief_of_department').full_name }}</span>
-                                    <span class="holder-date">since {{ formatDate(getCurrentRoleHolder('chief_of_department').assigned_date) }}</span>
-                                </div>
-                                <div class="role-assign-control">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" v-model="medicalStaffModal.form.is_chief_of_department"
-                                               @change="handleRoleAssignment('chief_of_department', $event.target.checked)"
-                                               :disabled="(isRoleTaken('chief_of_department') && !medicalStaffModal.form.is_chief_of_department) || !medicalStaffModal.form.full_name">
-                                        Assign as Chief of Department
-                                    </label>
-                                    <p v-if="isRoleTaken('chief_of_department') && !medicalStaffModal.form.is_chief_of_department" class="role-warning">⚠️ Currently held by {{ getCurrentRoleHolder('chief_of_department').full_name }}</p>
-                                </div>
-                            </div>
-                            <div class="role-assignment-card">
-                                <div class="role-header">
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg>
-                                    <h4>Research Coordinator</h4>
-                                    <span class="role-badge" :class="getCurrentRoleHolder('research_coordinator')?.id === medicalStaffModal.form.id ? 'role-current' : ''">{{ getCurrentRoleHolder('research_coordinator') ? 'Assigned' : 'Available' }}</span>
-                                </div>
-                                <div class="role-current-holder" v-if="getCurrentRoleHolder('research_coordinator')">
-                                    <span class="holder-label">Current holder:</span>
-                                    <span class="holder-name">{{ getCurrentRoleHolder('research_coordinator').full_name }}</span>
-                                </div>
-                                <div class="role-assign-control">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" v-model="medicalStaffModal.form.is_research_coordinator"
-                                               @change="handleRoleAssignment('research_coordinator', $event.target.checked)"
-                                               :disabled="(isRoleTaken('research_coordinator') && !medicalStaffModal.form.is_research_coordinator) || !medicalStaffModal.form.full_name">
-                                        Assign as Research Coordinator
-                                    </label>
-                                    <p v-if="isRoleTaken('research_coordinator') && !medicalStaffModal.form.is_research_coordinator" class="role-warning">⚠️ Currently held by {{ getCurrentRoleHolder('research_coordinator').full_name }}</p>
-                                </div>
-                            </div>
-                            <div class="role-assignment-card">
-                                <div class="role-header">
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg>
-                                    <h4>Resident Manager</h4>
-                                    <span class="role-badge" :class="getCurrentRoleHolder('resident_manager')?.id === medicalStaffModal.form.id ? 'role-current' : ''">{{ getCurrentRoleHolder('resident_manager') ? 'Assigned' : 'Available' }}</span>
-                                </div>
-                                <div class="role-current-holder" v-if="getCurrentRoleHolder('resident_manager')">
-                                    <span class="holder-label">Current holder:</span>
-                                    <span class="holder-name">{{ getCurrentRoleHolder('resident_manager').full_name }}</span>
-                                </div>
-                                <div class="role-assign-control">
-                                    <label class="checkbox-label" :title="medicalStaffModal.form.staff_type !== 'attending_physician' ? 'Attendings only' : ''">
-                                        <input type="checkbox" v-model="medicalStaffModal.form.is_resident_manager"
-                                               @change="handleRoleAssignment('resident_manager', $event.target.checked)"
-                                               :disabled="(isRoleTaken('resident_manager') && !medicalStaffModal.form.is_resident_manager) || medicalStaffModal.form.staff_type !== 'attending_physician' || !medicalStaffModal.form.full_name">
-                                        Assign as Resident Manager
-                                    </label>
-                                    <div v-if="medicalStaffModal.form.staff_type !== 'attending_physician'" class="role-error">
-                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                                        Attendings only
+                            <div v-if="medicalStaffModal._addingHospital" class="sm-inline-add">
+                                <div class="sm-inline-add-label">Register new hospital</div>
+                                <div style="display:grid;grid-template-columns:1fr 120px auto;gap:7px;align-items:end;">
+                                    <div class="sm-field" style="margin:0;"><div class="sm-label" style="font-size:.65rem;">Name *</div><input type="text" class="sm-input" v-model="medicalStaffModal._newHospitalName" placeholder="Hospital name"></div>
+                                    <div class="sm-field" style="margin:0;"><div class="sm-label" style="font-size:.65rem;">Network</div>
+                                        <select class="sm-select" v-model="medicalStaffModal._newHospitalNetwork"><option value="CHUAC">CHUAC</option><option value="SERGAS">SERGAS</option><option value="external">External</option></select>
                                     </div>
-                                </div>
-                            </div>
-                            <div class="role-assignment-card">
-                                <div class="role-header">
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M21 12.8A9 9 0 1111.2 3C11.2 3 9 7.5 12 11C15 14.5 21 12.8 21 12.8Z"/></svg>
-                                    <h4>On-Call Manager</h4>
-                                    <span class="role-badge" :class="getCurrentRoleHolder('oncall_manager')?.id === medicalStaffModal.form.id ? 'role-current' : ''">{{ getCurrentRoleHolder('oncall_manager') ? 'Assigned' : 'Available' }}</span>
-                                </div>
-                                <div class="role-current-holder" v-if="getCurrentRoleHolder('oncall_manager')">
-                                    <span class="holder-label">Current holder:</span>
-                                    <span class="holder-name">{{ getCurrentRoleHolder('oncall_manager').full_name }}</span>
-                                </div>
-                                <div class="role-assign-control">
-                                    <label class="checkbox-label" :title="medicalStaffModal.form.staff_type !== 'attending_physician' ? 'Attendings only' : ''">
-                                        <input type="checkbox" v-model="medicalStaffModal.form.is_oncall_manager"
-                                               @change="handleRoleAssignment('oncall_manager', $event.target.checked)"
-                                               :disabled="(isRoleTaken('oncall_manager') && !medicalStaffModal.form.is_oncall_manager) || medicalStaffModal.form.staff_type !== 'attending_physician' || !medicalStaffModal.form.full_name">
-                                        Assign as On-Call Manager
-                                    </label>
-                                    <div v-if="medicalStaffModal.form.staff_type !== 'attending_physician'" class="role-error">
-                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                                        Attendings only
-                                    </div>
+                                    <button type="button" class="sm-btn-save" style="height:34px;margin-top:18px;"
+                                        @click="addHospitalInline(medicalStaffModal._newHospitalName, medicalStaffModal._newHospitalNetwork).then(h => { if(h){ medicalStaffModal.form.hospital_id = h.id; medicalStaffModal.form._networkHint = h.parent_complex; medicalStaffModal._addingHospital = false; medicalStaffModal._newHospitalName = ''; } })">
+                                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v13a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                                        Save
+                                    </button>
                                 </div>
                             </div>
                         </template>
+
+                        <!-- ══ STEP 2: PROFESSIONAL ══ -->
+                        <template v-if="medicalStaffModal.activeTab === 'professional'">
+                            <div class="sm-row">
+                                <div class="sm-field">
+                                    <div class="sm-label">Academic Degree</div>
+                                    <select class="sm-select"
+                                            :value="medicalStaffModal.form.academic_degree_id || medicalStaffModal.form.academic_degree"
+                                            @change="e => { const d = academicDegrees.find(x=>x.id===e.target.value); if(d && d.id.includes('-')){ medicalStaffModal.form.academic_degree_id=d.id; medicalStaffModal.form.academic_degree=d.name }else{ medicalStaffModal.form.academic_degree_id=null; medicalStaffModal.form.academic_degree=e.target.value } }">
+                                        <option value="">Select degree</option>
+                                        <option v-for="d in academicDegrees" :key="d.id" :value="d.id">{{ d.name }}{{ d.abbreviation ? ' (' + d.abbreviation + ')' : '' }}</option>
+                                    </select>
+                                </div>
+                                <div class="sm-field">
+                                    <div class="sm-label">Specialization</div>
+                                    <input type="text" class="sm-input" :class="{ filled: medicalStaffModal.form.specialization }" v-model="medicalStaffModal.form.specialization" placeholder="e.g. Pulmonology">
+                                </div>
+                            </div>
+
+                            <!-- Resident: residency period -->
+                            <template v-if="isResidentType(medicalStaffModal.form.staff_type)">
+                                <div class="sm-divider">Residency period</div>
+                                <div class="sm-row">
+                                    <div class="sm-field">
+                                        <div class="sm-label">Start date <span class="hint">— MIR programme</span></div>
+                                        <input type="month" class="sm-input"
+                                               :value="medicalStaffModal.form.residency_start_date ? medicalStaffModal.form.residency_start_date.slice(0,7) : ''"
+                                               @change="e => medicalStaffModal.form.residency_start_date = e.target.value ? e.target.value + '-01' : null">
+                                    </div>
+                                    <div class="sm-field">
+                                        <div class="sm-label">
+                                            Resident Year
+                                            <span v-if="medicalStaffModal.form.residency_start_date && !medicalStaffModal.form.residency_year_override" class="hint">— auto</span>
+                                            <span v-else-if="medicalStaffModal.form.residency_year_override" class="hint" style="color:#f59e0b;">— override</span>
+                                        </div>
+                                        <div v-if="medicalStaffModal.form.residency_start_date && !medicalStaffModal.form.residency_year_override" class="ryear-auto-row">
+                                            <span class="sm-ryear-chip">{{ effectiveResidentYear(medicalStaffModal.form) || '—' }}</span>
+                                            <button type="button" class="ryear-override-btn" @click="medicalStaffModal.form.residency_year_override = Utils.effectiveResidentYear(medicalStaffModal.form) || 'R1'">
+                                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg>
+                                                Override
+                                            </button>
+                                        </div>
+                                        <div v-else class="ryear-auto-row">
+                                            <select class="sm-select" v-model="medicalStaffModal.form.residency_year_override" style="flex:1;">
+                                                <option value="">Select year…</option>
+                                                <option value="R1">R1</option><option value="R2">R2</option>
+                                                <option value="R3">R3</option><option value="R4">R4</option>
+                                                <option value="R4+">R4+</option>
+                                            </select>
+                                            <button v-if="medicalStaffModal.form.residency_start_date && medicalStaffModal.form.residency_year_override"
+                                                    type="button" class="ryear-override-btn ryear-override-btn--clear"
+                                                    @click="medicalStaffModal.form.residency_year_override = null">
+                                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg>
+                                            </button>
+                                        </div>
+                                        <div v-if="medicalStaffModal.form.residency_start_date" class="ryear-end-preview">
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10H21M8 3V7M16 3V7M9 15L11 17L15 13"/></svg>
+                                            Est. {{ new Date(new Date(medicalStaffModal.form.residency_start_date).setMonth(new Date(medicalStaffModal.form.residency_start_date).getMonth()+48)).toLocaleDateString('es-ES',{month:'long',year:'numeric'}) }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Attending: research capabilities -->
+                            <template v-if="!isResidentType(medicalStaffModal.form.staff_type)">
+                                <div class="sm-divider">Research capabilities</div>
+                                <div class="sm-capabilities">
+                                    <label class="sm-cap-item"><input type="checkbox" v-model="medicalStaffModal.form.can_be_pi"> <span>Can be Principal Investigator (PI)</span></label>
+                                    <label class="sm-cap-item"><input type="checkbox" v-model="medicalStaffModal.form.can_be_coi"> <span>Can be Co-Investigator</span></label>
+                                    <label class="sm-cap-item"><input type="checkbox" v-model="medicalStaffModal.form.can_supervise_residents"> <span>Can supervise residents</span></label>
+                                </div>
+                            </template>
+
+                            <!-- Certificates — edit mode only -->
+                            <template v-if="medicalStaffModal.mode === 'edit' && medicalStaffModal.form.id">
+                                <div class="sm-divider">Clinical Certificates</div>
+                                <div class="cert-list-inline">
+                                    <template v-if="medicalStaffModal._certs && medicalStaffModal._certs.length > 0">
+                                        <div v-for="cert in medicalStaffModal._certs" :key="cert.id" class="cert-row-inline">
+                                            <span class="cert-row-dot" :class="cert.expiry_date && new Date(cert.expiry_date) < new Date() ? 'cert-dot--expired' : 'cert-dot--ok'"></span>
+                                            <span class="cert-row-name">{{ cert.certificate_name }}</span>
+                                            <span class="cert-row-dates" v-if="cert.expiry_date">exp. {{ new Date(cert.expiry_date).toLocaleDateString('es-ES',{month:'short',year:'numeric'}) }}</span>
+                                            <button type="button" class="cert-row-del" @click="deleteCertificate(cert)">
+                                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg>
+                                            </button>
+                                        </div>
+                                    </template>
+                                    <div v-else class="cert-empty">No certificates yet</div>
+                                    <div class="cert-add-row" v-if="medicalStaffModal._addingCert">
+                                        <input type="text" class="form-control cert-add-name" v-model="medicalStaffModal._newCert.name" placeholder="e.g. GCP ICH E6, BLS">
+                                        <input type="month" class="form-control cert-add-date" v-model="medicalStaffModal._newCert.issued_month">
+                                        <select class="form-select cert-add-renewal" v-model="medicalStaffModal._newCert.renewal_months">
+                                            <option :value="12">1 yr</option><option :value="24">2 yr</option>
+                                            <option :value="36">3 yr</option><option :value="60">5 yr</option>
+                                        </select>
+                                        <button type="button" class="btn-pill btn-pill-save" @click="saveCertificate()">Save</button>
+                                        <button type="button" class="btn-pill" @click="medicalStaffModal._addingCert = false">Cancel</button>
+                                    </div>
+                                    <button v-else type="button" class="cert-add-trigger"
+                                            @click="medicalStaffModal._addingCert = true; medicalStaffModal._newCert = { name:'', issued_month:'', renewal_months: 24 }">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                                        Add Certificate
+                                    </button>
+                                </div>
+                            </template>
+                            <div v-else-if="medicalStaffModal.mode === 'add'" class="cert-empty" style="font-style:italic;font-size:.78rem;color:var(--text-3);">
+                                Certificates can be added after saving the staff record
+                            </div>
+                        </template>
+
+                        <!-- ══ STEP 3: ROLES ══ -->
+                        <template v-if="medicalStaffModal.activeTab === 'roles'">
+                            <div class="roles-info-box">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8V12M12 16H12.01"/></svg>
+                                <span>Fixed departmental positions — one person per role at a time</span>
+                            </div>
+                            <div v-if="!medicalStaff || medicalStaff.length === 0" class="text-center py-4">
+                                <p style="font-size:.8rem;color:var(--text-3)">Loading staff…</p>
+                            </div>
+                            <template v-else>
+                                <div class="role-assignment-card">
+                                    <div class="role-header"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20H22M3 9L8 14L12 5L16 14L21 9L19 20H5L3 9Z"/></svg><h4>Chief of Department</h4><span class="role-badge" :class="getCurrentRoleHolder('chief_of_department')?.id===medicalStaffModal.form.id?'role-current':''">{{ getCurrentRoleHolder('chief_of_department') ? 'Assigned' : 'Available' }}</span></div>
+                                    <div class="role-current-holder" v-if="getCurrentRoleHolder('chief_of_department')"><span class="holder-label">Current:</span><span class="holder-name">{{ getCurrentRoleHolder('chief_of_department').full_name }}</span></div>
+                                    <div class="role-assign-control"><label class="checkbox-label"><input type="checkbox" v-model="medicalStaffModal.form.is_chief_of_department" @change="handleRoleAssignment('chief_of_department',$event.target.checked)" :disabled="(isRoleTaken('chief_of_department')&&!medicalStaffModal.form.is_chief_of_department)||!medicalStaffModal.form.full_name"> Assign as Chief of Department</label><p v-if="isRoleTaken('chief_of_department')&&!medicalStaffModal.form.is_chief_of_department" class="role-warning">⚠️ Held by {{ getCurrentRoleHolder('chief_of_department').full_name }}</p></div>
+                                </div>
+                                <div class="role-assignment-card">
+                                    <div class="role-header"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg><h4>Research Coordinator</h4><span class="role-badge" :class="getCurrentRoleHolder('research_coordinator')?.id===medicalStaffModal.form.id?'role-current':''">{{ getCurrentRoleHolder('research_coordinator') ? 'Assigned' : 'Available' }}</span></div>
+                                    <div class="role-current-holder" v-if="getCurrentRoleHolder('research_coordinator')"><span class="holder-label">Current:</span><span class="holder-name">{{ getCurrentRoleHolder('research_coordinator').full_name }}</span></div>
+                                    <div class="role-assign-control"><label class="checkbox-label"><input type="checkbox" v-model="medicalStaffModal.form.is_research_coordinator" @change="handleRoleAssignment('research_coordinator',$event.target.checked)" :disabled="(isRoleTaken('research_coordinator')&&!medicalStaffModal.form.is_research_coordinator)||!medicalStaffModal.form.full_name"> Assign as Research Coordinator</label><p v-if="isRoleTaken('research_coordinator')&&!medicalStaffModal.form.is_research_coordinator" class="role-warning">⚠️ Held by {{ getCurrentRoleHolder('research_coordinator').full_name }}</p></div>
+                                </div>
+                                <div class="role-assignment-card">
+                                    <div class="role-header"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg><h4>Resident Manager</h4><span class="role-badge" :class="getCurrentRoleHolder('resident_manager')?.id===medicalStaffModal.form.id?'role-current':''">{{ getCurrentRoleHolder('resident_manager') ? 'Assigned' : 'Available' }}</span></div>
+                                    <div class="role-current-holder" v-if="getCurrentRoleHolder('resident_manager')"><span class="holder-label">Current:</span><span class="holder-name">{{ getCurrentRoleHolder('resident_manager').full_name }}</span></div>
+                                    <div class="role-assign-control"><label class="checkbox-label" :title="medicalStaffModal.form.staff_type!=='attending_physician'?'Attendings only':''"><input type="checkbox" v-model="medicalStaffModal.form.is_resident_manager" @change="handleRoleAssignment('resident_manager',$event.target.checked)" :disabled="(isRoleTaken('resident_manager')&&!medicalStaffModal.form.is_resident_manager)||medicalStaffModal.form.staff_type!=='attending_physician'||!medicalStaffModal.form.full_name"> Assign as Resident Manager</label><div v-if="medicalStaffModal.form.staff_type!=='attending_physician'" class="role-error"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg> Attendings only</div></div>
+                                </div>
+                                <div class="role-assignment-card">
+                                    <div class="role-header"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M21 12.8A9 9 0 1111.2 3C11.2 3 9 7.5 12 11C15 14.5 21 12.8 21 12.8Z"/></svg><h4>On-Call Manager</h4><span class="role-badge" :class="getCurrentRoleHolder('oncall_manager')?.id===medicalStaffModal.form.id?'role-current':''">{{ getCurrentRoleHolder('oncall_manager') ? 'Assigned' : 'Available' }}</span></div>
+                                    <div class="role-current-holder" v-if="getCurrentRoleHolder('oncall_manager')"><span class="holder-label">Current:</span><span class="holder-name">{{ getCurrentRoleHolder('oncall_manager').full_name }}</span></div>
+                                    <div class="role-assign-control"><label class="checkbox-label" :title="medicalStaffModal.form.staff_type!=='attending_physician'?'Attendings only':''"><input type="checkbox" v-model="medicalStaffModal.form.is_oncall_manager" @change="handleRoleAssignment('oncall_manager',$event.target.checked)" :disabled="(isRoleTaken('oncall_manager')&&!medicalStaffModal.form.is_oncall_manager)||medicalStaffModal.form.staff_type!=='attending_physician'||!medicalStaffModal.form.full_name"> Assign as On-Call Manager</label><div v-if="medicalStaffModal.form.staff_type!=='attending_physician'" class="role-error"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg> Attendings only</div></div>
+                                </div>
+                            </template>
+                        </template>
+
+                    </div><!-- /sm-form-body -->
+
+                    <!-- ── Footer ── -->
+                    <div class="sm-form-footer">
+                        <div class="sm-footer-actions" style="order:0;">
+                            <button class="sm-btn-back" @click="medicalStaffModal.show = false">Cancel</button>
+                        </div>
+                        <span class="sm-footer-progress" v-if="medicalStaffModal.mode==='add'">
+                            {{ medicalStaffModal.activeTab==='basic' ? 'Step 1 of 3' : medicalStaffModal.activeTab==='professional' ? 'Step 2 of 3' : 'Step 3 of 3' }}
+                        </span>
+                        <div class="sm-footer-actions">
+                            <!-- ADD mode navigation -->
+                            <template v-if="medicalStaffModal.mode === 'add'">
+                                <button v-if="medicalStaffModal.activeTab !== 'basic'" class="sm-btn-back"
+                                    @click="medicalStaffModal.activeTab = medicalStaffModal.activeTab==='roles' ? 'professional' : 'basic'">
+                                    ← Back
+                                </button>
+                                <button v-if="medicalStaffModal.activeTab !== 'roles'" class="sm-btn-next"
+                                    @click="medicalStaffModal.activeTab = medicalStaffModal.activeTab==='basic' ? 'professional' : 'roles'">
+                                    Continue
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                </button>
+                                <button v-else class="sm-btn-save" @click="saveMedicalStaff(saving)" :disabled="saving">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v13a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                                    {{ saving ? 'Saving…' : 'Add Staff Member' }}
+                                </button>
+                            </template>
+                            <!-- EDIT mode save -->
+                            <button v-if="medicalStaffModal.mode === 'edit'" class="sm-btn-save" @click="saveMedicalStaff(saving)" :disabled="saving">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v13a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                                {{ saving ? 'Saving…' : 'Save Changes' }}
+                            </button>
+                        </div>
                     </div>
 
-                </div><!-- /modal-body -->
-
-                <!-- ── Footer ── -->
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="medicalStaffModal.show = false">Cancel</button>
-                    <!-- Step navigation for ADD mode -->
-                    <div v-if="medicalStaffModal.mode === 'add'" style="display:flex;align-items:center;gap:8px;">
-                        <button v-if="medicalStaffModal.activeTab !== 'basic'" type="button" class="btn btn-secondary"
-                            @click="medicalStaffModal.activeTab = medicalStaffModal.activeTab === 'roles' ? 'professional' : 'basic'">
-                            ← Back
-                        </button>
-                        <button v-if="medicalStaffModal.activeTab !== 'roles'" type="button" class="btn btn-primary"
-                            @click="medicalStaffModal.activeTab = medicalStaffModal.activeTab === 'basic' ? 'professional' : 'roles'">
-                            Continue →
-                        </button>
-                        <button v-if="medicalStaffModal.activeTab === 'roles'" type="button" class="btn btn-primary"
-                            @click="saveMedicalStaff(saving)" :disabled="saving">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v13a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                            {{ saving ? 'Saving...' : 'Add Staff Member' }}
-                        </button>
-                    </div>
-                    <!-- Save for EDIT mode -->
-                    <button v-if="medicalStaffModal.mode === 'edit'" type="button" class="btn btn-primary"
-                        @click="saveMedicalStaff(saving)" :disabled="saving">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v13a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                        {{ saving ? 'Saving...' : 'Save Changes' }}
-                    </button>
-                </div>
-
+                </div><!-- /sm-right -->
             </div>
         </div>
 
