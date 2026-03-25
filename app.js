@@ -3703,10 +3703,10 @@ document.addEventListener('DOMContentLoaded', () => {
           if (payload.end_date) payload.estimated_end_date = payload.end_date
           delete payload.co_investigator_id // legacy field
           delete payload.sub_investigator_id // legacy field
-          if (clinicalTrialModal.mode === 'add') { clinicalTrials.value.unshift(await API.createClinicalTrial(payload)); showToast('Success', 'Clinical trial created', 'success') }
-          else { const result = await API.updateClinicalTrial(payload.id, payload); const idx = clinicalTrials.value.findIndex(t => t.id === result.id); if (idx !== -1) clinicalTrials.value[idx] = result; showToast('Success', 'Clinical trial updated', 'success') }
+          if (clinicalTrialModal.mode === 'add') { clinicalTrials.value.unshift(await API.createClinicalTrial(payload)); showToast('Success', 'Clinical study created', 'success') }
+          else { const result = await API.updateClinicalTrial(payload.id, payload); const idx = clinicalTrials.value.findIndex(t => t.id === result.id); if (idx !== -1) clinicalTrials.value[idx] = result; showToast('Success', 'Clinical study updated', 'success') }
           clinicalTrialModal.show = false; await loadClinicalTrials(); loadAnalyticsSummary()
-        } catch (e) { showToast('Error', e?.message || 'Failed to save trial', 'error') }
+        } catch (e) { showToast('Error', e?.message || 'Failed to save study', 'error') }
         finally { saving.value = false }
       }
 
