@@ -792,7 +792,7 @@
                                      @click="showAddRotationModal({ id: w.id, full_name: w.name })">
                                     <div class="db-gap-avatar">{{ (w.name||'??').split(' ').map(p=>p[0]||'').join('').slice(0,2).toUpperCase() }}</div>
                                     <div class="db-gap-info">
-                                        <span class="db-gap-name">{{ (w.name||'—').split(' ').slice(-1)[0] }}</span>
+                                        <span class="db-gap-name">{{ w.name || '—' }}</span>
                                         <span class="db-gap-year" v-if="w.year">PGY-{{ w.year }}</span>
                                     </div>
                                     <div class="db-gap-pills">
@@ -1262,11 +1262,11 @@
                 <div v-if="currentView === 'resident_rotations'">
                     <!-- Breadcrumb -->
                     <nav class="breadcrumb">
-                        <span class="breadcrumb-link" @click="switchView('training_units')">
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg> Clinical Units
+                        <span class="breadcrumb-link" @click="switchView('dashboard')">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21"/></svg> Dashboard
                         </span>
-                        <span class="breadcrumb-sep">›</span>
-                        <span class="breadcrumb-item active">Rotations</span>
+                        <span class="breadcrumb-sep">/</span>
+                        <span class="breadcrumb-item active">Resident Rotations</span>
                     </nav>
 
                     <!-- ── Resident gap warning strip ── -->
@@ -1282,7 +1282,7 @@
                                  :title="'Gaps: ' + w.gaps.join(', ')">
                                 <div class="rgw-avatar">{{ (w.name||'??').split(' ').map(p=>p[0]||'').join('').slice(0,2).toUpperCase() }}</div>
                                 <div class="rgw-info">
-                                    <span class="rgw-name">{{ (w.name||'—').split(' ').slice(-1)[0] }}</span>
+                                    <span class="rgw-name">{{ w.name || '—' }}</span>
                                     <span class="rgw-year" v-if="w.year">PGY-{{ w.year }}</span>
                                 </div>
                                 <div class="rgw-gaps">
@@ -1753,6 +1753,9 @@
                                                 </span>
                                                 <span class="tuc-cap-sep">/</span>
                                                 <span class="tuc-cap-max">{{ unit.maximum_residents }}</span>
+                                                <span v-if="getUnitScheduledCount(unit.id) > 0" class="tuc-cap-sched" :title="getUnitScheduledCount(unit.id) + ' incoming scheduled'">
+                                                    +{{ getUnitScheduledCount(unit.id) }}
+                                                </span>
                                             </div>
                                             <div class="tuc-cap-bar">
                                                 <div class="tuc-cap-fill"
@@ -1762,6 +1765,14 @@
                                                                  : getUnitActiveRotationCount(unit.id)/unit.maximum_residents > 0.75 ? '#ef9f27' : '#009999'
                                                      }">
                                                 </div>
+                                                <div v-if="getUnitScheduledCount(unit.id) > 0"
+                                                     class="tuc-cap-sched-fill"
+                                                     :style="{ width: Math.min(100, Math.round(((getUnitActiveRotationCount(unit.id)+getUnitScheduledCount(unit.id))/unit.maximum_residents)*100)) + '%' }">
+                                                </div>
+                                            </div>
+                                            <div v-if="getUnitOverlapWarning(unit.id)" class="tuc-overlap-warn">
+                                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                                Overlap conflict {{ formatDateShort(getUnitOverlapWarning(unit.id).date) }}
                                             </div>
                                         </div>
                                         </span>
@@ -2287,8 +2298,8 @@
                                             <div v-for="trial in clinicalTrials.filter(t => t.research_line_id === activeMissionLine.id).slice(0,4)"
                                                  :key="trial.id" class="rp-study-row">
                                                 <div class="rp-trial-info">
-                                                    <div class="rp-trial-title">{{ study.title }}</div>
-                                                    <div class="rp-trial-meta">{{ trial.phase }} · {{ study.protocol_id }}</div>
+                                                    <div class="rp-trial-title">{{ trial.title }}</div>
+                                                    <div class="rp-trial-meta">{{ trial.phase }} · {{ trial.protocol_id }}</div>
                                                 </div>
                                                 <div class="rp-trial-right">
                                                     <span class="rp-trial-status"
@@ -2296,14 +2307,14 @@
                                                             'rp-trial-status--recruiting': trial.status === 'Reclutando',
                                                             'rp-trial-status--active':     trial.status === 'Activo',
                                                             'rp-trial-status--done':       trial.status === 'Completado'
-                                                          }">{{ study.status }}</span>
+                                                          }">{{ trial.status }}</span>
                                                     <div v-if="trial.enrollment_target > 0" class="rp-study-bar">
                                                         <div class="rp-trial-bar-fill"
                                                              :style="{ width: Math.min(100, Math.round(((trial.actual_enrollment||0)/trial.enrollment_target)*100)) + '%',
                                                                         background: activeMissionLine ? getLineAccent(activeMissionLine.line_number).color : '#1e40af' }">
                                                         </div>
                                                     </div>
-                                                    <div v-if="trial.enrollment_target > 0" class="rp-trial-enroll">{{ trial.actual_enrollment||0 }}/{{ study.enrollment_target }}</div>
+                                                    <div v-if="trial.enrollment_target > 0" class="rp-trial-enroll">{{ trial.actual_enrollment||0 }}/{{ trial.enrollment_target }}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -2377,28 +2388,28 @@
                         </div>
                         <div class="rhub-trials-list">
                             <div v-for="trial in filteredTrials" :key="trial.id" class="rht-row" @click="viewTrial(trial)">
-                                <div class="rht-phase-badge" :style="{ background: getPhaseColor(trial.phase) }">{{ study.phase?.replace('Phase ','') }}</div>
+                                <div class="rht-phase-badge" :style="{ background: getPhaseColor(trial.phase) }">{{ trial.phase?.replace('Phase ','') }}</div>
                                 <div class="rht-main">
-                                    <div class="rht-title">{{ study.title }}</div>
+                                    <div class="rht-title">{{ trial.title }}</div>
                                     <div class="rht-meta">
-                                        <span class="rht-protocol">{{ study.protocol_id }}</span>
+                                        <span class="rht-protocol">{{ trial.protocol_id }}</span>
                                         <span class="rht-sep">·</span>
-                                        <span>{{ getResearchLineName(study.research_line_id) }}</span>
+                                        <span>{{ getResearchLineName(trial.research_line_id) }}</span>
                                         <span v-if="trial.principal_investigator_id" class="rht-sep">·</span>
-                                        <span v-if="trial.principal_investigator_id"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M12 15v3M10.5 17h3"/></svg> {{ getStaffName(study.principal_investigator_id) }}</span>
+                                        <span v-if="trial.principal_investigator_id"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M12 15v3M10.5 17h3"/></svg> {{ getStaffName(trial.principal_investigator_id) }}</span>
                                     </div>
                                 </div>
                                 <div class="rht-enrollment" v-if="trial.enrollment_target">
-                                    <div class="rht-enroll-nums">{{ trial.actual_enrollment || 0 }}/{{ study.enrollment_target }}</div>
+                                    <div class="rht-enroll-nums">{{ trial.actual_enrollment || 0 }}/{{ trial.enrollment_target }}</div>
                                     <div class="rht-enroll-bar"><div :style="{ width: Math.min(100,(trial.actual_enrollment||0)/trial.enrollment_target*100)+'%', background: getPhaseColor(trial.phase) }"></div></div>
                                 </div>
                                 <div class="rht-dates" v-if="trial.start_date || trial.end_date">
-                                    <span v-if="trial.start_date">{{ formatDateShort(study.start_date) }}</span>
-                                    <span v-if="trial.end_date"> → {{ formatDateShort(study.end_date) }}</span>
+                                    <span v-if="trial.start_date">{{ formatDateShort(trial.start_date) }}</span>
+                                    <span v-if="trial.end_date"> → {{ formatDateShort(trial.end_date) }}</span>
                                 </div>
                                 <span class="rht-status status-indicator"
                                       :class="{ 'status-recruiting': trial.status==='Reclutando', 'status-active': trial.status==='Activo', 'status-completed': trial.status==='Completado', 'status-suspended': trial.status==='Suspendido' }">
-                                    {{ formatStudyStatus(study.status) }}
+                                    {{ formatStudyStatus(trial.status) }}
                                 </span>
                                 <div class="rht-actions" @click.stop>
                                     <button class="btn-pill btn-pill-edit" @click.stop="editTrial(trial)" v-if="hasPermission('research_lines','update')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg></button>
@@ -3321,10 +3332,10 @@
                                 </div>
                                 <div v-for="trial in staffProfileModal.researchProfile.trials.list" :key="trial.id" class="pd-trial-row">
                                     <div class="pd-trial-info">
-                                        <span class="pd-trial-title">{{ study.title }}</span>
-                                        <span class="pd-trial-meta">{{ study.phase }} · <span class="pd-trial-role">{{ study.role }}</span></span>
+                                        <span class="pd-trial-title">{{ trial.title }}</span>
+                                        <span class="pd-trial-meta">{{ trial.phase }} · <span class="pd-trial-role">{{ trial.role }}</span></span>
                                     </div>
-                                    <span class="pd-badge" :class="{ 'pd-badge--ok': trial.status === 'Activo', 'pd-badge--blue': trial.status === 'Reclutando', 'pd-badge--neutral': trial.status === 'Completado' }">{{ formatStudyStatus(study.status) }}</span>
+                                    <span class="pd-badge" :class="{ 'pd-badge--ok': trial.status === 'Activo', 'pd-badge--blue': trial.status === 'Reclutando', 'pd-badge--neutral': trial.status === 'Completado' }">{{ formatStudyStatus(trial.status) }}</span>
                                 </div>
                             </div>
 
@@ -6252,7 +6263,7 @@
                                        v-model="clinicalTrialModal.form.protocol_id"
                                        placeholder="e.g. NCT12345678"
                                        @input="clearFieldError('trial','protocol_id')">
-                                <small v-if="fieldErrors.trial?.protocol_id" class="error-text">{{ fieldErrors.study.protocol_id }}</small>
+                                <small v-if="fieldErrors.trial?.protocol_id" class="error-text">{{ fieldErrors.trial?.protocol_id }}</small>
                             </div>
                             <div class="sm-field">
                                 <div class="sm-label">Research Line <span class="req">·</span></div>
@@ -6270,7 +6281,7 @@
                             <input type="text" class="sm-input" :class="{filled: clinicalTrialModal.form.title, 'is-invalid': fieldErrors.trial?.title}"
                                    v-model="clinicalTrialModal.form.title" placeholder="Full study title"
                                    @input="clearFieldError('trial','title')">
-                            <small v-if="fieldErrors.trial?.title" class="error-text">{{ fieldErrors.study.title }}</small>
+                            <small v-if="fieldErrors.trial?.title" class="error-text">{{ fieldErrors.trial?.title }}</small>
                         </div>
 
                         <div class="sm-row">
@@ -6741,11 +6752,11 @@
                         <div class="tdm-badges">
                             <span class="tdm-protocol"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg> {{ trialDetailModal.study?.protocol_id }}</span>
                             <span class="tdm-phase-badge" :class="'tdm-phase--' + (trialDetailModal.trial?.phase||''). toLowerCase().replace(/ /g,'-')">{{ trialDetailModal.study?.phase }}</span>
-                            <span v-if="trialDetailModal.trial?.study_type" class="tdm-study-type-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg> {{ trialDetailModal.study.study_type }}</span>
+                            <span v-if="trialDetailModal.trial?.study_type" class="tdm-study-type-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg> {{ trialDetailModal.trial.study_type }}</span>
                         </div>
                         <button class="modal-close tdm-close" @click="trialDetailModal.show = false"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg></button>
                     </div>
-                    <h2 class="tdm-title" v-if="trialDetailModal.trial">{{ trialDetailModal.study.title }}</h2>
+                    <h2 class="tdm-title" v-if="trialDetailModal.trial">{{ trialDetailModal.trial.title }}</h2>
                     <div class="tdm-meta-strip" v-if="trialDetailModal.trial">
                         <span class="status-indicator"
                               :class="{
@@ -6753,14 +6764,14 @@
                                 'status-active':     trialDetailModal.trial.status === 'Activo',
                                 'status-completed':  trialDetailModal.trial.status === 'Completado',
                                 'status-suspended':  trialDetailModal.trial.status === 'Suspendido'
-                              }">{{ formatStudyStatus(trialDetailModal.study.status) }}</span>
+                              }">{{ formatStudyStatus(trialDetailModal.trial.status) }}</span>
                         <span class="tdm-meta-sep">·</span>
-                        <span class="tdm-line"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg> {{ getResearchLineName(trialDetailModal.study.research_line_id) }}</span>
+                        <span class="tdm-line"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg> {{ getResearchLineName(trialDetailModal.trial.research_line_id) }}</span>
                         <span class="tdm-meta-sep" v-if="trialDetailModal.trial.start_date">·</span>
                         <span class="tdm-dates" v-if="trialDetailModal.trial.start_date">
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14H10M8 18H10M14 14H16M14 18H16"/></svg>
-                            {{ formatDate(trialDetailModal.study.start_date) }}
-                            <span v-if="trialDetailModal.trial.end_date"> → {{ formatDate(trialDetailModal.study.end_date) }}</span>
+                            {{ formatDate(trialDetailModal.trial.start_date) }}
+                            <span v-if="trialDetailModal.trial.end_date"> → {{ formatDate(trialDetailModal.trial.end_date) }}</span>
                         </span>
                     </div>
                 </div>
@@ -6773,25 +6784,25 @@
                         <div class="tdm-kpi" v-if="trialDetailModal.trial.enrollment_target">
                             <div class="tdm-kpi-label">Enrollados</div>
                             <div class="tdm-kpi-value">
-                                {{ trialDetailModal.study.actual_enrollment || 0 }}
-                                <span class="tdm-kpi-denom">/ {{ trialDetailModal.study.enrollment_target }}</span>
+                                {{ trialDetailModal.trial.actual_enrollment || 0 }}
+                                <span class="tdm-kpi-denom">/ {{ trialDetailModal.trial.enrollment_target }}</span>
                             </div>
                             <div class="tdm-kpi-bar">
                                 <div class="tdm-kpi-fill"
                                      :style="{ width: Math.min(100, Math.round(((trialDetailModal.trial.actual_enrollment||0)/trialDetailModal.trial.enrollment_target)*100)) + '%',
                                                background: trialDetailModal.trial.status === 'Completado' ? 'var(--teal)' : 'var(--blue)' }"></div>
                             </div>
-                            <div class="tdm-kpi-pct">{{ Math.min(100, Math.round(((trialDetailModal.trial.actual_enrollment||0)/trialDetailModal.study.enrollment_target)*100)) }}% reclutado</div>
+                            <div class="tdm-kpi-pct">{{ Math.min(100, Math.round(((trialDetailModal.trial.actual_enrollment||0)/trialDetailModal.trial.enrollment_target)*100)) }}% reclutado</div>
                         </div>
                         <div class="tdm-kpi" v-if="trialDetailModal.trial.start_date && trialDetailModal.trial.end_date">
                             <div class="tdm-kpi-label">Duración</div>
-                            <div class="tdm-kpi-value">{{ formatClinicalDuration(trialDetailModal.trial.start_date, trialDetailModal.study.end_date) }}</div>
-                            <div class="tdm-kpi-sub">{{ formatDate(trialDetailModal.trial.start_date) }} — {{ formatDate(trialDetailModal.study.end_date) }}</div>
+                            <div class="tdm-kpi-value">{{ formatClinicalDuration(trialDetailModal.trial.start_date, trialDetailModal.trial.end_date) }}</div>
+                            <div class="tdm-kpi-sub">{{ formatDate(trialDetailModal.trial.start_date) }} — {{ formatDate(trialDetailModal.trial.end_date) }}</div>
                         </div>
                         <div class="tdm-kpi" v-if="trialDetailModal.trial.sponsor_name">
                             <div class="tdm-kpi-label">Sponsor</div>
-                            <div class="tdm-kpi-value tdm-kpi-value--text">{{ trialDetailModal.study.sponsor_name }}</div>
-                            <div class="tdm-kpi-sub" v-if="trialDetailModal.trial.sponsor_type">{{ trialDetailModal.study.sponsor_type }}</div>
+                            <div class="tdm-kpi-value tdm-kpi-value--text">{{ trialDetailModal.trial.sponsor_name }}</div>
+                            <div class="tdm-kpi-sub" v-if="trialDetailModal.trial.sponsor_type">{{ trialDetailModal.trial.sponsor_type }}</div>
                         </div>
                     </div>
 
@@ -6803,19 +6814,19 @@
                             <!-- Description -->
                             <div class="tdm-section" v-if="trialDetailModal.trial.description">
                                 <div class="tdm-section-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg> Descripción</div>
-                                <p class="tdm-section-text">{{ trialDetailModal.study.description }}</p>
+                                <p class="tdm-section-text">{{ trialDetailModal.trial.description }}</p>
                             </div>
 
                             <!-- Inclusion criteria -->
                             <div class="tdm-section tdm-section--ok" v-if="trialDetailModal.trial.inclusion_criteria">
                                 <div class="tdm-section-label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg> Criterios de Inclusión</div>
-                                <p class="tdm-section-text">{{ trialDetailModal.study.inclusion_criteria }}</p>
+                                <p class="tdm-section-text">{{ trialDetailModal.trial.inclusion_criteria }}</p>
                             </div>
 
                             <!-- Exclusion criteria -->
                             <div class="tdm-section tdm-section--danger" v-if="trialDetailModal.trial.exclusion_criteria">
                                 <div class="tdm-section-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg> Criterios de Exclusión</div>
-                                <p class="tdm-section-text">{{ trialDetailModal.study.exclusion_criteria }}</p>
+                                <p class="tdm-section-text">{{ trialDetailModal.trial.exclusion_criteria }}</p>
                             </div>
                         </div>
 
@@ -6827,10 +6838,10 @@
                                 <div class="tdm-inv-list">
                                     <div v-if="trialDetailModal.trial.principal_investigator_id" class="tdm-inv-row">
                                         <div class="tdm-inv-avatar tdm-inv-avatar--pi">
-                                            {{ getStaffName(trialDetailModal.study.principal_investigator_id).split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }}
+                                            {{ getStaffName(trialDetailModal.trial.principal_investigator_id).split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }}
                                         </div>
                                         <div class="tdm-inv-info">
-                                            <span class="tdm-inv-name">{{ getStaffName(trialDetailModal.study.principal_investigator_id) }}</span>
+                                            <span class="tdm-inv-name">{{ getStaffName(trialDetailModal.trial.principal_investigator_id) }}</span>
                                             <span class="tdm-inv-badge tdm-inv-badge--pi">PI</span>
                                         </div>
                                     </div>
@@ -6857,7 +6868,7 @@
                             <div class="tdm-section" v-if="trialDetailModal.trial.contact_email">
                                 <div class="tdm-section-label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 9L12 15L21 9"/></svg> Contacto</div>
                                 <a :href="'mailto:' + trialDetailModal.trial.contact_email" class="tdm-contact-link">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 9L12 15L21 9"/></svg> {{ trialDetailModal.study.contact_email }}
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 9L12 15L21 9"/></svg> {{ trialDetailModal.trial.contact_email }}
                                 </a>
                             </div>
                         </div>
@@ -7160,7 +7171,7 @@
                     <div class="udd-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21M12 8V11M10.5 9.5H13.5"/></svg></div>
                     <div class="udd-header-info">
                         <div class="udd-unit-name">{{ unitDetailDrawer.unit.unit_name }}</div>
-                        <div class="udd-unit-meta">{{ getDepartmentName(unitDetailDrawer.unit.department_id) || '—' }}<span v-if="unitDetailDrawer.unit.specialty"> · {{ unitDetailDrawer.unit.specialty }}</span></div>
+                        <div class="udd-unit-meta"><span v-if="unitDetailDrawer.unit.specialty">{{ unitDetailDrawer.unit.specialty }}</span><span v-else>—</span></div>
                     </div>
                     <button class="udd-close" @click="unitDetailDrawer.show = false"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg></button>
                 </div>
@@ -7169,9 +7180,16 @@
                         <span v-if="unitDetailDrawer.unit.occ.status === 'free'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg> Available</span>
                         <span v-else-if="unitDetailDrawer.unit.occ.status === 'closing'"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg> Closing Soon</span>
                         <span v-else-if="unitDetailDrawer.unit.occ.status === 'partial'"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg> Partial</span>
-                        <span v-else><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> Full</span>
+                        <span v-else><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> Full now</span>
                     </span>
-                    <span class="udd-cap-chip">{{ unitDetailDrawer.unit.occ.occupied }}/{{ unitDetailDrawer.unit.occ.total }} slots</span>
+                    <span class="udd-cap-chip">{{ unitDetailDrawer.unit.occ.occupied }}/{{ unitDetailDrawer.unit.occ.total }} active</span>
+                    <span v-if="getUnitScheduledCount(unitDetailDrawer.unit.id) > 0" class="udd-sched-chip">
+                        +{{ getUnitScheduledCount(unitDetailDrawer.unit.id) }} scheduled
+                    </span>
+                    <span v-if="getUnitOverlapWarning(unitDetailDrawer.unit.id)" class="udd-overlap-chip">
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                        Overlap {{ formatDateShort(getUnitOverlapWarning(unitDetailDrawer.unit.id).date) }}
+                    </span>
                     <div class="udd-cap-bar"><div class="udd-cap-fill" :style="{ width: unitDetailDrawer.unit.occ.total ? Math.round((unitDetailDrawer.unit.occ.occupied/unitDetailDrawer.unit.occ.total)*100)+'%' : '0%' }"></div></div>
                 </div>
             </div>
