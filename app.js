@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ? 'http://localhost:3000'
         : 'https://neumac-manage-back-end-production.up.railway.app',
       TOKEN_KEY: 'neumocare_token',
-      USER_KEY: 'neumocare_user',
+      USER_KEY: 'neumocare_user', 
       CACHE_TTL: 300000
     }
 
