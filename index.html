@@ -13,7 +13,7 @@
 <div id="app" v-cloak>
 
     <!-- ============- TOAST CONTAINER ==-=--=---======= -->
-    <div class="toast-container"> 
+    <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
              :class="['toast', `toast-${toast.type}`]"
              role="alert" aria-live="polite" aria-atomic="true"> 
@@ -723,7 +723,7 @@
                                         <template v-if="day.primary">
                                             <div class="db-oc-avatar">{{ (getPhysicianName(day.primary.primary_physician_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
                                             <div class="db-oc-info">
-                                                <span class="db-oc-name">{{ (getPhysicianName(day.primary.primary_physician_id)||'—').split(' ').slice(-1)[0] }}</span>
+                                                <span class="db-oc-name">{{ (n => n.split(' ').length > 1 ? n.split(' ')[0][0] + '. ' + n.split(' ').slice(-1)[0] : n)(getPhysicianName(day.primary.primary_physician_id)||'—') }}</span>
                                                 <span class="db-oc-time">{{ (day.primary.start_time||'').slice(0,5) }}–{{ (day.primary.end_time||'').slice(0,5) }}</span>
                                             </div>
                                             <span class="db-oc-badge db-oc-badge--primary">Primary</span>
@@ -737,7 +737,7 @@
                                     <div class="db-oc-slot db-oc-slot--backup" :class="day.backup ? 'db-oc-slot--soft' : ''">
                                         <template v-if="day.backup">
                                             <div class="db-oc-avatar db-oc-avatar--backup">{{ (getPhysicianName(day.backup.primary_physician_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
-                                            <span class="db-oc-name">{{ (getPhysicianName(day.backup.primary_physician_id)||'—').split(' ').slice(-1)[0] }}</span>
+                                            <span class="db-oc-name">{{ (n => n.split(' ').length > 1 ? n.split(' ')[0][0] + '. ' + n.split(' ').slice(-1)[0] : n)(getPhysicianName(day.backup.primary_physician_id)||'—') }}</span>
                                             <span class="db-oc-badge db-oc-badge--backup">Backup</span>
                                         </template>
                                         <template v-else>
@@ -762,7 +762,7 @@
                                 <div v-for="rot in rotations.filter(r => r.rotation_status==='active' && new Date(r.end_date) >= new Date() && new Date(r.end_date) <= new Date(Date.now()+7*86400000)).slice(0,2)" :key="'end-'+rot.id" class="db-rot-row">
                                     <div class="db-rot-avatar">{{ (getResidentName(rot.resident_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
                                     <div class="db-rot-info">
-                                        <span class="db-rot-name">{{ (getResidentName(rot.resident_id)||'—').split(' ').slice(-1)[0] }}</span>
+                                        <span class="db-rot-name">{{ (n => n.split(' ').length > 1 ? n.split(' ')[0][0] + '. ' + n.split(' ').slice(-1)[0] : n)(getResidentName(rot.resident_id)||'—') }}</span>
                                         <span class="db-rot-unit">{{ getTrainingUnitName(rot.training_unit_id) }}</span>
                                     </div>
                                     <span class="db-rot-chip db-rot-chip--ending">ends {{ formatDateShort(rot.end_date) }}</span>
@@ -770,7 +770,7 @@
                                 <div v-for="rot in rotations.filter(r => r.rotation_status==='scheduled' && new Date(r.start_date) >= new Date() && new Date(r.start_date) <= new Date(Date.now()+7*86400000)).slice(0,2)" :key="'start-'+rot.id" class="db-rot-row">
                                     <div class="db-rot-avatar db-rot-avatar--start">{{ (getResidentName(rot.resident_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
                                     <div class="db-rot-info">
-                                        <span class="db-rot-name">{{ (getResidentName(rot.resident_id)||'—').split(' ').slice(-1)[0] }}</span>
+                                        <span class="db-rot-name">{{ (n => n.split(' ').length > 1 ? n.split(' ')[0][0] + '. ' + n.split(' ').slice(-1)[0] : n)(getResidentName(rot.resident_id)||'—') }}</span>
                                         <span class="db-rot-unit">{{ getTrainingUnitName(rot.training_unit_id) }}</span>
                                     </div>
                                     <span class="db-rot-chip db-rot-chip--starting">starts {{ formatDateShort(rot.start_date) }}</span>
