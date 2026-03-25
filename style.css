@@ -6,7 +6,7 @@
 .form-hint--override { color: var(--warn); }
 
 .ryear-auto-row {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 8px;  
 }
 .ryear-chip {
   display: inline-flex; align-items: center; justify-content: center; 
