@@ -4130,7 +4130,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 }
 .rot-who-avatar--blue { background: linear-gradient(135deg, var(--blue), var(--ink-3)); }
 .rot-who-info { min-width: 0; }
-.rot-who-name { display: block; font-size: 13px; font-weight: 600; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rot-who-name { display: block; font-size: 13px; font-weight: 500; color: var(--text-1); white-space: normal; word-break: break-word; }
 .rot-who-meta { display: block; font-family: var(--font-data); font-size: 10px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; margin-top: 1px; }
 
 /* Orb track */
@@ -7570,7 +7570,7 @@ tr:not(:hover) .btn-pill-purge {
   white-space: nowrap;
 }
 .rhub-tab:hover { color: var(--text-1); }
-.rhub-tab--active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+.rhub-tab--active { color: #009999; border-bottom-color: #009999; font-weight: 600; }
 .rhub-tab-count {
   background: var(--surface-2); color: var(--text-3);
   font-size: 10px; font-weight: 700; padding: 1px 6px;
@@ -7613,8 +7613,8 @@ tr:not(:hover) .btn-pill-purge {
   display: flex; flex-direction: column; gap: 10px;
 }
 .rhl-card:hover {
-  box-shadow: 0 4px 20px rgba(37,99,235,.1);
-  border-color: var(--blue-mid); transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,153,153,.12);
+  border-color: rgba(0,153,153,.3); transform: translateY(-1px);
 }
 .rhl-card--inactive { opacity: .6; }
 .rhl-accent {
@@ -7671,7 +7671,7 @@ tr:not(:hover) .btn-pill-purge {
 }
 .rhl-stat:hover { background: var(--blue-lt); }
 .rhl-stat-num {
-  font-family: var(--font-data); font-size: 16px; font-weight: 800;
+  font-family: var(--font-display, Georgia, serif); font-size: 18px; font-weight: 400; font-style: italic;
   color: var(--text-1); line-height: 1;
 }
 .rhl-stat-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
@@ -7708,7 +7708,7 @@ tr:not(:hover) .btn-pill-purge {
   font-size: 9px; font-weight: 800; color: #fff; letter-spacing: -.02em;
 }
 .rht-main { flex: 1; min-width: 0; }
-.rht-title { font-size: 13px; font-weight: 600; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rht-title { font-size: 13px; font-weight: 500; color: var(--text-1); white-space: normal; word-break: break-word; }
 .rht-meta { font-size: 11px; color: var(--text-3); display: flex; gap: 4px; flex-wrap: nowrap; overflow: hidden; margin-top: 1px; }
 .rht-protocol { font-family: var(--font-data); font-size: 10px; color: var(--text-4); }
 .rht-sep { color: var(--border-2); }
@@ -7744,7 +7744,7 @@ tr:not(:hover) .btn-pill-purge {
   flex: 1; background: var(--surface); border: 1px solid var(--border);
   border-radius: 8px; padding: 14px 16px;
 }
-.rha-kpi-val { font-family: var(--font-data); font-size: 32px; font-weight: 800; color: var(--text-1); line-height: 1; }
+.rha-kpi-val { font-family: var(--font-display, Georgia, serif); font-size: 34px; font-weight: 400; font-style: italic; color: var(--text-1); line-height: 1; }
 .rha-kpi-label { font-size: 11px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: .06em; margin-top: 4px; }
 .rha-kpi-sub { font-size: 11px; color: var(--ok); font-weight: 600; margin-top: 2px; }
 
@@ -7784,7 +7784,7 @@ tr:not(:hover) .btn-pill-purge {
   transition: background var(--t);
 }
 .rha-lt-row:hover { background: var(--blue-lt); }
-.rha-lt-name { font-weight: 600; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rha-lt-name { font-weight: 500; color: var(--text-1); white-space: normal; word-break: break-word; }
 .rha-lt-coord { color: var(--text-3); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── Performance scorecard grid ─────────────────────────────── */
@@ -7796,15 +7796,15 @@ tr:not(:hover) .btn-pill-purge {
 }
 .rha-perf-card:hover { border-color: var(--blue-mid); box-shadow: 0 2px 12px rgba(37,99,235,.08); }
 .rha-perf-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
-.rha-perf-number { font-family: var(--font-data); font-size: 10px; font-weight: 700; color: var(--blue); background: var(--blue-lt); border: 1px solid var(--blue-mid); padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
-.rha-perf-name { font-size: 13px; font-weight: 700; color: var(--text-1); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rha-perf-number { font-family: var(--font-display, Georgia, serif); font-size: 13px; font-weight: 400; font-style: italic; color: var(--blue); background: var(--blue-lt); border: 1px solid var(--blue-mid); padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
+.rha-perf-name { font-size: 13px; font-weight: 500; color: var(--text-1); flex: 1; min-width: 0; white-space: normal; word-break: break-word; /* overflow: hidden; text-overflow: ellipsis; }
 .rha-perf-coord { font-size: 11px; color: var(--text-3); flex-shrink: 0; }
 .rha-perf-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 10px; }
 .rha-ps { background: var(--surface-2); border-radius: 5px; padding: 6px 4px; text-align: center; }
 .rha-ps--ok { background: var(--ok-lt); }
 .rha-ps--blue { background: var(--blue-lt); }
 .rha-ps--purple { background: rgba(139,92,246,.08); }
-.rha-ps-val { font-family: var(--font-data); font-size: 16px; font-weight: 800; color: var(--text-1); line-height: 1; }
+.rha-ps-val { font-family: var(--font-display, Georgia, serif); font-size: 18px; font-weight: 400; font-style: italic; color: var(--text-1); line-height: 1; }
 .rha-ps--ok .rha-ps-val { color: var(--ok); }
 .rha-ps--blue .rha-ps-val { color: var(--blue); }
 .rha-ps--purple .rha-ps-val { color: #7c3aed; }
@@ -7833,7 +7833,7 @@ tr:not(:hover) .btn-pill-purge {
   padding: 20px 20px 16px; border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
-.rldp-number { font-family: var(--font-data); font-size: 10px; font-weight: 700; color: var(--blue); background: var(--blue-lt); border: 1px solid var(--blue-mid); padding: 2px 8px; border-radius: 20px; display: inline-block; margin-bottom: 6px; }
+.rldp-number { font-family: var(--font-display, Georgia, serif); font-size: 13px; font-weight: 400; font-style: italic; color: var(--blue); background: var(--blue-lt); border: 1px solid var(--blue-mid); padding: 2px 8px; border-radius: 20px; display: inline-block; margin-bottom: 6px; }
 .rldp-title { font-family: var(--font-ui, 'DM Sans', sans-serif); font-size: 16px; font-style: normal; font-weight: 500; color: var(--text-1); margin: 0; line-height: 1.3; }
 .rldp-close { background: none; border: none; cursor: pointer; color: var(--text-4); font-size: 14px; padding: 4px; flex-shrink: 0; transition: color var(--t); }
 .rldp-close:hover { color: var(--text-1); }
@@ -7850,7 +7850,7 @@ tr:not(:hover) .btn-pill-purge {
   transition: border-color var(--t), background var(--t);
 }
 .rldp-stat-block:hover { border-color: var(--blue-mid); background: var(--blue-lt); }
-.rldp-stat-num { font-family: var(--font-data); font-size: 28px; font-weight: 800; color: var(--text-1); line-height: 1; }
+.rldp-stat-num { font-family: var(--font-display, Georgia, serif); font-size: 30px; font-weight: 400; font-style: italic; color: var(--text-1); line-height: 1; }
 .rldp-stat-label { font-size: 10px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; margin-top: 3px; }
 .rldp-stat-active { font-size: 10px; font-weight: 700; color: var(--ok); margin-top: 2px; }
 .rldp-stat-link { font-size: 10px; color: var(--blue); margin-top: 4px; opacity: 0; transition: opacity var(--t); }
@@ -8053,7 +8053,7 @@ tr:not(:hover) .btn-pill-purge {
 }
 .db-oc-avatar--backup { background: linear-gradient(135deg, var(--ok), #059669); }
 .db-oc-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.db-oc-name { font-size: 11px; font-weight: 600; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-oc-name { font-size: 11px; font-weight: 500; color: var(--text-1); white-space: normal; word-break: break-word; }
 .db-oc-time { font-family: var(--font-data); font-size: 9px; color: var(--text-3); }
 .db-oc-badge { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 10px; flex-shrink: 0; }
 .db-oc-badge--primary { background: var(--blue-lt); color: var(--blue); }
@@ -8327,7 +8327,7 @@ tr:not(:hover) .btn-pill-purge {
 .rp-kpi:first-child { padding-left: 0; }
 .rp-kpi-val {
   font-family: var(--font-display, Georgia, serif);
-  font-size: 28px; font-weight: 700; font-style: italic;
+  font-size: 30px; font-weight: 400; font-style: italic;; font-style: italic;
   color: var(--text-1); line-height: 1; letter-spacing: -.02em;
 }
 .rp-kpi-val--ok { color: var(--ok); }
@@ -8380,7 +8380,7 @@ tr:not(:hover) .btn-pill-purge {
 }
 .rp-nav-info { flex: 1; min-width: 0; }
 .rp-nav-name {
-  font-size: 12px; font-weight: 500; color: var(--text-1);
+  font-size: 12.5px; font-weight: 500; color: var(--text-1);
   white-space: normal; word-break: break-word;
   line-height: 1.35; overflow: visible;
 }
@@ -8430,7 +8430,7 @@ tr:not(:hover) .btn-pill-purge {
 .rp-detail-head {
   display: flex; align-items: flex-start; justify-content: space-between;
   padding: 18px 24px 20px; gap: 12px; flex-shrink: 0;
-  min-height: 100px;
+  min-height: 100px; background: #0f2d54;
 }
 .rp-detail-head-left { flex: 1; min-width: 0; }
 .rp-detail-num {
@@ -8446,7 +8446,7 @@ tr:not(:hover) .btn-pill-purge {
 }
 .rp-detail-title {
   font-family: var(--font-ui, 'DM Sans', sans-serif);
-  font-size: 15px; font-weight: 500;
+  font-size: 14px; font-weight: 500;
   color: rgba(255,255,255,.92); letter-spacing: 0; line-height: 1.4; margin: 0;
 }
 .rp-detail-head-actions { display: flex; gap: 6px; flex-shrink: 0; }
@@ -8474,7 +8474,7 @@ tr:not(:hover) .btn-pill-purge {
 .rp-ds-block:hover { background: var(--blue-lt); }
 .rp-ds-val {
   font-family: var(--font-display, Georgia, serif);
-  font-size: 30px; font-weight: 700; font-style: italic;
+  font-size: 32px; font-weight: 400; font-style: italic;; font-style: italic;
   color: var(--text-1); line-height: 1; letter-spacing: -.02em;
 }0px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); margin-top: 4px; }
 .rp-ds-sub   { font-size: 10px; color: var(--text-4); margin-top: 2px; font-weight: 600; }
@@ -8515,7 +8515,7 @@ tr:not(:hover) .btn-pill-purge {
 }
 .rp-trial-row:hover { border-color: var(--blue-mid); }
 .rp-trial-info { flex: 1; min-width: 0; }
-.rp-trial-title { font-size: 12px; font-weight: 500; color: var(--text-1); white-space: normal; line-height: 1.4; word-break: break-word; verflow: ellipsis; }
+.rp-trial-title { font-size: 12.5px; font-weight: 500; color: var(--text-1); white-space: normal; word-break: break-word; line-height: 1.4; word-break: break-word; verflow: ellipsis; }
 .rp-trial-meta  { font-size: 10px; color: var(--text-4); margin-top: 1px; font-family: var(--font-data); }
 .rp-trial-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; min-width: 80px; }
 .rp-trial-status { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
@@ -9169,7 +9169,7 @@ tr:not(:hover) .btn-pill-purge {
 }
 .dp-staff-avatar--res { background: linear-gradient(135deg, var(--teal, #0d9488), #2563eb); }
 .dp-staff-info { flex: 1; min-width: 0; }
-.dp-staff-name { font-size: 13px; font-weight: 600; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dp-staff-name { font-size: 13px; font-weight: 500; color: var(--text-1); white-space: normal; word-break: break-word; }
 .dp-staff-meta { font-size: 10px; color: var(--text-3); display: flex; align-items: center; gap: 5px; margin-top: 1px; }
 .dp-sup-badge { font-size: 9px; font-weight: 600; color: var(--blue); background: var(--blue-lt); border: 1px solid var(--blue-mid); border-radius: 3px; padding: 1px 4px; }
 .dp-cat-badge { font-size: 9px; font-weight: 700; border-radius: 3px; padding: 1px 5px; }
@@ -10998,4 +10998,165 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
 .rp-ds-label {
   font-size: 10px; font-weight: 500; text-transform: uppercase;
   letter-spacing: .08em; color: var(--text-3, #5a6472);
+}
+
+/* ════════════════════════════════════════════════════════
+   RESEARCH HUB — CREATIVE TYPOGRAPHY SYSTEM
+   Rule: Fraunces italic for numbers/codes · DM Sans for names/prose
+   ════════════════════════════════════════════════════════ */
+
+/* ── Tab bar — teal accent, not blue ── */
+.rhub-tabs { border-bottom: 1.5px solid var(--border); }
+.rhub-tab { font-size: 12.5px; font-weight: 500; }
+.rhub-tab--active { color: #009999; border-bottom-color: #009999; }
+.rhub-tab--active .rhub-tab-count {
+  background: rgba(0,153,153,.08); color: #009999;
+  border-color: rgba(0,153,153,.2);
+}
+.rhub-tab:hover { color: var(--text-2); }
+
+/* ── L-number hero in detail head ── */
+.rp-detail-num {
+  font-family: var(--font-display, Georgia, serif) !important;
+  font-size: 64px !important; font-weight: 400 !important;
+  font-style: italic !important; line-height: .85 !important;
+  letter-spacing: -.04em !important;
+  display: block; margin-bottom: 10px;
+}
+
+/* ── Line title — calm DM Sans, never bold ── */
+.rp-detail-title {
+  font-family: var(--font-ui, 'DM Sans', sans-serif) !important;
+  font-size: 14px !important; font-weight: 500 !important;
+  font-style: normal !important; letter-spacing: 0 !important;
+  line-height: 1.4 !important; opacity: .9;
+}
+
+/* ── Portfolio KPI strip — Fraunces numbers ── */
+.rp-kpi-val {
+  font-style: italic !important;
+  letter-spacing: -.03em !important;
+}
+.rp-kpi-label {
+  font-size: 9px !important; letter-spacing: .12em !important;
+  text-transform: uppercase !important; font-weight: 600 !important;
+  opacity: .7;
+}
+
+/* ── Left nav ── */
+.rp-nav { background: #0f2d54 !important; }
+.rp-nav-item { border-radius: 6px; padding: 10px 10px; }
+.rp-nav-item:hover { background: rgba(255,255,255,.06) !important; }
+.rp-nav-item--active { background: rgba(0,179,179,.12) !important; box-shadow: none !important; }
+
+.rp-nav-badge {
+  background: transparent !important; border: none !important;
+  font-family: var(--font-display, Georgia, serif) !important;
+  font-size: 18px !important; font-weight: 400 !important;
+  font-style: italic !important; color: #00B3B3 !important;
+  letter-spacing: -.03em !important; width: 36px !important;
+  height: 36px !important; border-radius: 0 !important;
+  justify-content: flex-start !important; padding-left: 2px !important;
+}
+.rp-nav-item--active .rp-nav-badge { color: #00B3B3 !important; }
+
+.rp-nav-name {
+  color: rgba(255,255,255,.85) !important;
+  font-size: 12px !important; font-weight: 400 !important;
+  white-space: normal !important; word-break: break-word !important;
+  line-height: 1.35 !important;
+}
+.rp-nav-item--active .rp-nav-name { color: #fff !important; font-weight: 500 !important; }
+
+.rp-nav-meta { color: rgba(255,255,255,.35) !important; font-size: 10px !important; }
+.rp-nav-dot  { background: rgba(255,255,255,.2) !important; }
+
+/* Coordinator in nav */
+.rp-nav-coord { color: rgba(255,255,255,.35) !important; }
+.rp-nav-coord-av { background: rgba(0,179,179,.2) !important; }
+
+/* Keywords in nav */
+.rp-nav-kw {
+  background: rgba(255,255,255,.07) !important;
+  color: rgba(255,255,255,.5) !important;
+  border-color: transparent !important;
+  font-size: 9px !important;
+}
+
+/* ── Detail panel ── */
+.rp-detail { background: var(--surface) !important; }
+.rp-ds-block:hover { background: rgba(0,153,153,.04) !important; }
+
+/* ── Stats — Fraunces italic numbers ── */
+.rp-ds-val { letter-spacing: -.03em !important; }
+.rp-ds-label {
+  font-size: 9px !important; letter-spacing: .12em !important;
+  text-transform: uppercase !important; font-weight: 600 !important;
+  color: var(--text-4) !important;
+}
+
+/* ── Trial/Study rows — names never truncate ── */
+.rp-trial-title {
+  white-space: normal !important; word-break: break-word !important;
+  line-height: 1.4 !important; font-weight: 500 !important;
+}
+.rp-trial-info { flex: 1; min-width: 0; }
+
+/* Trial list rows */
+.rht-title {
+  white-space: normal !important; word-break: break-word !important;
+}
+
+/* ── rhl cards ── */
+.rhl-name {
+  font-style: normal !important; font-weight: 500 !important;
+  font-size: 14px !important;
+}
+.rhl-number {
+  font-family: var(--font-display, Georgia, serif) !important;
+  font-size: 13px !important; font-weight: 400 !important;
+  font-style: italic !important;
+  background: rgba(0,153,153,.08) !important;
+  color: #009999 !important; border-color: rgba(0,153,153,.2) !important;
+}
+.rhl-stat-num { letter-spacing: -.02em !important; }
+
+/* ── Analytics ── */
+.rha-kpi-val { letter-spacing: -.03em !important; }
+.rha-kpi-label {
+  font-size: 9px !important; letter-spacing: .1em !important;
+  text-transform: uppercase !important; color: var(--text-3) !important;
+}
+.rha-perf-name {
+  white-space: normal !important; word-break: break-word !important;
+}
+.rha-lt-name {
+  white-space: normal !important; word-break: break-word !important;
+}
+
+/* ── rldp detail panel (trial drawer) ── */
+.rldp-title {
+  font-family: var(--font-ui, 'DM Sans', sans-serif) !important;
+  font-style: normal !important; font-weight: 500 !important;
+  font-size: 15px !important;
+}
+.rldp-number {
+  font-family: var(--font-display, Georgia, serif) !important;
+  font-size: 13px !important; font-weight: 400 !important;
+  font-style: italic !important;
+  background: rgba(0,153,153,.08) !important;
+  color: #009999 !important; border-color: rgba(0,153,153,.2) !important;
+}
+.rldp-stat-num { letter-spacing: -.03em !important; }
+.rldp-empty { font-style: normal !important; color: var(--text-3) !important; }
+
+/* ── Detail head background — dark navy instead of blue ── */
+.rp-detail-head {
+  background: #0f2d54 !important;
+}
+
+/* ── Innovation cards ── */
+.inno-card-title {
+  font-size: 14px !important; font-weight: 500 !important;
+  line-height: 1.35 !important;
 }
