@@ -5,7 +5,7 @@
 .form-hint--auto     { color: var(--ok); }
 .form-hint--override { color: var(--warn); }
 
-.ryear-auto-row { 
+.ryear-auto-row {
   display: flex; align-items: center; gap: 8px;
 }
 .ryear-chip {
@@ -10168,3 +10168,22 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
 }
 .sm-role-cap-opt:hover { border-color: rgba(0,179,179,.3); }
 .sm-role-cap-opt.active { border-color: rgba(0,179,179,.3); background: rgba(0,179,179,.06); color: #00B3B3; }
+
+/* Continue button — pulses teal when step 1 is complete */
+.sm-btn-next--ready {
+  animation: btnReadyPulse 2s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(0,179,179,.4);
+}
+@keyframes btnReadyPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(0,179,179,.4); }
+  60%  { box-shadow: 0 0 0 7px rgba(0,179,179,0); }
+  100% { box-shadow: 0 0 0 0 rgba(0,179,179,0); }
+}
+
+/* Absence reason grid — 3 cols, same card pattern as sm-cat-card */
+.sm-reason-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+/* sm-cat-card already covers the card styles — sm-reason-grid uses same cards */
