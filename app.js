@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ? 'http://localhost:3000'
         : 'https://neumac-manage-back-end-production.up.railway.app',
       TOKEN_KEY: 'neumocare_token',
-      USER_KEY: 'neumocare_user', 
+      USER_KEY: 'neumocare_user',
       CACHE_TTL: 300000
     }
 
@@ -1124,6 +1124,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const filteredMedicalStaff = computed(() => paginate(filteredMedicalStaffAll.value, 'medical_staff'))
       const staffTotalPages = computed(() => totalPages(filteredMedicalStaffAll.value, 'medical_staff'))
+
+      // Compact view: staff grouped by role with section dividers
+      const compactStaffWithDividers = computed(() => {
+        const staff = filteredMedicalStaff.value
+        const attendings = staff.filter(s => !isResidentType(s.staff_type))
+        const residents  = staff.filter(s =>  isResidentType(s.staff_type))
+        const result = []
+        if (attendings.length) {
+          result.push({ _divider: `Attending Physicians · ${attendings.length}` })
+          result.push(...attendings)
+        }
+        if (residents.length) {
+          result.push({ _divider: `Medical Residents · ${residents.length}` })
+          result.push(...residents)
+        }
+        return result
+      })
 
       watch(staffFilters, () => resetPage('medical_staff'), { deep: true })
 
@@ -2345,7 +2362,7 @@ document.addEventListener('DOMContentLoaded', () => {
               new Date(r.start_date) <= mEnd && new Date(r.end_date) >= mStart
             )
             if (!covered) {
-              gaps.push(mStart.toLocaleDateString('es-ES', { month: 'short', year: '2-digit' }))
+              gaps.push(mStart.toLocaleDateString('es-ES', { month: 'short' }))
             }
           }
           if (gaps.length > 0) {
@@ -5220,6 +5237,7 @@ document.addEventListener('DOMContentLoaded', () => {
             goToPage(view, page, arrMap[view] || [])
           },
           staffTotalPages: staffOps.staffTotalPages,
+          compactStaffWithDividers: staffOps.compactStaffWithDividers,
           rotationTotalPages: rotationOps.rotationTotalPages,
           oncallTotalPages: onCallOps.oncallTotalPages,
           absenceTotalPages: absenceOps.absenceTotalPages,
