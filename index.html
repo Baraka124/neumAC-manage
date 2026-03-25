@@ -9,9 +9,9 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body> 
+<body>
 <div id="app" v-cloak>
- 
+
     <!-- ============- TOAST CONTAINER ==-=--=---======= -->
     <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
@@ -696,7 +696,7 @@
                                 <div class="db-kpi-val">{{ analyticsSummary?.researchLines || researchLines.length || 0 }}</div>
                                 <div class="db-kpi-label">Research Lines</div>
                                 <div class="db-kpi-sub">
-                                    <span class="db-kpi-dot db-kpi-dot--blue"></span>{{ analyticsSummary?.clinicalStudys?.total || clinicalStudies.length || 0 }} studies
+                                    <span class="db-kpi-dot db-kpi-dot--blue"></span>{{ analyticsSummary?.clinicalTrials?.total || clinicalTrials.length || 0 }} studies
                                     <span class="db-kpi-dot db-kpi-dot--purple" style="margin-left:8px"></span>{{ analyticsSummary?.innovationProjects?.total || innovationProjects.length || 0 }} projects
                                 </div>
                             </div>
@@ -2084,7 +2084,7 @@
                         <button class="rhub-tab" :class="{ 'rhub-tab--active': researchHubTab === 'trials' }" @click="researchHubTab = 'trials'">
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg>
                             <span>Studies</span>
-                            <span class="rhub-tab-count">{{ clinicalStudies.length }}</span>
+                            <span class="rhub-tab-count">{{ clinicalTrials.length }}</span>
                         </button>
                         <button class="rhub-tab" :class="{ 'rhub-tab--active': researchHubTab === 'projects' }" @click="researchHubTab = 'projects'">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/><path d="M7.5 16H12"/></svg>
@@ -2910,7 +2910,7 @@
                         <!-- Attending: active trials + residents supervised -->
                         <template v-if="!isResidentType(staffProfileModal.staff.staff_type)">
                             <div class="pd-stat">
-                                <div class="pd-stat-n pd-stat-n--teal">{{ clinicalStudies.filter(t=>t.principal_investigator_id===staffProfileModal.staff.id || (t.co_investigators||[]).includes(staffProfileModal.staff.id)).length }}</div>
+                                <div class="pd-stat-n pd-stat-n--teal">{{ clinicalTrials.filter(t=>t.principal_investigator_id===staffProfileModal.staff.id || (t.co_investigators||[]).includes(staffProfileModal.staff.id)).length }}</div>
                                 <div class="pd-stat-l">Studies</div>
                             </div>
                             <div class="pd-stat">
@@ -6143,27 +6143,27 @@
                         <div style="font-size:.52rem;font-family:monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.32);margin-bottom:6px;">Protocol</div>
                         <div style="font-size:1.1rem;font-weight:700;font-family:monospace;color:#00B3B3;letter-spacing:.04em;line-height:1;filter:drop-shadow(0 0 12px rgba(0,179,179,.3));"
                              :style="!clinicalTrialModal.form.protocol_id ? 'color:rgba(255,255,255,.12)' : ''">
-                            {{ clinicalStudyModal.form.protocol_id || 'HUAC-——————' }}
+                            {{ clinicalTrialModal.form.protocol_id || 'HUAC-——————' }}
                         </div>
 
                         <!-- Title preview -->
                         <div class="sm-preview-name"
                              :class="{'sm-preview-name--empty': !clinicalTrialModal.form.title}"
                              style="font-size:.8rem;margin-top:10px;line-height:1.4;text-align:center;padding:0 4px;">
-                            {{ clinicalStudyModal.form.title || 'Study title…' }}
+                            {{ clinicalTrialModal.form.title || 'Study title…' }}
                         </div>
 
                         <!-- Phase + Status chips -->
                         <div class="sm-preview-chips" style="flex-wrap:wrap;justify-content:center;">
                             <span v-if="clinicalTrialModal.form.phase" class="sm-preview-chip"
                                   style="background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.2);color:#818cf8;">
-                                {{ clinicalStudyModal.form.phase }}
+                                {{ clinicalTrialModal.form.phase }}
                             </span>
                             <span v-if="clinicalTrialModal.form.status" class="sm-preview-chip"
                                   :style="clinicalTrialModal.form.status === 'Reclutando' ? 'background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.2);color:#10b981;'
                                         : clinicalTrialModal.form.status === 'Completado'  ? 'background:rgba(107,114,128,.1);border-color:rgba(107,114,128,.2);color:rgba(255,255,255,.45);'
                                         : 'background:rgba(0,179,179,.1);border-color:rgba(0,179,179,.2);color:#00B3B3;'">
-                                {{ clinicalStudyModal.form.status }}
+                                {{ clinicalTrialModal.form.status }}
                             </span>
                         </div>
                     </div>
@@ -6176,10 +6176,10 @@
                             <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.22);margin-bottom:6px;">Principal Investigator</div>
                             <div style="display:flex;align-items:center;gap:8px;">
                                 <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#00B3B3,#4A9EE8);display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 0 0 2px rgba(0,179,179,.2);">
-                                    {{ (availablePhysicians.find(s=>s.id===clinicalStudyModal.form.principal_investigator_id)?.full_name||'').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                                    {{ (availablePhysicians.find(s=>s.id===clinicalTrialModal.form.principal_investigator_id)?.full_name||'').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
                                 </div>
                                 <span style="font-size:.72rem;font-weight:600;color:rgba(255,255,255,.85);">
-                                    {{ availablePhysicians.find(s=>s.id===clinicalStudyModal.form.principal_investigator_id)?.full_name }}
+                                    {{ availablePhysicians.find(s=>s.id===clinicalTrialModal.form.principal_investigator_id)?.full_name }}
                                 </span>
                             </div>
                         </div>
@@ -6193,7 +6193,7 @@
                                     {{ (allStaffLookup.find(s=>s.id===id)?.full_name||'').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('') }}
                                 </div>
                                 <span v-if="clinicalTrialModal.form.co_investigators.length > 4" style="font-size:.58rem;font-family:monospace;color:rgba(255,255,255,.3);line-height:22px;">
-                                    +{{ clinicalStudyModal.form.co_investigators.length - 4 }}
+                                    +{{ clinicalTrialModal.form.co_investigators.length - 4 }}
                                 </span>
                             </div>
                         </div>
@@ -6202,8 +6202,8 @@
                         <div v-if="clinicalTrialModal.form.research_line_id">
                             <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.22);margin-bottom:5px;">Research Line</div>
                             <div style="display:flex;align-items:center;gap:6px;">
-                                <span style="font-size:.65rem;font-family:monospace;color:#00B3B3;font-weight:700;">L{{ researchLines.find(l=>l.id===clinicalStudyModal.form.research_line_id)?.line_number }}</span>
-                                <span style="font-size:.68rem;color:rgba(255,255,255,.55);">{{ (researchLines.find(l=>l.id===clinicalTrialModal.form.research_line_id)?.research_line_name || researchLines.find(l=>l.id===clinicalStudyModal.form.research_line_id)?.name || '').slice(0,28) }}</span>
+                                <span style="font-size:.65rem;font-family:monospace;color:#00B3B3;font-weight:700;">L{{ researchLines.find(l=>l.id===clinicalTrialModal.form.research_line_id)?.line_number }}</span>
+                                <span style="font-size:.68rem;color:rgba(255,255,255,.55);">{{ (researchLines.find(l=>l.id===clinicalTrialModal.form.research_line_id)?.research_line_name || researchLines.find(l=>l.id===clinicalTrialModal.form.research_line_id)?.name || '').slice(0,28) }}</span>
                             </div>
                         </div>
 
@@ -6211,9 +6211,9 @@
                         <div v-if="clinicalTrialModal.form.start_date">
                             <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.22);margin-bottom:5px;">Period</div>
                             <div style="font-size:.7rem;color:rgba(255,255,255,.55);font-family:monospace;">
-                                {{ formatDateShort(clinicalStudyModal.form.start_date) }}
+                                {{ formatDateShort(clinicalTrialModal.form.start_date) }}
                                 <span style="color:rgba(255,255,255,.22);"> → </span>
-                                {{ clinicalTrialModal.form.end_date ? formatDateShort(clinicalStudyModal.form.end_date) : '…' }}
+                                {{ clinicalTrialModal.form.end_date ? formatDateShort(clinicalTrialModal.form.end_date) : '…' }}
                             </div>
                         </div>
                     </div>
@@ -6235,7 +6235,7 @@
                     <div class="sm-form-header">
                         <div class="sm-form-title">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg>
-                            {{ clinicalStudyModal.mode === 'add' ? 'New Clinical Study' : 'Edit Clinical Study' }}
+                            {{ clinicalTrialModal.mode === 'add' ? 'New Clinical Study' : 'Edit Clinical Study' }}
                         </div>
                         <button class="sm-form-close" @click="clinicalTrialModal.show = false">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg>
@@ -6350,7 +6350,7 @@
                         <button class="sm-btn-back" @click="clinicalTrialModal.show = false">Cancel</button>
                         <button class="sm-btn-save" @click="saveClinicalTrial" :disabled="saving">
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v13a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                            {{ saving ? 'Saving…' : clinicalStudyModal.mode === 'add' ? 'Add Study' : 'Save Changes' }}
+                            {{ saving ? 'Saving…' : clinicalTrialModal.mode === 'add' ? 'Add Study' : 'Save Changes' }}
                         </button>
                     </div>
                 </div>
