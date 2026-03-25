@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
       API_BASE_URL: window.location.hostname.includes('localhost')
         ? 'http://localhost:3000'
         : 'https://neumac-manage-back-end-production.up.railway.app',
-      TOKEN_KEY: 'neumocare_token', 
+      TOKEN_KEY: 'neumocare_token',
       USER_KEY: 'neumocare_user',
       CACHE_TTL: 300000
     }
@@ -1087,17 +1087,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const validateStaff = (form) => {
         clearAll('staff'); let ok = true
         if (!form.full_name?.trim()) { setErr('staff', 'full_name', 'Full name is required'); ok = false }
+        if (!form.staff_type) { setErr('staff', 'staff_type', 'Staff type is required'); ok = false }
         if (form.professional_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.professional_email)) {
           setErr('staff', 'professional_email', 'Invalid email address'); ok = false
         }
+        // External resident: needs institution + contact
         if (form.resident_category === 'external_resident') {
-          if (!form.hospital_id)                   { setErr('staff', 'hospital_id', 'Origin hospital required'); ok = false }
-          if (!form.home_department_id)            { setErr('staff', 'home_department_id', 'Home department required'); ok = false }
+          if (!form.external_institution?.trim())  { setErr('staff', 'external_institution', 'Institution required'); ok = false }
           if (!form.external_contact_name?.trim()) { setErr('staff', 'external_contact_name', 'Contact person required'); ok = false }
           if (!form.external_contact_email?.trim()){ setErr('staff', 'external_contact_email', 'Contact email required'); ok = false }
         }
-        if (form.resident_category && form.resident_category !== 'external_resident') {
-          if (!form.department_id) { setErr('staff', 'department_id', 'Department is required'); ok = false }
+        // Rotating resident: needs origin department
+        if (form.resident_category === 'rotating_other_dept') {
+          if (!form.home_department_id) { setErr('staff', 'home_department_id', 'Origin department required'); ok = false }
         }
         return ok
       }
@@ -1286,6 +1288,9 @@ document.addEventListener('DOMContentLoaded', () => {
           is_research_coordinator: staff.is_research_coordinator || false,
           is_resident_manager: staff.is_resident_manager || false,
           is_oncall_manager: staff.is_oncall_manager || false,
+          has_phd: staff.has_phd || false, phd_field: staff.phd_field || '',
+          office_phone: staff.office_phone || '', years_experience: staff.years_experience || null,
+          _coordLineId: researchLines.value.find(l=>l.coordinator_id===staff.id)?.id || null,
           clinical_study_certificates: Array.isArray(staff.clinical_study_certificates) ? [...staff.clinical_study_certificates] : [],
           hospital_id: staff.hospital_id || null,
           _networkHint: null
@@ -1302,7 +1307,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const data = {
             full_name: f.full_name.trim(), staff_type: f.staff_type || 'medical_resident',
             staff_id: f.staff_id || Utils.generateId('MD'), employment_status: f.employment_status || 'active',
-            professional_email: f.professional_email || '', department_id: f.department_id || null,
+            professional_email: f.professional_email || '', department_id: f.department_id || currentUser?.value?.department_id || null,
             academic_degree: clean(f.academic_degree), academic_degree_id: f.academic_degree_id || null,
             specialization: clean(f.specialization),
             training_year: clean(f.training_year),
@@ -1322,6 +1327,11 @@ document.addEventListener('DOMContentLoaded', () => {
             external_contact_email: f.external_contact_email || null,
             external_contact_phone: f.external_contact_phone || null,
             is_research_coordinator: f.is_research_coordinator || false,
+            has_phd: f.has_phd || false,
+            phd_field: f.phd_field || null,
+            office_phone: f.office_phone || null,
+            years_experience: f.years_experience || null,
+            coord_line_id: f._coordLineId || null,
             hospital_id: f.hospital_id || null,
             clinical_study_certificates: f.clinical_study_certificates || []
           }
