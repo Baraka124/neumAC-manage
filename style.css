@@ -5,7 +5,7 @@
 .form-hint--auto     { color: var(--ok); }
 .form-hint--override { color: var(--warn); }
 
-.ryear-auto-row {
+.ryear-auto-row { 
   display: flex; align-items: center; gap: 8px;
 }
 .ryear-chip {
