@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ? 'http://localhost:3000'
         : 'https://neumac-manage-back-end-production.up.railway.app',
       TOKEN_KEY: 'neumocare_token',
-      USER_KEY: 'neumocare_user', 
+      USER_KEY: 'neumocare_user',
       CACHE_TTL: 300000
     }
 
@@ -4309,7 +4309,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (endingThisWeek.length > 0) {
           const names = endingThisWeek.slice(0,2).map(r => {
             const s = medicalStaff.value.find(x => x.id === r.resident_id)
-            return s ? s.full_name.split(' ').slice(-1)[0] : 'Unknown'
+            return s ? s.full_name : 'Unknown'
           }).join(', ')
           const more = endingThisWeek.length > 2 ? ` +${endingThisWeek.length-2}` : ''
           items.push({ icon: 'fa-clock', type: 'warn', text: `${endingThisWeek.length} rotation${endingThisWeek.length>1?'s':''} ending this week — ${names}${more}`, action: 'resident_rotations', actionFilter: { rotationStatus: 'active' } })
@@ -4354,7 +4354,7 @@ document.addEventListener('DOMContentLoaded', () => {
           )
         })
         if (unassigned.length > 0) {
-          const names = unassigned.slice(0,2).map(s => s.full_name.split(' ').slice(-1)[0]).join(', ')
+          const names = unassigned.slice(0,2).map(s => s.full_name || '').join(', ')
           const more  = unassigned.length > 2 ? ` +${unassigned.length - 2}` : ''
           items.push({ icon: 'fa-user-clock', type: 'warn', text: `${unassigned.length} resident${unassigned.length>1?'s':''} unassigned next month — ${names}${more}`, action: 'resident_rotations', urgent: unassigned.length > 2 })
         }
@@ -4388,7 +4388,7 @@ document.addEventListener('DOMContentLoaded', () => {
             )
             if (active.length < unit.maximum_residents) {
               gapSlotMatches.push({
-                residentName: resident.full_name.split(' ').slice(-1)[0],
+                residentName: resident.full_name,
                 residentId: resident.id,
                 unitName: unit.unit_name,
                 unitId: unit.id,
@@ -4801,7 +4801,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           return a || '—'
         }
-        const formatTrialStatus = (s) => ({ 'Reclutando': 'Recruiting', 'Activo': 'Active', 'Completado': 'Completed', 'Suspendido': 'Suspended', 'Pendiente': 'Pending', 'Cerrado': 'Closed' }[s] || s)
+        const formatStudyStatus = (s) => ({ 'Reclutando': 'Recruiting', 'Activo': 'Active', 'Completado': 'Completed', 'Suspendido': 'Suspended', 'Pendiente': 'Pending', 'Cerrado': 'Closed' }[s] || s)
         const getCurrentViewTitle = () => VIEW_TITLES[currentView.value] || 'NeumoCare Dashboard'
         const getCurrentViewSubtitle = () => VIEW_SUBTITLES[currentView.value] || 'Hospital Management System'
         const getSearchPlaceholder = () => 'Search...'
@@ -5220,7 +5220,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ...onCallOps,
           ...rotationOps,
           ...absenceOps,
-          formatTrainingYear: Utils.formatTrainingYear, formatSpecialization: Utils.formatSpecialization, effectiveResidentYear: Utils.effectiveResidentYear,
+          formatTrainingYear: Utils.formatTrainingYear, formatStudyStatus, formatSpecialization: Utils.formatSpecialization, effectiveResidentYear: Utils.effectiveResidentYear,
           formatPhone: Utils.formatPhone, formatLicense: Utils.formatLicense,
           getResidentCategoryInfo: Utils.getResidentCategoryInfo, formatResidentCategorySimple: Utils.formatResidentCategorySimple,
           formatResidentCategoryDetailed: Utils.formatResidentCategoryDetailed, getResidentCategoryIcon: Utils.getResidentCategoryIcon,
@@ -5234,7 +5234,7 @@ document.addEventListener('DOMContentLoaded', () => {
           deptPanelAttending, deptPanelResidents, deptPanelUnits, deptPanelRotations,
           getUnitSupervisorName, rotDaysLeft,
           trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits,
-          getUnitActiveRotationCount, getUnitRotations, getResidentShortName, loadTrainingUnits, showAddTrainingUnitModal,
+          getUnitActiveRotationCount, getUnitRotations, getUnitScheduledCount, getUnitOverlapWarning, getResidentShortName, loadTrainingUnits, showAddTrainingUnitModal,
         trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree, tlPopover, openCellPopover, closeCellPopover,
           occupancyPanel, unitDetailDrawer, occupancyHeatmap, occupancyPanelUnits,
           getUnitMonthOccupancy, getNextFreeMonth, openUnitDetail, openAssignRotationFromUnit,
@@ -5300,7 +5300,7 @@ document.addEventListener('DOMContentLoaded', () => {
           getUpcomingRotations, getUpcomingLeave, getRotationHistory, getRotationDaysLeft,
           getCurrentRotationSupervisor, hasProfessionalCredentials,
           formatStaffType, formatStaffTypeShortFn, getStaffTypeClass, formatEmploymentStatus, formatAbsenceReason,
-          formatRotationStatus, getUserRoleDisplay, formatAudience, formatTrialStatus,
+          formatRotationStatus, getUserRoleDisplay, formatAudience, formatStudyStatus,
           getCurrentViewTitle, getCurrentViewSubtitle, getSearchPlaceholder,
           showPassword, loginError, loginFieldErrors, clearLoginError, handleForgotPassword,
           normalizeDate: (d) => Utils.normalizeDate(d),
