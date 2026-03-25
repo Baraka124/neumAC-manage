@@ -2966,7 +2966,46 @@ document.addEventListener('DOMContentLoaded', () => {
         return f
       })
 
-      const getUnitActiveRotationCount = (id) => rotations.value.filter(r => r.training_unit_id === id && ['active', 'scheduled'].includes(r.rotation_status)).length
+      const getUnitActiveRotationCount = (id) => {
+        const today = new Date(); today.setHours(0,0,0,0)
+        return rotations.value.filter(r =>
+          r.training_unit_id === id &&
+          r.rotation_status === 'active' &&
+          new Date(r.start_date) <= today &&
+          new Date(r.end_date)   >= today
+        ).length
+      }
+
+      const getUnitScheduledCount = (id) => {
+        const today = new Date(); today.setHours(0,0,0,0)
+        return rotations.value.filter(r =>
+          r.training_unit_id === id &&
+          r.rotation_status === 'scheduled' &&
+          new Date(r.start_date) > today
+        ).length
+      }
+
+      // Check for future overlap conflicts: will scheduled + active exceed capacity at any point?
+      const getUnitOverlapWarning = (id) => {
+        const unit = trainingUnits.value.find(u => u.id === id)
+        if (!unit) return null
+        const maxSlots = unit.maximum_residents
+        const upcoming = rotations.value.filter(r =>
+          r.training_unit_id === id &&
+          ['active','scheduled'].includes(r.rotation_status)
+        )
+        // Check each rotation's start date — how many others overlap at that moment?
+        for (const rot of upcoming) {
+          const checkDate = new Date(rot.start_date)
+          const concurrent = upcoming.filter(r =>
+            new Date(r.start_date) <= checkDate && new Date(r.end_date) >= checkDate
+          ).length
+          if (concurrent > maxSlots) {
+            return { date: rot.start_date, concurrent, max: maxSlots }
+          }
+        }
+        return null
+      }
 
       const getUnitRotations = (id) => rotations.value
         .filter(r => r.training_unit_id === id && ['active', 'scheduled'].includes(r.rotation_status))
@@ -3161,14 +3200,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const mStart = new Date(year, month, 1)
         const mEnd   = new Date(year, month + 1, 0)
         const unit   = trainingUnits.value.find(u => u.id === unitId)
-        if (!unit) return { status: 'free', occupied: 0, total: 0 }
+        if (!unit) return { status: 'free', occupied: 0, scheduled: 0, total: 0 }
         const maxSlots = unit.maximum_residents
         const touching = rotations.value.filter(r =>
           r.training_unit_id === unitId &&
           ['active','scheduled'].includes(r.rotation_status) &&
           new Date(r.start_date) <= mEnd && new Date(r.end_date) >= mStart
         )
-        const occupied = touching.length
+        // Separate truly active (date range covers any day in month) from scheduled future
+        const today = new Date(); today.setHours(0,0,0,0)
+        const isCurrentMonth = mStart <= today && mEnd >= today
+        const active    = isCurrentMonth
+          ? touching.filter(r => r.rotation_status === 'active' && new Date(r.start_date) <= today && new Date(r.end_date) >= today).length
+          : touching.filter(r => ['active','scheduled'].includes(r.rotation_status)).length
+        const scheduled = touching.filter(r => r.rotation_status === 'scheduled').length
+        const occupied  = isCurrentMonth ? active : touching.length
         if (occupied === 0) return { status: 'free', occupied: 0, total: maxSlots }
         const isClosing = touching.some(r => {
           const e = new Date(r.end_date)
