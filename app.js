@@ -2978,7 +2978,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (trainingUnitFilters.search) { const q = trainingUnitFilters.search.toLowerCase(); f = f.filter(u => u.unit_name?.toLowerCase().includes(q)) }
         if (trainingUnitFilters.department) f = f.filter(u => u.department_id === trainingUnitFilters.department)
         if (trainingUnitFilters.status) f = f.filter(u => u.unit_status === trainingUnitFilters.status)
-        return f
+        // Sort by urgency: overlap > full > partial > available
+        return [...f].sort((a, b) => {
+          const score = (u) => {
+            if (getUnitOverlapWarning(u.id)) return 0
+            const ratio = getUnitActiveRotationCount(u.id) / (u.maximum_residents || 1)
+            if (ratio >= 1) return 1
+            if (ratio > 0.5) return 2
+            if (ratio > 0) return 3
+            return 4
+          }
+          return score(a) - score(b)
+        })
       })
 
       const getUnitActiveRotationCount = (id) => {
