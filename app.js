@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ROLES = {
       ADMIN: 'system_admin',
       HEAD: 'department_head',
+      MANAGER: 'resident_manager',
       ATTENDING: 'attending_physician',
       RESIDENT: 'medical_resident'
     }
@@ -70,6 +71,18 @@ document.addEventListener('DOMContentLoaded', () => {
         research_lines: ['read'], 
         clinical_trials: ['read'],
         innovation_projects: ['read'], 
+        analytics: ['read']
+      },
+      resident_manager: {
+        medical_staff: ['read', 'create', 'update'],
+        oncall_schedule: ['create', 'read', 'update', 'delete'],
+        resident_rotations: ['create', 'read', 'update', 'delete'],
+        training_units: ['read', 'update'],
+        staff_absence: ['create', 'read', 'update'],
+        communications: ['read'],
+        research_lines: ['read'],
+        clinical_trials: ['read'],
+        innovation_projects: ['read'],
         analytics: ['read']
       },
       medical_resident: {
