@@ -11365,7 +11365,7 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
 
 /* Horizon selector */
 .mv-hz-btn { 
-  font-size: 10px; font-family: monospace; padding: 3px 8px;  
+  font-size: 10px; font-family: monospace; padding: 3px 8px;
   border-radius: 4px; cursor: pointer;
   border: 0.5px solid var(--border); background: var(--surface);
   color: var(--text-3);
