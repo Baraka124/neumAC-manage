@@ -129,6 +129,41 @@
       .rp-trial-status--done{background:#f5f4f0;color:#909399;border:.5px solid #e3dfd6;opacity:.7;}
       .rp-view-all{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:500;color:#009999;background:none;border:none;cursor:pointer;padding:8px 0 0;font-family:monospace;}
 
+    
+      /* ── Unit Detail Modal (centered popup) ── */
+      .udd-backdrop { position:fixed; inset:0; background:rgba(7,17,31,.55); backdrop-filter:blur(4px); z-index:210; }
+      .udd { position:fixed; top:50%; left:50%; z-index:211; width:min(860px,95vw); max-height:88vh; background:#fdfcfb; border-radius:16px; box-shadow:0 24px 80px rgba(0,0,0,.22); display:flex; flex-direction:column; overflow:hidden; transform:translate(-50%,-48%) scale(.97); opacity:0; pointer-events:none; transition:transform .24s cubic-bezier(.22,.61,.36,1),opacity .2s ease; }
+      .udd--open { transform:translate(-50%,-50%) scale(1) !important; opacity:1 !important; pointer-events:all !important; }
+      .udd-header { padding:22px 28px 18px; flex-shrink:0; background:#0f2d54; }
+      .udd-header-top { display:flex; align-items:flex-start; gap:12px; }
+      .udd-icon { width:40px; height:40px; border-radius:10px; flex-shrink:0; background:rgba(0,179,179,.2); display:flex; align-items:center; justify-content:center; color:#00B3B3; }
+      .udd-unit-name { font-size:20px; font-weight:400; font-style:italic; font-family:'Fraunces',Georgia,serif; color:#fff; letter-spacing:-.02em; }
+      .udd-unit-meta { font-size:12px; color:rgba(255,255,255,.55); margin-top:3px; }
+      .udd-close { width:30px; height:30px; border-radius:7px; border:none; background:rgba(255,255,255,.12); color:rgba(255,255,255,.7); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+      .udd-status-strip { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,.1); }
+      .udd-cap-chip { background:rgba(255,255,255,.12); color:rgba(255,255,255,.8); border-radius:6px; padding:3px 10px; font-size:12px; font-family:monospace; font-weight:600; }
+      .udd-sched-chip { background:rgba(0,179,179,.15); color:#00B3B3; border-radius:6px; padding:3px 10px; font-size:11px; font-family:monospace; }
+      .udd-overlap-chip { background:rgba(239,159,39,.12); color:#ef9f27; border-radius:6px; padding:3px 10px; font-size:11px; display:flex; align-items:center; gap:4px; }
+      .udd-cap-bar { flex:1; max-width:120px; height:5px; border-radius:3px; background:rgba(255,255,255,.15); overflow:hidden; }
+      .udd-cap-fill { height:100%; border-radius:3px; background:#00B3B3; }
+      .udd-body { flex:1; overflow-y:auto; padding:24px 28px; display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+      .udd-callout { grid-column:1/-1; display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:10px; }
+      .udd-callout--free { background:#f0fdf4; border:1px solid #bbf7d0; }
+      .udd-callout--warn { background:#fffbeb; border:1px solid #fcd34d; }
+      .udd-callout-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.04); flex-shrink:0; }
+      .udd-callout-content { flex:1; }
+      .udd-callout-title { font-size:13px; font-weight:600; color:#07111f; }
+      .udd-callout-sub { font-size:11.5px; color:#5a6472; margin-top:2px; }
+      .udd-section { display:flex; flex-direction:column; }
+      .udd-section-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:#909399; display:flex; align-items:center; gap:6px; margin-bottom:10px; }
+      .udd-assign-cta { background:rgba(0,153,153,.08); color:#009999; border:.5px solid rgba(0,153,153,.25); border-radius:8px; padding:8px 14px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; transition:background .15s; }
+      .udd-assign-cta:hover { background:rgba(0,153,153,.16); }
+      .udd-footer { padding:12px 28px; border-top:1px solid #e3dfd6; display:flex; gap:8px; align-items:center; flex-shrink:0; background:#f5f4f0; }
+      /* Card clickable hover */
+      .tuc { cursor:pointer; transition:box-shadow .15s, transform .15s; }
+      .tuc:hover { box-shadow:0 4px 20px rgba(0,0,0,.10); transform:translateY(-2px); }
+      .tuc:hover .tuc-name { color:#009999; }
+
     </style>
 </head>
 <body>
@@ -1860,7 +1895,9 @@
                                    'tuc--warn':   getUnitActiveRotationCount(unit.id) / unit.maximum_residents > 0.75 && getUnitActiveRotationCount(unit.id) < unit.maximum_residents,
                                    'tuc--active': getUnitActiveRotationCount(unit.id) > 0 && getUnitActiveRotationCount(unit.id) / unit.maximum_residents <= 0.75,
                                    'tuc--timeline-mode': trainingUnitView === 'timeline'
-                                 }">
+                                 }"
+                                 @click="openUnitDetail(unit)"
+                                 style="cursor:pointer">
 
                                 <!-- ── HEADER (both modes) ── -->
                                 <div class="tuc-head">
@@ -7257,12 +7294,27 @@
         <div class="udd" :class="{ 'udd--open': unitDetailDrawer && unitDetailDrawer.show }" v-if="unitDetailDrawer && unitDetailDrawer.unit">
             <div class="udd-header">
                 <div class="udd-header-top">
-                    <div class="udd-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21M12 8V11M10.5 9.5H13.5"/></svg></div>
-                    <div class="udd-header-info">
-                        <div class="udd-unit-name">{{ unitDetailDrawer.unit.unit_name }}</div>
-                        <div class="udd-unit-meta"><span v-if="unitDetailDrawer.unit.specialty">{{ unitDetailDrawer.unit.specialty }}</span><span v-else>—</span></div>
+                    <div class="udd-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21M12 8V11M10.5 9.5H13.5"/></svg>
                     </div>
-                    <button class="udd-close" @click="unitDetailDrawer.show = false"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg></button>
+                    <div class="udd-header-info" style="flex:1;min-width:0">
+                        <div class="udd-unit-name">{{ unitDetailDrawer.unit.unit_name }}</div>
+                        <div class="udd-unit-meta">
+                            <span v-if="unitDetailDrawer.unit.specialty">{{ unitDetailDrawer.unit.specialty }}</span>
+                            <span v-else-if="unitDetailDrawer.unit.unit_type">
+                                {{ {'clinical_unit':'Ward','icu':'Critical Care','outpatient':'Outpatient','surgical':'Surgical','research':'Research','training_unit':'Training'}[unitDetailDrawer.unit.unit_type] || 'Clinical Unit' }}
+                            </span>
+                            <span v-if="unitDetailDrawer.unit.department_name"> · {{ unitDetailDrawer.unit.department_name }}</span>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+                        <button v-if="hasPermission('training_units','update')" @click.stop="editTrainingUnit(unitDetailDrawer.unit); unitDetailDrawer.show=false" style="background:rgba(255,255,255,.1);border:none;border-radius:7px;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7)" title="Edit unit">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg>
+                        </button>
+                        <button class="udd-close" @click="unitDetailDrawer.show = false">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="udd-status-strip">
                     <span class="uop-status-pill" :class="'uop-status-pill--' + unitDetailDrawer.unit.occ.status">
@@ -7333,6 +7385,59 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ── Residents currently in this unit ── -->
+            <div class="udd-section" style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:18px;margin-top:4px">
+                <div class="udd-section-label">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Current residents
+                    <span style="margin-left:auto;font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">
+                        {{ getUnitActiveRotationCount(unitDetailDrawer.unit.id) }}/{{ unitDetailDrawer.unit.maximum_residents }} slots
+                    </span>
+                </div>
+                <div v-if="getUnitRotations(unitDetailDrawer.unit.id).filter(r=>r.rotation_status==='active').length > 0"
+                     style="display:flex;flex-direction:column;gap:6px">
+                    <div v-for="rot in getUnitRotations(unitDetailDrawer.unit.id).filter(r=>r.rotation_status==='active')"
+                         :key="rot.id"
+                         style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface-2);border-radius:8px;border:1px solid var(--border)">
+                        <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1e40af,#0e7490);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                            {{ (getResidentShortName(rot.resident_id)||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }}
+                        </div>
+                        <div style="flex:1;min-width:0">
+                            <div style="font-size:12.5px;font-weight:500;color:var(--text-1)">{{ getResidentShortName(rot.resident_id) || '—' }}</div>
+                            <div style="font-size:10.5px;color:var(--text-3);font-family:monospace">
+                                {{ formatDate(rot.start_date) }} → {{ formatDate(rot.end_date) }}
+                            </div>
+                        </div>
+                        <span style="font-size:9.5px;padding:2px 8px;border-radius:4px;background:rgba(0,153,153,.08);color:#009999;font-weight:600;font-family:monospace">Active</span>
+                    </div>
+                </div>
+                <div v-else style="padding:14px;text-align:center;color:var(--text-4);font-size:12px;background:var(--surface-2);border-radius:8px;border:1px dashed var(--border)">
+                    No active residents — unit is available
+                </div>
+                <!-- Upcoming -->
+                <div v-if="getUnitRotations(unitDetailDrawer.unit.id).filter(r=>r.rotation_status==='scheduled').length > 0"
+                     style="margin-top:10px">
+                    <div style="font-size:10px;font-weight:600;color:var(--text-4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Scheduled incoming</div>
+                    <div v-for="rot in getUnitRotations(unitDetailDrawer.unit.id).filter(r=>r.rotation_status==='scheduled').slice(0,3)"
+                         :key="rot.id"
+                         style="display:flex;align-items:center;gap:10px;padding:7px 12px;background:var(--surface-2);border-radius:8px;border:1px solid var(--border);margin-bottom:4px;opacity:.8">
+                        <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#534ab7,#7c3aed);color:#fff;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                            {{ (getResidentShortName(rot.resident_id)||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }}
+                        </div>
+                        <div style="flex:1;min-width:0;font-size:12px;color:var(--text-2)">{{ getResidentShortName(rot.resident_id) }}</div>
+                        <span style="font-size:10px;color:var(--text-3);font-family:monospace">{{ formatDate(rot.start_date) }}</span>
+                    </div>
+                </div>
+                <!-- Quick assign -->
+                <button v-if="hasPermission('resident_rotations','create')"
+                        @click="openAssignRotationFromUnit(unitDetailDrawer.unit, null)"
+                        style="margin-top:10px;padding:8px 14px;border-radius:8px;background:rgba(0,153,153,.06);border:1px dashed rgba(0,153,153,.3);color:#009999;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;width:100%;justify-content:center">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
+                    Assign a resident to this unit
+                </button>
+            </div>
+
             <div class="udd-footer">
                 <button class="btn btn-secondary btn-sm" @click="unitDetailDrawer.show = false"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg> Close</button>
                 <button class="btn btn-ghost btn-sm" @click="switchView('resident_rotations'); unitDetailDrawer.show = false" v-if="hasPermission('resident_rotations','read')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 15l2 2 4-4"/></svg> All Rotations</button>
