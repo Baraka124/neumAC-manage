@@ -11409,13 +11409,13 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
   border-bottom-color: #009999 !important;
 }
 .news-view .rhub-tab--active .rhub-tab-count {
-  background: rgba(0,153,153,.08) !important;
+  background: rgba(0,153,153,.08) !important; 
   color: #009999 !important;
   border-color: rgba(0,153,153,.2) !important;
-}  
+}
 
 /* Card title — no truncation */
 .news-card-title {
   white-space: normal !important;
   word-break: break-word !important;
-}
+}  
