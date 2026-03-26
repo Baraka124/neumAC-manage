@@ -772,13 +772,12 @@ document.addEventListener('DOMContentLoaded', () => {
       async updateOnCall(id, d) { this.invalidate('/api/oncall'); return this.request(`/api/oncall/${id}`, { method: 'PUT', body: d }) }
       async deleteOnCall(id) { this.invalidate('/api/oncall'); return this.request(`/api/oncall/${id}`, { method: 'DELETE' }) }
 
- async getAbsences() {
-  try {
-    const r = await this.request('/api/absence-records')
-    // Currently returns r?.data if success, otherwise Utils.ensureArray(r)
-    return (r?.success && Array.isArray(r.data)) ? r.data : Utils.ensureArray(r)
-  } catch { return [] }
-}
+      async getAbsences() {
+        try {
+          const r = await this.request('/api/absence-records')
+          return (r?.success && Array.isArray(r.data)) ? r.data : Utils.ensureArray(r)
+        } catch { return [] }
+      }
       async createAbsence(d) { this.invalidate('/api/absence-records'); return this.request('/api/absence-records', { method: 'POST', body: d }) }
       async updateAbsence(id, d) { this.invalidate('/api/absence-records'); return this.request(`/api/absence-records/${id}`, { method: 'PUT', body: d }) }
       async deleteAbsence(id) { this.invalidate('/api/absence-records'); return this.request(`/api/absence-records/${id}`, { method: 'DELETE' }) }
@@ -4473,7 +4472,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
 
         const { pagination, resetPage, paginate, totalPages, goToPage } = makePagination([
-          ['medical_staff', 15], ['rotations', 15], ['oncall', 15], ['absences', 15], ['trials', 15], ['projects', 15]
+          ['medical_staff', 15], ['rotations', 15], ['oncall', 15], ['absences', 15], ['trials', 15]
         ])
 
         const { fieldErrors, setErr, clearErr: clearFieldError, clearAll } = makeValidation(['rotation', 'staff', 'absence', 'oncall', 'research'])
@@ -4967,11 +4966,10 @@ document.addEventListener('DOMContentLoaded', () => {
           const ca = document.querySelector('.content-area')
           if (ca) { ca.classList.remove('content-view-enter'); void ca.offsetWidth; ca.classList.add('content-view-enter') }
           if (view === 'research_hub') {
-  // Set default tab if not already set
-  if (!analyticsOps.researchHubTab.value) analyticsOps.researchHubTab.value = 'lines'
-  currentView.value = 'research_hub'
-  return
-}
+            // Direct navigation — default to lines tab
+            if (!analyticsOps.researchHubTab.value) analyticsOps.researchHubTab.value = 'lines'
+            currentView.value = 'research_hub'
+            return
           } else if (view === 'research_lines') {
             analyticsOps.researchHubTab.value = 'lines'
             currentView.value = 'research_hub'
@@ -5155,34 +5153,30 @@ document.addEventListener('DOMContentLoaded', () => {
             ])
 
             // Second batch: depends on staff + units being loaded
-            // Second batch: depends on staff + units being loaded
-await Promise.all([
-  rotationOps.loadRotations(),
-  onCallOps.loadOnCallSchedule(),
-  absenceOps.loadAbsences()
-])
+            await Promise.all([
+              rotationOps.loadRotations(),
+              onCallOps.loadOnCallSchedule(),
+              absenceOps.loadAbsences()
+            ])
 
-updateDashboardStats()
+            updateDashboardStats()
 
-// CRITICAL: Load research data before rendering
-await Promise.all([
-  researchOps.loadResearchLines(),
-  researchOps.loadClinicalTrials(),
-  researchOps.loadInnovationProjects()
-])
+            // Third batch: non-critical, fire and forget
+            Promise.all([
+              onCallOps.loadTodaysOnCall(),
+              commsOps.loadAnnouncements(),
+              liveOps.loadClinicalStatus(),
+              liveOps.loadActiveMedicalStaff(),
+              researchOps.loadResearchLines(),
+              loadSystemStats(),
+              loadNews()
+            ]).then(() => updateDashboardStats())
 
-// Third batch: non-critical, fire and forget
-Promise.all([
-  onCallOps.loadTodaysOnCall(),
-  commsOps.loadAnnouncements(),
-  liveOps.loadClinicalStatus(),
-  liveOps.loadActiveMedicalStaff(),
-  loadSystemStats(),
-  loadNews()
-]).then(() => updateDashboardStats())
-
-// Low priority — research analytics (fire and forget)
-analyticsOps.loadAnalyticsSummary()
+            // Low priority — research analytics
+            Promise.all([
+              researchOps.loadClinicalTrials(),
+              researchOps.loadInnovationProjects(),
+              analyticsOps.loadAnalyticsSummary()
             ])
 
           } catch { showToast('Error', 'Failed to load some data', 'error') }
