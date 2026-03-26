@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   try {
     if (typeof Vue === 'undefined') throw new Error('Vue.js not loaded')
 
-    const { createApp, ref, reactive, computed, onMounted, watch, onUnmounted } = Vue  
+    const { createApp, ref, reactive, computed, onMounted, watch, onUnmounted } = Vue
 
     // ============ 1. CONFIGURATION ====----===--====-=
     const CONFIG = {
@@ -5287,7 +5287,6 @@ document.addEventListener('DOMContentLoaded', () => {
           newsDrawerPrev, newsDrawerNext, newsDrawerBodyParagraphs,
           newsDrawerInitials, newsDrawerAuthorFull, newsDrawerReadMins, newsDrawerLineName,
           drillToTrials, drillToProjects,
-          activeMissionLine: researchOps.activeMissionLine,
           portfolioKPIs:     researchOps.portfolioKPIs,
           getLineAccent:     getLineAccentGlobal,
 
