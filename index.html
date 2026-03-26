@@ -1200,17 +1200,21 @@
                                 </colgroup>
                                 <thead>
                                     <tr>
-                                        <th @click="sortBy('oncall', 'duty_date')">Shift Period <i class="fas" :class="sortIcon('oncall', 'duty_date')"></i></th>
-                                        <th @click="sortBy('oncall', 'primary_physician_id')">Physician <i class="fas" :class="sortIcon('oncall', 'primary_physician_id')"></i></th>
-                                        <th>Type</th><th>Coverage Area</th><th>Backup</th><th>Actions</th>
+                                        <th style="width:18%">Shift Period</th>
+                                        <th style="width:24%">Physician</th>
+                                        <th style="width:12%">Type</th>
+                                        <th style="width:16%">Coverage</th>
+                                        <th style="width:20%">Backup</th>
+                                        <th style="width:10%">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="schedule in filteredOnCallSchedules" :key="schedule.id" class="row-active">
+                                    <tr v-for="schedule in filteredOnCallSchedules" :key="schedule.id" class="staff-table-row" :class="{ 'oc-row-today': isToday(schedule.duty_date) }">
                                         <td :data-label="'Shift Period'">
                                             <div class="oncall-shift-cell">
                                                 <div class="oncall-shift-date-row">
                                                     {{ formatDate(schedule.duty_date) }}
+                                                    <span v-if="isToday(schedule.duty_date)" class="oc-today-tag">TODAY</span>
                                                     <span v-if="schedule.end_time < schedule.start_time" class="oncall-shift-overnight">+1d</span>
                                                 </div>
                                                 <div class="oncall-shift-time-row">
@@ -1221,9 +1225,17 @@
                                             </div>
                                         </td>
                                         <td :data-label="'Physician'">
-                                            <div class="cell-primary">{{ getPhysicianName(schedule.primary_physician_id) }}</div>
+                                            <div class="oc-physician-cell">
+                                                <div class="oc-physician-av">
+                                                    {{ (getPhysicianName(schedule.primary_physician_id)||'??').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                                                </div>
+                                                <div>
+                                                    <div class="oc-physician-name">{{ getPhysicianName(schedule.primary_physician_id) }}</div>
+                                                    <div class="oc-physician-time">{{ (schedule.start_time||'').slice(0,5) }} – {{ (schedule.end_time||'').slice(0,5) }}</div>
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td :data-label="'Type'"><span class="badge" :class="schedule.shift_type === 'primary_call' ? 'badge-primary' : 'badge-secondary'">{{ schedule.shift_type === 'primary_call' ? 'Primary' : 'Backup' }}</span></td>
+                                        <td :data-label="'Type'"><span class="oc-type-badge" :class="'oc-type-badge--' + schedule.shift_type">{{ {'primary_call':'Primary','backup_call':'Backup','weekend_coverage':'Weekend','float_physician':'Float'}[schedule.shift_type] || schedule.shift_type }}</span></td>
                                         <td :data-label="'Coverage'">{{ schedule.coverage_area || '—' }}</td>
                                         <td :data-label="'Backup'"><span v-if="schedule.backup_physician_id">{{ getPhysicianName(schedule.backup_physician_id) }}</span><span v-else class="na-value">—</span></td>
                                         <td :data-label="'Actions'">
@@ -1529,28 +1541,35 @@
 
                         <!-- DETAILED VIEW (EXISTING TABLE) -->
                         <div v-else class="table-responsive">
-                            <table class="table table-striped">
+                            <table class="table table-striped table-rot">
                                 <thead>
                                     <tr>
-                                        <th @click="sortBy('rotations', 'resident_id')">Resident <i class="fas" :class="sortIcon('rotations', 'resident_id')"></i></th>
-                                        <th @click="sortBy('rotations', 'training_unit_id')">Training Unit <i class="fas" :class="sortIcon('rotations', 'training_unit_id')"></i></th>
-                                        <th @click="sortBy('rotations', 'start_date')">Period <i class="fas" :class="sortIcon('rotations', 'start_date')"></i></th>
-                                        <th>Days Left</th>
-                                        <th @click="sortBy('rotations', 'rotation_status')">Status <i class="fas" :class="sortIcon('rotations', 'rotation_status')"></i></th>
-                                        <th>Supervisor</th><th>Actions</th>
+                                        <th @click="sortBy('rotations', 'resident_id')" style="width:22%">Resident</th>
+                                        <th @click="sortBy('rotations', 'training_unit_id')" style="width:22%">Unit</th>
+                                        <th @click="sortBy('rotations', 'start_date')" style="width:18%">Period</th>
+                                        <th style="width:10%">Days Left</th>
+                                        <th @click="sortBy('rotations', 'rotation_status')" style="width:12%">Status</th>
+                                        <th style="width:10%">Supervisor</th>
+                                        <th style="width:6%">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-for="rotation in filteredRotations" :key="rotation.id"
+                                        class="staff-table-row"
                                         :class="'row-' + rotation.rotation_status"
                                         :title="rotation.rotation_status === 'terminated_early' ? 'Terminated early — this rotation was ended before completion' : rotation.rotation_status === 'completed' ? 'Completed rotation' : ''"
                                         @click="hasPermission('resident_rotations', 'update') && editRotation(rotation)">
                                         <td>
-                                            <div class="font-medium" style="cursor:pointer;color:var(--blue)"
-                                                 @click.stop="{ const _s = medicalStaff.find(s => s.id === rotation.resident_id); if (_s) viewStaffDetails(_s) }"
-                                                 title="View profile">
-                                                {{ getResidentName(rotation.resident_id) }}
-                                            </div>
+                                            <div class="staff-name-cell">
+                                                <div class="staff-table-av staff-table-av--resident">
+                                                    {{ (getResidentName(rotation.resident_id)||'??').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                                                </div>
+                                                <div class="staff-name-block">
+                                                    <div class="staff-name-primary"
+                                                         @click.stop="{ const _s = medicalStaff.find(s => s.id === rotation.resident_id); if (_s) viewStaffDetails(_s) }"
+                                                         style="cursor:pointer;color:#009999">
+                                                        {{ getResidentName(rotation.resident_id) }}
+                                                    </div>
                                             <div v-if="rotation.resident?.resident_category === 'external_resident' && rotation.resident?.external_contact_name"
                                                  class="scc-ext-row" style="margin-top:2px">
                                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -1935,27 +1954,38 @@
                             <input type="text" class="form-control" v-model="absenceFilters.search" placeholder="Search...">
                         </div>
                         <div class="table-responsive">
-                            <table class="table table-striped">
+                            <table class="table table-striped table-absence">
                                 <thead>
                                     <tr>
-                                        <th @click="sortBy('absences', 'staff_member_id')">Staff Member <i class="fas" :class="sortIcon('absences', 'staff_member_id')"></i></th>
-                                        <th>Reason</th><th>Type</th>
-                                        <th @click="sortBy('absences', 'start_date')">From <i class="fas" :class="sortIcon('absences', 'start_date')"></i></th>
-                                        <th @click="sortBy('absences', 'end_date')">Until <i class="fas" :class="sortIcon('absences', 'end_date')"></i></th>
-                                        <th>Duration</th><th>Coverage</th><th>Actions</th>
+                                        <th @click="sortBy('absences', 'staff_member_id')" style="width:24%">Staff Member</th>
+                                        <th style="width:12%">Reason</th>
+                                        <th style="width:10%">Type</th>
+                                        <th @click="sortBy('absences', 'start_date')" style="width:12%">From</th>
+                                        <th @click="sortBy('absences', 'end_date')" style="width:12%">Until</th>
+                                        <th style="width:9%">Duration</th>
+                                        <th style="width:11%">Coverage</th>
+                                        <th style="width:10%">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-for="absence in filteredAbsences" :key="absence.id"
+                                        class="staff-table-row"
                                         :class="{
                                             'row-currently_absent': absence.current_status === 'currently_absent',
                                             'row-planned_leave':    absence.current_status === 'planned_leave',
                                             'row-returned':         absence.current_status === 'returned_to_duty',
                                             'row-completed':        absence.current_status === 'completed',
-                                            'row-on_leave':         absence.absence_type === 'unplanned' && absence.current_status === 'currently_absent'
                                         }"
                                         @click="hasPermission('staff_absence', 'update') && editAbsence(absence)">
-                                        <td><div class="font-medium">{{ getStaffName(absence.staff_member_id) }}</div></td>
+                                        <td>
+                                            <div class="staff-name-cell">
+                                                <div class="staff-table-av"
+                                                     :class="absence.current_status === 'currently_absent' ? 'staff-table-av--leave' : 'staff-table-av--attending'">
+                                                    {{ (getStaffName(absence.staff_member_id)||'??').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                                                </div>
+                                                <div class="staff-name-primary">{{ getStaffName(absence.staff_member_id) }}</div>
+                                            </div>
+                                        </td>
                                         <td>
                                             <span class="badge" :class="{
                                                 'badge-primary': absence.absence_reason === 'vacation',
@@ -3474,12 +3504,10 @@
                     <!-- Left accent + type -->
                     <div class="news-card-left">
                         <span class="news-type-badge" :class="'ntb--' + post.post_type">
-                            <i class="fas" :class="{
-                                'fa-bolt':        post.post_type === 'update',
-                                'fa-file-alt':    post.post_type === 'article',
-                                'fa-book-open':   post.post_type === 'publication',
-                                'fa-camera':      post.post_type === 'photo_story'
-                            }"></i>
+                            <svg v-if="post.post_type==='update'" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M13 2L3 14H12L11 22L21 10H12L13 2Z"/></svg>
+                            <svg v-else-if="post.post_type==='article'" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+                            <svg v-else-if="post.post_type==='publication'" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                            <svg v-else width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                             {{ post.post_type === 'update' ? 'Update' : post.post_type === 'article' ? 'Article' : post.post_type === 'photo_story' ? 'Photo Story' : 'Publication' }}
                         </span>
                     </div>
@@ -3503,7 +3531,8 @@
                         <!-- Meta row -->
                         <div class="news-card-meta">
                             <span v-if="post.author_id" class="news-meta-item">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M12 15v5M9 18h6"/></svg> {{ newsAuthorName(post.author_id) }}
+                                <span class="news-author-av">{{ (newsAuthorName(post.author_id)||'?').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}</span>
+                                {{ newsAuthorName(post.author_id) }}
                             </span>
                             <span v-if="post.research_line_id" class="news-meta-item news-meta-line">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg> {{ newsLineName(post.research_line_id) }}
@@ -3525,9 +3554,10 @@
                     <!-- Right: status + visibility + actions -->
                     <div class="news-card-right" @click.stop>
                         <!-- Status badge -->
-                        <span class="news-status-badge" :class="'nsb--' + post.status">
-                            {{ post.status === 'published' ? 'Published' : post.status === 'draft' ? 'Draft' : 'Archived' }}
+                        <span v-if="post.status !== 'published'" class="news-status-badge" :class="'nsb--' + post.status">
+                            {{ post.status === 'draft' ? 'Draft' : 'Archived' }}
                         </span>
+                        <span v-else class="news-status-dot" title="Published"></span>
 
                         <!-- Visibility toggle -->
                         <button class="news-vis-btn" @click="toggleNewsPublic(post)"
