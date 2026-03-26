@@ -1,5418 +1,11470 @@
-document.addEventListener('DOMContentLoaded', () => {
-  try {
-    if (typeof Vue === 'undefined') throw new Error('Vue.js not loaded')
-
-    const { createApp, ref, reactive, computed, onMounted, watch, onUnmounted } = Vue
-
-    // ============ 1. CONFIGURATION ====----===--====-=
-    const CONFIG = {
-      API_BASE_URL: window.location.hostname.includes('localhost')
-        ? 'http://localhost:3000'
-        : 'https://neumac-manage-back-end-production.up.railway.app',
-      TOKEN_KEY: 'neumocare_token',
-      USER_KEY: 'neumocare_user',
-      CACHE_TTL: 300000
-    }
-
-    // ============ 2. CONSTANTS ====-========
-    // Research line accent colours — available globally, not just inside useResearch
-    const LINE_ACCENTS_GLOBAL = [
-      { bg: 'linear-gradient(135deg,#3b82f6,#6366f1)', light: '#eff6ff', color: '#1e40af' },
-      { bg: 'linear-gradient(135deg,#10b981,#0891b2)', light: '#d1fae5', color: '#065f46' },
-      { bg: 'linear-gradient(135deg,#22d3ee,#0ea5e9)', light: '#e0f7fa', color: '#0e7490' },
-      { bg: 'linear-gradient(135deg,#f59e0b,#f97316)', light: '#fef3c7', color: '#92400e' },
-      { bg: 'linear-gradient(135deg,#a78bfa,#8b5cf6)', light: '#ede9fe', color: '#5b21b6' },
-      { bg: 'linear-gradient(135deg,#fb7185,#ec4899)', light: '#fce7f3', color: '#9d174d' },
-    ]
-    const getLineAccentGlobal = (lineNumber) => LINE_ACCENTS_GLOBAL[((lineNumber || 1) - 1) % 6]
-
-    const ROLES = {
-      ADMIN: 'system_admin',
-      HEAD: 'department_head',
-      MANAGER: 'resident_manager',
-      ATTENDING: 'attending_physician',
-      RESIDENT: 'medical_resident'
-    }
-
-    const PERMISSION_MATRIX = {
-      system_admin: {
-        medical_staff: ['create', 'read', 'update', 'delete'], 
-        oncall_schedule: ['create', 'read', 'update', 'delete'],
-        resident_rotations: ['create', 'read', 'update', 'delete'], 
-        training_units: ['create', 'read', 'update', 'delete'],
-        staff_absence: ['create', 'read', 'update', 'delete'],
-        communications: ['create', 'read', 'update', 'delete'], 
-        research_lines: ['create', 'read', 'update', 'delete'],
-        clinical_trials: ['create', 'read', 'update', 'delete'], 
-        innovation_projects: ['create', 'read', 'update', 'delete'],
-        analytics: ['read', 'export'], 
-        system: ['manage_departments', 'manage_updates']
-      },
-      department_head: {
-        medical_staff: ['read', 'update'], 
-        oncall_schedule: ['create', 'read', 'update'],
-        resident_rotations: ['create', 'read', 'update'], 
-        training_units: ['read', 'update'],
-        staff_absence: ['create', 'read', 'update'],
-        communications: ['create', 'read'], 
-        research_lines: ['read', 'update'],
-        clinical_trials: ['read', 'create', 'update'], 
-        innovation_projects: ['read', 'create', 'update'],
-        analytics: ['read'], 
-        system: ['manage_updates']
-      },
-      attending_physician: {
-        medical_staff: ['read'], 
-        oncall_schedule: ['read'], 
-        resident_rotations: ['read'],
-        training_units: ['read'], 
-        staff_absence: ['read'],
-        communications: ['read'], 
-        research_lines: ['read'], 
-        clinical_trials: ['read'],
-        innovation_projects: ['read'], 
-        analytics: ['read']
-      },
-      resident_manager: {
-        medical_staff: ['read', 'create', 'update'],
-        oncall_schedule: ['create', 'read', 'update', 'delete'],
-        resident_rotations: ['create', 'read', 'update', 'delete'],
-        training_units: ['read', 'update'],
-        staff_absence: ['create', 'read', 'update'],
-        communications: ['read'],
-        research_lines: ['read'],
-        clinical_trials: ['read'],
-        innovation_projects: ['read'],
-        analytics: ['read']
-      },
-      medical_resident: {
-        medical_staff: ['read'], 
-        oncall_schedule: ['read'], 
-        resident_rotations: ['read'],
-        training_units: ['read'], 
-        staff_absence: ['read'],
-        communications: ['read'], 
-        research_lines: ['read'], 
-        clinical_trials: ['read'],
-        innovation_projects: ['read'], 
-        analytics: []
-      }
-    }
-
-    // ── Staff types: loaded dynamically from /api/staff-types ──────────────
-    // Replaces the old hardcoded STAFF_TYPE_LABELS / STAFF_TYPE_CLASSES maps.
-    // staffTypesList  → raw array for v-for dropdowns
-    // staffTypeMap    → { type_key: { display_name, badge_class, is_resident_type } }
-    const staffTypesList = ref([])
-    const staffTypeMap   = ref({})
-    const academicDegrees = ref([])   // loaded from /api/academic-degrees
-
-    // Fallbacks for display while loading or for unknown keys
-    const STAFF_TYPE_LABELS_FALLBACK = {
-      medical_resident: 'Resident', attending_physician: 'Attending',
-      fellow: 'Fellow', nurse_practitioner: 'NP', administrator: 'Admin',
-    }
-    const STAFF_TYPE_CLASSES_FALLBACK = {
-      medical_resident: 'badge-primary', attending_physician: 'badge-success',
-      fellow: 'badge-info', nurse_practitioner: 'badge-warning', administrator: 'badge-secondary',
-    }
-    // Global helpers used throughout the app
-    const formatStaffTypeGlobal   = (key) => staffTypeMap.value[key]?.display_name || STAFF_TYPE_LABELS_FALLBACK[key] || key
-    // Short labels for table badges — keeps columns from overflowing
-    const SHORT_LABELS = {
-      attending_physician: 'Attending', medical_resident: 'Resident',
-      fellow: 'Fellow', nurse_practitioner: 'NP', administrator: 'Admin'
-    }
-    const _toTitle = (k) => k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-    const formatStaffTypeShort = (key) => SHORT_LABELS[key] || (staffTypeMap.value[key]?.display_name?.split(' ')[0]) || _toTitle(key)
-    const getStaffTypeClassGlobal = (key) => staffTypeMap.value[key]?.badge_class  || STAFF_TYPE_CLASSES_FALLBACK[key] || 'badge-secondary'
-    const isResidentType          = (key) => staffTypeMap.value[key]?.is_resident_type ?? (key === 'medical_resident')
-    
-    const ABSENCE_REASON_LABELS = {
-      vacation: 'Vacation', 
-      sick_leave: 'Sick Leave', 
-      conference: 'Conference',
-      training: 'Training', 
-      personal: 'Personal', 
-      other: 'Other'
-    }
-    
-    const ROTATION_STATUS_LABELS = {
-      scheduled: 'Scheduled', 
-      active: 'Active', 
-      completed: 'Completed', 
-      cancelled: 'Cancelled'
-    }
-    
-    const USER_ROLE_LABELS = {
-      system_admin: 'System Administrator', 
-      department_head: 'Department Head',
-      attending_physician: 'Attending Physician', 
-      medical_resident: 'Medical Resident'
-    }
-    
-    const VIEW_TITLES = {
-      dashboard: 'Dashboard Overview', 
-      medical_staff: 'Medical Staff Management',
-      oncall_schedule: 'On-call Schedule', 
-      resident_rotations: 'Resident Rotations',
-      training_units: 'Clinical Units', 
-      staff_absence: 'Staff Absence Management',
-      department_management: 'Department Management',
-      research_hub: 'Research Hub',
-      research_lines: 'Research Hub', 
-      clinical_trials: 'Research Hub',
-      innovation_projects: 'Research Hub', 
-      analytics_dashboard: 'Research Hub',
-      analytics_performance: 'Research Hub', 
-      analytics_partners: 'Research Hub'
-    }
-    
-    const VIEW_SUBTITLES = {
-      dashboard: 'Real-time department overview and analytics',
-      medical_staff: 'Manage physicians, residents, and clinical staff',
-      oncall_schedule: 'View and manage on-call physician schedules',
-      resident_rotations: 'Track and manage resident training rotations',
-      training_units: 'Clinical units and resident assignments',
-      staff_absence: 'Track staff absences and coverage assignments',
-      department_management: 'Organizational structure and clinical units',
-      research_hub: 'Research lines, studies, projects and analytics',
-      research_lines: 'Research lines, studies, projects and analytics',
-      clinical_trials: 'Research lines, studies, projects and analytics',
-      innovation_projects: 'Research lines, studies, projects and analytics',
-      analytics_dashboard: 'Research lines, studies, projects and analytics',
-      analytics_performance: 'Research lines, studies, projects and analytics',
-      analytics_partners: 'Research lines, studies, projects and analytics'
-    }
-
-    // ============ 3. ENHANCED UTILS CLASS ============
-    const PROJECT_STAGES_DATA = [
-      { key: 'Idea',             label: 'Idea',            icon: 'fa-lightbulb',    color: '#94a3b8', bg: 'rgba(148,163,184,.12)', step: 1 },
-      { key: 'Prototipo',        label: 'Prototipo',       icon: 'fa-cube',         color: '#60a5fa', bg: 'rgba(96,165,250,.12)',  step: 2 },
-      { key: 'Piloto',           label: 'Piloto',          icon: 'fa-play-circle',  color: '#34d399', bg: 'rgba(52,211,153,.12)',  step: 3 },
-      { key: 'Validación',       label: 'Validación',      icon: 'fa-check-double', color: '#fbbf24', bg: 'rgba(251,191,36,.12)',  step: 4 },
-      { key: 'Escalamiento',     label: 'Escalamiento',    icon: 'fa-chart-line',   color: '#f97316', bg: 'rgba(249,115,22,.12)',  step: 5 },
-      { key: 'Comercialización', label: 'Comercialización',icon: 'fa-rocket',       color: '#10b981', bg: 'rgba(16,185,129,.12)',  step: 6 }
-    ]
-    class Utils {
-      // Date utilities
-      static localDateStr(d) {
-        // Returns YYYY-MM-DD in LOCAL timezone — prevents UTC offset issues
-        const dt = d instanceof Date ? d : new Date(d)
-        if (isNaN(dt.getTime())) return ''
-        const y = dt.getFullYear()
-        const m = String(dt.getMonth() + 1).padStart(2, '0')
-        const day = String(dt.getDate()).padStart(2, '0')
-        return `${y}-${m}-${day}`
-      }
-      static normalizeDate(d) {
-        if (!d) return ''
-        if (d instanceof Date) return isNaN(d.getTime()) ? '' : Utils.localDateStr(d)
-        const s = String(d).trim()
-        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
-        if (s.includes('T')) return s.split('T')[0]
-        if (s.includes('/')) {
-          const [dd, mm, yyyy] = s.split('/')
-          if (yyyy?.length === 4) return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`
-        }
-        if (/^\d{2}-\d{2}-\d{4}$/.test(s)) {
-          const [dd, mm, yyyy] = s.split('-')
-          return `${yyyy}-${mm}-${dd}`
-        }
-        try { const dt = new Date(s); if (!isNaN(dt.getTime())) return dt.toISOString().split('T')[0] } catch { }
-        return s
-      }
-
-      // ============ 3.1 RESIDENT FORMATTING ============
-      
-      // Compute effective R-year: override wins over system-calc, system-calc over legacy training_year
-      static effectiveResidentYear(staff) {
-        if (staff.residency_year_override) return staff.residency_year_override
-        if (staff.residency_year_calc) return staff.residency_year_calc
-        // fallback: map legacy PGY- values
-        const t = staff.training_year
-        if (!t) return null
-        const map = { 'PGY-1':'R1','PGY-2':'R2','PGY-3':'R3','PGY-4':'R4','PGY-5':'R4+' }
-        return map[t] || t
-      }
-
-      static formatTrainingYear(year) {
-        if (!year && year !== 0) return null;
-        const yearStr = String(year).trim();
-        if (/^\d+$/.test(yearStr)) return `PGY-${yearStr}`;
-        if (yearStr.toUpperCase().startsWith('PGY')) {
-          const parts = yearStr.split(/[- ]/);
-          if (parts.length > 1) return `PGY-${parts[1]}`;
-          return yearStr.toUpperCase();
-        }
-        return yearStr;
-      }
-
-      static getResidentCategoryInfo(category, staff = {}) {
-        const categories = {
-          'department_internal': {
-            icon: 'fa-user-md', text: 'Internal Resident', shortText: 'Internal',
-            color: '#4d9aff', bgColor: 'rgba(77, 154, 255, 0.1)'
-          },
-          'rotating_other_dept': {
-            icon: 'fa-sync-alt',
-            text: staff.home_department ? `Rotating from ${staff.home_department}` : 'Rotating Resident',
-            shortText: 'Rotating', color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.1)'
-          },
-          'external_resident': {
-            icon: 'fa-globe',
-            text: 'External',
-            shortText: 'External', color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.1)'
-          }
-        };
-        return categories[category] || {
-          icon: 'fa-user', text: 'Not categorized', shortText: 'Unknown',
-          color: '#94a3b8', bgColor: 'rgba(148, 163, 184, 0.1)'
-        };
-      }
-
-      static formatResidentCategorySimple(category) {
-        const map = { 'department_internal': 'Internal', 'rotating_other_dept': 'Rotating', 'external_resident': 'External' };
-        return map[category] || 'Unknown';
-      }
-
-      static formatResidentCategoryDetailed(staff) {
-        if (!staff?.resident_category) return null;
-        return Utils.getResidentCategoryInfo(staff.resident_category, staff).text;
-      }
-
-      static getResidentCategoryIcon(category) { return Utils.getResidentCategoryInfo(category).icon; }
-
-      static getResidentCategoryTooltip(staff) {
-        if (!staff?.resident_category) return '';
-        switch(staff.resident_category) {
-          case 'department_internal': return 'Department internal resident';
-          case 'rotating_other_dept': return staff.home_department ? `Rotating from ${staff.home_department} department` : 'Resident from another department';
-          case 'external_resident': return staff.external_institution ? `External resident from ${staff.external_institution}` : 'External resident from another institution';
-          default: return '';
-        }
-      }
-
-      // ============ 3.2 PROFESSIONAL FORMATTING ============
-
-      static formatSpecialization(spec) {
-        if (!spec) return null;
-        const abbreviations = ['ICU', 'ER', 'OR', 'PICU', 'NICU', 'PFT', 'CPAP', 'BiPAP', 'COPD', 'OSA'];
-        return spec.split(' ').map(word => {
-          const upperWord = word.toUpperCase();
-          if (abbreviations.includes(upperWord)) return upperWord;
-          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-        }).join(' ');
-      }
-
-      static formatPhone(phone) {
-        if (!phone) return null;
-        const cleaned = String(phone).replace(/\D/g, '');
-        if (cleaned.length === 9) return `+34 ${cleaned.slice(0,3)} ${cleaned.slice(3,6)} ${cleaned.slice(6)}`;
-        if (cleaned.length === 12) return `+${cleaned.slice(0,2)} ${cleaned.slice(2,5)} ${cleaned.slice(5,8)} ${cleaned.slice(8)}`;
-        return phone;
-      }
-
-      static formatLicense(license) {
-        if (!license) return null;
-        return license.toUpperCase();
-      }
-
-      // ============ 3.3 ROLE FORMATTING ============
-
-      static getRoleInfo(role) {
-        const roles = {
-          'chief_of_department': { icon: 'fa-crown', color: 'gold', bgColor: 'rgba(255, 215, 0, 0.1)', label: 'Chief of Department' },
-          'research_coordinator': { icon: 'fa-flask', color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.1)', label: 'Research Coordinator' },
-          'resident_manager': { icon: 'fa-user-graduate', color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.1)', label: 'Resident Manager' },
-          'oncall_manager': { icon: 'fa-phone-alt', color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.1)', label: 'On-Call Manager' }
-        };
-        return roles[role] || null;
-      }
-
-      static getStaffRoles(staff) {
-        const roles = [];
-        if (staff?.is_chief_of_department) roles.push({ key: 'chief_of_department', ...Utils.getRoleInfo('chief_of_department') });
-        if (staff?.is_research_coordinator) roles.push({ key: 'research_coordinator', ...Utils.getRoleInfo('research_coordinator') });
-        if (staff?.is_resident_manager) roles.push({ key: 'resident_manager', ...Utils.getRoleInfo('resident_manager') });
-        if (staff?.is_oncall_manager) roles.push({ key: 'oncall_manager', ...Utils.getRoleInfo('oncall_manager') });
-        return roles;
-      }
-
-      // ============ 3.4 LEAVE BALANCE FORMATTING ============
-
-      static calculateLeaveBalance(staff) {
-        return {
-          vacation: { used: 5, total: 20, remaining: 15 },
-          sick: { used: 2, total: 10, remaining: 8 },
-          conference: { used: 3, total: 10, remaining: 7 },
-          personal: { used: 1, total: 5, remaining: 4 }
-        };
-      }
-
-      static getDaysRemainingColor(days) {
-        if (days <= 0) return '#ef4444';
-        if (days < 5) return '#f59e0b';
-        return '#10b981';
-      }
-
-      // ============ 3.5 EXISTING UTILITIES ============
-      
-      static formatDate(d) {
-        if (!d) return 'N/A'
-        try {
-          const date = new Date(Utils.normalizeDate(d) + 'T00:00:00')
-          if (isNaN(date.getTime())) return d
-          return date.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
-        } catch { return d }
-      }
-
-      static formatDateShort(d) {
-        if (!d) return ''
-        try {
-          const date = typeof d === 'string' ? new Date(Utils.normalizeDate(d) + 'T00:00:00') : d
-          return date.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' })
-        } catch { return '' }
-      }
-
-      static formatRelativeDate(d) {
-        if (!d) return ''
-        try {
-          const date = new Date(Utils.normalizeDate(d) + 'T00:00:00')
-          const today = new Date(); today.setHours(0, 0, 0, 0)
-          const diff = Math.ceil((date - today) / 86400000)
-          if (diff === 0) return 'Today'
-          if (diff === 1) return 'Tomorrow'
-          if (diff === -1) return 'Yesterday'
-          if (diff > 1 && diff <= 7) return `In ${diff} days`
-          if (diff > 7 && diff <= 30) return `In ${Math.ceil(diff / 7)}w`
-          if (diff < -1 && diff >= -7) return `${Math.abs(diff)}d ago`
-          return Utils.formatDate(d)
-        } catch { return Utils.formatDate(d) }
-      }
-
-      static formatDatePlusDays(d, n) {
-        if (!d) return 'NA'
-        try {
-          const date = new Date(Utils.normalizeDate(d) + 'T00:00:00')
-          if (isNaN(date.getTime())) return 'NA'
-          date.setDate(date.getDate() + n)
-          return date.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
-        } catch { return 'NA' }
-      }
-
-      static formatTime(d) {
-        if (!d) return ''
-        try { return new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-        catch { return d }
-      }
-
-      static formatRelativeTime(d) {
-        if (!d) return 'Just now'
-        try {
-          const diff = Math.floor((new Date() - new Date(d)) / 60000)
-          if (diff < 1) return 'Just now'
-          if (diff < 60) return `${diff}m ago`
-          if (diff < 1440) return `${Math.floor(diff / 60)}h ago`
-          return `${Math.floor(diff / 1440)}d ago`
-        } catch { return 'Just now' }
-      }
-
-      static formatNewsDate(d) {
-        if (!d) return ''
-        try {
-          const diff = Math.floor((new Date() - new Date(d)) / 60000)
-          if (diff < 1)    return 'Just now'
-          if (diff < 60)   return `${diff}m ago`
-          if (diff < 1440) return `${Math.floor(diff / 60)}h ago`
-          if (diff < 10080) return `${Math.floor(diff / 1440)}d ago`
-          return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-        } catch { return '' }
-      }
-
-      static dateDiff(start, end) {
-        try {
-          const s = new Date(Utils.normalizeDate(start) + 'T00:00:00')
-          const e = new Date(Utils.normalizeDate(end) + 'T23:59:59')
-          if (isNaN(s.getTime()) || isNaN(e.getTime())) return 0
-          return Math.ceil(Math.abs(e - s) / 86400000)
-        } catch { return 0 }
-      }
-
-      static daysUntil(d) {
-        if (!d) return 0
-        const date = new Date(Utils.normalizeDate(d) + 'T00:00:00')
-        const today = new Date(); today.setHours(0, 0, 0, 0)
-        return Math.max(0, Math.ceil((date - today) / 86400000))
-      }
-
-      static ensureArray(data) {
-        if (Array.isArray(data)) return data
-        if (data?.data && Array.isArray(data.data)) return data.data
-        if (data && typeof data === 'object') return Object.values(data)
-        return []
-      }
-
-      static truncateText(text, max = 100) {
-        if (!text) return ''
-        return text.length <= max ? text : text.substring(0, max) + '...'
-      }
-
-      static generateId(prefix) {
-        return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 9)}`
-      }
-
-      static formatPercentage(value, total) {
-        if (!total) return '0%'
-        return `${Math.round((value / total) * 100)}%`
-      }
-
-      static getPhaseColor(phase) {
-        return { 'Phase I': '#4d9aff', 'Phase II': '#00e5a0', 'Phase III': '#ffbe3d', 'Phase IV': '#ff5566' }[phase] || '#7a90b0'
-      }
-
-      static getPartnerTypeColor(type) {
-        const map = {
-          'Empresa': '#4d9aff', 'Hospital': '#00e5a0', 'Tecnología': '#ffbe3d', 'Universidad': '#a78bfa',
-          'Industria': '#f97316', 'Startup': '#34d399', 'Fundación': '#fb7185', 'Institución': '#60a5fa',
-          'CRO': '#f59e0b', 'Other': '#7a90b0'
-        }
-        return map[type] || ('#' + [...type].reduce((h, c) => (h * 31 + c.charCodeAt(0)) & 0xffffff, 0x4d9aff).toString(16).padStart(6, '0'))
-      }
-
-      static getStageConfig(stage) {
-        return PROJECT_STAGES_DATA.find(s => s.key === stage) || { key: stage, label: stage, icon: 'fa-circle', color: '#7a90b0', bg: 'rgba(122,144,176,.1)', step: 0 }
-      }
-      static getStageColor(stage) {
-        return Utils.getStageConfig(stage).color
-      }
-
-      static getTomorrow() {
-        const d = new Date(); d.setDate(d.getDate() + 1); return d
-      }
-
-      static formatClinicalDuration(startDate, endDate) {
-        if (!startDate || !endDate) return 'N/A'
-        try {
-          const s = new Date(Utils.normalizeDate(startDate) + 'T00:00:00')
-          const e = new Date(Utils.normalizeDate(endDate) + 'T00:00:00')
-          const days = Math.round((e - s) / 86400000)
-          if (days < 0) return 'N/A'
-          if (days < 7) return `${days}d`
-          const weeks = Math.floor(days / 7)
-          const rem = days % 7
-          if (weeks < 5) return rem > 0 ? `${weeks}w ${rem}d` : `${weeks}w`
-          const months = Math.round(days / 30.44)
-          return `${months}mo`
-        } catch { return 'N/A' }
-      }
-
-      static getInitials(name) {
-        if (!name || typeof name !== 'string') return '??'
-        return name.split(' ').map(w => w[0]).join('').toUpperCase().substring(0, 2)
-      }
-    }
-
-    // ============ 4. ENHANCED API SERVICE ============
-    class ApiService {
-      constructor() { this.cache = new Map() }
-
-      get token() { return localStorage.getItem(CONFIG.TOKEN_KEY) }
-
-      headers() {
-        const h = { 'Content-Type': 'application/json', 'Accept': 'application/json' }
-        const t = this.token
-        if (t?.trim()) h['Authorization'] = `Bearer ${t}`
-        return h
-      }
-
-      getCached(key) {
-        const entry = this.cache.get(key)
-        if (!entry) return null
-        if (Date.now() - entry.timestamp > CONFIG.CACHE_TTL) { this.cache.delete(key); return null }
-        return entry.data
-      }
-
-      setCached(key, data) { this.cache.set(key, { data, timestamp: Date.now() }) }
-
-      invalidate(path) {
-        for (const key of this.cache.keys()) {
-          if (key.includes(path)) this.cache.delete(key)
-        }
-      }
-
-      clearCache() { this.cache.clear() }
-
-      async request(endpoint, options = {}) {
-        const method = options.method || 'GET'
-        const isGet = method === 'GET'
-        const cacheKey = `${method}:${endpoint}`
-
-        if (isGet && !options.skipCache) {
-          const cached = this.getCached(cacheKey)
-          if (cached) return cached
-        }
-
-        const config = { method, headers: this.headers(), mode: 'cors', cache: 'no-cache', credentials: 'include' }
-        if (options.body) config.body = JSON.stringify(options.body)
-
-        try {
-          const res = await fetch(`${CONFIG.API_BASE_URL}${endpoint}`, config)
-          if (res.status === 204) return null
-          if (!res.ok) {
-            if (res.status === 401) {
-              localStorage.removeItem(CONFIG.TOKEN_KEY)
-              localStorage.removeItem(CONFIG.USER_KEY)
-              // Force Vue app back to login — dispatch custom event picked up in setup()
-              window.dispatchEvent(new CustomEvent('neumax:session-expired'))
-              throw new Error('Session expired. Please login again.')
-            }
-            const err = await res.text().catch(() => `HTTP ${res.status}`)
-            throw new Error(err)
-          }
-          const ct = res.headers.get('content-type')
-          const result = ct?.includes('application/json') ? await res.json() : await res.text()
-          if (isGet && !options.skipCache) this.setCached(cacheKey, result)
-          return result
-        } catch (e) {
-          if (e.message.includes('fetch') || e.message.includes('NetworkError'))
-            throw new Error('Cannot connect to server. Check your network connection.')
-          throw e
-        }
-      }
-
-      async getList(path) {
-        try { return Utils.ensureArray(await this.request(path)) } catch { return [] }
-      }
-
-      async login(email, password) {
-        const data = await this.request('/api/auth/login', { method: 'POST', body: { email, password } })
-        if (data.token) {
-          localStorage.setItem(CONFIG.TOKEN_KEY, data.token)
-          localStorage.setItem(CONFIG.USER_KEY, JSON.stringify(data.user))
-          this.clearCache()
-        }
-        return data
-      }
-
-      async logout() {
-        try { await this.request('/api/auth/logout', { method: 'POST' }) } finally {
-          localStorage.removeItem(CONFIG.TOKEN_KEY)
-          localStorage.removeItem(CONFIG.USER_KEY)
-          this.clearCache()
-        }
-      }
-
-      // ============ 4.1 MEDICAL STAFF ENDPOINTS ============
-      
-      async getMedicalStaff() { 
-        const data = await this.getList('/api/medical-staff');
-        return data
-          .filter(staff => staff.employment_status !== 'inactive')
-          .map(staff => ({
-          ...staff,
-          resident_category: staff.resident_category || null,
-          home_department: staff.home_department || null,
-          external_institution: staff.external_institution || null,
-          can_supervise_residents: staff.can_supervise_residents || false,
-          training_year: staff.training_year || null,
-          training_level: staff.training_level || null,
-          is_chief_of_department: staff.is_chief_of_department || false,
-          is_research_coordinator: staff.is_research_coordinator || false,
-          is_resident_manager: staff.is_resident_manager || false,
-          is_oncall_manager: staff.is_oncall_manager || false
-        }));
-      }
-      
-      async createMedicalStaff(d) { this.invalidate('/api/medical-staff'); return this.request('/api/medical-staff', { method: 'POST', body: d }) }
-      async updateMedicalStaff(id, d) { this.invalidate('/api/medical-staff'); return this.request(`/api/medical-staff/${id}`, { method: 'PUT', body: d }) }
-      async deleteMedicalStaff(id) { this.invalidate('/api/medical-staff'); return this.request(`/api/medical-staff/${id}`, { method: 'DELETE' }) }
-
-      // ============ 4.2 SUPERVISION ENDPOINTS ============
-      
-      async getSupervisedResidents(attendingId) {
-        try {
-          const rotations = await this.getRotations();
-          const medicalStaff = await this.getMedicalStaff();
-          const trainingUnits = await this.getTrainingUnits();
-          
-          const active = rotations
-            .filter(r => r.supervising_attending_id === attendingId && r.rotation_status === 'active')
-            .map(r => {
-              const resident = medicalStaff.find(s => s.id === r.resident_id);
-              const unit = trainingUnits.find(u => u.id === r.training_unit_id);
-              return {
-                id: r.id, residentId: r.resident_id,
-                residentName: resident?.full_name || 'Unknown',
-                residentYear: resident?.training_year || null,
-                unitId: r.training_unit_id, unitName: unit?.unit_name || 'Unknown',
-                startDate: r.start_date, endDate: r.end_date,
-                daysLeft: Utils.daysUntil(r.end_date)
-              };
-            });
-
-          const past = rotations.filter(r => r.supervising_attending_id === attendingId && r.rotation_status === 'completed').length;
-          const totalDaysSupervised = rotations
-            .filter(r => r.supervising_attending_id === attendingId && ['completed','active'].includes(r.rotation_status))
-            .reduce((sum, r) => {
-              const s = new Date(r.start_date), e = new Date(r.end_date)
-              return sum + Math.max(0, Math.round((e - s) / 86400000))
-            }, 0)
-
-          return { current: active, currentCount: active.length, pastCount: past, totalDaysSupervised };
-        } catch (error) {
-          console.error('Failed to load supervision data:', error);
-          return { current: [], currentCount: 0, pastCount: 0, avgEvaluation: 0 };
-        }
-      }
-
-      // ============ 4.3 LEAVE BALANCE ENDPOINTS ============
-      
-      async getLeaveBalance(staffId) {
-        try {
-          const staff = (await this.getMedicalStaff()).find(s => s.id === staffId);
-          const isAttending = staff?.staff_type === 'attending_physician';
-          return {
-            vacation: { used: 5, total: isAttending ? 25 : 20, remaining: isAttending ? 20 : 15 },
-            sick: { used: 2, total: 12, remaining: 10 },
-            conference: { used: 3, total: isAttending ? 15 : 10, remaining: isAttending ? 12 : 7 },
-            personal: { used: 1, total: 5, remaining: 4 }
-          };
-        } catch {
-          return { vacation: { used: 5, total: 20, remaining: 15 }, sick: { used: 2, total: 10, remaining: 8 }, conference: { used: 3, total: 10, remaining: 7 }, personal: { used: 1, total: 5, remaining: 4 } };
-        }
-      }
-
-      // ============ 4.4 EXISTING ENDPOINTS ============
-
-      // ── Staff Types (dynamic) ─────────────────────────────────────────────
-      async getStaffTypes(includeInactive = false) {
-        const url = '/api/staff-types' + (includeInactive ? '?include_inactive=true' : '')
-        return this.getList(url)
-      }
-      async createStaffType(data) { this.invalidate('/api/staff-types'); return this.request('/api/staff-types', { method: 'POST', body: data }) }
-      async updateStaffType(id, data) { this.invalidate('/api/staff-types'); return this.request(`/api/staff-types/${id}`, { method: 'PUT', body: data }) }
-      async deleteStaffType(id) { this.invalidate('/api/staff-types'); return this.request(`/api/staff-types/${id}`, { method: 'DELETE' }) }
-
-      // ── Academic Degrees ─────────────────────────────────────────────────
-      async getAcademicDegrees() { return this.getList('/api/academic-degrees') }
-      async createAcademicDegree(d) { this.invalidate('/api/academic-degrees'); return this.request('/api/academic-degrees', { method: 'POST', body: d }) }
-      async updateAcademicDegree(id, d) { this.invalidate('/api/academic-degrees'); return this.request(`/api/academic-degrees/${id}`, { method: 'PUT', body: d }) }
-      async deleteAcademicDegree(id) { this.invalidate('/api/academic-degrees'); return this.request(`/api/academic-degrees/${id}`, { method: 'DELETE' }) }
-
-      // ── Staff Certificates ───────────────────────────────────────────────
-      async getStaffCertificates(staffId) { return this.getList(`/api/medical-staff/${staffId}/certificates`) }
-      async createStaffCertificate(staffId, d) { return this.request(`/api/medical-staff/${staffId}/certificates`, { method: 'POST', body: d }) }
-      async updateStaffCertificate(staffId, certId, d) { return this.request(`/api/medical-staff/${staffId}/certificates/${certId}`, { method: 'PUT', body: d }) }
-      async deleteStaffCertificate(staffId, certId) { return this.request(`/api/medical-staff/${staffId}/certificates/${certId}`, { method: 'DELETE' }) }
-
-      async getDepartments() { return this.getList('/api/departments') }
-      async getDepartmentSummary(id) { return this.request(`/api/departments/${id}/summary`) }
-      async checkRotationAvailability(params) {
-        const q = new URLSearchParams(params).toString()
-        return this.request(`/api/rotations/availability?${q}`)
-      }
-      async getAllDepartments() { return this.getList('/api/departments?include_inactive=true') }
-      async getDepartmentImpact(id) { return this.request(`/api/departments/${id}/impact`) }
-      async createDepartment(d) { this.invalidate('/api/departments'); return this.request('/api/departments', { method: 'POST', body: d }) }
-      async updateDepartment(id, d) { this.invalidate('/api/departments'); return this.request(`/api/departments/${id}`, { method: 'PUT', body: d }) }
-      async deleteDepartment(id, reassignments) { this.invalidate('/api/departments'); return this.request(`/api/departments/${id}`, { method: 'DELETE', body: reassignments ? { reassignments } : {} }) }
-
-      async getHospitals() {
-        try { const r = await this.request('/api/hospitals'); return (r?.success && Array.isArray(r.data)) ? r.data : Utils.ensureArray(r) } catch { return [] }
-      }
-      async createHospital(d) { this.invalidate('/api/hospitals'); return this.request('/api/hospitals', { method: 'POST', body: d }) }
-      async updateHospital(id, d) { this.invalidate('/api/hospitals'); return this.request(`/api/hospitals/${id}`, { method: 'PUT', body: d }) }
-
-      async getClinicalUnits(departmentId) {
-        // clinical_units merged into training_units — hit training-units directly
-        const url = departmentId ? `/api/training-units?department_id=${departmentId}` : '/api/training-units'
-        try { const r = await this.request(url); return (r?.success && Array.isArray(r.data)) ? r.data : Utils.ensureArray(r) } catch { return [] }
-      }
-      async createClinicalUnit(d) { this.invalidate('/api/clinical-units'); return this.request('/api/clinical-units', { method: 'POST', body: d }) }
-      async updateClinicalUnit(id, d) { this.invalidate('/api/clinical-units'); return this.request(`/api/clinical-units/${id}`, { method: 'PUT', body: d }) }
-      async deleteClinicalUnit(id) { this.invalidate('/api/clinical-units'); return this.request(`/api/clinical-units/${id}`, { method: 'DELETE' }) }
-      async getClinicalUnitStaff(unitId) {
-        try { const r = await this.request(`/api/clinical-units/${unitId}/staff`); return (r?.success && Array.isArray(r.data)) ? r.data : [] } catch { return [] }
-      }
-      async assignStaffToUnit(unitId, d) { return this.request(`/api/clinical-units/${unitId}/staff`, { method: 'POST', body: d }) }
-      async removeStaffFromUnit(unitId, assignmentId) { return this.request(`/api/clinical-units/${unitId}/staff/${assignmentId}`, { method: 'DELETE' }) }
-
-      async getPartners() {
-        try { const r = await this.request('/api/partners'); return (r?.success && Array.isArray(r.data)) ? r.data : Utils.ensureArray(r) } catch { return [] }
-      }
-      async createPartner(d) { this.invalidate('/api/partners'); return this.request('/api/partners', { method: 'POST', body: d }) }
-      async updatePartner(id, d) { this.invalidate('/api/partners'); return this.request(`/api/partners/${id}`, { method: 'PUT', body: d }) }
-      async deletePartner(id) { this.invalidate('/api/partners'); return this.request(`/api/partners/${id}`, { method: 'DELETE' }) }
-      async getPartnerNeeds() {
-        try { const r = await this.request('/api/partner-needs'); return (r?.success && Array.isArray(r.data)) ? r.data : [] } catch { return [] }
-      }
-      async createPartnerNeed(d) { return this.request('/api/partner-needs', { method: 'POST', body: d }) }
-      async getProjectPartners(projectId) {
-        try { const r = await this.request(`/api/innovation-projects/${projectId}/partners`); return (r?.success && Array.isArray(r.data)) ? r.data : [] } catch { return [] }
-      }
-      async linkPartnerToProject(projectId, d) { return this.request(`/api/innovation-projects/${projectId}/partners`, { method: 'POST', body: d }) }
-      async unlinkPartnerFromProject(projectId, partnerId) { return this.request(`/api/innovation-projects/${projectId}/partners/${partnerId}`, { method: 'DELETE' }) }
-
-      async getTrainingUnits() { return this.getList('/api/training-units') }
-      async createTrainingUnit(d) { this.invalidate('/api/training-units'); return this.request('/api/training-units', { method: 'POST', body: d }) }
-      async updateTrainingUnit(id, d) { this.invalidate('/api/training-units'); return this.request(`/api/training-units/${id}`, { method: 'PUT', body: d }) }
-      async deleteTrainingUnit(id) { this.invalidate('/api/training-units'); return this.request(`/api/training-units/${id}`, { method: 'DELETE' }) }
-
-      async getRotations() {
-        try { const r = await this.request('/api/rotations'); return Utils.ensureArray(r?.data ?? r) } catch { return [] }
-      }
-      async createRotation(d) { this.invalidate('/api/rotations'); return this.request('/api/rotations', { method: 'POST', body: d }) }
-      async updateRotation(id, d) { this.invalidate('/api/rotations'); return this.request(`/api/rotations/${id}`, { method: 'PUT', body: d }) }
-      async deleteRotation(id) { this.invalidate('/api/rotations'); return this.request(`/api/rotations/${id}`, { method: 'DELETE' }) }
-
-      async getOnCallSchedule() { return this.getList('/api/oncall') }
-      async getOnCallToday() { return this.getList('/api/oncall/today') }
-      async createOnCall(d) { this.invalidate('/api/oncall'); return this.request('/api/oncall', { method: 'POST', body: d }) }
-      async updateOnCall(id, d) { this.invalidate('/api/oncall'); return this.request(`/api/oncall/${id}`, { method: 'PUT', body: d }) }
-      async deleteOnCall(id) { this.invalidate('/api/oncall'); return this.request(`/api/oncall/${id}`, { method: 'DELETE' }) }
-
-      async getAbsences() {
-        try {
-          const r = await this.request('/api/absence-records')
-          return (r?.success && Array.isArray(r.data)) ? r.data : Utils.ensureArray(r)
-        } catch { return [] }
-      }
-      async createAbsence(d) { this.invalidate('/api/absence-records'); return this.request('/api/absence-records', { method: 'POST', body: d }) }
-      async updateAbsence(id, d) { this.invalidate('/api/absence-records'); return this.request(`/api/absence-records/${id}`, { method: 'PUT', body: d }) }
-      async deleteAbsence(id) { this.invalidate('/api/absence-records'); return this.request(`/api/absence-records/${id}`, { method: 'DELETE' }) }
-      async purgeAbsence(id) { this.invalidate('/api/absence-records'); return this.request(`/api/absence-records/${id}/purge`, { method: 'DELETE' }) }
-      async returnToDuty(id, d) { this.invalidate('/api/absence-records'); return this.request(`/api/absence-records/${id}/return`, { method: 'PUT', body: d }) }
-
-      async getAnnouncements() { return this.getList('/api/announcements') }
-      async createAnnouncement(d) { this.invalidate('/api/announcements'); return this.request('/api/announcements', { method: 'POST', body: d }) }
-      async updateAnnouncement(id, d) { this.invalidate('/api/announcements'); return this.request(`/api/announcements/${id}`, { method: 'PUT', body: d }) }
-      async deleteAnnouncement(id) { this.invalidate('/api/announcements'); return this.request(`/api/announcements/${id}`, { method: 'DELETE' }) }
-
-      async getClinicalStatus() {
-        try { return await this.request('/api/live-status/current') } catch { return { success: false, data: null } }
-      }
-      async createClinicalStatus(d) { this.invalidate('/api/live-status'); return this.request('/api/live-status', { method: 'POST', body: d }) }
-      async updateClinicalStatus(id, d) { this.invalidate('/api/live-status'); return this.request(`/api/live-status/${id}`, { method: 'PUT', body: d }) }
-      async deleteClinicalStatus(id) { this.invalidate('/api/live-status'); return this.request(`/api/live-status/${id}`, { method: 'DELETE' }) }
-      async getClinicalStatusHistory(limit = 10) { return this.getList(`/api/live-status/history?limit=${limit}`) }
-
-      async getSystemStats() { try { return await this.request('/api/system-stats') || {} } catch { return {} } }
-
-      async getResearchLines() {
-        try { const r = await this.request('/api/research-lines'); return r?.data || Utils.ensureArray(r) } catch { return [] }
-      }
-      async createResearchLine(d) { this.invalidate('/api/research-lines'); return this.request('/api/research-lines', { method: 'POST', body: d }) }
-      async updateResearchLine(id, d) { this.invalidate('/api/research-lines'); return this.request(`/api/research-lines/${id}`, { method: 'PUT', body: d }) }
-      async deleteResearchLine(id) { this.invalidate('/api/research-lines'); return this.request(`/api/research-lines/${id}`, { method: 'DELETE' }) }
-      async assignCoordinator(lineId, coordinatorId) {
-        this.invalidate('/api/research-lines')
-        return this.request(`/api/research-lines/${lineId}/coordinator`, { method: 'PUT', body: { coordinator_id: coordinatorId } })
-      }
-
-      async getAllClinicalTrials() {
-        try { const r = await this.request('/api/clinical-trials'); return r?.data || Utils.ensureArray(r) } catch { return [] }
-      }
-      async createClinicalTrial(d) { this.invalidate('/api/clinical-trials'); return this.request('/api/clinical-trials', { method: 'POST', body: d }) }
-      async updateClinicalTrial(id, d) { this.invalidate('/api/clinical-trials'); return this.request(`/api/clinical-trials/${id}`, { method: 'PUT', body: d }) }
-      async deleteClinicalTrial(id) { this.invalidate('/api/clinical-trials'); return this.request(`/api/clinical-trials/${id}`, { method: 'DELETE' }) }
-
-      async getAllInnovationProjects() {
-        try { const r = await this.request('/api/innovation-projects'); return r?.data || Utils.ensureArray(r) } catch { return [] }
-      }
-      async createInnovationProject(d) { this.invalidate('/api/innovation-projects'); return this.request('/api/innovation-projects', { method: 'POST', body: d }) }
-      async updateInnovationProject(id, d) { this.invalidate('/api/innovation-projects'); return this.request(`/api/innovation-projects/${id}`, { method: 'PUT', body: d }) }
-      async deleteInnovationProject(id) { this.invalidate('/api/innovation-projects'); return this.request(`/api/innovation-projects/${id}`, { method: 'DELETE' }) }
-
-      async getResearchDashboard() {
-        try { const r = await this.request('/api/analytics/research-dashboard'); return r?.data || r || null } catch { return null }
-      }
-      async getResearchLinesPerformance() {
-        try { const r = await this.request('/api/analytics/research-lines-performance'); return r?.data || [] } catch { return [] }
-      }
-      async getPartnerCollaborations() {
-        try { const r = await this.request('/api/analytics/partner-collaborations'); return r?.data || null } catch { return null }
-      }
-      async getClinicalTrialsTimeline(years = 3) {
-        try { const r = await this.request(`/api/analytics/clinical-trials-timeline?years=${years}`); return r?.data || null } catch { return null }
-      }
-      async getAnalyticsSummary() {
-        try { const r = await this.request('/api/analytics/summary'); return r?.data || null } catch { return null }
-      }
-      async exportData(type, format = 'csv') {
-        return this.request(`/api/analytics/export/${type}?format=${format}`, { skipCache: true })
-      }
-
-      // ============ 4.5 ENHANCED RESEARCH PROFILE ============
-      
-      async getStaffResearchProfile(staffId) {
-        try {
-          const [performance, allTrials, allProjects, researchLines, rotations] = await Promise.all([
-            this.getResearchLinesPerformance(), this.getAllClinicalTrials(),
-            this.getAllInnovationProjects(), this.getResearchLines(), this.getRotations()
-          ])
-          
-          // FIX 1: Use researchLines (UUID match) not performance (name string) for coordinator detection
-          const linesCoordinated = researchLines.filter(l => l.coordinator_id === staffId)
-          const trialsAsPI = allTrials.filter(t => t.principal_investigator_id === staffId)
-          const linesAsPI = [...new Set(trialsAsPI.map(t => t.research_line_id))].map(lineId => researchLines.find(l => l.id === lineId)).filter(Boolean)
-          const trialsAsCoI = allTrials.filter(t => t.co_investigators?.includes(staffId))
-          const linesAsCoI = [...new Set(trialsAsCoI.map(t => t.research_line_id))].map(lineId => researchLines.find(l => l.id === lineId)).filter(Boolean)
-          const projectsAsLead = allProjects.filter(p => p.lead_investigator_id === staffId)
-          const linesAsLead = [...new Set(projectsAsLead.map(p => p.research_line_id))].map(lineId => researchLines.find(l => l.id === lineId)).filter(Boolean)
-          const trialsAsSubI = allTrials.filter(t => t.sub_investigators?.includes(staffId))
-          const linesAsSubI = [...new Set(trialsAsSubI.map(t => t.research_line_id))].map(lineId => researchLines.find(l => l.id === lineId)).filter(Boolean)
-          
-          // FIX 2: Build a roles-array map so a staff member can show multiple roles per line
-          const allLineRolesMap = new Map();
-          const addLineRole = (line, role) => {
-            const key = line.id;
-            if (!allLineRolesMap.has(key)) allLineRolesMap.set(key, { ...line, roles: [] });
-            allLineRolesMap.get(key).roles.push(role);
-          };
-          linesCoordinated.forEach(l => addLineRole(l, 'Coordinator'));
-          linesAsPI.forEach(l => addLineRole(l, 'Principal Investigator'));
-          linesAsCoI.forEach(l => addLineRole(l, 'Co-Investigator'));
-          linesAsLead.forEach(l => addLineRole(l, 'Project Lead'));
-          linesAsSubI.forEach(l => addLineRole(l, 'Sub-Investigator'));
-          
-          // Find matching perf data for counts
-          const perfMap = new Map(performance.map(p => [p.id, p]));
-          const allResearchLines = Array.from(allLineRolesMap.values()).map(l => {
-            const perf = perfMap.get(l.id);
-            return {
-              id: l.id, name: l.research_line_name || l.name, line_number: l.line_number,
-              roles: l.roles, role: l.roles[0], // primary role for badge colour
-              trialsCount: perf?.stats?.totalTrials || l.stats?.totalTrials || 0,
-              projectsCount: perf?.stats?.totalProjects || l.stats?.totalProjects || 0
-            };
-          });
-          
-          const byPhase = { 'Phase I': 0, 'Phase II': 0, 'Phase III': 0, 'Phase IV': 0 };
-          trialsAsPI.forEach(t => { if (t.phase in byPhase) byPhase[t.phase]++ });
-          const partnerNeeds = {};
-          projectsAsLead.forEach(p => p.partner_needs?.forEach(n => { partnerNeeds[n] = (partnerNeeds[n] || 0) + 1 }));
-          
-          // FIX 4: active count includes trials where staff is any role (PI or Co-I)
-          const allActiveTrials = new Set([
-            ...trialsAsPI.filter(t => ['Activo', 'Reclutando'].includes(t.status)).map(t => t.id),
-            ...trialsAsCoI.filter(t => ['Activo', 'Reclutando'].includes(t.status)).map(t => t.id)
-          ]);
-          
-          return {
-            allResearchLines,
-            // FIX: expose coordinator info at top level for banner display
-            isCoordinator: linesCoordinated.length > 0,
-            coordinatorLines: linesCoordinated.map(l => ({ id: l.id, name: l.research_line_name || l.name, line_number: l.line_number })),
-            researchLines: linesCoordinated.map(l => ({ id: l.id, name: l.research_line_name || l.name, line_number: l.line_number, role: 'Coordinator', trialsCount: l.stats?.totalTrials || 0, projectsCount: l.stats?.totalProjects || 0 })),
-            trials: {
-              asPI: trialsAsPI.length, asCoI: trialsAsCoI.length, asSubI: trialsAsSubI.length,
-              active: allActiveTrials.size,
-              completed: trialsAsPI.filter(t => t.status === 'Completado').length, byPhase,
-              list: [...trialsAsPI.slice(0, 3).map(t => ({ id: t.id, title: t.title, status: t.status, phase: t.phase, role: 'PI' })), ...trialsAsCoI.slice(0, 3).map(t => ({ id: t.id, title: t.title, status: t.status, phase: t.phase, role: 'Co-I' })), ...trialsAsSubI.slice(0, 3).map(t => ({ id: t.id, title: t.title, status: t.status, phase: t.phase, role: 'Sub-I' }))].slice(0, 8)
-            },
-            projects: {
-              asLead: projectsAsLead.length,
-              byStage: projectsAsLead.reduce((acc, p) => { const stage = p.current_stage || p.development_stage; acc[stage] = (acc[stage] || 0) + 1; return acc }, {}),
-              list: projectsAsLead.slice(0, 5).map(p => ({ id: p.id, title: p.title, current_stage: p.current_stage || p.development_stage, role: 'Lead' }))
-            },
-            publications: [],
-            partnerNeeds: Object.entries(partnerNeeds).map(([name, count]) => ({ name, count }))
-          }
-        } catch (error) {
-          console.error('Failed to load research profile:', error);
-          return null;
-        }
-      }
-    }
-
-    const API = new ApiService()
-
-    // ============ 5. SHARED HELPERS ============
-    function makePagination(views) {
-      const pagination = reactive(Object.fromEntries(views.map(([k, size]) => [k, { page: 1, size }])))
-      const resetPage = (v) => { if (pagination[v]) pagination[v].page = 1 }
-      const paginate = (arr, v) => {
-        if (!pagination[v]) return arr
-        const { page, size } = pagination[v]
-        return arr.slice((page - 1) * size, page * size)
-      }
-      const totalPages = (arr, v) => pagination[v] ? Math.max(1, Math.ceil(arr.length / pagination[v].size)) : 1
-      const goToPage = (v, page, arr) => {
-        if (!pagination[v]) return
-        pagination[v].page = Math.max(1, Math.min(page, totalPages(arr, v)))
-      }
-      return { pagination, resetPage, paginate, totalPages, goToPage }
-    }
-
-    function makeSort(defaults) {
-      const sortState = reactive(defaults)
-      const sortBy = (v, field) => {
-        const s = sortState[v]
-        if (!s) return
-        s.dir = (s.field === field && s.dir === 'asc') ? 'desc' : 'asc'
-        s.field = field
-      }
-      const sortIcon = (v, field) => {
-        const s = sortState[v]
-        if (!s || s.field !== field) return 'fa-sort'
-        return s.dir === 'asc' ? 'fa-sort-up' : 'fa-sort-down'
-      }
-      const applySort = (arr, v) => {
-        const s = sortState[v]
-        if (!s?.field) return arr
-        return [...arr].sort((a, b) => {
-          let va = a[s.field] ?? '', vb = b[s.field] ?? ''
-          if (typeof va === 'string' && /\d{4}-\d{2}-\d{2}/.test(va)) {
-            va = Utils.normalizeDate(va); vb = Utils.normalizeDate(vb)
-          }
-          const cmp = String(va).localeCompare(String(vb), undefined, { numeric: true })
-          return s.dir === 'asc' ? cmp : -cmp
-        })
-      }
-      return { sortState, sortBy, sortIcon, applySort }
-    }
-
-    function makeValidation(forms) {
-      const fieldErrors = reactive(Object.fromEntries(forms.map(f => [f, {}])))
-      const setErr = (form, field, msg) => { if (fieldErrors[form]) fieldErrors[form][field] = msg }
-      const clearErr = (form, field) => { if (fieldErrors[form]?.[field]) delete fieldErrors[form][field] }
-      const clearAll = (form) => { if (fieldErrors[form]) Object.keys(fieldErrors[form]).forEach(k => delete fieldErrors[form][k]) }
-      return { fieldErrors, setErr, clearErr, clearAll }
-    }
-
-    // ============ 6. COMPOSABLES ============
-
-    // ============ 6.1 useAuth ============
-    function useAuth() {
-      const currentUser = ref(null)
-      const loginForm = reactive({ email: '', password: '', remember_me: false })
-      const loginLoading = ref(false)
-
-      const hasPermission = (module, action = 'read') => {
-        const role = currentUser.value?.user_role
-        if (!role) return false
-        if (role === ROLES.ADMIN) return true
-        return PERMISSION_MATRIX[role]?.[module]?.includes(action) ?? false
-      }
-
-      return { currentUser, loginForm, loginLoading, hasPermission }
-    }
-
-    // ============ 6.2 useUI ============
-    function useUI() {
-      const toasts = ref([])
-      const sidebarCollapsed = ref(false)
-      const mobileMenuOpen = ref(false)
-      const userMenuOpen = ref(false)
-      const statsSidebarOpen = ref(false)
-      const searchResultsOpen = ref(false)
-      const globalSearchQuery = ref('')
-      const currentView = ref('login')
-      const systemAlerts = ref([])
-
-      const confirmationModal = reactive({
-        show: false, title: '', message: '', icon: 'fa-question-circle',
-        confirmButtonText: 'Confirm', confirmButtonClass: 'btn-primary',
-        cancelButtonText: 'Cancel', onConfirm: null, details: ''
-      })
-      const userProfileModal = reactive({
-        show: false, form: { full_name: '', email: '', department_id: '' }
-      })
-
-      const showToast = (title, message, type = 'info', duration = 5000) => {
-        const icons = { info: 'fas fa-info-circle', success: 'fas fa-check-circle', error: 'fas fa-exclamation-circle', warning: 'fas fa-exclamation-triangle' }
-        const toast = { id: Date.now(), title, message, type, icon: icons[type], duration }
-        toasts.value.push(toast)
-        if (duration > 0) setTimeout(() => removeToast(toast.id), duration)
-      }
-
-      const removeToast = (id) => {
-        const i = toasts.value.findIndex(t => t.id === id)
-        if (i > -1) toasts.value.splice(i, 1)
-      }
-
-      const showConfirmation = (opts) => Object.assign(confirmationModal, { show: true, ...opts })
-
-      const confirmAction = async () => {
-        if (confirmationModal.onConfirm) {
-          try { await confirmationModal.onConfirm() } catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
-        }
-        confirmationModal.show = false
-      }
-
-      const cancelConfirmation = () => { confirmationModal.show = false }
-
-      const dismissAlert = (id) => {
-        const i = systemAlerts.value.findIndex(a => a.id === id)
-        if (i > -1) systemAlerts.value.splice(i, 1)
-      }
-
-      const activeAlertsCount = computed(() => systemAlerts.value.filter(a => !a.status || a.status === 'active').length)
-
-      return {
-        toasts, removeToast, showToast,
-        confirmationModal, showConfirmation, confirmAction, cancelConfirmation,
-        userProfileModal, systemAlerts, activeAlertsCount, dismissAlert,
-        sidebarCollapsed, mobileMenuOpen, userMenuOpen, statsSidebarOpen, searchResultsOpen,
-        globalSearchQuery, currentView
-      }
-    }
-
-    // ============ 6.3 useStaff ============
-    function useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll, currentUser }) {
-      const medicalStaff    = ref([])
-      const allStaffLookup  = ref([])   // ALL staff including inactive, for name resolution
-      const staffView = ref('table') // 'table' | 'compact'
-      const hospitalsList = ref([])   // all hospitals from DB
-      const clinicalUnits = ref([])   // clinical units (Pneumology + others)
-      const staffFilters = reactive({ search: '', staffType: '', department: '', status: '', residentCategory: '', hospital: '', networkType: '' })
-      const clearStaffFilters = () => { staffFilters.search = ''; staffFilters.staffType = ''; staffFilters.department = ''; staffFilters.status = ''; staffFilters.residentCategory = ''; staffFilters.hospital = ''; staffFilters.networkType = '' }
-      const hasActiveStaffFilters = computed(() => !!(staffFilters.search || staffFilters.staffType || staffFilters.department || staffFilters.status || staffFilters.residentCategory || staffFilters.hospital || staffFilters.networkType))
-      const staffProfileModal = reactive({ 
-        show: false, staff: null, activeTab: 'activity',
-        researchProfile: null, supervisionData: null, leaveBalance: null,
-        loadingResearch: false, loadingSupervision: false, loadingLeave: false
-      })
-      const medicalStaffModal = reactive({
-        show: false, mode: 'add', activeTab: 'basic',
-        _addingHospital: false, _newHospitalName: '', _newHospitalNetwork: 'external',
-        _certs: [], _addingCert: false, _newCert: { name:'', issued_month:'', renewal_months: 24 },
-        _addingStaffType: false, _newStaffTypeName: '', _newStaffTypeIsResident: false, _savingStaffType: false,
-        form: { 
-          full_name: '', staff_type: 'medical_resident', staff_id: '', employment_status: 'active', 
-          professional_email: '', department_id: '', academic_degree: '', specialization: '', 
-          training_year: '', clinical_certificate: '', certificate_status: '',
-          mobile_phone: '', medical_license: '', can_supervise_residents: false, special_notes: '',
-          can_be_pi: false, can_be_coi: false, other_certificate: '',
-          resident_category: null, home_department: null, external_institution: null,
-          home_department_id: null, external_contact_name: null, external_contact_email: null, external_contact_phone: null,
-          academic_degree_id: null, has_medical_license: false,
-          residency_start_date: null, residency_year_override: null,
-          is_chief_of_department: false, is_research_coordinator: false, 
-          is_resident_manager: false, is_oncall_manager: false, clinical_study_certificates: [],
-          hospital_id: null, _networkHint: null
-        }
-      })
-
-      const validateStaff = (form) => {
-        clearAll('staff'); let ok = true
-        if (!form.full_name?.trim()) { setErr('staff', 'full_name', 'Full name is required'); ok = false }
-        if (!form.staff_type) { setErr('staff', 'staff_type', 'Staff type is required'); ok = false }
-        if (form.professional_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.professional_email)) {
-          setErr('staff', 'professional_email', 'Invalid email address'); ok = false
-        }
-        // External resident: needs institution + contact
-        if (form.resident_category === 'external_resident') {
-          if (!form.external_institution?.trim())  { setErr('staff', 'external_institution', 'Institution required'); ok = false }
-          if (!form.external_contact_name?.trim()) { setErr('staff', 'external_contact_name', 'Contact person required'); ok = false }
-          if (!form.external_contact_email?.trim()){ setErr('staff', 'external_contact_email', 'Contact email required'); ok = false }
-        }
-        // Rotating resident: needs origin department
-        if (form.resident_category === 'rotating_other_dept') {
-          if (!form.home_department_id) { setErr('staff', 'home_department_id', 'Origin department required'); ok = false }
-        }
-        return ok
-      }
-
-      const filteredMedicalStaffAll = computed(() => {
-        let f = medicalStaff.value
-        if (staffFilters.search) {
-          const q = staffFilters.search.toLowerCase()
-          f = f.filter(x => x.full_name?.toLowerCase().includes(q) || x.staff_id?.toLowerCase().includes(q) || x.professional_email?.toLowerCase().includes(q))
-        }
-        if (staffFilters.staffType) f = f.filter(x => x.staff_type === staffFilters.staffType)
-        if (staffFilters.department) f = f.filter(x => x.department_id === staffFilters.department)
-        if (staffFilters.status) f = f.filter(x => x.employment_status === staffFilters.status)
-        if (staffFilters.residentCategory) f = f.filter(x => x.resident_category === staffFilters.residentCategory)
-        if (staffFilters.hospital) f = f.filter(x => x.hospital_id === staffFilters.hospital)
-        if (staffFilters.networkType) {
-          const ids = hospitalsList.value.filter(h => h.parent_complex === staffFilters.networkType).map(h => h.id)
-          f = f.filter(x => ids.includes(x.hospital_id))
-        }
-        return applySort(f, 'medical_staff')
-      })
-
-      const filteredMedicalStaff = computed(() => paginate(filteredMedicalStaffAll.value, 'medical_staff'))
-      const staffTotalPages = computed(() => totalPages(filteredMedicalStaffAll.value, 'medical_staff'))
-
-      // Compact view: staff grouped by role with section dividers
-      const compactStaffWithDividers = computed(() => {
-        const staff = filteredMedicalStaff.value
-        const attendings = staff.filter(s => !isResidentType(s.staff_type))
-        const residents  = staff.filter(s =>  isResidentType(s.staff_type))
-        const result = []
-        if (attendings.length) {
-          result.push({ _divider: `Attending Physicians · ${attendings.length}` })
-          result.push(...attendings)
-        }
-        if (residents.length) {
-          result.push({ _divider: `Medical Residents · ${residents.length}` })
-          result.push(...residents)
-        }
-        return result
-      })
-
-      watch(staffFilters, () => resetPage('medical_staff'), { deep: true })
-
-      const loadMedicalStaff = async () => {
-        try {
-          const [raw, hospitals, units] = await Promise.all([
-            API.getList('/api/medical-staff'),
-            API.getHospitals(),
-            API.getClinicalUnits()
-          ])
-          if (Array.isArray(raw)) {
-            allStaffLookup.value = raw.map(s => ({ id: s.id, full_name: s.full_name, staff_type: s.staff_type, employment_status: s.employment_status }))
-          }
-          hospitalsList.value = hospitals
-          clinicalUnits.value = units
-          medicalStaff.value = await API.getMedicalStaff()
-        }
-        catch { showToast('Error', 'Failed to load medical staff', 'error') }
-      }
-
-      const loadHospitals = async () => {
-        try { hospitalsList.value = await API.getHospitals() }
-        catch { console.error('Failed to load hospitals') }
-      }
-
-      // Create a new hospital inline from the staff form, append to list, auto-select it
-      const addHospitalInline = async (name, networkType = 'external') => {
-        if (!name?.trim()) return null
-        try {
-          const result = await API.createHospital({ name: name.trim(), network_type: networkType })
-          if (result?.success && result.data) {
-            hospitalsList.value = [...hospitalsList.value, result.data].sort((a, b) => a.name.localeCompare(b.name))
-            showToast('Success', `Hospital "${result.data.name}" added`, 'success')
-            return result.data
-          }
-          return null
-        } catch { showToast('Error', 'Failed to add hospital', 'error'); return null }
-      }
-
-      // Inline staff type creation — called from within the Add/Edit Staff modal
-      // Creates the type in DB, refreshes the list, auto-selects it in the form
-      const addStaffTypeInline = async () => {
-        const name = medicalStaffModal._newStaffTypeName?.trim()
-        if (!name) { showToast('Required', 'Please enter a staff type name', 'warning'); return }
-        // Generate a type_key from the display name: lowercase, spaces→underscores, strip special chars
-        const typeKey = name.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '_').substring(0, 60)
-        if (!typeKey) { showToast('Invalid', 'Name must contain letters or numbers', 'warning'); return }
-        medicalStaffModal._savingStaffType = true
-        try {
-          await API.createStaffType({
-            type_key: typeKey,
-            display_name: name,
-            badge_class: 'badge-secondary',
-            is_resident_type: medicalStaffModal._newStaffTypeIsResident,
-            can_supervise: false,
-            is_active: true,
-            display_order: staffTypesList.value.length * 10
-          })
-          // Refresh the global staff types list + map
-          await loadStaffTypes()
-          // Auto-select the newly created type
-          medicalStaffModal.form.staff_type = typeKey
-          // Reset inline form
-          medicalStaffModal._addingStaffType = false
-          medicalStaffModal._newStaffTypeName = ''
-          medicalStaffModal._newStaffTypeIsResident = false
-          showToast('Success', `Staff type "${name}" created and selected`, 'success')
-        } catch (e) {
-          showToast('Error', e?.message || 'Failed to create staff type', 'error')
-        } finally {
-          medicalStaffModal._savingStaffType = false
-        }
-      }
-
-      const showAddMedicalStaffModal = (opts = {}) => {
-        clearAll('staff')
-        medicalStaffModal.mode = 'add'
-        medicalStaffModal.activeTab = 'basic'
-        medicalStaffModal._addingHospital = false
-        medicalStaffModal._newHospitalName = ''
-        medicalStaffModal._newHospitalNetwork = 'external'
-        medicalStaffModal._addingStaffType = false
-        medicalStaffModal._newStaffTypeName = ''
-        medicalStaffModal._newStaffTypeIsResident = false
-        medicalStaffModal._savingStaffType = false
-        // Context-aware department default:
-        // 1. Explicit opts.department_id (e.g. opened from dept panel)
-        // 2. Current user's own department
-        // 3. Blank — user must select
-        const defaultDeptId = opts.department_id || null
-        Object.assign(medicalStaffModal.form, {
-          full_name: '', staff_type: 'medical_resident', staff_id: `MD-${Date.now().toString().slice(-6)}`,
-          employment_status: 'active', professional_email: '', department_id: defaultDeptId || '', academic_degree: '',
-          specialization: '', training_year: '', clinical_certificate: '', certificate_status: '',
-          mobile_phone: '', medical_license: '', can_supervise_residents: false, special_notes: '',
-          can_be_pi: false, can_be_coi: false, other_certificate: '',
-          resident_category: null, home_department: null, external_institution: null,
-          home_department_id: null, external_contact_name: null, external_contact_email: null, external_contact_phone: null,
-          academic_degree_id: null, has_medical_license: false,
-          residency_start_date: null, residency_year_override: null,
-          is_chief_of_department: false, is_research_coordinator: false, 
-          is_resident_manager: false, is_oncall_manager: false, clinical_study_certificates: [],
-          hospital_id: null, _networkHint: null
-        })
-        medicalStaffModal.show = true
-      }
-
-      const loadStaffCertificates = async (staffId) => {
-        try {
-          medicalStaffModal._certs = await API.getStaffCertificates(staffId)
-        } catch { medicalStaffModal._certs = [] }
-      }
-
-      const saveCertificate = async () => {
-        const c = medicalStaffModal._newCert
-        if (!c.name?.trim()) return
-        try {
-          await API.createStaffCertificate(medicalStaffModal.form.id, {
-            certificate_name: c.name.trim(),
-            issued_date: c.issued_month ? c.issued_month + '-01' : null,
-            renewal_months: c.renewal_months || 24
-          })
-          medicalStaffModal._addingCert = false
-          await loadStaffCertificates(medicalStaffModal.form.id)
-          showToast('Saved', 'Certificate added', 'success')
-        } catch (e) { showToast('Error', e?.message || 'Failed to save certificate', 'error') }
-      }
-
-      const deleteCertificate = async (cert) => {
-        try {
-          await API.deleteStaffCertificate(medicalStaffModal.form.id, cert.id)
-          await loadStaffCertificates(medicalStaffModal.form.id)
-          showToast('Removed', 'Certificate removed', 'success')
-        } catch (e) { showToast('Error', e?.message || 'Failed to remove certificate', 'error') }
-      }
-
-      const editMedicalStaff = (staff) => {
-        clearAll('staff')
-        medicalStaffModal.mode = 'edit'
-        medicalStaffModal.activeTab = 'basic'
-        medicalStaffModal.form = {
-          ...staff,
-          full_name: staff.full_name || '',
-          professional_email: staff.professional_email || '',
-          mobile_phone: staff.mobile_phone || '',
-          department_id: staff.department_id || '',
-          academic_degree: staff.academic_degree || '',
-          specialization: staff.specialization || '',
-          training_year: staff.training_year || '',
-          clinical_certificate: staff.clinical_certificate || '',
-          certificate_status: staff.certificate_status || '',
-          medical_license: staff.medical_license || '',
-          special_notes: staff.special_notes || '',
-          other_certificate: staff.other_certificate || '',
-          resident_category: staff.resident_category || null,
-          home_department: staff.home_department || null,
-          external_institution: staff.external_institution || null,
-          can_supervise_residents: staff.can_supervise_residents || false,
-          can_be_pi: staff.can_be_pi || false,
-          can_be_coi: staff.can_be_coi || false,
-          is_chief_of_department: staff.is_chief_of_department || false,
-          is_research_coordinator: staff.is_research_coordinator || false,
-          is_resident_manager: staff.is_resident_manager || false,
-          is_oncall_manager: staff.is_oncall_manager || false,
-          has_phd: staff.has_phd || false, phd_field: staff.phd_field || '',
-          office_phone: staff.office_phone || '', years_experience: staff.years_experience || null,
-          _coordLineId: null, // resolved post-load by research composable
-          _investigadorLines: [],
-          home_department_id: staff.home_department_id || null,
-          has_medical_license: staff.has_medical_license || false,
-          residency_start_date: staff.residency_start_date || null,
-          residency_year_override: staff.residency_year_override || null,
-          external_contact_name: staff.external_contact_name || null,
-          external_contact_email: staff.external_contact_email || null,
-          external_contact_phone: staff.external_contact_phone || null,
-          clinical_study_certificates: Array.isArray(staff.clinical_study_certificates) ? [...staff.clinical_study_certificates] : [],
-          hospital_id: staff.hospital_id || null,
-          _networkHint: null
-        }
-        medicalStaffModal.show = true
-      }
-
-      const saveMedicalStaff = async (saving) => {
-        if (!validateStaff(medicalStaffModal.form)) { showToast('Validation Error', 'Please fix the highlighted fields', 'error'); return }
-        saving.value = true
-        try {
-          const clean = v => (v == null) ? '' : String(v).trim()
-          const f = medicalStaffModal.form
-          const data = {
-            full_name: f.full_name.trim(), staff_type: f.staff_type || 'medical_resident',
-            staff_id: f.staff_id || Utils.generateId('MD'), employment_status: f.employment_status || 'active',
-            professional_email: f.professional_email || '', department_id: f.department_id || currentUser?.value?.department_id || null,
-            academic_degree: clean(f.academic_degree), academic_degree_id: f.academic_degree_id || null,
-            specialization: clean(f.specialization),
-            training_year: clean(f.training_year),
-            residency_start_date: f.residency_start_date || null,
-            residency_year_override: f.residency_year_override || null,
-            clinical_certificate: clean(f.clinical_certificate),
-            certificate_status: clean(f.certificate_status), mobile_phone: clean(f.mobile_phone),
-            medical_license: clean(f.medical_license),
-            has_medical_license: f.has_medical_license || false,
-            can_supervise_residents: f.can_supervise_residents || false,
-            other_certificate: clean(f.other_certificate),
-            special_notes: clean(f.special_notes), resident_category: f.resident_category || null,
-            home_department: f.home_department || null,
-            home_department_id: f.home_department_id || null,
-            external_institution: f.external_institution || null,
-            external_contact_name: f.external_contact_name || null,
-            external_contact_email: f.external_contact_email || null,
-            external_contact_phone: f.external_contact_phone || null,
-            is_research_coordinator: f.is_research_coordinator || false,
-            can_be_pi: f.can_be_pi || false,
-            can_be_coi: f.can_be_coi || false,
-            has_phd: f.has_phd || false,
-            phd_field: f.phd_field || null,
-            office_phone: f.office_phone || null,
-            years_experience: f.years_experience || null,
-            hospital_id: f.hospital_id || null,
-            clinical_study_certificates: f.clinical_study_certificates || []
-          }
-          let savedStaff
-          if (medicalStaffModal.mode === 'add') {
-            savedStaff = await API.createMedicalStaff(data)
-            medicalStaff.value.unshift(savedStaff)
-            showToast('Success', 'Medical staff added', 'success')
-          } else {
-            savedStaff = await API.updateMedicalStaff(f.id, data)
-            const idx = medicalStaff.value.findIndex(s => s.id === savedStaff.id)
-            if (idx !== -1) medicalStaff.value[idx] = savedStaff
-            showToast('Success', 'Medical staff updated', 'success')
-          }
-          // If marked as research coordinator with a specific line, update that line's coordinator_id
-          if (f.is_research_coordinator && f._coordLineId && savedStaff?.id) {
-            try {
-              await API.assignCoordinator(f._coordLineId, savedStaff.id)
-              await loadResearchLines()
-            } catch (e) { console.warn('Could not update research line coordinator:', e) }
-          } else if (!f.is_research_coordinator && savedStaff?.id) {
-            // If coordinator toggled OFF, clear coordinator_id from any line that had this person
-            const coordinated = [] // cross-composable update handled by research composable
-            for (const line of coordinated) {
-              try { await API.assignCoordinator(line.id, null) } catch {}
-            }
-          }
-          medicalStaffModal.show = false; clearAll('staff')
-        } catch (e) { showToast('Error', e.message || 'Failed to save', 'error') }
-        finally { saving.value = false }
-      }
-
-      // Raw deactivation — called by the main setup's orchestrated deletion workflow
-      const deactivateStaffMember = async (staffId, staffName) => {
-        await API.deleteMedicalStaff(staffId)
-        medicalStaff.value = medicalStaff.value.filter(s => s.id !== staffId)
-      }
-
-      const isRoleTaken = (role) => {
-        if (!medicalStaff.value) return false;
-        const currentHolder = medicalStaff.value.find(staff => {
-          switch (role) {
-            case 'chief_of_department': return staff.is_chief_of_department;
-            case 'research_coordinator': return staff.is_research_coordinator;
-            case 'resident_manager': return staff.is_resident_manager;
-            case 'oncall_manager': return staff.is_oncall_manager;
-            default: return false;
-          }
-        });
-        return currentHolder && currentHolder.id !== medicalStaffModal.form.id;
-      }
-
-      const getCurrentRoleHolder = (role) => {
-        if (!medicalStaff.value) return null;
-        return medicalStaff.value.find(staff => {
-          switch (role) {
-            case 'chief_of_department': return staff.is_chief_of_department;
-            case 'research_coordinator': return staff.is_research_coordinator;
-            case 'resident_manager': return staff.is_resident_manager;
-            case 'oncall_manager': return staff.is_oncall_manager;
-            default: return false;
-          }
-        }) || null;
-      }
-
-      const handleRoleAssignment = (role, checked) => {
-        if (!checked) return;
-        const currentHolder = getCurrentRoleHolder(role);
-        if (currentHolder && currentHolder.id !== medicalStaffModal.form.id) {
-          showConfirmation({
-            title: 'Replace Role Holder', message: `${currentHolder.full_name} currently holds this role.`,
-            details: `Are you sure you want to reassign it to ${medicalStaffModal.form.full_name}?`,
-            icon: 'fa-exchange-alt', confirmButtonText: 'Yes, Reassign', confirmButtonClass: 'btn-warning',
-            onConfirm: () => {
-              const idx = medicalStaff.value.findIndex(s => s.id === currentHolder.id);
-              if (idx !== -1) medicalStaff.value[idx][`is_${role}`] = false;
-            }
-          });
-        }
-      }
-
-      const toggleCertificate = (cert) => {
-        if (!medicalStaffModal.form.clinical_study_certificates) medicalStaffModal.form.clinical_study_certificates = [];
-        const idx = medicalStaffModal.form.clinical_study_certificates.indexOf(cert);
-        if (idx === -1) medicalStaffModal.form.clinical_study_certificates.push(cert);
-        else medicalStaffModal.form.clinical_study_certificates.splice(idx, 1);
-      }
-
-      const availableCertificates = ['GCP - Good Clinical Practice','ICH Guidelines','Clinical Research Coordinator','CITI Program','HIPAA Certification','Responsible Conduct of Research'];
-
-      return {
-        medicalStaff, allStaffLookup, hospitalsList, clinicalUnits,
-        staffFilters, staffProfileModal, medicalStaffModal,
-        filteredMedicalStaff, filteredMedicalStaffAll, staffTotalPages,
-        loadMedicalStaff, loadHospitals, addHospitalInline,
-        loadStaffCertificates, saveCertificate, deleteCertificate,
-        showAddMedicalStaffModal, editMedicalStaff, saveMedicalStaff, deactivateStaffMember,
-        formatTrainingYear: Utils.formatTrainingYear, formatSpecialization: Utils.formatSpecialization, effectiveResidentYear: Utils.effectiveResidentYear,
-        formatPhone: Utils.formatPhone, formatLicense: Utils.formatLicense,
-        getResidentCategoryInfo: Utils.getResidentCategoryInfo, formatResidentCategorySimple: Utils.formatResidentCategorySimple,
-        formatResidentCategoryDetailed: Utils.formatResidentCategoryDetailed, getResidentCategoryIcon: Utils.getResidentCategoryIcon,
-        getResidentCategoryTooltip: Utils.getResidentCategoryTooltip, getRoleInfo: Utils.getRoleInfo, getStaffRoles: Utils.getStaffRoles,
-        isRoleTaken, getCurrentRoleHolder, handleRoleAssignment, toggleCertificate, availableCertificates,
-        addStaffTypeInline,
-        staffView, compactStaffWithDividers,
-        clearStaffFilters,
-        hasActiveStaffFilters
-      }
-    }
-
-    // ============ 6.4 useOnCall ============
-    function useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup, absences }) {
-      const onCallSchedule = ref([])
-            const todaysOnCall = ref([])
-      const loadingSchedule = ref(false)
-      const onCallFilters = reactive({ date: '', shiftType: '', physician: '', coverageArea: '', search: '' })
-      const onCallModal = reactive({
-        show: false, mode: 'add',
-        form: { duty_date: Utils.normalizeDate(new Date()), shift_type: 'primary_call', start_time: '15:00', end_time: '08:00', primary_physician_id: '', backup_physician_id: '', coverage_area: 'emergency', coverage_notes: '' }
-      })
-
-      const getPhysicianName = (id) => {
-        if (!id) return 'Not assigned'
-        const s = allStaffLookup?.value?.find(x => x.id === id) || medicalStaff.value.find(x => x.id === id)
-        return s?.full_name || 'Not assigned'
-      }
-      const formatStaffType = (t) => formatStaffTypeGlobal(t)
-
-      const validateOnCall = (form) => {
-        clearAll('oncall'); let ok = true
-        if (!form.duty_date) { setErr('oncall', 'duty_date', 'Date is required'); ok = false }
-        if (!form.primary_physician_id) { setErr('oncall', 'primary_physician_id', 'Please select a physician'); ok = false }
-        if (!form.start_time) { setErr('oncall', 'start_time', 'Start time is required'); ok = false }
-        if (!form.end_time) { setErr('oncall', 'end_time', 'End time is required'); ok = false }
-        return ok
-      }
-
-      const checkExistingSchedule = async (date, shiftType, excludeId = null) => {
-        // FIX: Use the already-loaded local reactive array instead of a network call.
-        // The old approach called getOnCallSchedule({ start_date, end_date }) but that
-        // method ignores its argument — always fetching ALL schedules with no date filter,
-        // causing false positives when ANY date had a matching shift_type.
-        try {
-          const normalizedDate = Utils.normalizeDate(date);
-          return onCallSchedule.value.some(s =>
-            Utils.normalizeDate(s.duty_date) === normalizedDate &&
-            s.shift_type === shiftType &&
-            (!excludeId || s.id !== excludeId)
-          );
-        } catch (error) { console.error('Failed to check existing schedule:', error); return false; }
-      };
-
-      const deriveOnCallStatus = (s) => {
-        const today = Utils.normalizeDate(new Date())
-        const d = Utils.normalizeDate(s.duty_date)
-        if (d < today)  return 'completed'
-        if (d === today) return 'today'
-        return 'upcoming'
-      }
-
-      const filteredOnCallAll = computed(() => {
-        let f = onCallSchedule.value
-        // Default: hide past shifts unless user explicitly filters to a past date or searches
-        const today = Utils.normalizeDate(new Date())
-        if (!onCallFilters.date && !onCallFilters.search) {
-          f = f.filter(s => Utils.normalizeDate(s.duty_date) >= today)
-        }
-        if (onCallFilters.date) f = f.filter(s => Utils.normalizeDate(s.duty_date) === onCallFilters.date)
-        if (onCallFilters.shiftType) f = f.filter(s => s.shift_type === onCallFilters.shiftType)
-        if (onCallFilters.physician) f = f.filter(s => s.primary_physician_id === onCallFilters.physician || s.backup_physician_id === onCallFilters.physician)
-        if (onCallFilters.coverageArea) f = f.filter(s => s.coverage_area === onCallFilters.coverageArea)
-        if (onCallFilters.search) {
-          const q = onCallFilters.search.toLowerCase()
-          f = f.filter(s => getPhysicianName(s.primary_physician_id).toLowerCase().includes(q) || (s.coverage_area || '').toLowerCase().includes(q))
-        }
-        return applySort(f, 'oncall')
-      })
-
-      const filteredOnCallSchedules = computed(() => paginate(filteredOnCallAll.value, 'oncall'))
-      const oncallTotalPages = computed(() => totalPages(filteredOnCallAll.value, 'oncall'))
-      const todaysOnCallCount = computed(() => todaysOnCall.value.length)
-
-      // Groups ALL on-call schedules by physician for the compact orb view
-      const staffWithOnCallOrbs = computed(() => {
-        const today = Utils.normalizeDate(new Date())
-        // Show shifts from 7 days ago onward (so recent past is visible, ancient history is not)
-        const cutoff = Utils.normalizeDate(new Date(Date.now() - 7 * 86400000))
-        const map = {}
-        ;(onCallSchedule.value || []).forEach(shift => {
-          const dutyDate = Utils.normalizeDate(shift.duty_date)
-          if (dutyDate < cutoff) return // skip very old shifts
-          const id = shift.primary_physician_id
-          if (!id) return
-          const staff = allStaffLookup?.value?.find(s => s.id === id) || medicalStaff.value.find(s => s.id === id)
-          if (!staff) return
-          if (!map[id]) map[id] = { id, name: staff.full_name, staffType: staff.staff_type, shifts: [] }
-          map[id].shifts.push({
-            ...shift, dutyDate,
-            isToday: dutyDate === today,
-            isPast:  dutyDate < today,
-            dayLabel:  new Date(dutyDate + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' }),
-            dateLabel: new Date(dutyDate + 'T12:00:00').toLocaleDateString('en', { day: 'numeric', month: 'short' }),
-            backupName: shift.backup_physician_id ? ((allStaffLookup?.value?.find(s => s.id === shift.backup_physician_id) || medicalStaff.value.find(s => s.id === shift.backup_physician_id))?.full_name || null) : null
-          })
-        })
-        Object.values(map).forEach(p => p.shifts.sort((a, b) => a.dutyDate.localeCompare(b.dutyDate)))
-        return Object.values(map).sort((a, b) => a.name.localeCompare(b.name))
-      })
-
-      watch(onCallFilters, () => resetPage('oncall'), { deep: true })
-
-      const existingSchedulesForDate = computed(() => {
-        if (!onCallModal.form.duty_date) return [];
-        return onCallSchedule.value.filter(s => Utils.normalizeDate(s.duty_date) === Utils.normalizeDate(onCallModal.form.duty_date));
-      })
-
-      const loadOnCallSchedule = async () => {
-        loadingSchedule.value = true
-        try {
-          const raw = await API.getOnCallSchedule()
-          onCallSchedule.value = raw.map(s => ({ ...s, duty_date: Utils.normalizeDate(s.duty_date) }))
-        } catch { showToast('Error', 'Failed to load on-call schedule', 'error') }
-        finally { loadingSchedule.value = false }
-      }
-
-      const loadTodaysOnCall = async () => {
-        try {
-          const data = await API.getOnCallToday()
-          todaysOnCall.value = data.map(item => {
-            const startTime = item.start_time?.substring(0, 5) || 'N/A'
-            const endTime = item.end_time?.substring(0, 5) || 'N/A'
-            const isPrimary = ['primary_call', 'primary'].includes(item.shift_type || '')
-            const matchingStaff = medicalStaff.value.find(s => s.id === item.primary_physician_id)
-            return {
-              id: item.id, startTime, endTime,
-              physicianName: item.primary_physician?.full_name || 'Unknown Physician',
-              shiftTypeDisplay: isPrimary ? 'Primary' : 'Backup',
-              shiftTypeClass: isPrimary ? 'badge-primary' : 'badge-secondary',
-              shiftType: isPrimary ? 'Primary' : 'Backup',
-              staffType: matchingStaff ? formatStaffType(matchingStaff.staff_type) : 'Physician',
-              coverageArea: item.coverage_area || 'General Coverage',
-              backupPhysician: item.backup_physician?.full_name || null,
-              contactInfo: item.primary_physician?.professional_email || 'No contact info', raw: item
-            }
-          })
-        } catch { todaysOnCall.value = [] }
-      }
-
-      const showAddOnCallModal = (physician = null) => {
-        clearAll('oncall')
-        onCallModal.mode = 'add'
-        Object.assign(onCallModal.form, {
-          duty_date: Utils.normalizeDate(new Date()), shift_type: 'primary_call',
-          start_time: '15:00', end_time: '08:00',
-          primary_physician_id: physician?.id || '',
-          backup_physician_id: '', coverage_area: 'emergency', coverage_notes: '',
-          schedule_id: `SCH-${Date.now().toString().slice(-6)}`
-        })
-        onCallModal.show = true
-      }
-
-      const editOnCallSchedule = (schedule) => {
-        clearAll('oncall')
-        onCallModal.mode = 'edit'
-        const raw = schedule.shift_type || 'primary_call'
-        onCallModal.form = {
-          ...schedule, duty_date: Utils.normalizeDate(schedule.duty_date),
-          shift_type: ['primary', 'primary_call'].includes(raw) ? 'primary_call' : 'backup_call',
-          coverage_area: schedule.coverage_area || 'emergency', coverage_notes: schedule.coverage_notes || ''
-        }
-        onCallModal.show = true
-      }
-
-      const saveOnCallSchedule = async (saving) => {
-        if (!validateOnCall(onCallModal.form)) { showToast('Validation Error', 'Please fix the highlighted fields', 'error'); return }
-
-        // ── Absence conflict check ──────────────────────────────────────────
-        const f0 = onCallModal.form
-        if (f0.primary_physician_id && f0.duty_date) {
-          const dutyDate  = Utils.normalizeDate(f0.duty_date)
-          const absList   = absences?.value || []
-          const onAbsence = absList.filter(a => {
-            if (a.staff_member_id !== f0.primary_physician_id) return false
-            const s = Utils.normalizeDate(a.start_date)
-            const e = Utils.normalizeDate(a.end_date)
-            return dutyDate >= s && dutyDate <= e && !['cancelled','resolved'].includes(a.current_status)
-          })
-          if (onAbsence.length > 0) {
-            const abs     = onAbsence[0]
-            const staffName = medicalStaff.value.find(x => x.id === f0.primary_physician_id)?.full_name || 'This physician'
-            const reason  = abs.absence_reason?.replace(/_/g,' ') || 'absence'
-            const fmt     = (d) => new Date(d + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
-            let proceed = false
-            await new Promise((resolve) => {
-              showConfirmation({
-                title: '⚠️ Physician On Absence',
-                message: `${staffName} is recorded as absent on this date (${reason}).`,
-                details: `Absence period: ${fmt(abs.start_date)} → ${fmt(abs.end_date)}`,
-                icon: 'fa-user-slash',
-                confirmButtonText: 'Schedule Anyway',
-                confirmButtonClass: 'btn-danger',
-                onConfirm: () => { proceed = true; resolve() },
-                onCancel:  () => resolve()
-              })
-            })
-            if (!proceed) { saving.value = false; return }
-          }
-        }
-
-        saving.value = true
-        try {
-          const f = onCallModal.form
-          const data = {
-            duty_date: Utils.normalizeDate(f.duty_date), shift_type: f.shift_type || 'primary_call',
-            start_time: f.start_time || '15:00', end_time: f.end_time || '08:00',
-            primary_physician_id: f.primary_physician_id, backup_physician_id: f.backup_physician_id || null,
-            coverage_notes: f.coverage_notes || '', schedule_id: f.schedule_id || Utils.generateId('SCH')
-          }
-          if (onCallModal.mode === 'add') {
-            const exists = await checkExistingSchedule(data.duty_date, data.shift_type);
-            if (exists) { showToast('Duplicate Schedule', `A ${data.shift_type === 'primary_call' ? 'primary' : 'backup'} shift already exists for this date.`, 'warning'); saving.value = false; return; }
-          }
-          if (onCallModal.mode === 'edit') {
-            const exists = await checkExistingSchedule(data.duty_date, data.shift_type, f.id);
-            if (exists) { showToast('Duplicate Schedule', `Another ${data.shift_type === 'primary_call' ? 'primary' : 'backup'} shift already exists for this date.`, 'warning'); saving.value = false; return; }
-          }
-          if (onCallModal.mode === 'add') {
-            const result = await API.createOnCall(data);
-            onCallSchedule.value.unshift({ ...result, duty_date: Utils.normalizeDate(result.duty_date), coverage_area: f.coverage_area });
-            showToast('Success', 'On-call scheduled', 'success');
-          } else {
-            const result = await API.updateOnCall(f.id, data);
-            const idx = onCallSchedule.value.findIndex(s => s.id === result.id);
-            if (idx !== -1) onCallSchedule.value[idx] = { ...result, duty_date: Utils.normalizeDate(result.duty_date), coverage_area: f.coverage_area };
-            showToast('Success', 'On-call updated', 'success');
-          }
-          onCallModal.show = false; clearAll('oncall'); await loadTodaysOnCall();
-        } catch (e) {
-          if (e.message && e.message.includes('duplicate key')) showToast('Error', 'A schedule for this shift type already exists on this date', 'error');
-          else showToast('Error', e.message || 'Failed to save on-call', 'error');
-        } finally { saving.value = false }
-      }
-
-      const deleteOnCallSchedule = (schedule) => showConfirmation({
-        title: 'Delete On-Call', message: 'Delete this on-call schedule?',
-        icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
-        details: `Physician: ${getPhysicianName(schedule.primary_physician_id)}`,
-        onConfirm: async () => {
-          try {
-            await API.deleteOnCall(schedule.id)
-            onCallSchedule.value = onCallSchedule.value.filter(s => s.id !== schedule.id)
-            showToast('Success', 'Schedule deleted', 'success')
-            loadTodaysOnCall()
-          } catch (e) {
-            showToast('Error', e?.message || 'Failed to delete schedule', 'error')
-            await loadOnCallSchedule()
-          }
-        }
-      })
-
-      const contactPhysician = (shift) => {
-        if (shift.contactInfo && shift.contactInfo !== 'No contact info')
-          showToast('Contact Physician', `Contact ${shift.physicianName}: ${shift.contactInfo}`, 'info')
-        else showToast('No Contact Info', `No contact info for ${shift.physicianName}`, 'warning')
-      }
-
-      // ============ [NEW] Compact view computed properties for On-Call ============
-      const groupedOnCallSchedules = computed(() => {
-        const groups = {}
-        
-        onCallSchedule.value.forEach(shift => {
-          const date = Utils.normalizeDate(shift.duty_date)
-          if (!groups[date]) {
-            groups[date] = {
-              date,
-              dayOfWeek: new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' }),
-              shifts: []
-            }
-          }
-          
-          // Apply filters
-          if (onCallFilters.date && date !== onCallFilters.date) return
-          if (onCallFilters.shiftType && shift.shift_type !== onCallFilters.shiftType) return
-          if (onCallFilters.physician && shift.primary_physician_id !== onCallFilters.physician && 
-              shift.backup_physician_id !== onCallFilters.physician) return
-          if (onCallFilters.search) {
-            const physicianName = getPhysicianName(shift.primary_physician_id).toLowerCase()
-            if (!physicianName.includes(onCallFilters.search.toLowerCase())) return
-          }
-          
-          groups[date].shifts.push(shift)
-        })
-        
-        return Object.values(groups).sort((a, b) => a.date.localeCompare(b.date))
-      })
-
-      const isShiftActive = (shift) => {
-        if (!shift.duty_date) return false
-        const today = Utils.normalizeDate(new Date())
-        const shiftDate = Utils.normalizeDate(shift.duty_date)
-        if (shiftDate !== today) return false
-        const now = new Date()
-        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-        return currentTime >= shift.start_time && currentTime <= shift.end_time
-      }
-
-      // ── Upcoming on-call: next 14 days grouped by date (for dashboard) ──
-      const upcomingOnCallDays = computed(() => {
-        const today    = Utils.normalizeDate(new Date())
-        const cutoff   = Utils.normalizeDate(new Date(Date.now() + 14 * 86400000))
-        const fmt      = (d) => new Date(d + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
-        const dayLabel = (d) => {
-          const tomorrow = Utils.normalizeDate(new Date(Date.now() + 86400000))
-          if (d === today)    return 'Today'
-          if (d === tomorrow) return 'Tomorrow'
-          return fmt(d)
-        }
-        const map = {}
-        ;(onCallSchedule.value || []).forEach(s => {
-          const d = Utils.normalizeDate(s.duty_date)
-          if (d < today || d > cutoff) return
-          if (!map[d]) map[d] = { date: d, label: dayLabel(d), isToday: d === today, primary: null, backup: null }
-          if (['primary_call','primary'].includes(s.shift_type)) map[d].primary = s
-          else map[d].backup = s
-        })
-        return Object.values(map).sort((a,b) => a.date.localeCompare(b.date))
-      })
-
-      return {
-        onCallSchedule, todaysOnCall, loadingSchedule, onCallFilters, onCallModal,
-        filteredOnCallSchedules, filteredOnCallAll, oncallTotalPages, todaysOnCallCount,
-        loadOnCallSchedule, loadTodaysOnCall, showAddOnCallModal,
-        editOnCallSchedule, saveOnCallSchedule, deleteOnCallSchedule, contactPhysician,
-        // NEW compact view properties
-        groupedOnCallSchedules,
-        isShiftActive,
-        staffWithOnCallOrbs,
-        upcomingOnCallDays,
-        getPhysicianName
-      }
-    }
-
-    // ============ 6.5 useRotations ============
-    function useRotations({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup, trainingUnits, rotations, currentUser }) {
-      // rotations is a shared ref hoisted in main setup — do not redeclare
-      const rotationFilters = reactive({ resident: '', status: '', trainingUnit: '', supervisor: '', search: '' })
-      const rotationModal = reactive({
-        show: false, mode: 'add',
-        form: { rotation_id: '', resident_id: '', training_unit_id: '', start_date: Utils.normalizeDate(new Date()), end_date: Utils.normalizeDate(new Date(Date.now() + 30 * 86400000)), rotation_status: 'scheduled', rotation_category: 'clinical_rotation', supervising_attending_id: '' },
-        availability: null,  // result from /api/rotations/availability
-        checkingAvailability: false
-      })
-
-      // ── Rotation availability watcher — checks before save ──────
-      // Debounced: fires when unit + dates are all set
-      let _availCheckTimer = null
-      const checkRotationAvailability = () => {
-        clearTimeout(_availCheckTimer)
-        const { training_unit_id, resident_id, start_date, end_date } = rotationModal.form
-        if (!training_unit_id || !start_date || !end_date) { rotationModal.availability = null; return }
-        _availCheckTimer = setTimeout(async () => {
-          rotationModal.checkingAvailability = true
-          try {
-            const params = { training_unit_id, start_date, end_date }
-            if (resident_id) params.resident_id = resident_id
-            if (rotationModal.mode === 'edit' && rotationModal.form.id) params.exclude_id = rotationModal.form.id
-            rotationModal.availability = await API.checkRotationAvailability(params)
-          } catch { rotationModal.availability = null }
-          finally { rotationModal.checkingAvailability = false }
-        }, 500)
-      }
-
-      const pendingActivations = ref([])
-      const activationModal = reactive({ show: false, rotations: [], selectedRotation: null, notes: '', action: 'activate' })
-
-      const getResidentName = (id) => {
-        if (!id) return 'Not assigned'
-        const s = allStaffLookup?.value?.find(x => x.id === id) || medicalStaff.value.find(x => x.id === id)
-        return s?.full_name || 'Not assigned'
-      }
-      const getTrainingUnitName = (id) => trainingUnits.value.find(u => u.id === id)?.unit_name || 'Not assigned'
-
-      // Capacity info for rotation modal — reactive to selected unit
-      const selectedUnitCapacity = computed(() => {
-        const unitId = rotationModal.form.training_unit_id
-        if (!unitId) return null
-        const unit = trainingUnits.value.find(u => u.id === unitId)
-        if (!unit) return null
-        const editId = rotationModal.mode === 'edit' ? rotationModal.form.id : null
-        const current = rotations.value.filter(r =>
-          r.training_unit_id === unitId &&
-          ['active', 'scheduled'].includes(r.rotation_status) &&
-          r.id !== editId
-        ).length
-        const max = unit.maximum_residents || 5
-        return { current, max, full: current >= max, warn: current / max >= 0.8, pct: Math.min(100, Math.round((current / max) * 100)) }
-      })
-
-      const checkAndUpdateRotations = async (requireValidation = true) => {
-        const today = new Date(); today.setHours(0, 0, 0, 0)
-        const todayStr = Utils.localDateStr(today)  // local date — not UTC
-        const updates = [], pending = []
-
-        rotations.value.forEach(rotation => {
-          const startDate = new Date(Utils.normalizeDate(rotation.start_date) + 'T00:00:00')
-          const endDate = new Date(Utils.normalizeDate(rotation.end_date) + 'T23:59:59')
-          if (rotation.rotation_status === 'scheduled' && Utils.normalizeDate(startDate) <= todayStr) {
-            if (requireValidation) pending.push({ ...rotation, action: 'activate', message: `Rotation for ${getResidentName(rotation.resident_id)} at ${getTrainingUnitName(rotation.training_unit_id)} should start today.` })
-            else updates.push(updateRotationStatus(rotation.id, 'active', { activated_at: new Date().toISOString(), activated_by: 'system', notes: 'Auto-activated on start date' }))
-          }
-          if (rotation.rotation_status === 'active' && Utils.normalizeDate(endDate) < todayStr) {
-            if (requireValidation) pending.push({ ...rotation, action: 'complete', message: `Rotation for ${getResidentName(rotation.resident_id)} at ${getTrainingUnitName(rotation.training_unit_id)} ended yesterday and should be completed.` })
-            else updates.push(updateRotationStatus(rotation.id, 'completed', { completed_at: new Date().toISOString(), completed_by: 'system', notes: 'Auto-completed after end date' }))
-          }
-        })
-
-        if (pending.length > 0 && requireValidation) { pendingActivations.value = pending; showActivationModal() }
-        if (updates.length > 0) { await Promise.all(updates); await loadRotations(); showToast('Rotations Updated', `${updates.length} rotation(s) automatically updated.`, 'info') }
-        return { updates: updates.length, pending: pending.length }
-      }
-
-      const updateRotationStatus = async (rotationId, newStatus, metadata = {}) => {
-        const rotation = rotations.value.find(r => r.id === rotationId)
-        if (!rotation) return
-        try {
-          const updateData = {
-            id: rotation.id, resident_id: rotation.resident_id, training_unit_id: rotation.training_unit_id,
-            supervising_attending_id: rotation.supervising_attending_id || null,
-            start_date: rotation.start_date, end_date: rotation.end_date,
-            rotation_category: rotation.rotation_category || 'clinical_rotation',
-            rotation_status: newStatus, clinical_notes: rotation.clinical_notes || '',
-            supervisor_evaluation: rotation.supervisor_evaluation || '', goals: rotation.goals || '',
-            notes: rotation.notes || '', rotation_id: rotation.rotation_id, ...metadata
-          }
-          const result = await API.updateRotation(rotationId, updateData)
-          const idx = rotations.value.findIndex(r => r.id === rotationId)
-          if (idx !== -1) rotations.value[idx] = { ...result, start_date: Utils.normalizeDate(result.start_date), end_date: Utils.normalizeDate(result.end_date) }
-          return result
-        } catch (error) { console.error('Failed to update rotation status:', error); throw error }
-      }
-
-      const showActivationModal = () => {
-        if (pendingActivations.value.length === 0) return
-        activationModal.rotations = [...pendingActivations.value]
-        activationModal.selectedRotation = activationModal.rotations[0]
-        activationModal.notes = ''; activationModal.show = true
-      }
-
-      const processNextPending = async () => {
-        if (activationModal.rotations.length === 0) {
-          activationModal.show = false; pendingActivations.value = []
-          showToast('All Done', 'All rotation statuses have been updated.', 'success'); return
-        }
-        const current = activationModal.rotations[0]
-        activationModal.selectedRotation = current; activationModal.action = current.action
-      }
-
-      const confirmPendingActivation = async () => {
-        if (!activationModal.selectedRotation) return
-        const rotation = activationModal.selectedRotation
-        const newStatus = rotation.action === 'activate' ? 'active' : 'completed'
-        try {
-          await updateRotationStatus(rotation.id, newStatus, {
-            [`${newStatus}_at`]: new Date().toISOString(),
-            [`${newStatus}_by`]: currentUser?.value?.full_name || 'system',
-            activation_notes: activationModal.notes || null,
-            validated_by: currentUser?.value?.full_name || 'system', validated_at: new Date().toISOString()
-          })
-          activationModal.rotations = activationModal.rotations.slice(1)
-          pendingActivations.value = pendingActivations.value.filter(r => r.id !== rotation.id)
-          showToast('Rotation Updated', `${rotation.action === 'activate' ? 'Activated' : 'Completed'} rotation for ${getResidentName(rotation.resident_id)}`, 'success')
-          await processNextPending()
-        } catch (error) { showToast('Error', 'Failed to update rotation status', 'error') }
-      }
-
-      const skipPendingActivation = () => {
-        if (!activationModal.selectedRotation) return
-        const current = activationModal.rotations[0]
-        activationModal.rotations = [...activationModal.rotations.slice(1), current]
-        processNextPending(); showToast('Skipped', 'Rotation status update postponed.', 'warning')
-      }
-
-      const postponeAllActivations = () => {
-        activationModal.show = false; showToast('Reminder Set', 'Will check again in 4 hours.', 'info')
-        localStorage.setItem('last_rotation_check', new Date().toISOString())
-      }
-
-      const initAutoCheck = () => {
-        // Silent: scheduled→active and active→completed are date facts, not decisions
-        setTimeout(() => checkAndUpdateRotations(false), 2000)
-        const interval = setInterval(() => {
-          const lastCheck = localStorage.getItem('last_rotation_check')
-          const now = new Date()
-          if (!lastCheck || (now - new Date(lastCheck)) > 4 * 60 * 60 * 1000) {
-            checkAndUpdateRotations(false)
-            localStorage.setItem('last_rotation_check', now.toISOString())
-          }
-        }, 60 * 60 * 1000)
-        return interval
-      }
-
-      const validateRotation = (form) => {
-        clearAll('rotation'); let ok = true
-        if (!form.resident_id) { setErr('rotation', 'resident_id', 'Please select a resident'); ok = false }
-        if (!form.training_unit_id) { setErr('rotation', 'training_unit_id', 'Please select a training unit'); ok = false }
-        if (!form.start_date) { setErr('rotation', 'start_date', 'Start date is required'); ok = false }
-        if (!form.end_date) { setErr('rotation', 'end_date', 'End date is required'); ok = false }
-        if (!form.supervising_attending_id) { setErr('rotation', 'supervising_attending_id', 'Supervising attending is required'); ok = false }
-        if (form.start_date && form.end_date) {
-          const s = new Date(Utils.normalizeDate(form.start_date) + 'T00:00:00')
-          const e = new Date(Utils.normalizeDate(form.end_date) + 'T00:00:00')
-          if (!isNaN(s.getTime()) && !isNaN(e.getTime()) && e <= s) { setErr('rotation', 'end_date', 'End date must be after start date'); ok = false }
-        }
-        return ok
-      }
-
-      const filteredRotationsAll = computed(() => {
-        let f = rotations.value
-        if (rotationFilters.resident) f = f.filter(r => r.resident_id === rotationFilters.resident)
-        if (rotationFilters.status) f = f.filter(r => r.rotation_status === rotationFilters.status)
-        if (rotationFilters.trainingUnit) f = f.filter(r => r.training_unit_id === rotationFilters.trainingUnit)
-        if (rotationFilters.supervisor) f = f.filter(r => r.supervising_attending_id === rotationFilters.supervisor)
-        if (rotationFilters.search) {
-          const q = rotationFilters.search.toLowerCase()
-          f = f.filter(r => getResidentName(r.resident_id).toLowerCase().includes(q) || getTrainingUnitName(r.training_unit_id).toLowerCase().includes(q))
-        }
-        return applySort(f, 'rotations')
-      })
-      const filteredRotations = computed(() => paginate(filteredRotationsAll.value, 'rotations'))
-      const rotationTotalPages = computed(() => totalPages(filteredRotationsAll.value, 'rotations'))
-
-      watch(rotationFilters, () => resetPage('rotations'), { deep: true })
-
-      // Auto-derive rotation status from dates as user edits them
-      // Uses local date (not UTC) to handle timezone offsets correctly
-      watch(() => [rotationModal.form.start_date, rotationModal.form.end_date], ([start, end]) => {
-        if (!start || !end) return
-        const todayStr = Utils.localDateStr(new Date())
-        const startStr = Utils.normalizeDate(start)
-        const endStr   = Utils.normalizeDate(end)
-        const terminal = ['terminated_early', 'completed', 'extended']
-        if (terminal.includes(rotationModal.form.rotation_status)) return
-        if (startStr > todayStr)       rotationModal.form.rotation_status = 'scheduled'
-        else if (endStr < todayStr)    rotationModal.form.rotation_status = 'completed'
-        else                           rotationModal.form.rotation_status = 'active'
-      })
-
-      // Auto-fill supervisor when unit is selected — reads supervisor_id from the unit
-      watch(() => rotationModal.form.training_unit_id, (unitId) => {
-        if (!unitId) return
-        const unit = trainingUnits.value.find(u => u.id === unitId)
-        if (unit && (unit.supervisor_id || unit.default_supervisor_id)) {
-          // Only auto-fill if supervisor is not already manually set
-          if (!rotationModal.form.supervising_attending_id) {
-            rotationModal.form.supervising_attending_id = unit.supervisor_id || unit.default_supervisor_id
-          }
-        }
-      })
-
-      const loadRotations = async () => {
-        try {
-          const raw = await API.getRotations()
-          rotations.value = raw.map(r => ({
-            ...r, start_date: Utils.normalizeDate(r.start_date || r.rotation_start_date),
-            end_date: Utils.normalizeDate(r.end_date || r.rotation_end_date)
-          }))
-        } catch { showToast('Error', 'Failed to load rotations', 'error') }
-      }
-
-      const showAddRotationModal = (resident = null, unit = null) => {
-        clearAll('rotation'); rotationModal.mode = 'add'
-        Object.assign(rotationModal.form, {
-          rotation_id: `ROT-${Date.now().toString().slice(-6)}`,
-          resident_id: resident?.id || '',
-          training_unit_id: unit?.id || '',
-          start_date: Utils.normalizeDate(new Date()), end_date: Utils.normalizeDate(new Date(Date.now() + 30 * 86400000)),
-          rotation_status: 'scheduled', rotation_category: 'clinical_rotation', supervising_attending_id: ''
-        })
-        rotationModal.show = true
-      }
-
-      const editRotation = (rotation) => {
-        clearAll('rotation'); rotationModal.mode = 'edit'
-        rotationModal.form = { ...rotation, start_date: Utils.normalizeDate(rotation.start_date || rotation.rotation_start_date), end_date: Utils.normalizeDate(rotation.end_date || rotation.rotation_end_date) }
-        rotationModal.show = true
-      }
-
-      const saveRotation = async (saving) => {
-        if (!validateRotation(rotationModal.form)) { showToast('Validation Error', 'Please fix the highlighted fields', 'error'); return }
-        const f = rotationModal.form
-        const startISO = Utils.normalizeDate(f.start_date)
-        const endISO = Utils.normalizeDate(f.end_date)
-        const startDate = new Date(startISO + 'T00:00:00')
-        const endDate = new Date(endISO + 'T23:59:59')
-
-        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) { setErr('rotation', 'start_date', 'Invalid date format'); showToast('Error', 'Invalid date format', 'error'); return }
-        const duration = Math.ceil((endDate - startDate) / 86400000)
-        if (duration > 365) { setErr('rotation', 'end_date', `Cannot exceed 365 days (current: ${duration})`); showToast('Error', 'Rotation cannot exceed 365 days', 'error'); return }
-
-        // Lock button immediately — prevents double-submit during async refresh below
-        saving.value = true
-
-        // Refresh from server before overlap check to avoid stale-cache false conflicts
-        API.invalidate('/api/rotations')
-        try {
-          const fresh = await API.request('/api/rotations', { skipCache: true })
-          const freshList = Utils.ensureArray(fresh)
-          if (freshList.length > 0) rotations.value = freshList.map(r => ({ ...r, start_date: Utils.normalizeDate(r.start_date), end_date: Utils.normalizeDate(r.end_date) }))
-        } catch { /* proceed with cached data */ }
-
-        const excludeId = rotationModal.mode === 'edit' ? f.id : null
-        // Only scheduled/active/extended block new slots — completed/cancelled do NOT
-        const BLOCKING_STATUSES = ['scheduled', 'active', 'extended']
-        const hasOverlap = rotations.value.some(r => {
-          if (r.resident_id !== f.resident_id) return false
-          if (!BLOCKING_STATUSES.includes(r.rotation_status)) return false
-          if (excludeId && r.id === excludeId) return false
-          const eS = new Date(Utils.normalizeDate(r.start_date) + 'T00:00:00')
-          const eE = new Date(Utils.normalizeDate(r.end_date) + 'T23:59:59')
-          if (isNaN(eS.getTime()) || isNaN(eE.getTime())) return false
-          return startDate <= eE && endDate >= eS
-        })
-        if (hasOverlap) {
-          const conflicting = rotations.value.find(r => {
-            if (r.resident_id !== f.resident_id || !BLOCKING_STATUSES.includes(r.rotation_status)) return false
-            if (excludeId && r.id === excludeId) return false
-            const eS = new Date(Utils.normalizeDate(r.start_date) + 'T00:00:00')
-            const eE = new Date(Utils.normalizeDate(r.end_date) + 'T23:59:59')
-            return startDate <= eE && endDate >= eS
-          })
-          const conflictUnit = conflicting ? getTrainingUnitName(conflicting.training_unit_id) : ''
-          const conflictDates = conflicting ? `${Utils.formatDateShort(conflicting.start_date)} – ${Utils.formatDateShort(conflicting.end_date)}` : ''
-          setErr('rotation', 'start_date', 'Dates overlap with an active or scheduled rotation')
-          showToast('Scheduling Conflict', `${getResidentName(f.resident_id)} already has a ${conflicting?.rotation_status || ''} rotation at ${conflictUnit} (${conflictDates}).`, 'error')
-          saving.value = false; return
-        }
-
-        try {
-          // Derive status from dates — never trust what the form says.
-          // If the user picked today as start date, it should be active immediately.
-          // Only terminal states (terminated_early, extended, completed) are preserved
-          // when editing an existing rotation.
-          const todayStr = Utils.localDateStr(new Date())  // local date — not UTC
-          const terminalStatuses = ['terminated_early', 'completed', 'extended']
-          let derivedStatus
-          if (rotationModal.mode === 'edit' && terminalStatuses.includes(f.rotation_status)) {
-            // Keep terminal status when editing
-            derivedStatus = f.rotation_status
-          } else if (startISO > todayStr) {
-            derivedStatus = 'scheduled'
-          } else if (endISO < todayStr) {
-            derivedStatus = 'completed'
-          } else {
-            // start_date <= today <= end_date
-            derivedStatus = 'active'
-          }
-
-          const data = {
-            rotation_id: f.rotation_id || Utils.generateId('ROT'), resident_id: f.resident_id,
-            training_unit_id: f.training_unit_id, supervising_attending_id: f.supervising_attending_id || null,
-            start_date: startISO, end_date: endISO,
-            rotation_category: f.rotation_category || 'clinical_rotation',
-            rotation_status: derivedStatus
-          }
-          const normalize = r => ({ ...r, start_date: Utils.normalizeDate(r.start_date), end_date: Utils.normalizeDate(r.end_date) })
-          if (rotationModal.mode === 'add') {
-            rotations.value.unshift(normalize(await API.createRotation(data)))
-            showToast('Success', 'Rotation scheduled', 'success')
-          } else {
-            const result = normalize(await API.updateRotation(f.id, data))
-            const idx = rotations.value.findIndex(r => r.id === result.id)
-            if (idx !== -1) rotations.value[idx] = result
-            showToast('Success', 'Rotation updated', 'success')
-          }
-          rotationModal.show = false; clearAll('rotation')
-        } catch (e) {
-          let msg = e.message || 'Failed to save rotation'
-          if (msg.includes('overlapping')) msg = 'Dates conflict with an existing rotation.'
-          if (msg.includes('date')) msg = 'Invalid date — check start and end dates.'
-          showToast('Error', msg, 'error')
-        } finally { saving.value = false }
-      }
-
-      const deleteRotation = (rotation) => showConfirmation({
-        title: 'Terminate Rotation', message: 'This will mark the rotation as terminated early. The record is kept for audit and reporting purposes.',
-        icon: 'fa-stop-circle', confirmButtonText: 'Terminate', confirmButtonClass: 'btn-danger',
-        details: `Resident: ${getResidentName(rotation.resident_id)}`,
-        onConfirm: async () => {
-          try {
-            await API.deleteRotation(rotation.id)
-            // Update local state immediately — backend sets rotation_status to 'terminated_early'
-            const idx = rotations.value.findIndex(r => r.id === rotation.id)
-            if (idx !== -1) rotations.value[idx] = { ...rotations.value[idx], rotation_status: 'terminated_early' }
-            showToast('Success', 'Rotation terminated', 'success')
-            await loadRotations()
-          } catch (e) {
-            showToast('Error', e?.message || 'Failed to terminate rotation', 'error')
-            await loadRotations()
-          }
-        }
-      })
-
-      // ============ [NEW] Compact view computed properties for Rotations ============
-      const residentsWithRotations = computed(() => {
-        const residents = medicalStaff.value.filter(s => s.staff_type === 'medical_resident' && s.employment_status === 'active')
-        
-        return residents.map(resident => {
-          const allResidentRotations = rotations.value.filter(r => r.resident_id === resident.id)
-          
-          // Sort rotations by date
-          const sortedRotations = [...allResidentRotations].sort((a, b) => {
-            return new Date(a.start_date) - new Date(b.start_date)
-          })
-          
-          const pastRotations = sortedRotations.filter(r => 
-            r.rotation_status === 'completed' || 
-            (r.rotation_status !== 'active' && new Date(r.end_date) < new Date())
-          )
-          
-          const currentRotation = sortedRotations.find(r => r.rotation_status === 'active')
-          
-          const upcomingRotations = sortedRotations.filter(r => 
-            r.rotation_status === 'scheduled' && 
-            (!currentRotation || new Date(r.start_date) > new Date(currentRotation.end_date))
-          )
-          
-          // Calculate empty slots (assuming max 8 rotations per resident over program)
-          const maxRotations = 8
-          const totalRotations = sortedRotations.length
-          const emptySlots = Math.max(0, maxRotations - totalRotations)
-          
-          return {
-            ...resident,
-            allRotations: sortedRotations,
-            pastRotations: pastRotations.map(r => ({
-              ...r,
-              unitName: getTrainingUnitName(r.training_unit_id)
-            })),
-            currentRotation: currentRotation ? {
-              ...currentRotation,
-              unitName: getTrainingUnitName(currentRotation.training_unit_id)
-            } : null,
-            upcomingRotations: upcomingRotations.map(r => ({
-              ...r,
-              unitName: getTrainingUnitName(r.training_unit_id)
-            })),
-            totalRotations: sortedRotations.length,
-            emptySlots
-          }
-        }).filter(r => 
-          // Apply filters
-          (!rotationFilters.resident || r.id === rotationFilters.resident) &&
-          (!rotationFilters.trainingUnit || r.allRotations.some(rot => rot.training_unit_id === rotationFilters.trainingUnit)) &&
-          (!rotationFilters.status || r.allRotations.some(rot => rot.rotation_status === rotationFilters.status)) &&
-          (!rotationFilters.search || r.full_name.toLowerCase().includes(rotationFilters.search.toLowerCase()))
-        )
-      })
-
-      const isRotationActive = (rotation) => {
-        return rotation.rotation_status === 'active'
-      }
-
-      const getRotationsForDay = (resident, dayIndex) => {
-        const today = new Date()
-        const startOfWeek = new Date(today)
-        startOfWeek.setDate(today.getDate() - today.getDay() + 1) // Monday
-        
-        const targetDate = new Date(startOfWeek)
-        targetDate.setDate(startOfWeek.getDate() + dayIndex - 1)
-        const targetDateStr = Utils.normalizeDate(targetDate)
-        
-        return resident.allRotations?.filter(r => {
-          const start = Utils.normalizeDate(r.start_date)
-          const end = Utils.normalizeDate(r.end_date)
-          return targetDateStr >= start && targetDateStr <= end
-        }) || []
-      }
-
-      const viewRotationDetails = (rotation) => {
-        if (!rotation) return
-        // Enrich rotation with display-friendly fields expected by the detail sheet
-        const resident  = medicalStaff.value.find(s => s.id === rotation.resident_id)
-        const supervisor = medicalStaff.value.find(s => s.id === rotation.supervising_attending_id)
-        const startD = new Date(Utils.normalizeDate(rotation.start_date) + 'T00:00:00')
-        const endD   = new Date(Utils.normalizeDate(rotation.end_date)   + 'T00:00:00')
-        const today  = new Date(); today.setHours(0,0,0,0)
-        const daysTotal = Math.max(1, Math.round((endD - startD) / 86400000))
-        const daysLeft  = Math.max(0, Math.round((endD - today)  / 86400000))
-        rotationViewModal.rotation = {
-          ...rotation,
-          unitName:         rotation.unitName || getTrainingUnitName(rotation.training_unit_id),
-          residentName:     resident?.full_name   || rotation.residentName || 'Unknown',
-          supervisorName:   supervisor?.full_name || rotation.supervisorName || '—',
-          daysTotal,
-          daysLeft,
-          clinicalDuration: Utils.formatClinicalDuration(rotation.start_date, rotation.end_date)
-        }
-        rotationViewModal.show = true
-      }
-
-      // ============ [NEW] Rotation detail sheet modal ============
-      const rotationViewModal = reactive({ show: false, rotation: null })
-
-      // ============ Month Horizon view ============
-      const monthHorizon = ref(6)
-      const monthOffset  = ref(0)
-
-      const getHorizonMonths = (n, offset) => {
-        const today  = new Date()
-        const months = []
-        for (let i = 0; i < n; i++) {
-          const d    = new Date(today.getFullYear(), today.getMonth() + offset + i, 1)
-          const prev = i > 0 ? new Date(today.getFullYear(), today.getMonth() + offset + i - 1, 1) : null
-          months.push({
-            key:         `${d.getFullYear()}-${d.getMonth()}`,
-            label:       d.toLocaleDateString('es-ES', { month: 'short' }),
-            year:        d.getFullYear(),
-            month:       d.getMonth(),
-            isCurrent:   d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth(),
-            isYearStart: !prev || d.getFullYear() !== prev.getFullYear(),
-            daysInMonth: new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
-          })
-        }
-        return months
-      }
-
-      const getHorizonRangeLabel = () => {
-        const months = getHorizonMonths(monthHorizon.value, monthOffset.value)
-        if (!months.length) return ''
-        const first = months[0], last = months[months.length - 1]
-        if (first.year === last.year)
-          return `${first.label} – ${last.label} ${last.year}`
-        return `${first.label} ${first.year} – ${last.label} ${last.year}`
-      }
-
-      const getResidentRotationsInHorizon = (resident) => {
-        const months = getHorizonMonths(monthHorizon.value, monthOffset.value)
-        if (!months.length) return []
-        const n = months.length
-        const horizonStart = new Date(months[0].year, months[0].month, 1)
-        const horizonEnd   = new Date(months[n-1].year, months[n-1].month + 1, 0)
-        return rotations.value.filter(r =>
-          r.resident_id === resident.id &&
-          ['active','scheduled','completed'].includes(r.rotation_status) &&
-          new Date(r.start_date) <= horizonEnd && new Date(r.end_date) >= horizonStart
-        )
-      }
-
-      const getRotationBarStyle = (rotation) => {
-        const months = getHorizonMonths(monthHorizon.value, monthOffset.value)
-        const n = months.length
-        if (!n) return { display: 'none' }
-        const horizonStart = new Date(months[0].year, months[0].month, 1)
-        const horizonEnd   = new Date(months[n-1].year, months[n-1].month + 1, 0)
-        const rotStart     = new Date(rotation.start_date + 'T00:00:00')
-        const rotEnd       = new Date(rotation.end_date   + 'T00:00:00')
-        const cs = rotStart < horizonStart ? horizonStart : rotStart
-        const ce = rotEnd   > horizonEnd   ? horizonEnd   : rotEnd
-        if (cs > ce) return { display: 'none' }
-        const totalDays   = months.reduce((s, m) => s + m.daysInMonth, 0)
-        const daysToStart = Math.round((cs - horizonStart) / 86400000)
-        const daysToEnd   = Math.round((ce - horizonStart) / 86400000) + 1
-        const leftPct  = (daysToStart / totalDays) * 100
-        const widthPct = ((daysToEnd - daysToStart) / totalDays) * 100
-        return {
-          left:  `calc(${leftPct.toFixed(2)}% + 3px)`,
-          width: `calc(${widthPct.toFixed(2)}% - 6px)`
-        }
-      }
-
-      const rotationStartsInHorizon = (rotation) => {
-        const months = getHorizonMonths(monthHorizon.value, monthOffset.value)
-        if (!months.length) return false
-        const horizonStart = new Date(months[0].year, months[0].month, 1)
-        return new Date(rotation.start_date + 'T00:00:00') >= horizonStart
-      }
-
-      const rotationEndsInHorizon = (rotation) => {
-        const months = getHorizonMonths(monthHorizon.value, monthOffset.value)
-        if (!months.length) return false
-        const n = months.length
-        const horizonEnd = new Date(months[n-1].year, months[n-1].month + 1, 0)
-        return new Date(rotation.end_date + 'T00:00:00') <= horizonEnd
-      }
-
-      // ── Resident gap warnings ─────────────────────────────────────────────
-      // Residents who have no rotation scheduled for any of the next 3 months
-      const residentGapWarnings = computed(() => {
-        const today    = new Date(); today.setHours(0,0,0,0)
-        const warnings = []
-        // All active residents
-        const residents = medicalStaff.value.filter(s =>
-          isResidentType(s.staff_type) && s.employment_status === 'active'
-        )
-        for (const resident of residents) {
-          const gaps = []
-          for (let i = 0; i < 3; i++) {
-            const mStart = new Date(today.getFullYear(), today.getMonth() + i, 1)
-            const mEnd   = new Date(today.getFullYear(), today.getMonth() + i + 1, 0)
-            const covered = rotations.value.some(r =>
-              r.resident_id === resident.id &&
-              ['active','scheduled'].includes(r.rotation_status) &&
-              new Date(r.start_date) <= mEnd && new Date(r.end_date) >= mStart
-            )
-            if (!covered) {
-              gaps.push(mStart.toLocaleDateString('es-ES', { month: 'short' }))
-            }
-          }
-          if (gaps.length > 0) {
-            warnings.push({
-              id:       resident.id,
-              name:     resident.full_name,
-              year:     resident.training_year,
-              gaps,
-              gapCount: gaps.length
-            })
-          }
-        }
-        return warnings.sort((a,b) => b.gapCount - a.gapCount)
-      })
-
-      return {
-        rotations, rotationFilters, rotationModal,
-        filteredRotations, filteredRotationsAll, rotationTotalPages,
-        loadRotations, showAddRotationModal, editRotation, saveRotation, deleteRotation, selectedUnitCapacity,
-        checkRotationAvailability,
-        pendingActivations, activationModal, checkAndUpdateRotations, updateRotationStatus,
-        confirmPendingActivation, skipPendingActivation, postponeAllActivations, initAutoCheck,
-        forceActivationCheck: () => checkAndUpdateRotations(true),
-        quickActivate: (rotation) => updateRotationStatus(rotation.id, 'active', { activated_at: new Date().toISOString(), activated_by: currentUser?.value?.full_name || 'manual', notes: 'Manually activated', clinical_notes: rotation.clinical_notes || '', supervisor_evaluation: rotation.supervisor_evaluation || '', goals: rotation.goals || '' }),
-        quickComplete: (rotation) => updateRotationStatus(rotation.id, 'completed', { completed_at: new Date().toISOString(), completed_by: currentUser?.value?.full_name || 'manual', notes: 'Manually completed', clinical_notes: rotation.clinical_notes || '', supervisor_evaluation: rotation.supervisor_evaluation || '', goals: rotation.goals || '' }),
-        // NEW compact view properties
-        residentsWithRotations,
-        isRotationActive,
-        getRotationsForDay,
-        viewRotationDetails,
-        // Week view
-        rotationViewModal,
-        monthHorizon,
-        monthOffset,
-        getHorizonMonths,
-        getHorizonRangeLabel,
-        getResidentRotationsInHorizon,
-        getRotationBarStyle,
-        rotationStartsInHorizon,
-        rotationEndsInHorizon,
-        residentGapWarnings,
-        getResidentName,
-        getTrainingUnitName
-      }
-    }
-
-    // ============ 6.6 useAbsences ============
-    function useAbsences({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup, onCallSchedule }) {
-      const absences = ref([])
-            const absenceFilters = reactive({ staff: '', status: '', reason: '', startDate: '', search: '', hideReturned: true })
-      const absenceModal = reactive({
-        show: false, mode: 'add',
-        form: { staff_member_id: '', absence_type: 'planned', absence_reason: 'vacation', start_date: Utils.normalizeDate(new Date()), end_date: Utils.normalizeDate(new Date(Date.now() + 7 * 86400000)), covering_staff_id: '', coverage_notes: '', coverage_arranged: false, hod_notes: '' }
-      })
-
-      const getStaffName = (id) => {
-        if (!id) return 'Not assigned'
-        const lookup = allStaffLookup?.value || []
-        const all    = medicalStaff?.value || []
-        const s = lookup.find(x => x.id === id) || all.find(x => x.id === id)
-        return s?.full_name || 'Not assigned'
-      }
-
-      const validateAbsence = (form) => {
-        clearAll('absence'); let ok = true
-        if (!form.staff_member_id) { setErr('absence', 'staff_member_id', 'Please select a staff member'); ok = false }
-        if (!form.start_date) { setErr('absence', 'start_date', 'Start date is required'); ok = false }
-        if (!form.end_date) { setErr('absence', 'end_date', 'End date is required'); ok = false }
-        if (form.start_date && form.end_date) {
-          const s = new Date(Utils.normalizeDate(form.start_date) + 'T00:00:00')
-          const e = new Date(Utils.normalizeDate(form.end_date) + 'T00:00:00')
-          if (!isNaN(s.getTime()) && !isNaN(e.getTime()) && e < s) { setErr('absence', 'end_date', 'End date cannot be before start date'); ok = false }
-        }
-        return ok
-      }
-
-      // Warn if this staff member already has a non-cancelled overlapping absence
-      const absenceOverlapWarning = computed(() => {
-        const f = absenceModal.form
-        if (!f.staff_member_id || !f.start_date || !f.end_date) return null
-        const editId = absenceModal.mode === 'edit' ? f.id : null
-        const newStart = Utils.normalizeDate(f.start_date)
-        const newEnd   = Utils.normalizeDate(f.end_date)
-        if (!newStart || !newEnd) return null
-        const overlap = absences.value.find(a => {
-          if (a.staff_member_id !== f.staff_member_id) return false
-          if (editId && a.id === editId) return false
-          if (a.current_status === 'cancelled') return false
-          const aS = Utils.normalizeDate(a.start_date)
-          const aE = Utils.normalizeDate(a.end_date)
-          return newStart <= aE && newEnd >= aS
-        })
-        if (!overlap) return null
-        return {
-          reason: ABSENCE_REASON_LABELS?.[overlap.absence_reason] || overlap.absence_reason,
-          start: Utils.formatDateShort(overlap.start_date),
-          end: Utils.formatDateShort(overlap.end_date),
-          status: overlap.current_status
-        }
-      })
-
-      const filteredAbsencesAll = computed(() => {
-        const today = Utils.normalizeDate(new Date())
-        let f = absences.value.map(a => {
-          const derived = deriveAbsenceStatus(a)
-          // Auto-clear coverage_arranged if covering person is also absent in the same period
-          let coverageOk = a.coverage_arranged
-          if (coverageOk && a.covering_staff_id) {
-            const coverIsAbsent = absences.value.some(b =>
-              b.id !== a.id &&
-              b.staff_member_id === a.covering_staff_id &&
-              b.current_status !== 'cancelled' &&
-              Utils.normalizeDate(b.start_date) <= Utils.normalizeDate(a.end_date) &&
-              Utils.normalizeDate(b.end_date)   >= Utils.normalizeDate(a.start_date)
-            )
-            if (coverIsAbsent) coverageOk = false
-          }
-          return { ...a, current_status: derived, coverage_arranged: coverageOk }
-        })
-        // Hide past/resolved records by default — toggle via "Show Past" filter
-        if (!absenceFilters.status && absenceFilters.hideReturned) {
-          f = f.filter(a => a.current_status !== 'returned_to_duty' && a.current_status !== 'cancelled')
-        }
-        if (absenceFilters.staff) f = f.filter(a => a.staff_member_id === absenceFilters.staff)
-        if (absenceFilters.status) f = f.filter(a => a.current_status === absenceFilters.status)
-        if (absenceFilters.reason) f = f.filter(a => a.absence_reason === absenceFilters.reason)
-        if (absenceFilters.startDate) f = f.filter(a => Utils.normalizeDate(a.start_date) >= absenceFilters.startDate)
-        if (absenceFilters.search) {
-          const q = absenceFilters.search.toLowerCase()
-          f = f.filter(a => getStaffName(a.staff_member_id).toLowerCase().includes(q) || (ABSENCE_REASON_LABELS[a.absence_reason] || '').toLowerCase().includes(q))
-        }
-        return applySort(f, 'absences')
-      })
-      const filteredAbsences = computed(() => paginate(filteredAbsencesAll.value, 'absences'))
-      const absenceTotalPages = computed(() => totalPages(filteredAbsencesAll.value, 'absences'))
-
-      watch(absenceFilters, () => resetPage('absences'), { deep: true })
-
-      const deriveAbsenceStatus = (a) => {
-        if (a.current_status === 'cancelled')       return 'cancelled'
-        if (a.current_status === 'returned_to_duty') return 'returned_to_duty'
-        const today = Utils.normalizeDate(new Date())
-        const start = Utils.normalizeDate(a.start_date)
-        const end   = Utils.normalizeDate(a.end_date)
-        if (end < today)    return 'completed'
-        if (start <= today) return 'currently_absent'
-        return 'upcoming'
-      }
-
-      const loadAbsences = async () => {
-        try {
-          const raw = await API.getAbsences()
-          const today = Utils.normalizeDate(new Date())
-          const stalePatches = []
-
-          // Filter cancelled (soft-deleted) records — they must not reappear after refresh
-          const active = raw.filter(a => a.current_status !== 'cancelled')
-
-          absences.value = active.map(a => {
-            const normalized = { ...a, start_date: Utils.normalizeDate(a.start_date), end_date: Utils.normalizeDate(a.end_date) }
-            const derived = deriveAbsenceStatus(normalized)
-            // Silently patch stale records (ended but still 'currently_absent' in DB)
-            // Skip records already formally resolved — returned_to_duty must never be overwritten
-            if (derived === 'completed' && a.current_status && a.current_status !== 'completed' && a.current_status !== 'cancelled' && a.current_status !== 'returned_to_duty') {
-              const patch = {
-                staff_member_id: a.staff_member_id,
-                absence_type:    a.absence_type,
-                absence_reason:  a.absence_reason,
-                start_date:      Utils.normalizeDate(a.start_date),
-                end_date:        Utils.normalizeDate(a.end_date),
-                coverage_arranged: a.coverage_arranged || false,
-                covering_staff_id: a.covering_staff_id || null,
-                coverage_notes:  a.coverage_notes || '',
-                hod_notes:       a.hod_notes || ''
-              }
-              stalePatches.push(API.updateAbsence(a.id, patch).catch(() => {}))
-            }
-            return { ...normalized, current_status: derived }
-          })
-
-          if (stalePatches.length) await Promise.all(stalePatches)
-        } catch { showToast('Error', 'Failed to load absences', 'error') }
-      }
-
-      const showAddAbsenceModal = (staff = null) => {
-        clearAll('absence'); absenceModal.mode = 'add'
-        Object.assign(absenceModal.form, {
-          staff_member_id: staff?.id || '', absence_type: 'planned', absence_reason: 'vacation',
-          start_date: Utils.normalizeDate(new Date()), end_date: Utils.normalizeDate(new Date(Date.now() + 7 * 86400000)),
-          covering_staff_id: '', coverage_notes: '', coverage_arranged: false, hod_notes: ''
-        })
-        absenceModal.show = true
-      }
-
-      const editAbsence = (absence) => {
-        clearAll('absence'); absenceModal.mode = 'edit'
-        Object.assign(absenceModal.form, {
-          id: absence.id,
-          staff_member_id:    absence.staff_member_id    || '',
-          absence_type:       absence.absence_type       || 'planned',
-          absence_reason:     absence.absence_reason     || 'vacation',
-          start_date:         Utils.normalizeDate(absence.start_date),
-          end_date:           Utils.normalizeDate(absence.end_date),
-          covering_staff_id:  absence.covering_staff_id  || '',
-          coverage_notes:     absence.coverage_notes     || '',
-          coverage_arranged:  absence.coverage_arranged  ?? false,
-          hod_notes:          absence.hod_notes          || '',
-          current_status:     absence.current_status     || null
-        })
-        absenceModal.show = true
-      }
-
-      const saveAbsence = async (saving) => {
-        if (!validateAbsence(absenceModal.form)) { showToast('Validation Error', 'Please fix the highlighted fields', 'error'); return }
-
-        // ── On-call conflict check ──────────────────────────────────────────
-        const f = absenceModal.form
-        if (f.staff_member_id && f.start_date && f.end_date) {
-          const absStart = Utils.normalizeDate(f.start_date)
-          const absEnd   = Utils.normalizeDate(f.end_date)
-          const conflicts = (onCallSchedule?.value || []).filter(s => {
-            const d = Utils.normalizeDate(s.duty_date)
-            return d >= absStart && d <= absEnd &&
-              (s.primary_physician_id === f.staff_member_id || s.backup_physician_id === f.staff_member_id)
-          })
-          if (conflicts.length > 0) {
-            const fmt    = (d) => new Date(d + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
-            const lines  = conflicts.slice(0, 4).map(s => {
-              const role = s.primary_physician_id === f.staff_member_id ? 'Primary' : 'Backup'
-              return `${fmt(s.duty_date)} · ${role} · ${s.start_time}–${s.end_time}`
-            }).join('\n')
-            const more   = conflicts.length > 4 ? `\n+${conflicts.length - 4} more` : ''
-            const staffName = medicalStaff.value.find(x => x.id === f.staff_member_id)?.full_name || 'This physician'
-            await new Promise((resolve) => {
-              showConfirmation({
-                title: '⚠️ On-Call Conflict Detected',
-                message: `${staffName} has ${conflicts.length} on-call shift${conflicts.length > 1 ? 's' : ''} during this absence period that will be left uncovered:`,
-                details: lines + more,
-                icon: 'fa-phone-slash',
-                confirmButtonText: 'Save Anyway',
-                confirmButtonClass: 'btn-danger',
-                onConfirm: () => resolve(true),
-                onCancel:  () => resolve(false)
-              })
-            }).then(async (confirmed) => {
-              if (!confirmed) { saving.value = false; return }
-              await _doSaveAbsence(saving)
-            })
-            return
-          }
-        }
-        await _doSaveAbsence(saving)
-      }
-
-      const _doSaveAbsence = async (saving) => {
-        saving.value = true
-        try {
-          const f = absenceModal.form
-          const data = {
-            staff_member_id: f.staff_member_id, absence_type: f.absence_type || 'planned',
-            absence_reason: f.absence_reason || 'vacation', start_date: Utils.normalizeDate(f.start_date),
-            end_date: Utils.normalizeDate(f.end_date), coverage_arranged: f.coverage_arranged || false,
-            covering_staff_id: f.covering_staff_id || null, coverage_notes: f.coverage_notes || '', hod_notes: f.hod_notes || ''
-          }
-          const normalize = a => ({ ...(a?.data || a), start_date: Utils.normalizeDate((a?.data || a).start_date), end_date: Utils.normalizeDate((a?.data || a).end_date) })
-          if (absenceModal.mode === 'add') {
-            absences.value.unshift(normalize(await API.createAbsence(data)))
-            showToast('Success', 'Absence recorded', 'success')
-          } else {
-            const record = normalize(await API.updateAbsence(f.id, data))
-            const idx = absences.value.findIndex(a => a.id === (record.id || f.id))
-            if (idx !== -1) absences.value[idx] = record
-            showToast('Success', 'Absence updated', 'success')
-          }
-          absenceModal.show = false; clearAll('absence'); await loadAbsences()
-        } catch (e) { showToast('Error', e.message || 'Failed to save absence', 'error') }
-        finally { saving.value = false }
-      }
-
-      const deleteAbsence = (absence) => showConfirmation({
-        title: 'Cancel Absence Record', message: 'This will mark the absence as cancelled. The record is retained for audit purposes but will no longer appear in the active list.',
-        icon: 'fa-ban', confirmButtonText: 'Cancel Absence', confirmButtonClass: 'btn-danger',
-        details: `Staff: ${getStaffName(absence.staff_member_id)}`,
-        onConfirm: async () => {
-          try {
-            await API.deleteAbsence(absence.id)
-            absences.value = absences.value.filter(a => a.id !== absence.id)
-            showToast('Success', 'Absence record cancelled', 'success')
-            await loadAbsences()
-          } catch (e) {
-            showToast('Error', e?.message || 'Failed to cancel absence record', 'error')
-            await loadAbsences()
-          }
-        }
-      })
-
-      const purgeAbsence = (absence) => showConfirmation({
-        title: 'Permanently Delete Record',
-        message: `This will permanently remove this absence record from the system. This action cannot be undone and the record will not appear in any future audit trail.`,
-        icon: 'fa-trash-alt',
-        confirmButtonText: 'Delete Permanently',
-        confirmButtonClass: 'btn-danger',
-        details: `Staff: ${getStaffName(absence.staff_member_id)} · ${ABSENCE_REASON_LABELS[absence.absence_reason] || absence.absence_reason} · ${Utils.formatDate(absence.start_date)} → ${Utils.formatDate(absence.end_date)}`,
-        onConfirm: async () => {
-          try {
-            await API.purgeAbsence(absence.id)
-            absences.value = absences.value.filter(a => a.id !== absence.id)
-            showToast('Deleted', 'Absence record permanently removed', 'success')
-          } catch (e) {
-            showToast('Error', e?.message || 'Failed to delete record', 'error')
-            await loadAbsences()
-          }
-        }
-      })
-
-      // ── Absence Resolution Workflow ───────────────────────────────────────
-      // Surfaces when an absence period has ended but no formal resolution has been recorded.
-      const absenceResolutionModal = reactive({
-        show: false,
-        absence: null,
-        action: null,        // 'confirm_return' | 'extend' | 'archive'
-        returnDate: Utils.normalizeDate(new Date()),
-        returnNotes: '',
-        extendedEndDate: '',
-        saving: false
-      })
-
-      const openResolutionModal = (absence) => {
-        absenceResolutionModal.absence = absence
-        absenceResolutionModal.action = 'confirm_return'
-        absenceResolutionModal.returnDate = Utils.normalizeDate(new Date())
-        absenceResolutionModal.returnNotes = ''
-        absenceResolutionModal.extendedEndDate = Utils.normalizeDate(new Date(Date.now() + 7 * 86400000))
-        absenceResolutionModal.saving = false
-        absenceResolutionModal.show = true
-      }
-
-      const resolveAbsence = async () => {
-        const m = absenceResolutionModal
-        if (!m.absence) return
-        m.saving = true
-        try {
-          if (m.action === 'confirm_return') {
-            // Call dedicated /return endpoint — updates end_date, sets returned_to_duty, writes audit
-            await API.returnToDuty(m.absence.id, {
-              return_date: m.returnDate,
-              notes: m.returnNotes || 'Staff confirmed returned to duty'
-            })
-            showToast('Confirmed', `${getStaffName(m.absence.staff_member_id)} marked as returned`, 'success')
-
-          } else if (m.action === 'extend') {
-            // Standard PUT update with new end date
-            await API.updateAbsence(m.absence.id, {
-              ...m.absence,
-              end_date: m.extendedEndDate,
-              hod_notes: (m.absence.hod_notes ? m.absence.hod_notes + '\n' : '') +
-                `[EXTENDED: ${new Date().toISOString()}] New end date: ${m.extendedEndDate}` +
-                (m.returnNotes ? ` — ${m.returnNotes}` : '')
-            })
-            showToast('Updated', 'Absence extended', 'success')
-
-          } else if (m.action === 'archive') {
-            // Soft-delete via DELETE endpoint — sets cancelled, writes audit note
-            await API.deleteAbsence(m.absence.id)
-            showToast('Archived', 'Absence record archived', 'success')
-          }
-
-          m.show = false
-          await loadAbsences()
-        } catch (e) {
-          showToast('Error', e?.message || 'Failed to resolve absence', 'error')
-        } finally { m.saving = false }
-      }
-
-      return {
-        absences, absenceFilters, absenceModal, absenceOverlapWarning,
-        filteredAbsences, filteredAbsencesAll, absenceTotalPages,
-        loadAbsences, showAddAbsenceModal, editAbsence, saveAbsence, deleteAbsence, purgeAbsence,
-        absenceResolutionModal, openResolutionModal, resolveAbsence,
-        getStaffName
-      }
-    }
-
-    // ============ 6.7 useDepartments ============
-    function useDepartments({ showToast, showConfirmation, medicalStaff, trainingUnits, rotations }) {
-      const departments = ref([])
-            const allDepartmentsLookup = ref([])  // includes inactive — for name resolution only
-      const departmentFilters = reactive({ search: '', status: '' })
-      const departmentModal = reactive({ show: false, mode: 'add', form: { name: '', code: '', status: 'active', head_of_department_id: '', hospital_id: '', description: '', contact_email: '', contact_phone: '' } })
-
-      // Department reassignment modal — shown when dept has active staff/units
-      const deptReassignModal = reactive({
-        show: false,
-        dept: null,
-        impact: { activeStaff: [], activeUnits: [], activeRotations: [] },
-        staffTargetDeptId: '',
-        unitsTargetDeptId: ''
-      })
-
-      const filteredDepartments = computed(() => {
-        let f = departments.value
-        if (departmentFilters.search) { const q = departmentFilters.search.toLowerCase(); f = f.filter(d => d.name?.toLowerCase().includes(q) || d.code?.toLowerCase().includes(q)) }
-        if (departmentFilters.status) f = f.filter(d => d.status === departmentFilters.status)
-        return f
-      })
-
-      // Use allDepartmentsLookup for name resolution so deactivated depts still resolve
-      const getDepartmentName = (id) => allDepartmentsLookup.value.find(d => d.id === id)?.name || departments.value.find(d => d.id === id)?.name || ''
-      const getDepartmentUnits = (id) => trainingUnits.value.filter(u => u.department_id === id)
-      const getDepartmentStaffCount = (id) => medicalStaff.value.filter(s => s.department_id === id).length
-
-      // Break down residents by category for a department
-      const getDeptResidentStats = (id) => {
-        const residents = medicalStaff.value.filter(s => s.department_id === id && isResidentType(s.staff_type))
-        return {
-          total: residents.length,
-          internal:  residents.filter(r => r.resident_category === 'department_internal').length,
-          rotating:  residents.filter(r => r.resident_category === 'rotating_other_dept').length,
-          external:  residents.filter(r => r.resident_category === 'external_resident').length,
-          list: residents
-        }
-      }
-
-      // Residents whose home_department_id points to this dept (rotating from here to elsewhere)
-      const getDeptHomeResidents = (id) => medicalStaff.value.filter(s =>
-        s.home_department_id === id && isResidentType(s.staff_type)
-      )
-
-      const loadDepartments = async () => {
-        try {
-          const [active, all] = await Promise.all([API.getDepartments(), API.getAllDepartments()])
-          departments.value = active
-          allDepartmentsLookup.value = all
-        } catch { showToast('Error', 'Failed to load departments', 'error') }
-      }
-
-      const showAddDepartmentModal = () => {
-        departmentModal.mode = 'add'
-        Object.assign(departmentModal.form, { name: '', code: '', status: 'active', head_of_department_id: '', hospital_id: '', description: '', contact_email: '', contact_phone: '' })
-        departmentModal.show = true
-      }
-      const editDepartment = (d) => { departmentModal.mode = 'edit'; Object.assign(departmentModal.form, { ...d }); departmentModal.show = true }
-
-      const saveDepartment = async (saving) => {
-        saving.value = true
-        try {
-          if (departmentModal.mode === 'add') {
-            departments.value.unshift(await API.createDepartment(departmentModal.form))
-            showToast('Success', 'Department created', 'success')
-          } else {
-            const result = await API.updateDepartment(departmentModal.form.id, departmentModal.form)
-            const idx = departments.value.findIndex(d => d.id === result.id)
-            if (idx !== -1) departments.value[idx] = result
-            showToast('Success', 'Department updated', 'success')
-          }
-          departmentModal.show = false
-        } catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
-        finally { saving.value = false }
-      }
-
-      const deleteDepartment = async (dept) => {
-        // Step 1: fetch impact from backend
-        let impact
-        try { impact = (await API.getDepartmentImpact(dept.id))?.impact }
-        catch { showToast('Error', 'Could not check department dependencies', 'error'); return }
-
-        const { activeStaff = [], activeUnits = [], activeRotations = [], canDelete } = impact
-
-        // Step 2: if active rotations exist — hard block (can't safely reassign rotations away)
-        if (activeRotations.length > 0) {
-          showConfirmation({
-            title: 'Cannot Deactivate Department',
-            message: `"${dept.name}" has ${activeRotations.length} active rotation(s) in its training units.`,
-            icon: 'fa-exclamation-triangle',
-            confirmButtonText: 'OK', confirmButtonClass: 'btn-secondary',
-            details: 'Complete or reassign all active rotations before deactivating this department.',
-            onConfirm: () => {}
-          })
-          return
-        }
-
-        // Step 3: clean — no deps at all
-        if (canDelete) {
-          showConfirmation({
-            title: 'Deactivate Department',
-            message: `Deactivate "${dept.name}" (${dept.code})?`,
-            icon: 'fa-building',
-            confirmButtonText: 'Deactivate', confirmButtonClass: 'btn-danger',
-            details: 'No active staff or units are assigned to this department.',
-            onConfirm: async () => {
-              try {
-                await API.deleteDepartment(dept.id, null)
-                departments.value = departments.value.filter(d => d.id !== dept.id)
-                showToast('Deactivated', `${dept.name} has been deactivated`, 'success')
-              } catch (e) { showToast('Error', e?.message || 'Failed to deactivate department', 'error') }
-            }
-          })
-          return
-        }
-
-        // Step 4: has active staff or units — open reassignment modal
-        Object.assign(deptReassignModal, {
-          show: true, dept,
-          impact: { activeStaff, activeUnits, activeRotations },
-          staffTargetDeptId: '',
-          unitsTargetDeptId: ''
-        })
-      }
-
-      const confirmDeptReassignAndDeactivate = async () => {
-        const { dept, impact, staffTargetDeptId, unitsTargetDeptId } = deptReassignModal
-        const needsStaffReassign = impact.activeStaff.length > 0
-        const needsUnitReassign = impact.activeUnits.length > 0
-        if (needsStaffReassign && !staffTargetDeptId) { showToast('Required', 'Please select a department for staff reassignment', 'warning'); return }
-        if (needsUnitReassign && !unitsTargetDeptId) { showToast('Required', 'Please select a department for unit reassignment', 'warning'); return }
-        try {
-          await API.deleteDepartment(dept.id, {
-            staffDeptId: needsStaffReassign ? staffTargetDeptId : null,
-            unitsDeptId: needsUnitReassign ? unitsTargetDeptId : null
-          })
-          departments.value = departments.value.filter(d => d.id !== dept.id)
-          deptReassignModal.show = false
-          showToast('Deactivated', `${dept.name} deactivated — staff and units reassigned`, 'success')
-          // Reload to pick up fresh state
-          await loadDepartments()
-        } catch (e) { showToast('Error', e?.message || 'Failed to deactivate department', 'error') }
-      }
-
-      // Department detail panel
-      const deptPanel = reactive({ show: false, dept: null, tab: 'staff' })
-
-      const openDeptPanel = (dept) => {
-        deptPanel.dept = dept
-        deptPanel.tab = 'staff'
-        deptPanel.show = true
-      }
-
-      const closeDeptPanel = () => { deptPanel.show = false }
-
-      // Staff in this department grouped by type
-      const deptPanelAttending = computed(() => {
-        if (!deptPanel.dept) return []
-        return medicalStaff.value.filter(s =>
-          s.department_id === deptPanel.dept.id && !isResidentType(s.staff_type)
-        ).sort((a,b) => a.full_name.localeCompare(b.full_name))
-      })
-
-      const deptPanelResidents = computed(() => {
-        if (!deptPanel.dept) return []
-        return medicalStaff.value.filter(s =>
-          s.department_id === deptPanel.dept.id && isResidentType(s.staff_type)
-        ).sort((a,b) => a.full_name.localeCompare(b.full_name))
-      })
-
-      // Units belonging to this department
-      const deptPanelUnits = computed(() => {
-        if (!deptPanel.dept) return []
-        return trainingUnits.value.filter(u => u.department_id === deptPanel.dept.id)
-      })
-
-      // deptPanelRotations is defined in the main setup after rotationOps loads
-      // (rotations ref not available here at construction time)
-
-      // Get supervisor name for a unit
-      const getUnitSupervisorName = (unit) => {
-        if (!unit) return null
-        const supId = unit.supervisor_id || unit.default_supervisor_id
-        if (!supId) return null
-        return medicalStaff.value.find(s => s.id === supId)?.full_name || null
-      }
-
-      // Days remaining for a rotation
-      const rotDaysLeft = (r) => {
-        const diff = Math.ceil((new Date(r.end_date) - new Date()) / 86400000)
-        return diff > 0 ? diff : 0
-      }
-
-      const viewDepartmentStaff = (dept) => openDeptPanel(dept)
-
-      return {
-        departments, allDepartmentsLookup, departmentFilters, departmentModal, deptReassignModal,
-        filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount, getDeptResidentStats, getDeptHomeResidents,
-        loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment,
-        deleteDepartment, confirmDeptReassignAndDeactivate, viewDepartmentStaff,
-        deptPanel, openDeptPanel, closeDeptPanel,
-        deptPanelAttending, deptPanelResidents, deptPanelUnits,
-        getUnitSupervisorName
-      }
-    }
-
-    // ============ 6.8 useTrainingUnits ============
-    function useTrainingUnits({ showToast, showConfirmation, rotations, trainingUnits, allStaffLookup }) {
-      // trainingUnits is a shared ref hoisted in main setup — do not redeclare
-      const trainingUnitFilters = reactive({ search: '', department: '', status: '' })
-      const trainingUnitModal = reactive({ show: false, mode: 'add', form: { unit_name: '', unit_code: '', department_id: '', maximum_residents: 10, unit_status: 'active', unit_type: 'training_unit', unit_description: '', specialty: '', supervising_attending_id: '' } })
-      const unitResidentsModal = reactive({ show: false, unit: null, rotations: [] })
-      const unitCliniciansModal = reactive({ show: false, unit: null, clinicians: [], supervisorId: '', allStaff: [] })
-
-      const filteredTrainingUnits = computed(() => {
-        let f = trainingUnits.value
-        if (trainingUnitFilters.search) { const q = trainingUnitFilters.search.toLowerCase(); f = f.filter(u => u.unit_name?.toLowerCase().includes(q)) }
-        if (trainingUnitFilters.department) f = f.filter(u => u.department_id === trainingUnitFilters.department)
-        if (trainingUnitFilters.status) f = f.filter(u => u.unit_status === trainingUnitFilters.status)
-        return f
-      })
-
-      const getUnitActiveRotationCount = (id) => {
-        const today = new Date(); today.setHours(0,0,0,0)
-        return rotations.value.filter(r =>
-          r.training_unit_id === id &&
-          r.rotation_status === 'active' &&
-          new Date(r.start_date) <= today &&
-          new Date(r.end_date)   >= today
-        ).length
-      }
-
-      const getUnitScheduledCount = (id) => {
-        const today = new Date(); today.setHours(0,0,0,0)
-        return rotations.value.filter(r =>
-          r.training_unit_id === id &&
-          r.rotation_status === 'scheduled' &&
-          new Date(r.start_date) > today
-        ).length
-      }
-
-      // Check for future overlap conflicts: will scheduled + active exceed capacity at any point?
-      const getUnitOverlapWarning = (id) => {
-        const unit = trainingUnits.value.find(u => u.id === id)
-        if (!unit) return null
-        const maxSlots = unit.maximum_residents
-        const upcoming = rotations.value.filter(r =>
-          r.training_unit_id === id &&
-          ['active','scheduled'].includes(r.rotation_status)
-        )
-        // Check each rotation's start date — how many others overlap at that moment?
-        for (const rot of upcoming) {
-          const checkDate = new Date(rot.start_date)
-          const concurrent = upcoming.filter(r =>
-            new Date(r.start_date) <= checkDate && new Date(r.end_date) >= checkDate
-          ).length
-          if (concurrent > maxSlots) {
-            return { date: rot.start_date, concurrent, max: maxSlots }
-          }
-        }
-        return null
-      }
-
-      const getUnitRotations = (id) => rotations.value
-        .filter(r => r.training_unit_id === id && ['active', 'scheduled'].includes(r.rotation_status))
-        .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
-
-      const getResidentShortName = (id) => {
-        const s = allStaffLookup.value.find(x => x.id === id)
-        if (!s) return '—'
-        const parts = (s.full_name || '').trim().split(' ')
-        return parts.length > 1 ? `${parts[0]} ${parts[parts.length-1][0]}.` : s.full_name
-      }
-
-      // ── Timeline view state ─────────────────────────────────────────────
-      const trainingUnitView    = ref('timeline')  // 'timeline' | 'detail'
-      const trainingUnitHorizon = ref(6)            // months to show: 3 | 6 | 12
-
-      // Generate the array of month objects for the timeline header
-      const getTimelineMonths = (horizonMonths) => {
-        const today = new Date()
-        const months = []
-        for (let i = 0; i < horizonMonths; i++) {
-          const d = new Date(today.getFullYear(), today.getMonth() + i, 1)
-          months.push({
-            key:       `${d.getFullYear()}-${d.getMonth()}`,
-            label:     d.toLocaleDateString('es-ES', { month: 'short', year: i === 0 || d.getMonth() === 0 ? '2-digit' : undefined }),
-            year:      d.getFullYear(),
-            month:     d.getMonth(),   // 0-based
-            isCurrent: i === 0
-          })
-        }
-        return months
-      }
-
-      // For each slot (1..max), compute monthly status across the horizon
-      const getUnitSlots = (unitId, maxResidents, horizonMonths) => {
-        // All active+scheduled rotations for this unit, sorted by start date
-        const unitRots = rotations.value.filter(r =>
-          r.training_unit_id === unitId && ['active','scheduled'].includes(r.rotation_status)
-        ).sort((a,b) => new Date(a.start_date) - new Date(b.start_date))
-
-        const months = getTimelineMonths(horizonMonths)
-
-        // Assign rotations to physical slots using a greedy bin-packing algorithm
-        // so sequential rotations reuse the same slot (e.g. Slot 1: R1 Jan-Mar, then R3 Apr-Jun)
-        const slots = Array.from({ length: maxResidents }, () => ({ rotations: [] }))
-
-        for (const rot of unitRots) {
-          const rotStart = new Date(rot.start_date)
-          const rotEnd   = new Date(rot.end_date)
-          // Find first slot where no existing rotation overlaps this one
-          const targetSlot = slots.find(slot =>
-            slot.rotations.every(existing => {
-              const eEnd = new Date(existing.end_date)
-              const eStart = new Date(existing.start_date)
-              return rotEnd < eStart || rotStart > eEnd  // no overlap
-            })
-          )
-          if (targetSlot) targetSlot.rotations.push(rot)
-          // If no slot available (over-capacity), rotation not shown — capacity exceeded
-        }
-
-        return slots.map((slot, slotIdx) => {
-          // Build month-by-month data — may have multiple rotations covering different months
-          const monthData = months.map(m => {
-            const mStart = new Date(m.year, m.month, 1)
-            const mEnd   = new Date(m.year, m.month + 1, 0)
-
-            // Find which rotation (if any) covers this month
-            const coveringRot = slot.rotations.find(rot => {
-              const rotStart = new Date(rot.start_date)
-              const rotEnd   = new Date(rot.end_date)
-              return rotStart <= mEnd && rotEnd >= mStart
-            })
-
-            let status   = 'free'
-            let tooltip  = `Slot ${slotIdx + 1} — ${m.label}: Available`
-            let showName = false
-            let initials = null
-            let residentName = null
-
-            if (coveringRot) {
-              residentName = getResidentShortName(coveringRot.resident_id)
-              initials     = residentName !== '—'
-                ? residentName.split(' ').map(p => p[0]).join('').slice(0,2).toUpperCase()
-                : '?'
-              const rotStart = new Date(coveringRot.start_date)
-              const rotEnd   = new Date(coveringRot.end_date)
-              const fullMonth = rotStart <= mStart && rotEnd >= mEnd
-              status    = fullMonth ? 'occupied' : 'partial'
-              showName  = fullMonth
-              const fmtStart = rotStart.toLocaleDateString('es-ES',{day:'2-digit',month:'short'})
-              const fmtEnd   = rotEnd.toLocaleDateString('es-ES',{day:'2-digit',month:'short'})
-              tooltip = `${residentName} · ${fmtStart} → ${fmtEnd}`
-            }
-
-            return { key: m.key, label: m.label, year: m.year, month: m.month, isCurrent: m.isCurrent, status, tooltip, showName, initials }
-          })
-
-          // Primary resident for the slot label (current/first active rotation)
-          const primaryRot = slot.rotations.find(r => r.rotation_status === 'active') || slot.rotations[0]
-          const primaryName = primaryRot ? getResidentShortName(primaryRot.resident_id) : null
-          const primaryInitials = primaryName && primaryName !== '—'
-            ? primaryName.split(' ').map(p => p[0]).join('').slice(0,2).toUpperCase()
-            : null
-
-          return {
-            slotIdx,
-            residentId:   primaryRot?.resident_id || null,
-            residentName: primaryName,
-            initials:     primaryInitials,
-            rotationCount: slot.rotations.length,
-            months: monthData
-          }
-        })
-      }
-
-      // Days until a rotation ends (for "Free in Xd" chip)
-      const getDaysUntilFree = (endDate) => {
-        const today = new Date(); today.setHours(0,0,0,0)
-        const end   = new Date(endDate)
-        return Math.ceil((end - today) / (1000 * 60 * 60 * 24))
-      }
-
-      // ── Timeline cell popover ─────────────────────────────────────────
-      const tlPopover = reactive({ show: false, unitName: '', slotIdx: 0, monthLabel: '', entries: [], x: 0, y: 0 })
-
-      const openCellPopover = (event, unitId, unitName, slot, month) => {
-        event.stopPropagation()
-        // Collect ALL rotations in this slot that touch this month
-        const mStart = new Date(month.year, month.month, 1)
-        const mEnd   = new Date(month.year, month.month + 1, 0)
-        // Get all rotations for this unit to find ones in this slot and month
-        const unitRots = rotations.value.filter(r =>
-          r.training_unit_id === unitId && ['active','scheduled'].includes(r.rotation_status)
-        )
-        // We need the same slot assignment as getUnitSlots — find rotations assigned to this slotIdx
-        // Use greedy bin-packing identical to getUnitSlots
-        const allSlots = Array.from({ length: 20 }, () => ({ rotations: [] }))
-        const sorted = [...unitRots].sort((a,b) => new Date(a.start_date) - new Date(b.start_date))
-        for (const rot of sorted) {
-          const rotStart = new Date(rot.start_date)
-          const rotEnd   = new Date(rot.end_date)
-          const target = allSlots.find(s => s.rotations.every(e => {
-            const eEnd = new Date(e.end_date); const eStart = new Date(e.start_date)
-            return rotEnd < eStart || rotStart > eEnd
-          }))
-          if (target) target.rotations.push(rot)
-        }
-        const slotRots = allSlots[slot.slotIdx]?.rotations || []
-        // Filter to those touching this month
-        const touching = slotRots.filter(rot => {
-          const s = new Date(rot.start_date); const e = new Date(rot.end_date)
-          return s <= mEnd && e >= mStart
-        })
-        const fmt = (d) => new Date(d).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'2-digit' })
-        const entries = touching.length
-          ? touching.map(rot => ({
-              name: getResidentShortName(rot.resident_id),
-              start: fmt(rot.start_date),
-              end:   fmt(rot.end_date),
-              status: rot.rotation_status,
-              partial: new Date(rot.start_date) > mStart || new Date(rot.end_date) < mEnd
-            }))
-          : [{ name: '—', start: null, end: null, status: 'free', partial: false }]
-        // Position near the clicked cell
-        const rect = event.currentTarget.getBoundingClientRect()
-        tlPopover.show = true
-        tlPopover.unitName = unitName
-        tlPopover.slotIdx = slot.slotIdx + 1
-        tlPopover.monthLabel = month.label
-        tlPopover.entries = entries
-        const popoverWidth = 300
-        const popoverHeight = 120 // conservative estimate
-        const viewportWidth = window.innerWidth
-        const viewportHeight = window.innerHeight
-        const left = rect.left + popoverWidth > viewportWidth
-          ? Math.max(4, rect.right - popoverWidth)
-          : rect.left
-        const top = rect.bottom + popoverHeight > viewportHeight
-          ? rect.top - popoverHeight - 4
-          : rect.bottom + 6
-        tlPopover.x = left
-        tlPopover.y = top
-      }
-      const closeCellPopover = () => { tlPopover.show = false }
-
-      // ── Units Occupancy Panel ─────────────────────────────────────────────
-      const occupancyPanel   = reactive({ show: false })
-      const unitDetailDrawer = reactive({ show: false, unit: null })
-
-      const getUnitMonthOccupancy = (unitId, year, month) => {
-        const mStart = new Date(year, month, 1)
-        const mEnd   = new Date(year, month + 1, 0)
-        const unit   = trainingUnits.value.find(u => u.id === unitId)
-        if (!unit) return { status: 'free', occupied: 0, scheduled: 0, total: 0 }
-        const maxSlots = unit.maximum_residents
-        const touching = rotations.value.filter(r =>
-          r.training_unit_id === unitId &&
-          ['active','scheduled'].includes(r.rotation_status) &&
-          new Date(r.start_date) <= mEnd && new Date(r.end_date) >= mStart
-        )
-        // Separate truly active (date range covers any day in month) from scheduled future
-        const today = new Date(); today.setHours(0,0,0,0)
-        const isCurrentMonth = mStart <= today && mEnd >= today
-        const active    = isCurrentMonth
-          ? touching.filter(r => r.rotation_status === 'active' && new Date(r.start_date) <= today && new Date(r.end_date) >= today).length
-          : touching.filter(r => ['active','scheduled'].includes(r.rotation_status)).length
-        const scheduled = touching.filter(r => r.rotation_status === 'scheduled').length
-        const occupied  = isCurrentMonth ? active : touching.length
-        if (occupied === 0) return { status: 'free', occupied: 0, total: maxSlots }
-        const isClosing = touching.some(r => {
-          const e = new Date(r.end_date)
-          return e.getFullYear() === year && e.getMonth() === month && e < mEnd
-        })
-        if (occupied >= maxSlots) return { status: isClosing ? 'closing' : 'occupied', occupied, total: maxSlots }
-        return { status: isClosing ? 'closing' : 'partial', occupied, total: maxSlots }
-      }
-
-      const getNextFreeMonth = (unitId) => {
-        const today = new Date()
-        const unit  = trainingUnits.value.find(u => u.id === unitId)
-        if (!unit) return null
-        for (let i = 0; i < 24; i++) {
-          const d = new Date(today.getFullYear(), today.getMonth() + i, 1)
-          const occ = getUnitMonthOccupancy(unitId, d.getFullYear(), d.getMonth())
-          if (occ.occupied < occ.total) {
-            return {
-              label:      d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }),
-              shortLabel: d.toLocaleDateString('es-ES', { month: 'short', year: '2-digit' }),
-              date:       `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`,
-              monthsAway: i,
-              freeSlots:  occ.total - occ.occupied
-            }
-          }
-        }
-        return null
-      }
-
-      const occupancyHeatmap = computed(() => {
-        const today = new Date()
-        const activeUnits = trainingUnits.value.filter(u => u.unit_status === 'active')
-        return Array.from({ length: 12 }, (_, i) => {
-          const d = new Date(today.getFullYear(), today.getMonth() + i, 1)
-          let free = 0, partial = 0, closing = 0, full = 0
-          for (const u of activeUnits) {
-            const occ = getUnitMonthOccupancy(u.id, d.getFullYear(), d.getMonth())
-            if      (occ.status === 'free')    free++
-            else if (occ.status === 'closing') closing++
-            else if (occ.status === 'partial') partial++
-            else                               full++
-          }
-          return {
-            key: `${d.getFullYear()}-${d.getMonth()}`,
-            label: d.toLocaleDateString('es-ES', { month: 'short' }),
-            yearLabel: (i === 0 || d.getMonth() === 0) ? `'${d.getFullYear().toString().slice(-2)}` : '',
-            isCurrent: i === 0,
-            free, partial, closing, full, total: activeUnits.length
-          }
-        })
-      })
-
-      const occupancyPanelUnits = computed(() => {
-        const today = new Date()
-        return trainingUnits.value
-          .filter(u => u.unit_status === 'active')
-          .map(u => {
-            const occ      = getUnitMonthOccupancy(u.id, today.getFullYear(), today.getMonth())
-            const nextFree = getNextFreeMonth(u.id)
-            return { ...u, occ, nextFree }
-          })
-          .sort((a, b) => {
-            const order = { free: 0, closing: 1, partial: 2, occupied: 3 }
-            const diff  = (order[a.occ.status] ?? 4) - (order[b.occ.status] ?? 4)
-            if (diff !== 0) return diff
-            return (a.nextFree?.monthsAway ?? 99) - (b.nextFree?.monthsAway ?? 99)
-          })
-      })
-
-      const openUnitDetail = (unit) => {
-        const today = new Date()
-        const occ      = getUnitMonthOccupancy(unit.id, today.getFullYear(), today.getMonth())
-        const nextFree = getNextFreeMonth(unit.id)
-        unitDetailDrawer.unit = { ...unit, occ, nextFree }
-        unitDetailDrawer.show = true
-      }
-
-      const loadTrainingUnits = async () => {
-        try { trainingUnits.value = await API.getTrainingUnits() }
-        catch { showToast('Error', 'Failed to load training units', 'error') }
-      }
-
-      const showAddTrainingUnitModal = () => { trainingUnitModal.mode = 'add'; Object.assign(trainingUnitModal.form, { unit_name: '', unit_code: '', department_id: '', maximum_residents: 10, unit_status: 'active', unit_type: 'training_unit', unit_description: '', specialty: '', supervising_attending_id: '' }); trainingUnitModal.show = true }
-      const editTrainingUnit = (u) => { trainingUnitModal.mode = 'edit'; trainingUnitModal.form = { ...u }; trainingUnitModal.show = true }
-
-      const deleteTrainingUnit = (unit) => {
-        const activeRotations = rotations.value.filter(r =>
-          r.training_unit_id === unit.id && ['active', 'scheduled'].includes(r.rotation_status)
-        )
-        if (activeRotations.length > 0) {
-          showConfirmation({
-            title: 'Cannot Delete Training Unit',
-            message: `"${unit.unit_name}" has ${activeRotations.length} active or scheduled rotation(s) assigned to it.`,
-            icon: 'fa-exclamation-triangle',
-            confirmButtonText: 'OK',
-            confirmButtonClass: 'btn-secondary',
-            details: 'Reassign or complete all active rotations before deleting this unit.',
-            onConfirm: () => {}
-          })
-          return
-        }
-        showConfirmation({
-          title: 'Delete Training Unit', icon: 'fa-trash',
-          message: `Delete "${unit.unit_name}"?`,
-          confirmButtonText: 'Delete Unit', confirmButtonClass: 'btn-danger',
-          details: activeRotations.length === 0 ? 'No active rotations are assigned to this unit.' : '',
-          onConfirm: async () => {
-            try {
-              await API.deleteTrainingUnit(unit.id)
-              // Backend soft-deletes (sets unit_status = 'inactive') — remove from active list locally
-              trainingUnits.value = trainingUnits.value.filter(u => u.id !== unit.id)
-              showToast('Deactivated', `${unit.unit_name} deactivated`, 'success')
-            } catch (e) {
-              showToast('Error', e?.message || 'Failed to deactivate training unit', 'error')
-              try { trainingUnits.value = await API.getTrainingUnits() } catch {}
-            }
-          }
-        })
-      }
-
-      const openUnitClinicians = (unit, allStaff) => {
-        unitCliniciansModal.unit = unit
-        unitCliniciansModal.clinicians = (unit.clinician_ids || []).slice()
-        unitCliniciansModal.supervisorId = unit.supervisor_id || unit.supervising_attending_id || ''
-        // Filter to same-department attendings/fellows only
-        // If unit has a department_id, only show staff from that department
-        const deptFilter = unit.department_id
-          ? s => s.department_id === unit.department_id
-          : () => true
-        unitCliniciansModal.allStaff = allStaff.filter(s =>
-          (staffTypeMap.value[s.staff_type]?.can_supervise ||
-           ['attending_physician','fellow'].includes(s.staff_type)) &&
-          s.employment_status === 'active' &&
-          deptFilter(s)
-        )
-        unitCliniciansModal.show = true
-      }
-
-      // Open clinicians modal from dept panel attending row — assign attending to a unit
-      const assignAttendingToUnit = (staff) => {
-        // Find all units in the same department as this attending
-        const deptUnits = trainingUnits.value.filter(u =>
-          u.department_id === staff.department_id && u.unit_status === 'active'
-        )
-        if (deptUnits.length === 0) {
-          showToast('No Units', 'No active units in this department', 'warning')
-          return
-        }
-        // If attending already supervises a unit, open that unit's clinicians modal
-        const currentUnit = deptUnits.find(u => u.supervisor_id === staff.id)
-        const targetUnit = currentUnit || deptUnits[0]
-        // Pre-select this attending
-        unitCliniciansModal.unit = targetUnit
-        unitCliniciansModal.clinicians = (targetUnit.clinician_ids || []).slice()
-        unitCliniciansModal.supervisorId = staff.id  // pre-select this attending
-        const deptFilter = targetUnit.department_id
-          ? s => s.department_id === targetUnit.department_id
-          : () => true
-        unitCliniciansModal.allStaff = medicalStaff.value.filter(s =>
-          (staffTypeMap.value[s.staff_type]?.can_supervise ||
-           ['attending_physician','fellow'].includes(s.staff_type)) &&
-          s.employment_status === 'active' &&
-          deptFilter(s)
-        )
-        unitCliniciansModal.show = true
-      }
-
-      const saveUnitClinicians = async () => {
-        const u = unitCliniciansModal.unit
-        // Backend Joi schema: unit_name, unit_code, department_id (req), supervising_attending_id (opt uuid),
-        // maximum_residents, unit_status, specialty/location_building/location_floor (opt — no empty strings).
-        // stripUnknown:true drops anything else silently.
-        const payload = {
-          unit_name: u.unit_name, unit_code: u.unit_code, department_id: u.department_id,
-          maximum_residents: u.maximum_residents || 5, unit_status: u.unit_status || 'active',
-        }
-        if (unitCliniciansModal.supervisorId) payload.supervising_attending_id = unitCliniciansModal.supervisorId
-        if (u.specialty)         payload.specialty         = u.specialty
-        if (u.location_building) payload.location_building = u.location_building
-        if (u.location_floor)    payload.location_floor    = u.location_floor
-
-        await API.updateTrainingUnit(u.id, payload)
-        const idx = trainingUnits.value.findIndex(x => x.id === u.id)
-        if (idx !== -1) {
-          trainingUnits.value[idx] = {
-            ...trainingUnits.value[idx],
-            supervising_attending_id: unitCliniciansModal.supervisorId || null,
-            supervisor_id: unitCliniciansModal.supervisorId || null,
-          }
-        }
-        unitCliniciansModal.show = false
-        showToast('Saved', 'Supervisor assignment updated', 'success')
-      }
-
-      const viewUnitResidents = (unit, allRotations) => {
-        unitResidentsModal.unit = unit
-        unitResidentsModal.rotations = allRotations.filter(r => r.training_unit_id === unit.id && ['active', 'scheduled'].includes(r.rotation_status))
-        unitResidentsModal.show = true
-      }
-
-      const saveTrainingUnit = async (saving, deptLookup) => {
-        const f = trainingUnitModal.form
-        if (!f.unit_name?.trim()) { showToast('Validation Error', 'Unit name is required', 'error'); return }
-        if (!f.unit_code?.trim()) { showToast('Validation Error', 'Unit code is required', 'error'); return }
-        if (!f.maximum_residents || f.maximum_residents < 1) { showToast('Validation Error', 'Maximum residents must be at least 1', 'error'); return }
-        saving.value = true
-        try {
-          // Exact fields from backend Joi trainingUnit schema — nothing more, nothing less
-          // department_name is NOT NULL in schema — derive from departments list
-          const deptRecord = deptLookup?.value?.find(d => d.id === f.department_id) || null
-          const data = {
-            unit_name: f.unit_name.trim(),
-            unit_code: f.unit_code.trim().toUpperCase(),
-            department_id: f.department_id || null,
-            department_name: deptRecord?.name || f.department_name || 'Pulmonology',
-            maximum_residents: parseInt(f.maximum_residents) || 5,
-            unit_status: f.unit_status || 'active',
-            unit_type: f.unit_type || 'training_unit',
-            unit_description: f.unit_description || '',
-            specialty: f.specialty || '',
-            supervisor_id: f.supervising_attending_id || null,
-            supervising_attending_id: f.supervising_attending_id || null,
-          }
-          if (trainingUnitModal.mode === 'add') { trainingUnits.value.unshift(await API.createTrainingUnit(data)); showToast('Success', 'Training unit created', 'success') }
-          else { const result = await API.updateTrainingUnit(f.id, data); const idx = trainingUnits.value.findIndex(u => u.id === result.id); if (idx !== -1) trainingUnits.value[idx] = result; showToast('Success', 'Training unit updated', 'success') }
-          trainingUnitModal.show = false
-        } catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
-        finally { saving.value = false }
-      }
-
-      return { trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits, getUnitActiveRotationCount, getUnitRotations, getUnitScheduledCount, getUnitOverlapWarning, getResidentShortName, loadTrainingUnits, showAddTrainingUnitModal, editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians, assignAttendingToUnit, viewUnitResidents, saveTrainingUnit, trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree, tlPopover, openCellPopover, closeCellPopover,
-        occupancyPanel, unitDetailDrawer, occupancyHeatmap, occupancyPanelUnits, getUnitMonthOccupancy, getNextFreeMonth, openUnitDetail }
-    }
-
-    // ============ 6.9 useComms ============
-    function useComms({ showToast, showConfirmation }) {
-      const announcements = ref([])
-      const communicationsFilters = reactive({ search: '', priority: '', audience: '' })
-      const communicationsModal = reactive({
-        show: false, activeTab: 'announcement', mode: 'add',
-        form: { id: null, title: '', content: '', priority: 'normal', target_audience: 'all_staff', target_department_id: '', updateType: 'daily', dailySummary: '', highlight1: '', highlight2: '', alerts: { erBusy: false, icuFull: false, wardFull: false, staffShortage: false }, metricName: '', metricValue: '', metricTrend: 'stable', metricChange: '', metricNote: '', alertLevel: 'low', alertMessage: '', affectedAreas: { er: false, icu: false, ward: false, surgery: false } }
-      })
-
-      const filteredAnnouncements = computed(() => {
-        let f = announcements.value
-        if (communicationsFilters.search) { const q = communicationsFilters.search.toLowerCase(); f = f.filter(a => a.title?.toLowerCase().includes(q) || a.content?.toLowerCase().includes(q)) }
-        if (communicationsFilters.priority) f = f.filter(a => a.priority_level === communicationsFilters.priority)
-        if (communicationsFilters.audience) f = f.filter(a => a.target_audience === communicationsFilters.audience)
-        return f.slice(0, 20)
-      })
-
-      const recentAnnouncements = computed(() => filteredAnnouncements.value)
-      const unreadAnnouncements = computed(() => announcements.value.filter(a => !a.read).length)
-
-      const loadAnnouncements = async () => {
-        try { announcements.value = await API.getAnnouncements() }
-        catch { showToast('Error', 'Failed to load announcements', 'error') }
-      }
-
-      const showCommunicationsModal = () => {
-        communicationsModal.mode = 'add'
-        communicationsModal.show = true; communicationsModal.activeTab = 'announcement'
-        Object.assign(communicationsModal.form, { id: null, title: '', content: '', priority: 'normal', target_audience: 'all_staff', updateType: 'daily', dailySummary: '', highlight1: '', highlight2: '', alerts: { erBusy: false, icuFull: false, wardFull: false, staffShortage: false }, metricName: '', metricValue: '', metricTrend: 'stable', metricChange: '', metricNote: '', alertLevel: 'low', alertMessage: '', affectedAreas: { er: false, icu: false, ward: false, surgery: false } })
-      }
-
-      const editAnnouncement = (ann) => {
-        communicationsModal.mode = 'edit'
-        communicationsModal.activeTab = 'announcement'
-        Object.assign(communicationsModal.form, { id: ann.id, title: ann.title || '', content: ann.content || '', priority: ann.priority_level || 'normal', target_audience: ann.target_audience || 'all_staff' })
-        communicationsModal.show = true
-      }
-
-      const announcementReadModal = reactive({ show: false, announcement: null })
-      const viewAnnouncement = (a) => { announcementReadModal.announcement = a; announcementReadModal.show = true }
-
-      const saveCommunication = async (saving, saveClinicalStatus) => {
-        saving.value = true
-        try {
-          if (communicationsModal.activeTab === 'announcement') {
-            const f = communicationsModal.form
-            const payload = { title: f.title, content: f.content, priority_level: f.priority, target_audience: f.target_audience || 'all_staff', type: 'announcement' }
-            if (communicationsModal.mode === 'edit' && f.id) {
-              const result = await API.updateAnnouncement(f.id, payload)
-              const idx = announcements.value.findIndex(a => a.id === f.id)
-              if (idx !== -1) announcements.value[idx] = result
-              showToast('Success', 'Announcement updated', 'success')
-            } else {
-              announcements.value.unshift(await API.createAnnouncement(payload))
-              showToast('Success', 'Announcement posted', 'success')
-            }
-          } else { await saveClinicalStatus() }
-          communicationsModal.show = false
-        } catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
-        finally { saving.value = false }
-      }
-
-      const deleteAnnouncement = (ann) => showConfirmation({
-        title: 'Delete Announcement', message: `Delete "${ann.title}"?`,
-        icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
-        onConfirm: async () => {
-          try {
-            await API.deleteAnnouncement(ann.id)
-            announcements.value = announcements.value.filter(a => a.id !== ann.id)
-            showToast('Success', 'Announcement deleted', 'success')
-          } catch (e) {
-            showToast('Error', e?.message || 'Failed to delete announcement', 'error')
-          }
-        }
-      })
-
-      return { announcements, communicationsFilters, communicationsModal, announcementReadModal, filteredAnnouncements, recentAnnouncements, unreadAnnouncements, loadAnnouncements, showCommunicationsModal, editAnnouncement, viewAnnouncement, saveCommunication, deleteAnnouncement }
-    }
-
-    // ============ 6.10 useLiveStatus ============
-    function useLiveStatus({ showToast, showConfirmation, medicalStaff, currentUser }) {
-      const clinicalStatus = ref(null)
-      const clinicalStatusHistory = ref([])
-      const isLoadingStatus = ref(false)
-      const newStatusText = ref('')
-      const selectedAuthorId = ref('')
-      const expiryHours = ref(8)
-      const activeMedicalStaff = ref([])
-      const liveStatsEditMode = ref(false)
-      const quickStatus = ref('')
-
-      const recentStatuses = computed(() => clinicalStatusHistory.value)
-      const isStatusExpired = (exp) => { if (!exp) return true; try { return new Date() > new Date(exp) } catch { return true } }
-      const getStatusBadgeClass = (status) => (!status || isStatusExpired(status.expires_at)) ? 'badge-warning' : 'badge-success'
-
-      const calculateTimeRemaining = (expiryTime) => {
-        if (!expiryTime) return 'N/A'
-        try {
-          const diff = new Date(expiryTime) - new Date()
-          if (diff <= 0) return 'Expired'
-          const h = Math.floor(diff / 3600000); const m = Math.floor((diff % 3600000) / 60000)
-          return h > 0 ? `${h}h ${m}m` : `${m}m`
-        } catch { return 'N/A' }
-      }
-
-      const getStatusLocation = (status) => {
-        if (!status?.status_text) return 'Pulmonology Department'
-        if (status.location) return status.location
-        const t = status.status_text.toLowerCase()
-        if (t.includes('icu') || t.includes('intensive care')) return 'Respiratory ICU'
-        if (t.includes('sleep') || t.includes('cpap')) return 'Sleep Medicine Lab'
-        if (t.includes('bronchoscopy') || t.includes('pft')) return 'Pulmonary Procedure Unit'
-        if (t.includes('ventilator')) return 'Respiratory Therapy Unit'
-        if (t.includes('er') || t.includes('emergency')) return 'Emergency Department'
-        if (t.includes('ward') || t.includes('floor')) return 'General Ward'
-        return 'Pulmonology Department'
-      }
-
-      const formattedExpiry = computed(() => {
-        if (!clinicalStatus.value?.expires_at) return ''
-        const diff = Math.ceil((new Date(clinicalStatus.value.expires_at) - new Date()) / 3600000)
-        if (diff <= 1) return 'Expires soon'
-        if (diff <= 4) return `Expires in ${diff}h`
-        return `Expires ${Utils.formatTime(clinicalStatus.value.expires_at)}`
-      })
-
-      const loadClinicalStatus = async () => {
-        isLoadingStatus.value = true
-        try { const r = await API.getClinicalStatus(); clinicalStatus.value = r?.success ? r.data : null }
-        catch { clinicalStatus.value = null }
-        finally { isLoadingStatus.value = false }
-      }
-
-      const loadClinicalStatusHistory = async () => {
-        try {
-          const history = await API.getClinicalStatusHistory(20)
-          const cid = clinicalStatus.value?.id; const now = new Date()
-          clinicalStatusHistory.value = history.filter(s => s.id !== cid && (!s.expires_at || now < new Date(s.expires_at))).slice(0, 5)
-        } catch { clinicalStatusHistory.value = [] }
-      }
-
-      const loadActiveMedicalStaff = async () => {
-        try {
-          const data = await API.getMedicalStaff()
-          activeMedicalStaff.value = data.filter(s => s.employment_status === 'active')
-          if (currentUser.value) {
-            const found = currentUser.value?.email ? activeMedicalStaff.value.find(s => s.professional_email === currentUser.value.email) : null
-            if (found) selectedAuthorId.value = found.id
-          }
-        } catch { activeMedicalStaff.value = [] }
-      }
-
-      const saveClinicalStatus = async () => {
-        if (!newStatusText.value.trim() || !selectedAuthorId.value) { showToast('Error', 'Please fill all required fields', 'error'); return }
-        isLoadingStatus.value = true
-        try {
-          const response = await API.createClinicalStatus({ status_text: newStatusText.value.trim(), author_id: selectedAuthorId.value, expires_in_hours: expiryHours.value })
-          if (response?.success && response.data) {
-            if (clinicalStatus.value) clinicalStatusHistory.value.unshift(clinicalStatus.value)
-            clinicalStatus.value = response.data; newStatusText.value = ''; selectedAuthorId.value = ''; liveStatsEditMode.value = false
-            await loadClinicalStatusHistory(); showToast('Success', 'Live status updated for all staff', 'success')
-          } else { throw new Error(response?.error || 'Failed to save status') }
-        } catch (e) { showToast('Error', e.message || 'Could not update status', 'error') }
-        finally { isLoadingStatus.value = false }
-      }
-
-      const deleteClinicalStatus = () => {
-        if (!clinicalStatus.value) return
-        showConfirmation({ title: 'Clear Live Status', message: 'Clear the current live status?', icon: 'fa-trash', confirmButtonText: 'Clear', confirmButtonClass: 'btn-danger', onConfirm: async () => { await API.deleteClinicalStatus(clinicalStatus.value.id); clinicalStatus.value = null; showToast('Success', 'Live status cleared', 'success') } })
-      }
-
-      const refreshStatus = () => { loadClinicalStatus(); showToast('Refreshed', 'Live status updated', 'info') }
-      const showCreateStatusModal = () => { liveStatsEditMode.value = true; newStatusText.value = ''; selectedAuthorId.value = ''; expiryHours.value = 8 }
-      const setQuickStatus = (status) => { quickStatus.value = status }
-
-      return { clinicalStatus, clinicalStatusHistory, isLoadingStatus, newStatusText, selectedAuthorId, expiryHours, activeMedicalStaff, liveStatsEditMode, quickStatus, recentStatuses, isStatusExpired, getStatusBadgeClass, calculateTimeRemaining, getStatusLocation, formattedExpiry, loadClinicalStatus, loadClinicalStatusHistory, loadActiveMedicalStaff, saveClinicalStatus, deleteClinicalStatus, refreshStatus, showCreateStatusModal, setQuickStatus }
-    }
-
-    // ============ 6.11 useResearch ============
-    function useResearch({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, clearAll, medicalStaff, loadAnalyticsSummary, loadResearchLinesPerformance, loadPartnerCollaborations }) {
-      const researchLines         = ref([])
-      const clinicalTrials        = ref([])
-      const innovationProjects    = ref([])
-                        const researchLineFilters = reactive({ search: '', active: '' })
-      const trialFilters = reactive({ line: '', phase: '', status: '', search: '' })
-      const projectFilters = reactive({ research_line_id: '', category: '', stage: '', funding_status: '', search: '' })
-
-      const researchLineModal = reactive({ show: false, mode: 'add', form: { line_number: null, name: '', description: '', capabilities: 'Alcance y capacidades', sort_order: 0, active: true } })
-      const clinicalTrialModal = reactive({ show: false, mode: 'add', form: { protocol_id: '', title: '', research_line_id: '', phase: 'Phase III', status: 'Reclutando', description: '', inclusion_criteria: '', exclusion_criteria: '', principal_investigator_id: '', co_investigators: [], sub_investigators: [], contact_email: '', featured_in_website: true, display_order: 0, start_date: '', end_date: '' } })
-      const trialDetailModal = reactive({ show: false, trial: null })
-      const innovationProjectModal = reactive({ show: false, mode: 'add', form: { title: '', category: 'Dispositivo', current_stage: 'Idea', description: '', clinical_rationale: '', research_line_id: '', lead_investigator_id: '', co_investigators: [], partner_needs: [], partner_found: false, partner_name: '', funding_status: 'not_applicable', keywords: [], keywordsInput: '', featured_in_website: true, display_order: 0 } })
-      const assignCoordinatorModal = reactive({ show: false, lineId: null, lineName: '', selectedCoordinatorId: '' })
-
-      const getResearchLineName = (id) => { if (!id) return 'Not assigned'; const l = researchLines.value.find(l => l.id === id); return l ? (l.research_line_name || l.name) : 'Unknown' }
-      const getClinicianResearchLines = (id) => { if (!id || !researchLines.value.length) return []; return researchLines.value.filter(l => l.coordinator_id === id).map(l => ({ line_number: l.line_number, name: l.research_line_name || l.name, role: 'Coordinador/a', id: l.id })) }
-
-      const filteredResearchLines = computed(() => {
-        let f = researchLines.value
-        if (researchLineFilters.search) {
-          const q = researchLineFilters.search.toLowerCase()
-          f = f.filter(l =>
-            (l.research_line_name || l.name)?.toLowerCase().includes(q) ||
-            l.description?.toLowerCase().includes(q) ||
-            l.capabilities?.toLowerCase().includes(q) ||
-            (Array.isArray(l.keywords) && l.keywords.some(k => k.toLowerCase().includes(q)))
-          )
-        }
-        if (researchLineFilters.active !== '') { const active = researchLineFilters.active === 'true'; f = f.filter(l => l.active === active) }
-        return applySort(f, 'research_lines')
-      })
-
-      const filteredTrialsAll = computed(() => {
-        let f = clinicalTrials.value
-        if (trialFilters.line) f = f.filter(t => t.research_line_id === trialFilters.line)
-        if (trialFilters.phase) f = f.filter(t => t.phase === trialFilters.phase)
-        if (trialFilters.status) f = f.filter(t => t.status === trialFilters.status)
-        if (trialFilters.search) { const q = trialFilters.search.toLowerCase(); f = f.filter(t => t.protocol_id?.toLowerCase().includes(q) || t.title?.toLowerCase().includes(q)) }
-        return applySort(f, 'trials')
-      })
-      const filteredTrials = computed(() => paginate(filteredTrialsAll.value, 'trials'))
-      const trialTotalPages = computed(() => totalPages(filteredTrialsAll.value, 'trials'))
-
-      const filteredProjectsAll = computed(() => {
-        let f = innovationProjects.value
-        if (projectFilters.research_line_id) f = f.filter(p => p.research_line_id === projectFilters.research_line_id)
-        if (projectFilters.category) f = f.filter(p => p.category === projectFilters.category)
-        if (projectFilters.stage) f = f.filter(p => (p.current_stage || p.development_stage) === projectFilters.stage)
-        if (projectFilters.funding_status) f = f.filter(p => (p.funding_status || 'not_applicable') === projectFilters.funding_status)
-        if (projectFilters.search) { const q = projectFilters.search.toLowerCase(); f = f.filter(p => p.title?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q) || (Array.isArray(p.keywords) && p.keywords.some(k => k.toLowerCase().includes(q)))) }
-        return applySort(f, 'projects')
-      })
-      const filteredProjects = computed(() => paginate(filteredProjectsAll.value, 'projects'))
-      const projectTotalPages = computed(() => totalPages(filteredProjectsAll.value, 'projects'))
-
-      // ── Keyword chip helpers ──────────────────────────────────────────────
-      const addKeyword = (form) => {
-        if (!form.keywordsInput?.trim()) return
-        const incoming = form.keywordsInput.split(',').map(k => k.trim()).filter(Boolean)
-        incoming.forEach(kw => { if (kw && !form.keywords.includes(kw)) form.keywords.push(kw) })
-        form.keywordsInput = ''
-      }
-      const removeKeyword = (form, idx) => { form.keywords.splice(idx, 1) }
-      const handleKeywordKey = (e, form) => {
-        if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab') {
-          e.preventDefault(); addKeyword(form)
-        }
-      }
-
-      const loadResearchLines = async () => { try { researchLines.value = await API.getResearchLines() } catch { } }
-      const loadClinicalTrials = async () => { try { clinicalTrials.value = await API.getAllClinicalTrials() } catch { } }
-      const loadInnovationProjects = async () => { try { innovationProjects.value = await API.getAllInnovationProjects() } catch { } }
-
-      const showAddResearchLineModal = () => { clearAll('research'); researchLineModal.mode = 'add'; Object.assign(researchLineModal.form, { line_number: researchLines.value.length + 1, name: '', description: '', capabilities: '', sort_order: researchLines.value.length + 1, active: true, keywords: [], keywordsInput: '' }); researchLineModal.show = true }
-      const showAddTrialModal = (line = null) => { clinicalTrialModal.mode = 'add'; Object.assign(clinicalTrialModal.form, { protocol_id: `HUAC-${Date.now().toString().slice(-6)}`, title: '', research_line_id: line?.id || '', phase: 'Phase III', status: 'Reclutando', description: '', inclusion_criteria: '', exclusion_criteria: '', principal_investigator_id: '', co_investigators: [], sub_investigators: [], contact_email: '', featured_in_website: true, display_order: clinicalTrials.value.length + 1, start_date: '', end_date: '' }); clinicalTrialModal.show = true }
-      const showAddProjectModal = (line = null) => { innovationProjectModal.mode = 'add'; Object.assign(innovationProjectModal.form, { title: '', category: 'Dispositivo', current_stage: 'Idea', description: '', clinical_rationale: '', research_line_id: line?.id || '', lead_investigator_id: '', co_investigators: [], partner_needs: [], partner_found: false, partner_name: '', funding_status: 'not_applicable', keywords: [], keywordsInput: '', featured_in_website: true, display_order: innovationProjects.value.length + 1 }); innovationProjectModal.show = true }
-
-      const openAssignCoordinatorModal = (line) => { assignCoordinatorModal.lineId = line.id; assignCoordinatorModal.lineName = line.research_line_name || line.name; assignCoordinatorModal.selectedCoordinatorId = line.coordinator_id || ''; assignCoordinatorModal.show = true }
-      const editResearchLine = (l) => { researchLineModal.mode = 'edit'; researchLineModal.form = { ...l, research_line_name: l.research_line_name || l.name || '', keywordsInput: Array.isArray(l.keywords) ? l.keywords.join(', ') : (l.keywordsInput || '') }; researchLineModal.show = true }
-      const editTrial = (t) => { clinicalTrialModal.mode = 'edit'; clinicalTrialModal.form = { ...t, end_date: t.end_date || t.estimated_end_date || '', co_investigators: Array.isArray(t.co_investigators) ? [...t.co_investigators] : (t.co_investigator_id ? [t.co_investigator_id] : []), sub_investigators: Array.isArray(t.sub_investigators) ? [...t.sub_investigators] : (t.sub_investigator_id ? [t.sub_investigator_id] : []) }; clinicalTrialModal.show = true }
-      const editProject = (p) => { innovationProjectModal.mode = 'edit'; const coI = Array.isArray(p.co_investigators) && p.co_investigators.length ? p.co_investigators : (Array.isArray(p.co_leads) ? p.co_leads : []); const kws = Array.isArray(p.keywords) && p.keywords.length ? p.keywords : (Array.isArray(p.tags) ? p.tags : []); innovationProjectModal.form = { ...p, current_stage: p.current_stage || p.development_stage || 'Idea', partner_needs: Array.isArray(p.partner_needs) ? [...p.partner_needs] : [], co_investigators: [...coI], keywords: [...kws], keywordsInput: kws.length ? kws.join(', ') : '', partner_found: p.partner_found || false, partner_name: p.partner_name || '', funding_status: p.funding_status || 'not_applicable', clinical_rationale: p.clinical_rationale || '' }; innovationProjectModal.show = true }
-      const viewTrial = (t) => { trialDetailModal.trial = t; trialDetailModal.show = true }
-
-      const saveResearchLine = async (saving) => {
-        // Normalise: HTML form uses research_line_name, JS defaults use name — backend DB stores 'name'
-        const f = researchLineModal.form
-        const lineName = (f.research_line_name || f.name || '').trim()
-        if (!lineName) { showToast('Validation Error', 'Research line name is required', 'error'); return }
-        saving.value = true
-        try {
-          // FIX 14: Parse keywords from comma-separated string into array
-          const keywords = f.keywordsInput ? f.keywordsInput.split(',').map(k => k.trim()).filter(Boolean) : (Array.isArray(f.keywords) ? f.keywords : [])
-          // FIX 15: Never send the placeholder text as capabilities
-          const capabilities = (f.capabilities && f.capabilities !== 'Alcance y capacidades') ? f.capabilities : ''
-          const payload = { ...f, name: lineName, keywords, capabilities }
-          delete payload.research_line_name // backend only knows 'name'
-          delete payload.keywordsInput
-          // These come from the view join — not writable columns on research_lines table
-          delete payload.coordinator_name
-          delete payload.coordinator_email
-          delete payload.coordinator_type
-          delete payload.full_name
-          delete payload.professional_email
-          if (researchLineModal.mode === 'add') { researchLines.value.unshift(await API.createResearchLine(payload)); showToast('Success', 'Research line created', 'success') }
-          else { const result = await API.updateResearchLine(f.id, payload); const idx = researchLines.value.findIndex(l => l.id === result.id); if (idx !== -1) researchLines.value[idx] = result; showToast('Success', 'Research line updated', 'success') }
-          researchLineModal.show = false; await loadResearchLines(); loadAnalyticsSummary()
-        } catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
-        finally { saving.value = false }
-      }
-
-      const saveClinicalTrial = async (saving) => {
-        const f = clinicalTrialModal.form
-        // FIX 8: date relationship validation
-        if (f.start_date && f.end_date && f.end_date < f.start_date) { showToast('Validation Error', 'End date cannot be before start date', 'error'); return }
-        saving.value = true
-        try {
-          const payload = { ...f }
-          // Mirror end_date → estimated_end_date so both DB columns stay in sync
-          if (payload.end_date) payload.estimated_end_date = payload.end_date
-          delete payload.co_investigator_id // legacy field
-          delete payload.sub_investigator_id // legacy field
-          if (clinicalTrialModal.mode === 'add') { clinicalTrials.value.unshift(await API.createClinicalTrial(payload)); showToast('Success', 'Clinical study created', 'success') }
-          else { const result = await API.updateClinicalTrial(payload.id, payload); const idx = clinicalTrials.value.findIndex(t => t.id === result.id); if (idx !== -1) clinicalTrials.value[idx] = result; showToast('Success', 'Clinical study updated', 'success') }
-          clinicalTrialModal.show = false; await loadClinicalTrials(); loadAnalyticsSummary()
-        } catch (e) { showToast('Error', e?.message || 'Failed to save study', 'error') }
-        finally { saving.value = false }
-      }
-
-      const saveInnovationProject = async (saving) => {
-        const f = innovationProjectModal.form
-        if (!f.title?.trim()) { showToast('Validation Error', 'Project title is required', 'error'); return }
-        saving.value = true
-        try {
-          const payload = { ...f }
-          // Parse keywords from comma-separated string into array
-          payload.keywords = f.keywordsInput ? f.keywordsInput.split(',').map(k => k.trim()).filter(Boolean) : (Array.isArray(f.keywords) ? f.keywords : [])
-          delete payload.keywordsInput
-          // Mirror to legacy DB column aliases
-          payload.co_leads = payload.co_investigators
-          payload.tags = payload.keywords
-          // Stage normalisation
-          if (!payload.current_stage && payload.development_stage) payload.current_stage = payload.development_stage
-          delete payload.development_stage
-          // Partner logic: if partner found, no longer need partner_needs list
-          if (payload.partner_found) payload.partner_needs = []
-          else payload.partner_name = ''
-          if (innovationProjectModal.mode === 'add') { innovationProjects.value.unshift(await API.createInnovationProject(payload)); showToast('Success', 'Innovation project created', 'success') }
-          else { const result = await API.updateInnovationProject(payload.id, payload); const idx = innovationProjects.value.findIndex(p => p.id === result.id); if (idx !== -1) innovationProjects.value[idx] = result; showToast('Success', 'Innovation project updated', 'success') }
-          innovationProjectModal.show = false; await loadInnovationProjects(); loadAnalyticsSummary(); loadPartnerCollaborations()
-        } catch (e) { showToast('Error', e?.message || 'Failed to save project', 'error') }
-        finally { saving.value = false }
-      }
-
-      const saveCoordinatorAssignment = async () => {
-        try { await API.assignCoordinator(assignCoordinatorModal.lineId, assignCoordinatorModal.selectedCoordinatorId || null); await loadResearchLines(); assignCoordinatorModal.show = false; showToast('Success', 'Coordinator assigned', 'success'); loadResearchLinesPerformance() }
-        catch (e) { showToast('Error', e.message || 'Failed to assign coordinator', 'error') }
-      }
-
-      const deleteResearchLine = (line) => {
-        const activeTrials = clinicalTrials.value.filter(t => t.research_line_id === line.id && !['Completado','Suspendido','Cancelado'].includes(t.status))
-        const activeProjects = innovationProjects.value.filter(p => p.research_line_id === line.id)
-        if (activeTrials.length || activeProjects.length) {
-          showConfirmation({
-            title: 'Cannot Delete Research Line',
-            message: `"${line.research_line_name || line.name}" has ${activeTrials.length} active trial(s) and ${activeProjects.length} project(s) linked to it.`,
-            icon: 'fa-exclamation-triangle',
-            confirmButtonText: 'OK', confirmButtonClass: 'btn-secondary',
-            details: 'Reassign or remove all associated trials and projects before deleting this research line.',
-            onConfirm: () => {}
-          })
-          return
-        }
-        showConfirmation({
-          title: 'Delete Research Line', message: `Delete "${line.research_line_name || line.name}"?`,
-          icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
-          details: 'No active trials or projects are linked to this line.',
-          onConfirm: async () => { await API.deleteResearchLine(line.id); await loadResearchLines(); showToast('Success', 'Research line deleted', 'success'); loadAnalyticsSummary() }
-        })
-      }
-      const deleteClinicalTrial = (trial) => showConfirmation({ title: 'Delete Study', message: `Delete "${trial.title}"?`, icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger', details: `Protocol: ${trial.protocol_id}`, onConfirm: async () => { await API.deleteClinicalTrial(trial.id); await loadClinicalTrials(); showToast('Success', 'Study deleted', 'success'); loadAnalyticsSummary() } })
-      const deleteInnovationProject = (project) => showConfirmation({ title: 'Delete Project', message: `Delete "${project.title}"?`, icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger', onConfirm: async () => { await API.deleteInnovationProject(project.id); await loadInnovationProjects(); showToast('Success', 'Project deleted', 'success'); loadAnalyticsSummary(); loadPartnerCollaborations() } })
-
-      // ── Quick research profile built entirely from local refs (no API call) ──
-      const getStaffResearchQuick = (staffId) => {
-        if (!staffId) return null
-        const coordinatorLines = researchLines.value.filter(l => l.coordinator_id === staffId)
-        const trialsAsPI  = clinicalTrials.value.filter(t => t.principal_investigator_id === staffId)
-        const trialsAsCoI = clinicalTrials.value.filter(t => (t.co_investigators || []).includes(staffId))
-        const trialsAsSub = clinicalTrials.value.filter(t => (t.sub_investigators || []).includes(staffId))
-        const projectsAsLead = innovationProjects.value.filter(p => p.lead_investigator_id === staffId)
-        const projectsAsCoI  = innovationProjects.value.filter(p => (p.co_investigators || []).includes(staffId))
-
-        const allTrials = [...new Map([...trialsAsPI, ...trialsAsCoI, ...trialsAsSub].map(t => [t.id, t])).values()]
-        const allProjects = [...new Map([...projectsAsLead, ...projectsAsCoI].map(p => [p.id, p])).values()]
-
-        if (!coordinatorLines.length && !allTrials.length && !allProjects.length) return null
-
-        return {
-          isCoordinator: coordinatorLines.length > 0,
-          coordinatorLines: coordinatorLines.map(l => ({ id: l.id, line_number: l.line_number, name: l.research_line_name || l.name })),
-          trials: {
-            asPI: trialsAsPI.length, asCoI: trialsAsCoI.length, asSubI: trialsAsSub.length,
-            active: allTrials.filter(t => ['Activo','Reclutando'].includes(t.status)).length,
-            list: allTrials.map(t => ({
-              id: t.id, title: t.title, phase: t.phase, status: t.status,
-              role: trialsAsPI.find(x => x.id === t.id) ? 'Principal Investigator'
-                  : trialsAsCoI.find(x => x.id === t.id) ? 'Co-Investigator' : 'Sub-Investigator'
-            }))
-          },
-          projects: {
-            asLead: projectsAsLead.length,
-            list: allProjects.map(p => ({
-              id: p.id, title: p.title, current_stage: p.current_stage,
-              role: projectsAsLead.find(x => x.id === p.id) ? 'Lead' : 'Co-Investigator'
-            }))
-          },
-          allResearchLines: (() => {
-            const lineMap = {}
-            coordinatorLines.forEach(l => {
-              if (!lineMap[l.id]) lineMap[l.id] = { id: l.id, line_number: l.line_number, name: l.research_line_name || l.name, roles: [], trialsCount: 0, projectsCount: 0 }
-              lineMap[l.id].roles.push('Coordinator')
-            })
-            ;[...trialsAsPI, ...trialsAsCoI, ...trialsAsSub].forEach(t => {
-              const lineId = t.research_line_id; if (!lineId) return
-              const line = researchLines.value.find(l => l.id === lineId); if (!line) return
-              if (!lineMap[lineId]) lineMap[lineId] = { id: lineId, line_number: line.line_number, name: line.research_line_name || line.name, roles: [], trialsCount: 0, projectsCount: 0 }
-              const role = trialsAsPI.find(x => x.id === t.id) ? 'Principal Investigator' : trialsAsCoI.find(x => x.id === t.id) ? 'Co-Investigator' : 'Sub-Investigator'
-              if (!lineMap[lineId].roles.includes(role)) lineMap[lineId].roles.push(role)
-              lineMap[lineId].trialsCount++
-            })
-            ;[...projectsAsLead, ...projectsAsCoI].forEach(p => {
-              const lineId = p.research_line_id; if (!lineId) return
-              const line = researchLines.value.find(l => l.id === lineId); if (!line) return
-              if (!lineMap[lineId]) lineMap[lineId] = { id: lineId, line_number: line.line_number, name: line.research_line_name || line.name, roles: [], trialsCount: 0, projectsCount: 0 }
-              const role = projectsAsLead.find(x => x.id === p.id) ? 'Project Lead' : 'Co-Investigator'
-              if (!lineMap[lineId].roles.includes(role)) lineMap[lineId].roles.push(role)
-              lineMap[lineId].projectsCount++
-            })
-            return Object.values(lineMap).sort((a,b) => a.line_number - b.line_number)
-          })()
-        }
-      }
-
-      return { researchLines, clinicalTrials, innovationProjects, researchLineFilters, trialFilters, projectFilters, researchLineModal, clinicalTrialModal, innovationProjectModal, assignCoordinatorModal, trialDetailModal, filteredResearchLines, filteredTrials, filteredTrialsAll, filteredProjects, filteredProjectsAll, trialTotalPages, projectTotalPages, getResearchLineName, getClinicianResearchLines, loadResearchLines, loadClinicalTrials, loadInnovationProjects, showAddResearchLineModal, showAddTrialModal, showAddProjectModal, openAssignCoordinatorModal, editResearchLine, editTrial, editProject, viewTrial, saveResearchLine, saveClinicalTrial, saveInnovationProject, saveCoordinatorAssignment, deleteResearchLine, deleteClinicalTrial, deleteInnovationProject, addKeyword, removeKeyword, handleKeywordKey, getStaffResearchQuick }
-    }
-
-    // ============ 6.12 useAnalytics ============
-    function useAnalytics({ showToast, hasPermission }) {
-      const researchDashboard = ref(null)
-      const researchLinesPerformance = ref([])
-      const partnerCollaborations = ref(null)
-      const trialsTimeline = ref(null)
-      const analyticsSummary = ref(null)
-      const loadingAnalytics = ref(false)
-      const exportModal = reactive({ show: false, type: 'clinical-trials', format: 'csv', loading: false })
-      const analyticsActiveTab = ref('dashboard') // 'dashboard' | 'performance' | 'partners'
-
-      // ── Research Hub unified state ────────────────────────────────────────
-      const researchHubTab = ref('lines')
-      const selectedResearchLine = ref(null)
-      const researchDetailPanel = ref(false)
-      // Mission Control: which line row is selected in the left panel
-      const activeMissionLine = ref(null)
-
-      const openLineDetail = (line) => {
-        selectedResearchLine.value = line
-        activeMissionLine.value = line
-      }
-      const closeLineDetail = () => {
-        researchDetailPanel.value = false
-        setTimeout(() => { selectedResearchLine.value = null }, 300)
-      }
-
-      // Portfolio KPIs — computed from local refs, instant, no API needed
-      const portfolioKPIs = computed(() => {
-        try {
-          const totalLines    = (researchLines.value || []).length
-          const activeLines   = (researchLines.value || []).filter(l => l.active !== false).length
-          const totalTrials   = (clinicalTrials.value || []).length
-          const activeTrials  = (clinicalTrials.value || []).filter(t => ['Activo','Reclutando'].includes(t.status)).length
-          const recruitingTrials = (clinicalTrials.value || []).filter(t => t.status === 'Reclutando').length
-          const totalProjects = (innovationProjects.value || []).length
-          const lateStageProjects = (innovationProjects.value || []).filter(p => ['Piloto','Validación','Escalado','Mercado'].includes(p.current_stage)).length
-          const totalEnrolled = (clinicalTrials.value || []).reduce((s, t) => s + (t.actual_enrollment || 0), 0)
-          const totalTarget   = (clinicalTrials.value || []).reduce((s, t) => s + (t.enrollment_target || 0), 0)
-          return { totalLines, activeLines, totalTrials, activeTrials, recruitingTrials, totalProjects, lateStageProjects, totalEnrolled, totalTarget }
-        } catch { return { totalLines: 0, activeLines: 0, totalTrials: 0, activeTrials: 0, recruitingTrials: 0, totalProjects: 0, lateStageProjects: 0, totalEnrolled: 0, totalTarget: 0 } }
-      })
-
-      // Line accent colours — cycles through 6 department colours
-      const LINE_ACCENTS = [
-        { bg: 'linear-gradient(135deg,#3b82f6,#6366f1)', light: '#eff6ff', color: '#1e40af' },
-        { bg: 'linear-gradient(135deg,#10b981,#0891b2)', light: '#d1fae5', color: '#065f46' },
-        { bg: 'linear-gradient(135deg,#22d3ee,#0ea5e9)', light: '#e0f7fa', color: '#0e7490' },
-        { bg: 'linear-gradient(135deg,#f59e0b,#f97316)', light: '#fef3c7', color: '#92400e' },
-        { bg: 'linear-gradient(135deg,#a78bfa,#8b5cf6)', light: '#ede9fe', color: '#5b21b6' },
-        { bg: 'linear-gradient(135deg,#fb7185,#ec4899)', light: '#fce7f3', color: '#9d174d' },
-      ]
-      const getLineAccent = (lineNumber) => LINE_ACCENTS[((lineNumber || 1) - 1) % 6]
-
-      const loadResearchDashboard = async (localResearchLines, localTrials, localProjects) => {
-        if (!hasPermission('analytics', 'read')) return
-        loadingAnalytics.value = true
-        try {
-          const data = await API.getResearchDashboard()
-          if (data) {
-            // Augment with researchLines table the backend doesn't return
-            const lines = localResearchLines?.value || []
-            const trials = localTrials?.value || []
-            const projects = localProjects?.value || []
-            data.researchLines = lines.map(line => ({
-              id: line.id,
-              line_number: line.line_number,
-              name: line.research_line_name || line.name,
-              active: line.active,
-              coordinator_name: line.coordinator_name || null,
-              coordinator_id: line.coordinator_id || null,
-              trialsCount: trials.filter(t => t.research_line_id === line.id).length,
-              projectsCount: projects.filter(p => p.research_line_id === line.id).length
-            }))
-            researchDashboard.value = data
-          }
-        }
-        catch { showToast('Error', 'Failed to load research dashboard', 'error') }
-        finally { loadingAnalytics.value = false }
-      }
-      const loadResearchLinesPerformance = async () => { if (!hasPermission('analytics', 'read')) return; try { researchLinesPerformance.value = await API.getResearchLinesPerformance() } catch { showToast('Error', 'Failed to load performance data', 'error') } }
-      const loadPartnerCollaborations = async () => {
-        if (!hasPermission('analytics', 'read')) return
-        try {
-          const raw = await API.getPartnerCollaborations()
-          if (raw) {
-            // Compute needsByType from partnerNeeds (group by first word as category proxy)
-            const needs = raw.partnerNeeds || []
-            const byType = {}
-            needs.forEach(n => {
-              const type = n.name.split(' ')[0] || 'Other'
-              byType[type] = (byType[type] || 0) + n.count
-            })
-            raw.needsByType = Object.entries(byType).map(([type, count]) => ({ type, count })).sort((a,b) => b.count - a.count)
-            partnerCollaborations.value = raw
-          }
-        } catch { showToast('Error', 'Failed to load partner data', 'error') }
-      }
-      const loadTrialsTimeline = async (years = 3) => { if (!hasPermission('analytics', 'read')) return; try { trialsTimeline.value = await API.getClinicalTrialsTimeline(years) } catch { showToast('Error', 'Failed to load timeline', 'error') } }
-      const loadAnalyticsSummary = async () => { if (!hasPermission('analytics', 'read')) return; try { analyticsSummary.value = await API.getAnalyticsSummary() } catch { } }
-
-      const loadStaffResearchProfile = async (staffProfileModal, staffId) => {
-        if (!staffId || !hasPermission('analytics', 'read')) return
-        staffProfileModal.loadingResearch = true
-        try { staffProfileModal.researchProfile = await API.getStaffResearchProfile(staffId) }
-        catch { showToast('Error', 'Failed to load research profile', 'error') }
-        finally { staffProfileModal.loadingResearch = false }
-      }
-
-      const handleExport = async () => {
-        if (!hasPermission('analytics', 'export')) { showToast('Error', 'No permission to export data', 'error'); return }
-        exportModal.loading = true
-        try {
-          const data = await API.exportData(exportModal.type, exportModal.format)
-          const blob = new Blob([data], { type: 'text/csv' })
-          const url = window.URL.createObjectURL(blob)
-          const a = document.createElement('a'); a.href = url; a.download = `${exportModal.type}-${new Date().toISOString().split('T')[0]}.csv`
-          document.body.appendChild(a); a.click(); document.body.removeChild(a); window.URL.revokeObjectURL(url)
-          showToast('Success', 'Export completed', 'success'); exportModal.show = false
-        } catch (e) { showToast('Error', e.message || 'Export failed', 'error') }
-        finally { exportModal.loading = false }
-      }
-
-      const showExportModal = () => { exportModal.type = 'clinical-trials'; exportModal.show = true }
-
-      return { researchDashboard, researchLinesPerformance, partnerCollaborations, trialsTimeline, analyticsSummary, loadingAnalytics, exportModal, analyticsActiveTab, researchHubTab, selectedResearchLine, researchDetailPanel, openLineDetail, closeLineDetail, loadResearchDashboard, loadResearchLinesPerformance, loadPartnerCollaborations, loadTrialsTimeline, loadAnalyticsSummary, loadStaffResearchProfile, handleExport, showExportModal,
-        activeMissionLine, portfolioKPIs, getLineAccent, LINE_ACCENTS }
-    }
-
-    // ============ 6.13 useDashboard ============
-
-    // ============================================================
-    // NEWS & BLOG — useNews composable
-    // ============================================================
-    function useNews({ showToast, showConfirmation, medicalStaff, researchLines }) {
-      const newsPosts      = ref([])
-      const newsLoading    = ref(false)
-      const newsModal      = reactive({
-        show: false, mode: 'add', _tab: 'meta',
-        form: {
-          id: null, post_type: 'article', title: '', body: '', featured_image_url: '',
-          author_id: '', research_line_id: '', is_public: false,
-          status: 'draft', expires_at: '',
-          journal_name: '', authors_text: '', doi: ''
-        }
-      })
-      const newsFilters    = reactive({ type: '', status: '', search: '', scope: '' })
-      const newsWordCount  = computed(() => {
-        const t = newsModal.form.body || ''
-        return t.trim() === '' ? 0 : t.trim().split(/\s+/).length
-      })
-      const newsWordLimit  = computed(() => newsModal.form.post_type === 'update' ? 80 : newsModal.form.post_type === 'photo_story' ? 120 : 400)
-
-      // ── Helpers ─────────────────────────────────────────────
-      const formatAuthorName = (staffId) => {
-        const s = (medicalStaff.value || []).find(m => m.id === staffId)
-        if (!s) return '—'
-        const parts = (s.full_name || '').trim().split(' ')
-        const last  = parts[parts.length - 1]
-        return `Dr. ${last}`
-      }
-      const getLineName = (lineId) => {
-        const l = (researchLines.value || []).find(r => r.id === lineId)
-        return l ? `L${l.line_number} — ${l.research_line_name || l.name}` : '—'
-      }
-      const autoExpiry = (type) => {
-        const d = new Date()
-        if (type === 'update')  d.setDate(d.getDate() + 90)
-        if (type === 'article') d.setMonth(d.getMonth() + 18)
-    if (type === 'photo_story') d.setMonth(d.getMonth() + 12)
-        if (type === 'publication') return ''
-        return d.toISOString().split('T')[0]
-      }
-
-      // Auto-update expiry when post type changes in add mode
-      watch(() => newsModal.form.post_type, (newType) => {
-        if (newsModal.mode === 'add' && newType !== 'publication') {
-          newsModal.form.expires_at = autoExpiry(newType)
-        }
-        if (newType === 'publication') {
-          newsModal.form.expires_at = ''
-        }
-      })
-
-      // ── Filtered list ────────────────────────────────────────
-      const filteredNews = computed(() => {
-        let posts = newsPosts.value || []
-        if (newsFilters.type)   posts = posts.filter(p => p.post_type === newsFilters.type)
-        if (newsFilters.status) posts = posts.filter(p => p.status === newsFilters.status)
-        if (newsFilters.scope === 'public')   posts = posts.filter(p => p.is_public)
-        if (newsFilters.scope === 'internal') posts = posts.filter(p => !p.is_public)
-        if (newsFilters.search) {
-          const q = newsFilters.search.toLowerCase()
-          posts = posts.filter(p =>
-            (p.title || '').toLowerCase().includes(q) ||
-            (p.body  || '').toLowerCase().includes(q)
-          )
-        }
-        return posts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-      })
-
-      // ── CRUD ────────────────────────────────────────────────
-      const loadNews = async () => {
-        newsLoading.value = true
-        try {
-          const data = await API.getList('/api/news')
-          newsPosts.value = data || []
-        } catch { newsPosts.value = [] }
-        finally { newsLoading.value = false }
-      }
-
-      const showAddNewsModal = () => {
-        newsModal.mode = 'add'
-        Object.assign(newsModal.form, {
-          id: null, post_type: 'article', title: '', body: '', featured_image_url: '',
-          author_id: '', research_line_id: '', is_public: false,
-          status: 'draft', expires_at: autoExpiry('article'),
-          journal_name: '', authors_text: '', doi: ''
-        })
-        newsModal.show = true
-      }
-
-      const editNews = (post) => {
-        newsModal.mode = 'edit'
-        const _s = (v) => v == null ? '' : String(v)
-        Object.assign(newsModal.form, {
-          ...post,
-          body:               _s(post.body),
-          featured_image_url: _s(post.featured_image_url),
-          journal_name:       _s(post.journal_name),
-          authors_text:       _s(post.authors_text),
-          doi:                _s(post.doi),
-          research_line_id:   post.research_line_id || '',
-          author_id:          post.author_id || '',
-          expires_at:         post.expires_at ? post.expires_at.split('T')[0] : ''
-        })
-        newsModal.show = true
-      }
-
-      const saveNews = async () => {
-        const _t = (v) => (v == null ? '' : String(v)).trim()
-        if (!_t(newsModal.form.title)) { showToast('Validation', 'Title is required', 'warn'); return }
-        if (newsModal.form.post_type === 'photo_story' && !_t(newsModal.form.featured_image_url)) {
-          showToast('Validation', 'Photo Story requires an image URL', 'warn'); return
-        }
-        if (newsModal.form.post_type !== 'publication' && !newsModal.form.author_id) {
-          showToast('Validation', 'Author is required', 'warn'); return
-        }
-        if (newsModal.form.post_type !== 'publication' && newsWordCount.value > newsWordLimit.value) {
-          showToast('Validation', `Exceeds ${newsWordLimit.value} word limit`, 'warn'); return
-        }
-        const payload = {
-          post_type:          newsModal.form.post_type,
-          title:              _t(newsModal.form.title),
-          body:               _t(newsModal.form.body) || null,
-          author_id:          newsModal.form.author_id || null,
-          research_line_id:   newsModal.form.research_line_id || null,
-          is_public:          newsModal.form.is_public,
-          status:             newsModal.form.status,
-          featured_image_url: _t(newsModal.form.featured_image_url) || null,
-          expires_at:         newsModal.form.expires_at || null,
-          journal_name:       _t(newsModal.form.journal_name) || null,
-          authors_text:       _t(newsModal.form.authors_text) || null,
-          doi:                _t(newsModal.form.doi) || null,
-          word_count:         newsWordCount.value
-        }
-        if (payload.status === 'published' && !payload.expires_at && newsModal.form.post_type !== 'publication') {
-          payload.expires_at = autoExpiry(newsModal.form.post_type)
-        }
-        try {
-          if (newsModal.mode === 'add') {
-            await API.request('/api/news', { method: 'POST', body: payload })
-            showToast('Published', 'Post created', 'success')
-          } else {
-            await API.request(`/api/news/${newsModal.form.id}`, { method: 'PUT', body: payload })
-            showToast('Updated', 'Post saved', 'success')
-          }
-          newsModal.show = false
-          await loadNews()
-        } catch (e) { showToast('Error', e.message, 'error') }
-      }
-
-      // Strip joined/virtual fields before any PUT to backend
-      const cleanPost = (post) => {
-        const { author, research_line, ...rest } = post
-        return rest
-      }
-
-      const publishNews = async (post) => {
-        try {
-          const expiry = post.expires_at || (post.post_type !== 'publication' ? autoExpiry(post.post_type) : null)
-          await API.request(`/api/news/${post.id}`, { method: 'PUT', body: {
-            ...cleanPost(post), status: 'published',
-            published_at: new Date().toISOString(),
-            expires_at: expiry
-          }})
-          showToast('Published', 'Post is now live', 'success')
-          await loadNews()
-        } catch (e) { showToast('Error', e.message, 'error') }
-      }
-
-      const archiveNews = async (post) => {
-        showConfirmation({
-          title: 'Archive Post',
-          message: `Archive "${post.title}"? It will be hidden from view but not deleted.`,
-          onConfirm: async () => {
-            try {
-              await API.request(`/api/news/${post.id}`, { method: 'PUT', body: { ...cleanPost(post), status: 'archived' }})
-              showToast('Archived', 'Post archived', 'info')
-              await loadNews()
-            } catch (e) { showToast('Error', e.message, 'error') }
-          }
-        })
-      }
-
-      const deleteNews = async (post) => {
-        showConfirmation({
-          title: 'Delete Post',
-          message: `Permanently delete "${post.title}"? This cannot be undone.`,
-          onConfirm: async () => {
-            try {
-              await API.request(`/api/news/${post.id}`, { method: 'DELETE' })
-              showToast('Deleted', 'Post deleted', 'success')
-              await loadNews()
-            } catch (e) { showToast('Error', e.message, 'error') }
-          }
-        })
-      }
-
-      const togglePublic = async (post) => {
-        try {
-          await API.request(`/api/news/${post.id}`, { method: 'PUT', body: { ...cleanPost(post), is_public: !post.is_public }})
-          showToast('Updated', post.is_public ? 'Now internal only' : 'Now public on website', 'success')
-          await loadNews()
-        } catch (e) { showToast('Error', e.message, 'error') }
-      }
-
-      return {
-        newsPosts, newsLoading, newsModal, newsFilters, filteredNews,
-        newsWordCount, newsWordLimit,
-        loadNews, showAddNewsModal, editNews, saveNews,
-        publishNews, archiveNews, deleteNews, togglePublic,
-        formatAuthorName, getLineName, autoExpiry
-      }
-    }
-
-    function useDashboard({ medicalStaff, rotations, absences, onCallSchedule, trainingUnits = ref([]) }) {
-      const systemStats = ref({
-        totalStaff: 0, activeAttending: 0, activeResidents: 0, onCallNow: 0, inSurgery: 0,
-        activeRotations: 0, endingThisWeek: 0, startingNextWeek: 0, onLeaveStaff: 0,
-        departmentStatus: 'normal', activePatients: 0, icuOccupancy: 0, wardOccupancy: 0,
-        pendingApprovals: 0, nextShiftChange: new Date(Date.now() + 6 * 3600000).toISOString()
-      })
-      const currentTime = ref(new Date())
-
-      const animateCount = (targetRef, end, duration = 600) => {
-        if (!end) return
-        const start = performance.now()
-        const step = (now) => {
-          const p = Math.min((now - start) / duration, 1); const e = 1 - Math.pow(1 - p, 3)
-          targetRef.value = Math.round(end * e)
-          if (p < 1) requestAnimationFrame(step); else targetRef.value = end
-        }
-        requestAnimationFrame(step)
-      }
-
-      const loadSystemStats = async () => {
-        try { const data = await API.getSystemStats(); if (data?.success) Object.assign(systemStats.value, data.data) } catch { }
-      }
-
-      const updateDashboardStats = () => {
-        const ns = medicalStaff.value.length
-        const na = medicalStaff.value.filter(s => s.staff_type === 'attending_physician' && s.employment_status === 'active').length
-        const nr = medicalStaff.value.filter(s => s.staff_type === 'medical_resident' && s.employment_status === 'active').length
-
-        if (systemStats.value.totalStaff === 0 && ns > 0) {
-          const tr = { value: 0 }, ar = { value: 0 }, rr = { value: 0 }
-          animateCount(tr, ns, 700); animateCount(ar, na, 600); animateCount(rr, nr, 650)
-          const iv = setInterval(() => {
-            systemStats.value.totalStaff = tr.value; systemStats.value.activeAttending = ar.value; systemStats.value.activeResidents = rr.value
-            if (tr.value >= ns) clearInterval(iv)
-          }, 16)
-        } else { systemStats.value.totalStaff = ns; systemStats.value.activeAttending = na; systemStats.value.activeResidents = nr }
-
-        const today = Utils.normalizeDate(new Date())
-        systemStats.value.onLeaveStaff = absences.value.filter(a => {
-          const s = Utils.normalizeDate(a.start_date), e = Utils.normalizeDate(a.end_date)
-          if (!s || !e || !(s <= today && today <= e)) return false
-          if (a.current_status) return a.current_status === 'currently_absent'
-          return true
-        }).length
-
-        systemStats.value.activeRotations = rotations.value.filter(r => r.rotation_status === 'active').length
-
-        const todayDate = new Date(); todayDate.setHours(0, 0, 0, 0)
-        const nextWeek = new Date(todayDate.getTime() + 7 * 86400000)
-        const twoWeeks = new Date(todayDate.getTime() + 14 * 86400000)
-
-        systemStats.value.endingThisWeek = rotations.value.filter(r => {
-          if (r.rotation_status !== 'active') return false
-          const e = new Date(Utils.normalizeDate(r.end_date) + 'T00:00:00')
-          return !isNaN(e.getTime()) && e >= todayDate && e <= nextWeek
-        }).length
-
-        systemStats.value.startingNextWeek = rotations.value.filter(r => {
-          if (r.rotation_status !== 'scheduled') return false
-          const s = new Date(Utils.normalizeDate(r.start_date) + 'T00:00:00')
-          return !isNaN(s.getTime()) && s >= nextWeek && s <= twoWeeks
-        }).length
-
-        const unique = new Set()
-        onCallSchedule.value.filter(s => Utils.normalizeDate(s.duty_date) === today).forEach(s => {
-          if (s.primary_physician_id) unique.add(s.primary_physician_id)
-          if (s.backup_physician_id) unique.add(s.backup_physician_id)
-        })
-        systemStats.value.onCallNow = unique.size
-      }
-
-      // ── Situational awareness — "What is happening today" narrative ──
-      const situationItems = computed(() => {
-        const items = []
-        const todayDate = new Date(); todayDate.setHours(0,0,0,0)
-        const in7  = new Date(todayDate.getTime() + 7  * 86400000)
-        const in30 = new Date(todayDate.getTime() + 30 * 86400000)
-
-        // Rotations ending this week
-        const endingThisWeek = rotations.value.filter(r => {
-          if (r.rotation_status !== 'active') return false
-          const e = new Date(r.end_date + 'T00:00:00')
-          return e >= todayDate && e <= in7
-        })
-        if (endingThisWeek.length > 0) {
-          const names = endingThisWeek.slice(0,2).map(r => {
-            const s = medicalStaff.value.find(x => x.id === r.resident_id)
-            return s ? s.full_name : 'Unknown'
-          }).join(', ')
-          const more = endingThisWeek.length > 2 ? ` +${endingThisWeek.length-2}` : ''
-          items.push({ icon: 'fa-clock', type: 'warn', text: `${endingThisWeek.length} rotation${endingThisWeek.length>1?'s':''} ending this week — ${names}${more}`, action: 'resident_rotations', actionFilter: { rotationStatus: 'active' } })
-        }
-
-        // Free slots opening within 30 days
-        const freeSlots = []
-        trainingUnits.value.forEach(unit => {
-          const activeRots = rotations.value.filter(r => r.training_unit_id === unit.id && r.rotation_status === 'active')
-          activeRots.forEach(r => {
-            const end = new Date(r.end_date + 'T00:00:00')
-            if (end >= todayDate && end <= in30 && activeRots.length >= unit.maximum_residents) {
-              freeSlots.push({ unit: unit.unit_name, date: r.end_date })
-            }
-          })
-        })
-        if (freeSlots.length > 0) {
-          const first = freeSlots[0]
-          const fmtDate = new Date(first.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
-          items.push({ icon: 'fa-calendar-plus', type: 'info', text: `Slot opens in ${first.unit} from ${fmtDate}`, action: 'training_units' })
-        }
-
-        // Starting next 7 days
-        const startingThisWeek = rotations.value.filter(r => {
-          if (r.rotation_status !== 'scheduled') return false
-          const s = new Date(r.start_date + 'T00:00:00')
-          return s >= todayDate && s <= in7
-        })
-        if (startingThisWeek.length > 0) {
-          items.push({ icon: 'fa-play-circle', type: 'ok', text: `${startingThisWeek.length} rotation${startingThisWeek.length>1?'s':''} starting this week`, action: 'resident_rotations' })
-        }
-
-        // Residents with no rotation in the next month
-        const unassigned = medicalStaff.value.filter(s => {
-          if (!isResidentType(s.staff_type) || s.employment_status !== 'active') return false
-          const mStart = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 1)
-          const mEnd   = new Date(todayDate.getFullYear(), todayDate.getMonth() + 2, 0)
-          return !rotations.value.some(r =>
-            r.resident_id === s.id &&
-            ['active','scheduled'].includes(r.rotation_status) &&
-            new Date(r.start_date) <= mEnd && new Date(r.end_date) >= mStart
-          )
-        })
-        if (unassigned.length > 0) {
-          const names = unassigned.slice(0,2).map(s => s.full_name || '').join(', ')
-          const more  = unassigned.length > 2 ? ` +${unassigned.length - 2}` : ''
-          items.push({ icon: 'fa-user-clock', type: 'warn', text: `${unassigned.length} resident${unassigned.length>1?'s':''} unassigned next month — ${names}${more}`, action: 'resident_rotations', urgent: unassigned.length > 2 })
-        }
-
-        // On-call gaps in next 7 days
-        const ocGaps = []
-        for (let i = 0; i < 7; i++) {
-          const d = new Date(todayDate.getTime() + i * 86400000)
-          const ds = Utils.normalizeDate(d)
-          const hasPrimary = onCallSchedule.value.some(s => Utils.normalizeDate(s.duty_date) === ds && ['primary_call','primary'].includes(s.shift_type))
-          if (!hasPrimary) ocGaps.push(d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }))
-        }
-        if (ocGaps.length > 0) {
-          items.push({ icon: 'fa-phone-slash', type: 'danger', text: `${ocGaps.length} day${ocGaps.length>1?'s':''} without primary on-call — ${ocGaps.slice(0,2).join(', ')}${ocGaps.length>2?'…':''}`, action: 'oncall_schedule', urgent: true })
-        }
-
-        // Gap + slot match — pair residents finishing soon with units opening soon
-        const gapSlotMatches = []
-        const endingSoon = rotations.value.filter(r => {
-          if (r.rotation_status !== 'active') return false
-          const e = new Date(r.end_date + 'T00:00:00')
-          return e >= todayDate && e <= in30
-        })
-        endingSoon.forEach(rot => {
-          const resident = medicalStaff.value.find(s => s.id === rot.resident_id)
-          if (!resident) return
-          // Find units with free slots opening around the same time
-          trainingUnits.value.forEach(unit => {
-            const active = rotations.value.filter(r =>
-              r.training_unit_id === unit.id && r.rotation_status === 'active'
-            )
-            if (active.length < unit.maximum_residents) {
-              gapSlotMatches.push({
-                residentName: resident.full_name,
-                residentId: resident.id,
-                unitName: unit.unit_name,
-                unitId: unit.id,
-                endDate: rot.end_date
-              })
-            }
-          })
-        })
-        if (gapSlotMatches.length > 0) {
-          const m = gapSlotMatches[0]
-          items.push({
-            icon: 'fa-link', type: 'info',
-            text: `${m.residentName} finishing rotation — ${m.unitName} has a free slot`,
-            action: 'resident_rotations',
-            actionFilter: { resident: m.residentId }
-          })
-        }
-
-        return items.sort((a,b) => {
-          const p = { danger: 0, warn: 1, info: 2, ok: 3 }
-          return (p[a.type] ?? 4) - (p[b.type] ?? 4)
-        })
-      })
-
-      // Top 3 priority items for the dashboard briefing card
-      const dailyBriefing = computed(() => situationItems.value.slice(0, 3))
-
-      const currentTimeFormatted = computed(() => Utils.formatTime(currentTime.value))
-      return { systemStats, currentTime, currentTimeFormatted, loadSystemStats, updateDashboardStats, situationItems, dailyBriefing }
-    }
-
-    // ============ 7. ROOT APP ============
-    const app = createApp({
-      setup() {
-        const loading = ref(false)
-        const saving = ref(false)
-
-        const showPassword = ref(false)
-        const loginError = ref('')
-        const loginFieldErrors = reactive({ email: '', password: '' })
-        const clearLoginError = (field) => { if (field === 'email') loginFieldErrors.email = ''; if (field === 'password') loginFieldErrors.password = ''; loginError.value = '' }
-        const handleForgotPassword = () => { showToast('Info', 'Password reset link sent', 'info') }
-
-        const auth = useAuth()
-        const { currentUser, loginForm, loginLoading, hasPermission } = auth
-        const ui = useUI()
-        const { showToast, showConfirmation, currentView, userMenuOpen, userProfileModal } = ui
-
-        const { sortState, sortBy, sortIcon, applySort } = makeSort({
-          medical_staff: { field: 'full_name', dir: 'asc' },
-          rotations: { field: 'start_date', dir: 'desc' },
-          oncall: { field: 'duty_date', dir: 'asc' },
-          absences: { field: 'start_date', dir: 'desc' },
-          trials: { field: 'protocol_id', dir: 'asc' },
-          research_lines: { field: 'line_number', dir: 'asc' }
-        })
-
-        const { pagination, resetPage, paginate, totalPages, goToPage } = makePagination([
-          ['medical_staff', 15], ['rotations', 15], ['oncall', 15], ['absences', 15], ['trials', 15]
-        ])
-
-        const { fieldErrors, setErr, clearErr: clearFieldError, clearAll } = makeValidation(['rotation', 'staff', 'absence', 'oncall', 'research'])
-
-        // ── Shared refs hoisted above all composables ──────────────────────
-        // Both useTrainingUnits and useRotations need each other's data.
-        // Hoisting the refs here breaks the circular dependency cleanly:
-        // both composables receive the same reactive container,
-        // so when either load function fills it all consumers see it immediately.
-        const trainingUnits = ref([])
-        const rotations     = ref([])
-
-        const staffOps = useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll, currentUser })
-        const { medicalStaff, allStaffLookup, hospitalsList } = staffOps
-
-        const { trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal,
-          filteredTrainingUnits, getUnitActiveRotationCount, getUnitRotations, getUnitScheduledCount, getUnitOverlapWarning, getResidentShortName,
-          loadTrainingUnits, showAddTrainingUnitModal,
-          editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians,
-          assignAttendingToUnit,
-          viewUnitResidents, saveTrainingUnit,
-          trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree,
-          tlPopover, openCellPopover, closeCellPopover,
-          occupancyPanel, unitDetailDrawer, occupancyHeatmap, occupancyPanelUnits,
-          getUnitMonthOccupancy, getNextFreeMonth, openUnitDetail
-        } = useTrainingUnits({ showToast, showConfirmation, trainingUnits, rotations, allStaffLookup })
-
-        const rotationOps = useRotations({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup, trainingUnits, rotations, currentUser })
-
-        const { departments, allDepartmentsLookup, departmentFilters, departmentModal, deptReassignModal,
-          filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount, getDeptResidentStats, getDeptHomeResidents,
-          loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment,
-          deleteDepartment, confirmDeptReassignAndDeactivate, viewDepartmentStaff,
-          deptPanel, openDeptPanel, closeDeptPanel,
-          deptPanelAttending, deptPanelResidents, deptPanelUnits,
-          getUnitSupervisorName } = useDepartments({
-          showToast, showConfirmation, medicalStaff, trainingUnits, rotations
-        })
-
-        // deptPanelRotations — uses the shared rotations ref, needs deptPanelUnits
-        const deptPanelRotations = computed(() => {
-          if (!deptPanel.dept) return []
-          const unitIds = new Set(deptPanelUnits.value.map(u => u.id))
-          return rotations.value.filter(r =>
-            unitIds.has(r.training_unit_id) &&
-            ['active','scheduled'].includes(r.rotation_status)
-          ).sort((a,b) => new Date(a.end_date) - new Date(b.end_date))
-        })
-
-        const rotDaysLeft = (r) => {
-          if (!r) return 0
-          const diff = Math.ceil((new Date(r.end_date) - new Date()) / 86400000)
-          return diff > 0 ? diff : 0
-        }
-
-        const absenceOps = useAbsences({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup, onCallSchedule: ref([]) })
-        const { absences } = absenceOps
-        const onCallOps = useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup, absences })
-        const { onCallSchedule } = onCallOps
-
-        
-        // ============ STAFF DEACTIVATION WORKFLOW ============
-        // Professional reassignment flow: scan future records before deactivating
-        const reassignmentModal = reactive({
-          show: false, staff: null, saving: false,
-          affectedShifts: [], affectedRotations: [], affectedAbsences: [],
-          replacements: {}
-        })
-
-        const deleteMedicalStaff = (staff) => {
-          const today = Utils.normalizeDate(new Date())
-
-          // Scan future on-call shifts
-          const affectedShifts = []
-          onCallSchedule.value.forEach(s => {
-            if (Utils.normalizeDate(s.duty_date) < today) return
-            if (s.primary_physician_id === staff.id) affectedShifts.push({ ...s, role: 'primary' })
-            else if (s.backup_physician_id === staff.id) affectedShifts.push({ ...s, role: 'backup' })
-          })
-
-          // Scan active/scheduled rotations
-          const affectedRotations = []
-          rotations.value.forEach(r => {
-            if (['completed', 'cancelled'].includes(r.rotation_status)) return
-            if (r.supervising_attending_id === staff.id) affectedRotations.push({ ...r, role: 'supervisor' })
-            else if (r.resident_id === staff.id) affectedRotations.push({ ...r, role: 'resident' })
-          })
-
-          // Scan future absences where this person is the cover
-          const affectedAbsences = []
-          absences.value.forEach(a => {
-            if (Utils.normalizeDate(a.end_date) < today) return
-            if (a.covering_staff_id === staff.id) affectedAbsences.push({ ...a, role: 'cover' })
-          })
-
-          const total = affectedShifts.length + affectedRotations.length + affectedAbsences.length
-
-          if (total === 0) {
-            showConfirmation({
-              title: 'Remove Staff Member',
-              message: `Remove ${staff.full_name} from active staff?`,
-              icon: 'fa-user-times',
-              confirmButtonText: 'Confirm Removal',
-              confirmButtonClass: 'btn-danger',
-              details: 'No upcoming assignments found. All historical records are preserved for audit purposes.',
-              onConfirm: async () => {
-                try {
-                  await staffOps.deactivateStaffMember(staff.id, staff.full_name)
-                  showToast('Done', `${staff.full_name} has been deactivated`, 'success')
-                } catch (e) { showToast('Error', e.message || 'Failed to remove staff member', 'error') }
-              }
-            })
-          } else {
-            Object.assign(reassignmentModal, {
-              show: true, staff, saving: false,
-              affectedShifts, affectedRotations, affectedAbsences,
-              replacements: {}
-            })
-          }
-        }
-
-        const confirmReassignAndDeactivate = async () => {
-          const { staff, affectedShifts, affectedRotations, affectedAbsences, replacements } = reassignmentModal
-          reassignmentModal.saving = true
-          try {
-            // Patch on-call shifts
-            for (const shift of affectedShifts) {
-              const newId = replacements[`shift_${shift.role}_${shift.id}`] || null
-              const existing = onCallSchedule.value.find(s => s.id === shift.id) || shift
-              const payload = {
-                primary_physician_id: shift.role === 'primary' ? newId : existing.primary_physician_id,
-                backup_physician_id:  shift.role === 'backup'  ? newId : existing.backup_physician_id,
-                duty_date: existing.duty_date, shift_type: existing.shift_type,
-                start_time: existing.start_time, end_time: existing.end_time,
-                coverage_area: existing.coverage_area, coverage_notes: existing.coverage_notes || ''
-              }
-              await API.updateOnCall(shift.id, payload)
-              const idx = onCallSchedule.value.findIndex(s => s.id === shift.id)
-              if (idx !== -1) {
-                if (shift.role === 'primary') onCallSchedule.value[idx].primary_physician_id = newId
-                else onCallSchedule.value[idx].backup_physician_id = newId
-              }
-            }
-            // Patch rotation supervisors (residents can't be re-assigned here)
-            for (const rot of affectedRotations.filter(r => r.role === 'supervisor')) {
-              const newId = replacements[`rotation_supervisor_${rot.id}`] || null
-              const existing = rotations.value.find(r => r.id === rot.id) || rot
-              await API.updateRotation(rot.id, { ...existing, supervising_attending_id: newId })
-              const idx = rotations.value.findIndex(r => r.id === rot.id)
-              if (idx !== -1) rotations.value[idx].supervising_attending_id = newId
-            }
-            // Patch absence cover assignments
-            for (const abs of affectedAbsences) {
-              const newId = replacements[`absence_cover_${abs.id}`] || null
-              const existing = absences.value.find(a => a.id === abs.id) || abs
-              await API.updateAbsence(abs.id, { ...existing, covering_staff_id: newId })
-              const idx = absences.value.findIndex(a => a.id === abs.id)
-              if (idx !== -1) absences.value[idx].covering_staff_id = newId
-            }
-            // Now deactivate
-            await staffOps.deactivateStaffMember(staff.id, staff.full_name)
-            const updatedCount = affectedShifts.length + affectedRotations.filter(r => r.role === 'supervisor').length + affectedAbsences.length
-            reassignmentModal.show = false
-            showToast('Done', `${staff.full_name} deactivated. ${updatedCount} assignment(s) updated.`, 'success')
-          } catch (e) {
-            showToast('Error', e.message || 'Failed to complete removal', 'error')
-          } finally { reassignmentModal.saving = false }
-        }
-
-
-        const commsOps = useComms({ showToast, showConfirmation })
-        const liveOps = useLiveStatus({ showToast, showConfirmation, medicalStaff, currentUser })
-        const analyticsOps = useAnalytics({ showToast, hasPermission })
-        const { loadAnalyticsSummary, loadResearchLinesPerformance, loadPartnerCollaborations } = analyticsOps
-
-        const researchOps = useResearch({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, clearAll, medicalStaff, loadAnalyticsSummary, loadResearchLinesPerformance, loadPartnerCollaborations })
-        const dashOps = useDashboard({ medicalStaff, rotations, absences, onCallSchedule, trainingUnits })
-
-        const newsOps = useNews({ showToast, showConfirmation, medicalStaff, researchLines: researchOps.researchLines })
-
-        // ── NEWS READER DRAWER ────────────────────────────────────────
-        const newsDrawer = reactive({ show: false, post: null })
-        const openNewsDrawer = (post) => { newsDrawer.post = post; newsDrawer.show = true }
-        const closeNewsDrawer = () => { newsDrawer.show = false; newsDrawer.post = null }
-        const newsDrawerPrev = computed(() => {
-          if (!newsDrawer.post) return null
-          const list = newsOps.filteredNews.value
-          const idx = list.findIndex(p => p.id === newsDrawer.post.id)
-          return idx > 0 ? list[idx - 1] : null
-        })
-        const newsDrawerNext = computed(() => {
-          if (!newsDrawer.post) return null
-          const list = newsOps.filteredNews.value
-          const idx = list.findIndex(p => p.id === newsDrawer.post.id)
-          return idx < list.length - 1 ? list[idx + 1] : null
-        })
-        const newsDrawerBodyParagraphs = computed(() => {
-          const body = newsDrawer.post?.body
-          if (!body) return []
-          const chunks = body.split(/\n{2,}/).map(s => s.trim()).filter(Boolean)
-          if (chunks.length <= 1) {
-            const sentences = body.match(/[^.!?]+[.!?]+/g) || [body]
-            const paras = []
-            for (let i = 0; i < sentences.length; i += 3)
-              paras.push(sentences.slice(i, i + 3).join(' ').trim())
-            return paras
-          }
-          return chunks
-        })
-        const newsDrawerInitials = computed(() => {
-          const name = newsDrawerAuthorFull.value || ''
-          const parts = name.trim().split(/\s+/).filter(w => w.replace('.','').length > 1)
-          if (parts.length >= 2) return (parts[0][0] + parts[parts.length-1][0]).toUpperCase()
-          return name[0]?.toUpperCase() || '?'
-        })
-        const newsDrawerAuthorFull = computed(() => {
-          const id = newsDrawer.post?.author_id
-          if (!id) return ''
-          const s = (medicalStaff.value || []).find(m => m.id === id)
-          return s?.full_name || ''
-        })
-        const newsDrawerReadMins = computed(() => {
-          const wc = newsDrawer.post?.word_count
-          return wc ? Math.max(1, Math.round(wc / 200)) : null
-        })
-        const newsDrawerLineName = computed(() => {
-          const id = newsDrawer.post?.research_line_id
-          if (!id) return ''
-          return newsOps.getLineName(id)
-        })
-        // ── END NEWS READER DRAWER ────────────────────────────────────
-
-        const { newsPosts, newsLoading, newsModal, newsFilters, filteredNews,
-                newsWordCount, newsWordLimit,
-                loadNews, showAddNewsModal, editNews, saveNews,
-                publishNews, archiveNews, deleteNews, togglePublic: toggleNewsPublic,
-                formatAuthorName: newsAuthorName, getLineName: newsLineName } = newsOps
-
-        const openAssignRotationFromUnit = (unit, startDate) => {
-          occupancyPanel.show   = false
-          unitDetailDrawer.show = false
-          rotationOps.showAddRotationModal(null, unit)
-          if (startDate) rotationOps.rotationModal.form.start_date = startDate
-        }
-        const { systemStats, updateDashboardStats, loadSystemStats, situationItems, dailyBriefing } = dashOps
-
-        // ============ NEW COMPACT VIEW STATE ============
-        const rotationView = ref('detailed') // 'compact', 'detailed', 'month'
-        const onCallView = ref('detailed')
-
-        // ============ EXISTING COMPUTED PROPERTIES ============
-        // Name lookups — canonical versions live in their composables and are
-        // exposed via ...staffOps / ...rotationOps spreads in the return below.
-        // These aliases unify access from templates that call them directly.
-        const getStaffName       = (id) => { if (!id) return 'Not assigned'; const s = allStaffLookup.value.find(x => x.id === id) || medicalStaff.value.find(x => x.id === id); return s?.full_name || 'Not assigned' }
-        const getSupervisorName  = (id) => getStaffName(id)
-        const getPhysicianName   = (id) => getStaffName(id)
-        const getResidentName    = (id) => getStaffName(id)
-        const getTrainingUnitName = (id) => trainingUnits.value.find(u => u.id === id)?.unit_name || 'Not assigned'
-        const calculateAbsenceDuration = (s, e) => Utils.dateDiff(s, e)
-        const getDaysRemaining = (d) => Utils.daysUntil(d)
-
-        // isToday(dateStr) — true if the given YYYY-MM-DD string is today's date
-        const isToday = (dateStr) => {
-          if (!dateStr) return false
-          const today = new Date(); today.setHours(0,0,0,0)
-          const d = new Date(dateStr); d.setHours(0,0,0,0)
-          return d.getTime() === today.getTime()
-        }
-
-        const getRotationProgress = (rotation) => {
-          if (!rotation) return { pct: 0, label: '', urgent: false, done: false }
-          const start = new Date(Utils.normalizeDate(rotation.start_date || rotation.rotation_start_date) + 'T00:00:00')
-          const end   = new Date(Utils.normalizeDate(rotation.end_date   || rotation.rotation_end_date)   + 'T23:59:59')
-          const now   = new Date()
-          if (rotation.rotation_status === 'completed') return { pct: 100, label: 'Completed', urgent: false, done: true }
-          if (rotation.rotation_status === 'cancelled') return { pct: 0, label: 'Cancelled', urgent: false, done: false }
-          if (isNaN(start.getTime()) || isNaN(end.getTime())) return { pct: 0, label: '', urgent: false, done: false }
-          const total = end - start
-          const elapsed = now - start
-          const pct = Math.min(100, Math.max(0, Math.round(elapsed / total * 100)))
-          const daysLeft = Math.ceil((end - now) / 86400000)
-          const urgent = daysLeft <= 7 && daysLeft >= 0
-          const label = daysLeft <= 0 ? 'Ending' : daysLeft === 1 ? '1 day left' : `${daysLeft}d left`
-          return { pct, label, urgent, done: false }
-        }
-        const getDaysUntilStart = (d) => Utils.daysUntil(d)
-
-        const getCurrentRotationForStaff = (id) => rotations.value.find(r => r.resident_id === id && r.rotation_status === 'active') || null
-        const isOnCallToday = (staffId) => { const today = Utils.normalizeDate(new Date()); return onCallSchedule.value.some(s => (s.primary_physician_id === staffId || s.backup_physician_id === staffId) && Utils.normalizeDate(s.duty_date) === today) }
-        const getUpcomingOnCall = (staffId) => { if (!staffId) return []; const today = Utils.normalizeDate(new Date()); return onCallSchedule.value.filter(s => (s.primary_physician_id === staffId || s.backup_physician_id === staffId) && Utils.normalizeDate(s.duty_date) >= today).sort((a, b) => Utils.normalizeDate(a.duty_date).localeCompare(Utils.normalizeDate(b.duty_date))) }
-        const getUpcomingLeave = (staffId) => {
-          if (!staffId) return []
-          const today = Utils.normalizeDate(new Date())
-          return absences.value
-            .filter(a => a.staff_member_id === staffId
-              && Utils.normalizeDate(a.start_date) >= today
-              && a.current_status !== 'cancelled'
-              && a.current_status !== 'completed')
-            .sort((a, b) => Utils.normalizeDate(a.start_date).localeCompare(Utils.normalizeDate(b.start_date)))
-        }
-        // Returns active + scheduled rotations for a resident (used in profile Rotations tab)
-        const getUpcomingRotations = (staffId) => {
-          if (!staffId) return []
-          return rotations.value.filter(r =>
-            r.resident_id === staffId && ['active', 'scheduled'].includes(r.rotation_status)
-          ).sort((a, b) => {
-            // active first, then by start date
-            if (a.rotation_status === 'active' && b.rotation_status !== 'active') return -1
-            if (a.rotation_status !== 'active' && b.rotation_status === 'active') return 1
-            return (a.start_date || '').localeCompare(b.start_date || '')
-          })
-        }
-                const getRotationHistory = (staffId) => { if (!staffId) return []; return rotations.value.filter(r => r.resident_id === staffId && !['active', 'scheduled'].includes(r.rotation_status)).sort((a, b) => Utils.normalizeDate(b.end_date || b.rotation_end_date).localeCompare(Utils.normalizeDate(a.end_date || a.rotation_end_date))) }
-        const getRotationDaysLeft = (staffId) => { const r = getCurrentRotationForStaff(staffId); return r ? getDaysRemaining(r.end_date || r.rotation_end_date) : 0 }
-        const getCurrentRotationSupervisor = (staffId) => { const r = getCurrentRotationForStaff(staffId); return r?.supervising_attending_id ? getStaffName(r.supervising_attending_id) : 'Not assigned' }
-        const hasProfessionalCredentials = (staff) => !!(staff?.academic_degree || staff?.specialization || staff?.training_year || staff?.clinical_certificate || staff?.medical_license)
-
-        const toggleProfileSection = (key) => {
-          if (!staffOps.staffProfileModal.collapsed) staffOps.staffProfileModal.collapsed = {}
-          staffOps.staffProfileModal.collapsed[key] = !staffOps.staffProfileModal.collapsed[key]
-        }
-
-        const viewStaffDetails = async (staff) => {
-          // Guard: staff might be undefined if medicalStaff.find() returned nothing
-          if (!staff || !staff.id) { console.warn('viewStaffDetails: staff object is undefined or missing id'); return; }
-          staffOps.staffProfileModal.staff = staff; staffOps.staffProfileModal.activeTab = 'activity'; staffOps.staffProfileModal.show = true
-          // Instant local profile from refs — shown immediately with no loading state
-          const quickProfile = researchOps.getStaffResearchQuick(staff.id)
-          if (quickProfile) staffOps.staffProfileModal.researchProfile = quickProfile
-          // Then enrich with full API data asynchronously
-          if (hasPermission('analytics', 'read')) await analyticsOps.loadStaffResearchProfile(staffOps.staffProfileModal, staff.id)
-          if (staff.staff_type === 'attending_physician' || staffTypeMap.value[staff.staff_type]?.can_supervise) {
-            staffOps.staffProfileModal.loadingSupervision = true
-            try { staffOps.staffProfileModal.supervisionData = await API.getSupervisedResidents(staff.id) }
-            catch { staffOps.staffProfileModal.supervisionData = { current: [], currentCount: 0, pastCount: 0, totalDaysSupervised: 0 } }
-            finally { staffOps.staffProfileModal.loadingSupervision = false }
-          }
-          staffOps.staffProfileModal.loadingLeave = true
-          try { staffOps.staffProfileModal.leaveBalance = await API.getLeaveBalance(staff.id) }
-          catch { staffOps.staffProfileModal.leaveBalance = null }
-          finally { staffOps.staffProfileModal.loadingLeave = false }
-        }
-
-        const formatStaffType = (t) => formatStaffTypeGlobal(t)  // single definition — composable copies removed
-        const formatStaffTypeShortFn = (t) => formatStaffTypeShort(t)
-        const getStaffTypeClass = (t) => getStaffTypeClassGlobal(t)
-        const formatEmploymentStatus = (s) => ({ active: 'Active', on_leave: 'On Leave', inactive: 'Inactive' }[s] || s)
-        const formatAbsenceReason = (r) => ABSENCE_REASON_LABELS[r] || r
-        const formatRotationStatus = (s) => ROTATION_STATUS_LABELS[s] || s
-        const getUserRoleDisplay = (r) => USER_ROLE_LABELS[r] || r
-        const formatAudience = (a) => {
-          const base = { all_staff: 'All Staff', all: 'All (incl. admin)', residents_only: 'Residents Only', attending_only: 'Attendings Only', medical_staff: 'Medical Staff', residents: 'Residents', attendings: 'Attendings' }
-          if (base[a]) return base[a]
-          if (a?.startsWith('dept_')) {
-            const deptId = a.replace('dept_', '')
-            const dept = departments.value.find(d => d.id === deptId) || allDepartmentsLookup.value.find(d => d.id === deptId)
-            return dept ? `${dept.name} — All` : 'Department'
-          }
-          return a || '—'
-        }
-        const formatStudyStatus = (s) => ({ 'Reclutando': 'Recruiting', 'Activo': 'Active', 'Completado': 'Completed', 'Suspendido': 'Suspended', 'Pendiente': 'Pending', 'Cerrado': 'Closed' }[s] || s)
-        const getCurrentViewTitle = () => VIEW_TITLES[currentView.value] || 'NeumoCare Dashboard'
-        const getCurrentViewSubtitle = () => VIEW_SUBTITLES[currentView.value] || 'Hospital Management System'
-        const getSearchPlaceholder = () => 'Search...'
-
-        const getStaffTypeIcon = (t) => ({ attending_physician: 'fa-user-md', medical_resident: 'fa-user-graduate', fellow: 'fa-user-tie', nurse_practitioner: 'fa-user-nurse' }[t] || 'fa-user')
-        const getAbsenceReasonIcon = (r) => ({ vacation: 'fa-umbrella-beach', sick_leave: 'fa-procedures', conference: 'fa-chalkboard-teacher', training: 'fa-graduation-cap', personal: 'fa-user-clock', other: 'fa-question-circle' }[r] || 'fa-clock')
-        const calculateCapacityPercent = (cur, max) => (!cur || !max) ? 0 : Math.round((cur / max) * 100)
-        const getPreviewCardClass = () => absenceOps.absenceModal.form.absence_type === 'planned' ? 'planned' : 'unplanned'
-        const getPreviewIcon = () => ({ vacation: 'fas fa-umbrella-beach', conference: 'fas fa-chalkboard-teacher', sick_leave: 'fas fa-heartbeat', training: 'fas fa-graduation-cap', personal: 'fas fa-home', other: 'fas fa-ellipsis-h' }[absenceOps.absenceModal.form.absence_reason] || 'fas fa-clock')
-        const getPreviewReasonText = () => formatAbsenceReason(absenceOps.absenceModal.form.absence_reason)
-        const getPreviewStatusClass = () => absenceOps.absenceModal.form.absence_type === 'planned' ? 'status-planned' : 'status-unplanned'
-        const getPreviewStatusText = () => absenceOps.absenceModal.form.absence_type === 'planned' ? 'Planned' : 'Unplanned'
-        const updatePreview = () => { }
-        const requestFullDossier = () => showToast('Info', 'Dossier request sent. Our team will contact you.', 'info')
-
-        // All clinical staff eligible for on-call (attendings, fellows, NPs, and residents)
-        // Dynamic: uses staffTypeMap flags instead of hardcoded type key lists
-        // Falls back to legacy keys so nothing breaks if staffTypeMap isn't loaded yet
-        const availablePhysicians = computed(() => medicalStaff.value.filter(s =>
-          s.employment_status === 'active' && s.staff_type &&
-          (staffTypeMap.value[s.staff_type] != null
-            ? true  // any active known type is eligible for scheduling
-            : ['attending_physician','fellow','nurse_practitioner','medical_resident'].includes(s.staff_type))
-        ))
-        const availableResidents = computed(() => {
-          const residents = medicalStaff.value.filter(s =>
-            s.employment_status === 'active' && s.staff_type &&
-            (staffTypeMap.value[s.staff_type] != null
-              ? staffTypeMap.value[s.staff_type].is_resident_type
-              : s.staff_type === 'medical_resident')
-          )
-          // Sort: free residents first, currently rotating last
-          const activeRotatingIds = new Set(
-            rotations.value
-              .filter(r => r.rotation_status === 'active')
-              .map(r => r.resident_id)
-          )
-          return residents.sort((a, b) => {
-            const aRot = activeRotatingIds.has(a.id) ? 1 : 0
-            const bRot = activeRotatingIds.has(b.id) ? 1 : 0
-            return aRot - bRot
-          })
-        })
-        const availableAttendings = computed(() => medicalStaff.value.filter(s =>
-          s.employment_status === 'active' && s.staff_type &&
-          (staffTypeMap.value[s.staff_type] != null
-            ? staffTypeMap.value[s.staff_type].can_supervise
-            : s.staff_type === 'attending_physician')
-        ))
-        const availableHeadsOfDepartment = computed(() => availableAttendings.value)
-        const availableReplacementStaff = computed(() => medicalStaff.value.filter(s => s.employment_status === 'active'))
-
-        const showUserProfileModal = () => {
-          // Find linked staff record by email match
-          const linkedStaff = (currentUser.value?.email || currentUser.value?.full_name)
-            ? medicalStaff.value.find(s =>
-                s.professional_email === currentUser.value?.email ||
-                s.full_name === currentUser.value?.full_name)
-            : null
-          userProfileModal.form = {
-            full_name: currentUser.value?.full_name || '',
-            email: currentUser.value?.email || '',
-            department_id: currentUser.value?.department_id || '',
-            linked_staff_id: linkedStaff?.id || null
-          }
-          userProfileModal.show = true; userMenuOpen.value = false
-        }
-
-        const saveUserProfile = async () => {
-          saving.value = true
-          try {
-            // Update display name in app_users
-            currentUser.value.full_name = userProfileModal.form.full_name
-            currentUser.value.department_id = userProfileModal.form.department_id
-            localStorage.setItem(CONFIG.USER_KEY, JSON.stringify(currentUser.value))
-            // If this user has a linked staff record, open it for full profile editing
-            if (userProfileModal.form.linked_staff_id) {
-              const staffRecord = medicalStaff.value.find(s => s.id === userProfileModal.form.linked_staff_id)
-              if (staffRecord) {
-                userProfileModal.show = false
-                viewStaffDetails(staffRecord)
-                showToast('Profile', 'Edit your full clinical profile below', 'info')
-                return
-              }
-            }
-            userProfileModal.show = false; showToast('Success', 'Profile updated', 'success')
-          }
-          catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
-          finally { saving.value = false }
-        }
-
-        const handleLogin = async () => {
-          loginFieldErrors.email = !loginForm.email ? 'Email required' : ''
-          loginFieldErrors.password = !loginForm.password ? 'Password required' : ''
-          if (loginFieldErrors.email || loginFieldErrors.password) { loginError.value = 'Please fill all required fields'; return }
-          loginLoading.value = true; loginError.value = ''
-          try {
-            const response = await API.login(loginForm.email, loginForm.password)
-            currentUser.value = response.user; localStorage.setItem(CONFIG.USER_KEY, JSON.stringify(response.user))
-            showToast('Success', `Welcome, ${response.user.full_name}!`, 'success')
-            await loadAllData(); currentView.value = 'dashboard'
-          } catch (e) { loginError.value = e.message || 'Invalid email or password'; showToast('Error', 'Login failed', 'error') }
-          finally { loginLoading.value = false }
-        }
-
-        const handleLogout = () => showConfirmation({
-          title: 'Logout', message: 'Are you sure you want to logout?',
-          icon: 'fa-sign-out-alt', confirmButtonText: 'Logout', confirmButtonClass: 'btn-danger',
-          onConfirm: async () => {
-            try { await API.logout() } finally { currentUser.value = null; currentView.value = 'login'; userMenuOpen.value = false; showToast('Info', 'Logged out successfully', 'info') }
-          }
-        })
-
-        // switchView(view, filters) — supports cross-navigation with pre-applied filters
-        // filters example: { department: deptId, category: 'external_resident' }
-        const switchView = async (view, filters = {}) => {
-          currentView.value = view; ui.mobileMenuOpen.value = false
-          // Apply pre-filters if provided (cross-view navigation)
-          if (filters.department) {
-            if (staffFilters && staffFilters.department !== undefined) staffFilters.department = filters.department
-            if (trainingUnitFilters && trainingUnitFilters.department !== undefined) trainingUnitFilters.department = filters.department
-          }
-          if (filters.residentCategory && staffFilters) { staffFilters.staffType = 'medical_resident'; staffFilters.residentCategory = filters.residentCategory }
-          if (filters.rotationStatus && rotationFilters) rotationFilters.status = filters.rotationStatus
-          if (filters.trainingUnit && rotationFilters) rotationFilters.trainingUnit = filters.trainingUnit
-          ui.searchResultsOpen.value = false
-          if (pagination[view]) pagination[view].page = 1
-          // Trigger entrance animation on content area
-          const ca = document.querySelector('.content-area')
-          if (ca) { ca.classList.remove('content-view-enter'); void ca.offsetWidth; ca.classList.add('content-view-enter') }
-          if (view === 'research_hub') {
-            // Direct navigation — default to lines tab
-            if (!analyticsOps.researchHubTab.value) analyticsOps.researchHubTab.value = 'lines'
-            currentView.value = 'research_hub'
-            return
-          } else if (view === 'research_lines') {
-            analyticsOps.researchHubTab.value = 'lines'
-            currentView.value = 'research_hub'
-            if (filters.line) researchOps.trialFilters.line = filters.line
-            return
-          } else if (view === 'clinical_trials') {
-            analyticsOps.researchHubTab.value = 'trials'
-            currentView.value = 'research_hub'
-            if (filters.line) researchOps.trialFilters.line = filters.line
-            return
-          } else if (view === 'innovation_projects') {
-            analyticsOps.researchHubTab.value = 'projects'
-            currentView.value = 'research_hub'
-            return
-          }
-        }
-
-        const toggleStatsSidebar = () => { ui.statsSidebarOpen.value = !ui.statsSidebarOpen.value }
-
-        // Research Hub drill-down helpers — need access to both analyticsOps and researchOps
-        const drillToTrials = (lineId) => {
-          if (lineId) researchOps.trialFilters.line = lineId
-          analyticsOps.researchHubTab.value = 'trials'
-          analyticsOps.researchDetailPanel.value = false
-          currentView.value = 'research_hub'
-        }
-        const drillToProjects = (lineId) => {
-          if (lineId) researchOps.projectFilters.research_line_id = lineId
-          analyticsOps.researchHubTab.value = 'projects'
-          analyticsOps.researchDetailPanel.value = false
-          currentView.value = 'research_hub'
-        }
-        const handleGlobalSearch = () => {
-          if (!globalSearchQuery.value.trim()) { ui.searchResultsOpen.value = false; return }
-          ui.searchResultsOpen.value = true
-        }
-
-        const globalSearchResults = Vue.computed(() => {
-          const q = (globalSearchQuery.value || '').toLowerCase().trim()
-          if (!q || q.length < 2) return {}
-          const results = {}
-          // Staff
-          const staff = (staffOps.medicalStaff.value || []).filter(s =>
-            (s.full_name || '').toLowerCase().includes(q) ||
-            (s.professional_email || '').toLowerCase().includes(q) ||
-            (s.staff_id || '').toLowerCase().includes(q)
-          ).slice(0, 4)
-          if (staff.length) results.staff = staff.map(s => ({ id: s.id, name: s.full_name, meta: rotationOps.formatStaffType ? rotationOps.formatStaffType(s.staff_type) : s.staff_type, icon: 'fa-user-md', action: () => { staffOps.viewStaffDetails(s); ui.searchResultsOpen.value = false; globalSearchQuery.value = '' } }))
-          // Rotations
-          const rots = (rotationOps.rotations.value || []).filter(r => {
-            const rn = (staffOps.medicalStaff.value || []).find(s => s.id === r.resident_id)
-            return rn && (rn.full_name || '').toLowerCase().includes(q)
-          }).slice(0, 3)
-          if (rots.length) results.rotations = rots.map(r => {
-            const rn = (staffOps.medicalStaff.value || []).find(s => s.id === r.resident_id)
-            return { id: r.id, name: rn ? rn.full_name : 'Resident', meta: `Rotation · ${r.rotation_status}`, icon: 'fa-calendar-check', action: () => { switchView('resident_rotations'); ui.searchResultsOpen.value = false; globalSearchQuery.value = '' } }
-          })
-          // Research lines
-          const lines = (researchOps.researchLines.value || []).filter(l =>
-            (l.name || '').toLowerCase().includes(q) ||
-            (l.description || '').toLowerCase().includes(q)
-          ).slice(0, 3)
-          if (lines.length) results.research = lines.map(l => ({ id: l.id, name: l.name, meta: `Research Line`, icon: 'fa-flask', action: () => { switchView('research_lines'); ui.searchResultsOpen.value = false; globalSearchQuery.value = '' } }))
-          return results
-        })
-
-        const clearSearch = () => { globalSearchQuery.value = ''; ui.searchResultsOpen.value = false }
-
-        // ── Staff Types Management ─────────────────────────────────────────────
-        // Loads dynamic staff types from DB and builds the reactive lookup map
-        const loadStaffTypes = async (includeInactive = false) => {
-          try {
-            const raw = await API.getStaffTypes(includeInactive)
-            staffTypesList.value = raw
-            // Build the fast-lookup map: { type_key → { display_name, badge_class, is_resident_type, can_supervise } }
-            const map = {}
-            raw.forEach(t => { map[t.type_key] = t })
-            staffTypeMap.value = map
-          } catch { console.error('Failed to load staff types') }
-        }
-
-        // ── Academic Degrees ────────────────────────────────────────────────
-        const ACADEMIC_DEGREES_FALLBACK = [
-          { id: 'LMed',     name: 'Licenciado en Medicina',                abbreviation: 'LMed'     },
-          { id: 'GMed',     name: 'Grado en Medicina',                     abbreviation: 'GMed'     },
-          { id: 'MIR',      name: 'Médico Interno Residente',              abbreviation: 'MIR'      },
-          { id: 'PhD',      name: 'Doctor en Medicina (PhD)',              abbreviation: 'PhD'      },
-          { id: 'MU',       name: 'Máster Universitario',                  abbreviation: 'MU'       },
-          { id: 'EspNeum',  name: 'Especialista en Neumología',            abbreviation: 'Esp-Neum' },
-          { id: 'DUE',      name: 'Diplomado Universitario en Enfermería', abbreviation: 'DUE'      },
-          { id: 'GEnf',     name: 'Grado en Enfermería',                   abbreviation: 'GEnf'     },
-          { id: 'TSID',     name: 'Técnico Superior Imagen Diagnóstica',   abbreviation: 'TSID'     },
-          { id: 'LFarm',    name: 'Licenciado en Farmacia',                abbreviation: 'LFarm'    },
-        ]
-
-        const loadAcademicDegrees = async () => {
-          // Skip network call — /api/academic-degrees not yet on production backend
-          // Will be re-enabled once backend v5.3 is deployed
-          academicDegrees.value = ACADEMIC_DEGREES_FALLBACK
-        }
-
-        // Staff Types manager modal (lives in System Settings)
-        const staffTypeModal = reactive({
-          show: false, mode: 'add',
-          form: { type_key: '', display_name: '', badge_class: 'badge-secondary', is_resident_type: false, can_supervise: false, display_order: 0 },
-          saving: false, deleting: false
-        })
-        const openAddStaffType = () => {
-          Object.assign(staffTypeModal.form, { type_key: '', display_name: '', badge_class: 'badge-secondary', is_resident_type: false, can_supervise: false, display_order: staffTypesList.value.length * 10 })
-          staffTypeModal.mode = 'add'
-          staffTypeModal.show = true
-        }
-        const openEditStaffType = (t) => {
-          Object.assign(staffTypeModal.form, { ...t })
-          staffTypeModal.mode = 'edit'
-          staffTypeModal.show = true
-        }
-        const saveStaffType = async () => {
-          if (!staffTypeModal.form.display_name?.trim()) { showToast('Validation', 'Display name is required', 'error'); return }
-          if (staffTypeModal.mode === 'add' && !staffTypeModal.form.type_key?.trim()) { showToast('Validation', 'Type key is required', 'error'); return }
-          staffTypeModal.saving = true
-          try {
-            if (staffTypeModal.mode === 'add') {
-              await API.createStaffType(staffTypeModal.form)
-              showToast('Success', `Staff type "${staffTypeModal.form.display_name}" created`, 'success')
-            } else {
-              await API.updateStaffType(staffTypeModal.form.id, staffTypeModal.form)
-              showToast('Success', `Staff type updated`, 'success')
-            }
-            await loadStaffTypes(true)
-            staffTypeModal.show = false
-          } catch (e) { showToast('Error', e.message || 'Failed to save staff type', 'error') }
-          finally { staffTypeModal.saving = false }
-        }
-        const deleteStaffType = async (t) => {
-          showConfirmation({
-            title: 'Remove Staff Type',
-            message: `Remove "${t.display_name}"? If staff members use this type it will be deactivated rather than deleted.`,
-            icon: 'fa-trash', confirmButtonText: 'Remove', confirmButtonClass: 'btn-danger',
-            onConfirm: async () => {
-              try {
-                const res = await API.deleteStaffType(t.id)
-                showToast('Success', res?.message || 'Staff type removed', 'success')
-                await loadStaffTypes(true)
-              } catch (e) { showToast('Error', e.message || 'Failed to remove staff type', 'error') }
-            }
-          })
-        }
-        const toggleStaffTypeActive = async (t) => {
-          try {
-            await API.updateStaffType(t.id, { is_active: !t.is_active })
-            showToast('Success', `Staff type ${t.is_active ? 'deactivated' : 'activated'}`, 'success')
-            await loadStaffTypes(true)
-          } catch (e) { showToast('Error', 'Failed to update staff type', 'error') }
-        }
-
-        const warmBackend = async () => {
-          // Fire a lightweight ping to wake Railway from sleep before the real requests hit.
-          // /health requires no auth and returns immediately once the container is warm.
-          // We don't await the result — just send and move on. By the time the main
-          // requests arrive the container will already be processing.
-          try { fetch(`${CONFIG.API_BASE_URL}/health`).catch(() => {}) } catch {}
-        }
-
-        const loadAllData = async () => {
-          loading.value = true
-          try {
-            // Wake Railway immediately — runs in background while we set up
-            warmBackend()
-
-            // loadAcademicDegrees is synchronous (uses fallback data) — free.
-            // loadStaffTypes needs ONE network call — run it in parallel with the
-            // first main batch. staffTypeMap will be populated by the time any
-            // staff dropdown renders because Vue defers rendering until microtasks settle.
-            await Promise.all([
-              loadStaffTypes(),
-              loadAcademicDegrees(),
-              staffOps.loadMedicalStaff(),
-              loadDepartments(),
-              loadTrainingUnits()
-            ])
-
-            // Second batch: depends on staff + units being loaded
-            await Promise.all([
-              rotationOps.loadRotations(),
-              onCallOps.loadOnCallSchedule(),
-              absenceOps.loadAbsences()
-            ])
-
-            updateDashboardStats()
-
-            // Third batch: non-critical, fire and forget
-            Promise.all([
-              onCallOps.loadTodaysOnCall(),
-              commsOps.loadAnnouncements(),
-              liveOps.loadClinicalStatus(),
-              liveOps.loadActiveMedicalStaff(),
-              researchOps.loadResearchLines(),
-              loadSystemStats(),
-              loadNews()
-            ]).then(() => updateDashboardStats())
-
-            // Low priority — research analytics
-            Promise.all([
-              researchOps.loadClinicalTrials(),
-              researchOps.loadInnovationProjects(),
-              analyticsOps.loadAnalyticsSummary()
-            ])
-
-          } catch { showToast('Error', 'Failed to load some data', 'error') }
-          finally { loading.value = false }
-        }
-
-        watch([medicalStaff, rotations, trainingUnits, absences], () => updateDashboardStats(), { deep: true })
-
-        onMounted(() => {
-          const token = localStorage.getItem(CONFIG.TOKEN_KEY)
-          const user = localStorage.getItem(CONFIG.USER_KEY)
-          if (token && user) {
-            try {
-              // Validate token with backend before showing the app.
-              // This blocks access from shared/QR sessions with expired tokens.
-              const parsed = JSON.parse(user)
-              currentUser.value = parsed  // optimistic — show splash while validating
-              currentView.value = 'dashboard'
-              // Validate in background — if invalid, session-expired event fires
-              API.request('/api/auth/me').then(data => {
-                if (data && data.id) {
-                  currentUser.value = { ...parsed, ...data }
-                  loadAllData()
-                } else {
-                  window.dispatchEvent(new CustomEvent('neumax:session-expired'))
-                }
-              }).catch(() => {
-                window.dispatchEvent(new CustomEvent('neumax:session-expired'))
-              })
-            }
-            catch { currentView.value = 'login' }
-          } else { currentView.value = 'login' }
-
-          // Session expiry — redirect to login cleanly from anywhere in the app
-          window.addEventListener('neumax:session-expired', () => {
-            currentUser.value = null
-            currentView.value = 'login'
-            // Close all open panels/modals
-            try {
-              const modals = [staffOps.medicalStaffModal, staffOps.staffProfileModal,
-                departmentModal, trainingUnitModal, unitResidentsModal, unitCliniciansModal,
-                rotationOps.rotationModal, rotationOps.rotationViewModal,
-                onCallOps.onCallModal, absenceOps.absenceModal, commsOps.communicationsModal]
-              modals.forEach(m => { if (m && 'show' in m) m.show = false })
-              if (deptPanel) deptPanel.show = false
-            } catch {}
-            // Set friendly message on login page
-            loginError.value = 'Your session has expired. Please log in again.'
-            showToast('Session Expired', 'Your session has expired. Please log in again.', 'warning', 6000)
-          })
-
-          const statusInterval = setInterval(() => { if (currentUser.value && !liveOps.isLoadingStatus.value) liveOps.loadClinicalStatus() }, 60000)
-          const timeInterval = setInterval(() => { dashOps.currentTime.value = new Date() }, 60000)
-
-          let rotationCheckInterval = null
-          if (rotationOps.initAutoCheck) rotationCheckInterval = rotationOps.initAutoCheck()
-
-          document.addEventListener('keydown', (e) => {
-            if (e.key !== 'Escape') return
-            const modals = [staffOps.medicalStaffModal, staffOps.staffProfileModal, departmentModal, trainingUnitModal, unitResidentsModal, unitCliniciansModal, rotationOps.rotationModal, rotationOps.rotationViewModal, onCallOps.onCallModal, absenceOps.absenceModal, commsOps.communicationsModal, userProfileModal, ui.confirmationModal, researchOps.researchLineModal, researchOps.clinicalTrialModal, researchOps.innovationProjectModal, researchOps.assignCoordinatorModal, analyticsOps.exportModal, rotationOps.activationModal]
-            modals.forEach(m => { if (m.show) m.show = false })
-          })
-
-          onUnmounted(() => { clearInterval(statusInterval); clearInterval(timeInterval); if (rotationCheckInterval) clearInterval(rotationCheckInterval) })
-        })
-
-        return {
-          // Existing returns
-          loading, saving, currentUser, loginForm, loginLoading, hasPermission,
-          ...Object.fromEntries(Object.entries(ui).filter(([k]) => k !== 'showToast')),
-          showToast, showConfirmation, ui,
-          ...staffOps,  // medicalStaff, allStaffLookup, hospitalsList (clinicalUnits removed — unused)
-          deleteMedicalStaff,          // override useStaff's deactivateStaffMember with full workflow
-          reassignmentModal, confirmReassignAndDeactivate,
-          ...onCallOps,
-          ...rotationOps,
-          ...absenceOps,
-          formatTrainingYear: Utils.formatTrainingYear, formatStudyStatus, formatSpecialization: Utils.formatSpecialization, effectiveResidentYear: Utils.effectiveResidentYear,
-          formatPhone: Utils.formatPhone, formatLicense: Utils.formatLicense,
-          getResidentCategoryInfo: Utils.getResidentCategoryInfo, formatResidentCategorySimple: Utils.formatResidentCategorySimple,
-          formatResidentCategoryDetailed: Utils.formatResidentCategoryDetailed, getResidentCategoryIcon: Utils.getResidentCategoryIcon,
-          getResidentCategoryTooltip: Utils.getResidentCategoryTooltip, getRoleInfo: Utils.getRoleInfo, getStaffRoles: Utils.getStaffRoles,
-          getDaysRemainingColor: Utils.getDaysRemainingColor, isToday,
-          departments, allDepartmentsLookup, departmentFilters, departmentModal, deptReassignModal,
-          filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount, getDeptResidentStats, getDeptHomeResidents,
-          loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment,
-          deleteDepartment, confirmDeptReassignAndDeactivate, viewDepartmentStaff,
-          deptPanel, openDeptPanel, closeDeptPanel,
-          deptPanelAttending, deptPanelResidents, deptPanelUnits, deptPanelRotations,
-          getUnitSupervisorName, rotDaysLeft,
-          trainingUnits, trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits,
-          getUnitActiveRotationCount, getUnitRotations, getUnitScheduledCount, getUnitOverlapWarning, getResidentShortName, loadTrainingUnits, showAddTrainingUnitModal,
-        trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree, tlPopover, openCellPopover, closeCellPopover,
-          occupancyPanel, unitDetailDrawer, occupancyHeatmap, occupancyPanelUnits,
-          getUnitMonthOccupancy, getNextFreeMonth, openUnitDetail, openAssignRotationFromUnit,
-          editTrainingUnit, deleteTrainingUnit, saveTrainingUnit, assignAttendingToUnit,
-          openUnitClinicians: (unit) => openUnitClinicians(unit, medicalStaff.value),
-          saveUnitClinicians,
-          viewUnitResidents: (unit) => viewUnitResidents(unit, rotations.value),
-          checkRotationAvailability: rotationOps.checkRotationAvailability,
-          rotationAvailability: rotationOps.rotationModal,  // exposes .availability state
-          ...commsOps,
-          saveCommunication: (sv) => commsOps.saveCommunication(sv ?? saving, liveOps.saveClinicalStatus),
-          ...liveOps,
-          ...researchOps,
-          saveResearchLine: () => researchOps.saveResearchLine(saving),
-          saveClinicalTrial: () => researchOps.saveClinicalTrial(saving),
-          saveInnovationProject: () => researchOps.saveInnovationProject(saving),
-          ...analyticsOps,
-          ...dashOps,
-          handleLogin, handleLogout,
-          switchView, situationItems, dailyBriefing, toggleStatsSidebar, handleGlobalSearch, globalSearchResults, clearSearch,
-          newsPosts, newsLoading, newsModal, newsFilters, filteredNews,
-          newsWordCount, newsWordLimit,
-          loadNews, showAddNewsModal, editNews, saveNews,
-          publishNews, archiveNews, deleteNews, toggleNewsPublic,
-          newsAuthorName, newsLineName,
-          newsDrawer, openNewsDrawer, closeNewsDrawer,
-          newsDrawerPrev, newsDrawerNext, newsDrawerBodyParagraphs,
-          newsDrawerInitials, newsDrawerAuthorFull, newsDrawerReadMins, newsDrawerLineName,
-          drillToTrials, drillToProjects,
-          portfolioKPIs:     researchOps.portfolioKPIs,
-          getLineAccent:     getLineAccentGlobal,
-
-          staffTypesList, staffTypeMap, academicDegrees, loadAcademicDegrees, formatStaffTypeGlobal, getStaffTypeClassGlobal, isResidentType,
-          staffTypeModal, openAddStaffType, openEditStaffType, saveStaffType, deleteStaffType, toggleStaffTypeActive, loadStaffTypes,
-          searchResultsOpen: ui.searchResultsOpen,
-          sortState, sortBy, sortIcon, pagination,
-          goToPage: (view, page) => {
-            const arrMap = {
-              medical_staff: staffOps.filteredMedicalStaffAll.value,
-              rotations:     rotationOps.filteredRotationsAll.value,
-              oncall:        onCallOps.filteredOnCallAll.value,
-              absences:      absenceOps.filteredAbsencesAll.value,
-              trials:        researchOps.filteredTrialsAll.value,
-              projects:      researchOps.filteredProjectsAll.value
-            }
-            goToPage(view, page, arrMap[view] || [])
-          },
-          staffTotalPages: staffOps.staffTotalPages,
-          compactStaffWithDividers: staffOps.compactStaffWithDividers,
-          rotationTotalPages: rotationOps.rotationTotalPages,
-          oncallTotalPages: onCallOps.oncallTotalPages,
-          absenceTotalPages: absenceOps.absenceTotalPages,
-          trialTotalPages: researchOps.trialTotalPages,
-          projectTotalPages: researchOps.projectTotalPages,
-          addKeyword: (form) => researchOps.addKeyword(form),
-          removeKeyword: (form, idx) => researchOps.removeKeyword(form, idx),
-          handleKeywordKey: (e, form) => researchOps.handleKeywordKey(e, form),
-          fieldErrors, clearFieldError: (form, field) => clearFieldError(form, field),
-          viewStaffDetails, toggleProfileSection, showUserProfileModal, saveUserProfile,
-          getStaffName, getSupervisorName, getPhysicianName, getResidentName, getTrainingUnitName,
-          calculateAbsenceDuration, getDaysRemaining, getDaysUntilStart, getRotationProgress,
-          getCurrentRotationForStaff, isOnCallToday, getUpcomingOnCall,
-          getUpcomingRotations, getUpcomingLeave, getRotationHistory, getRotationDaysLeft,
-          getCurrentRotationSupervisor, hasProfessionalCredentials,
-          formatStaffType, formatStaffTypeShortFn, getStaffTypeClass, formatEmploymentStatus, formatAbsenceReason,
-          formatRotationStatus, getUserRoleDisplay, formatAudience, formatStudyStatus,
-          getCurrentViewTitle, getCurrentViewSubtitle, getSearchPlaceholder,
-          showPassword, loginError, loginFieldErrors, clearLoginError, handleForgotPassword,
-          normalizeDate: (d) => Utils.normalizeDate(d),
-          formatDate: (d) => Utils.formatDate(d),
-          formatNewsDate: (d) => Utils.formatNewsDate(d),
-          formatDateShort: (d) => Utils.formatDateShort(d),
-          formatDatePlusDays: (d, n) => Utils.formatDatePlusDays(d, n),
-          formatRelativeDate: (d) => Utils.formatRelativeDate(d),
-          formatTime: (d) => Utils.formatTime(d),
-          formatClinicalDuration: (s, e) => Utils.formatClinicalDuration(s, e),
-          formatRelativeTime: (d) => Utils.formatRelativeTime(d),
-          formatTimeAgo: (d) => Utils.formatRelativeTime(d),
-          getInitials: (n) => Utils.getInitials(n),
-          getTomorrow: () => Utils.getTomorrow(),
-          getStaffTypeIcon, getAbsenceReasonIcon, calculateCapacityPercent,
-          getPreviewCardClass, getPreviewIcon, getPreviewReasonText,
-          getPreviewStatusClass, getPreviewStatusText, updatePreview, requestFullDossier,
-          getPhaseColor: Utils.getPhaseColor, getPartnerTypeColor: Utils.getPartnerTypeColor, getStageColor: Utils.getStageColor, getStageConfig: Utils.getStageConfig, PROJECT_STAGES: PROJECT_STAGES_DATA, formatPercentage: Utils.formatPercentage,
-          availablePhysicians, availableResidents, availableAttendings, availableHeadsOfDepartment, availableReplacementStaff,
-          // FIX 11: Partner needs options with an "Other" escape hatch handled in template
-          availablePartnerNeeds: ['Financiación', 'Distribución', 'Fabricación', 'Software', 'Regulatorio', 'Ensayos clínicos', 'Licencia de tecnología', 'Co-desarrollo'],
-          togglePartnerNeed: (need) => {
-            const arr = researchOps.innovationProjectModal.form.partner_needs
-            const idx = arr.indexOf(need)
-            if (idx === -1) arr.push(need); else arr.splice(idx, 1)
-          },
-          // FIX 5: toggle helpers for co_investigators and sub_investigators arrays
-          toggleCoInvestigator: (id) => {
-            const arr = researchOps.clinicalTrialModal.form.co_investigators
-            const idx = arr.indexOf(id)
-            if (idx === -1) arr.push(id); else arr.splice(idx, 1)
-          },
-          toggleSubInvestigator: (id) => {
-            const arr = researchOps.clinicalTrialModal.form.sub_investigators
-            const idx = arr.indexOf(id)
-            if (idx === -1) arr.push(id); else arr.splice(idx, 1)
-          },
-          toggleProjectCoInvestigator: (id) => {
-            const arr = researchOps.innovationProjectModal.form.co_investigators
-            const idx = arr.indexOf(id)
-            if (idx === -1) arr.push(id); else arr.splice(idx, 1)
-          },
-          saveMedicalStaff: () => staffOps.saveMedicalStaff(saving),
-          saveDepartment: () => saveDepartment(saving),
-          saveTrainingUnit: () => saveTrainingUnit(saving, allDepartmentsLookup),
-          saveRotation: () => rotationOps.saveRotation(saving),
-          saveOnCallSchedule: () => onCallOps.saveOnCallSchedule(saving),
-          saveOnCall: () => onCallOps.saveOnCallSchedule(saving),
-          saveAbsence: () => absenceOps.saveAbsence(saving),
-          saveUserProfile, hasPermission,
-          dismissAlert: ui.dismissAlert, activeAlertsCount: ui.activeAlertsCount,
-          
-          // NEW: Compact view properties - now coming from composables
-          rotationView,
-          onCallView,
-          residentsWithRotations: rotationOps.residentsWithRotations,
-          groupedOnCallSchedules: onCallOps.groupedOnCallSchedules,
-          staffWithOnCallOrbs: onCallOps.staffWithOnCallOrbs,
-          upcomingOnCallDays:  onCallOps.upcomingOnCallDays,
-          getRotationsForDay: rotationOps.getRotationsForDay,
-          rotationViewModal: rotationOps.rotationViewModal,
-          monthHorizon: rotationOps.monthHorizon,
-          monthOffset:  rotationOps.monthOffset,
-          getHorizonMonths:              rotationOps.getHorizonMonths,
-          getHorizonRangeLabel:          rotationOps.getHorizonRangeLabel,
-          getResidentRotationsInHorizon: rotationOps.getResidentRotationsInHorizon,
-          getRotationBarStyle:           rotationOps.getRotationBarStyle,
-          rotationStartsInHorizon:       rotationOps.rotationStartsInHorizon,
-          rotationEndsInHorizon:         rotationOps.rotationEndsInHorizon,
-          isRotationActive: rotationOps.isRotationActive,
-          isShiftActive: onCallOps.isShiftActive,
-          viewRotationDetails: rotationOps.viewRotationDetails,
-          residentGapWarnings: rotationOps.residentGapWarnings,
-        }
-      }
-    })
-
-    app.mount('#app')
-
-  } catch (error) {
-    document.body.innerHTML = `
-      <div style="padding:40px;text-align:center;margin-top:100px;color:#333;font-family:Arial,sans-serif;">
-        <h2 style="color:#dc3545;">⚠️ Application Error</h2>
-        <p style="margin:20px 0;color:#666;">The application failed to load. Please refresh the page.</p>
-        <button onclick="window.location.reload()"
-                style="padding:12px 24px;background:#007bff;color:white;border:none;border-radius:6px;cursor:pointer;">
-          🔄 Refresh Page
-        </button>
-      </div>`;
-    throw error;
+/*- ═══════════════════════════════════════════════════════════════
+   RESIDENCY YEAR — auto/override display
+═══════════════════════════════════════════════════════════════ */
+.form-hint { font-size: 10.5px; color: var(--text-3); font-weight: 400; margin-left: 4px; }
+.form-hint--auto     { color: var(--ok); }
+.form-hint--override { color: var(--warn); }
+
+.ryear-auto-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.ryear-chip {
+  display: inline-flex; align-items: center; justify-content: center; 
+  min-width: 48px; height: 34px; padding: 0 12px;
+  background: rgba(45,122,255,.1); border: 1px solid rgba(45,122,255,.25);
+  border-radius: 8px; font-size: 15px; font-weight: 700; color: var(--blue);
+  letter-spacing: .02em;
+}
+.ryear-override-btn {
+  padding: 5px 10px; border-radius: 7px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text-2);
+  font-size: 11px; cursor: pointer; transition: var(--t);
+  display: flex; align-items: center; gap: 5px;
+}
+.ryear-override-btn:hover { background: var(--blue-lt); color: var(--blue); border-color: var(--blue); }
+.ryear-override-btn--clear { color: #ef4444; border-color: rgba(239,68,68,.3); }
+.ryear-override-btn--clear:hover { background: rgba(239,68,68,.1); border-color: #ef4444; }
+.ryear-end-preview {
+  margin-top: 6px; font-size: 11px; color: var(--text-3);
+  display: flex; align-items: center; gap: 5px;
+}
+.ryear-end-preview i { color: var(--ok); }
+/* ─── UTILITY CLASSES — replace inline font-size overrides ────── */
+.fs-9  { font-size: 11px !important; }
+.fs-10 { font-size: 12px !important; }
+.fs-11 { font-size: 13px !important; }
+.icon-xs  { font-size: 11px; }
+.icon-sm  { font-size: 13px; }
+.icon-md  { font-size: 15px; }
+.text-meta    { font-size: var(--t-10); color: var(--text-3); }
+.text-caption { font-size: var(--t-11); color: var(--text-3); font-family: var(--font-data); }
+.text-label   { font-size: var(--t-10); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MEDICAL LICENSE TOGGLE
+═══════════════════════════════════════════════════════════════ */
+.license-toggle {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  padding: 8px 0;
+}
+.license-toggle input { display: none; }
+.license-toggle-track {
+  width: 40px; height: 22px; border-radius: 11px;
+  background: var(--border); position: relative;
+  transition: background var(--t);
+  flex-shrink: 0;
+}
+.license-toggle input:checked ~ .license-toggle-track { background: #0d9e6e; }
+.license-toggle-thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; transition: transform var(--t);
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+.license-toggle input:checked ~ .license-toggle-track .license-toggle-thumb {
+  transform: translateX(18px);
+}
+.license-toggle-label { font-size: 13px; color: var(--text-1); font-weight: 500; }
+
+/* ═══════════════════════════════════════════════════════════════
+   INLINE CERTIFICATE LIST
+═══════════════════════════════════════════════════════════════ */
+.cert-list-inline {
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 8px; border: 1px solid var(--border);
+  border-radius: 10px; background: var(--surface-2);
+}
+.cert-row-inline {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 7px;
+  background: var(--surface); border: 1px solid var(--border);
+  font-size: 12.5px;
+}
+.cert-row-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.cert-dot--ok      { background: #0d9e6e; box-shadow: 0 0 4px rgba(13,158,110,.4); }
+.cert-dot--expired { background: #ef4444; box-shadow: 0 0 4px rgba(239,68,68,.4); }
+.cert-row-name { flex: 1; font-weight: 600; color: var(--text-1); }
+.cert-row-dates { font-size: var(--t-11); color: var(--text-3); font-family: var(--font-data); line-height: 1.3; }
+.cert-row-del {
+  width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0;
+  border: none; background: transparent; color: var(--text-3);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; transition: var(--t);
+}
+.cert-row-del:hover { background: rgba(239,68,68,.1); color: #ef4444; }
+.cert-empty { font-size: 12px; color: var(--text-3); font-style: italic; padding: 4px 4px; }
+.cert-add-row {
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  padding: 6px; border-radius: 8px;
+  border: 1px dashed var(--blue); background: rgba(45,122,255,.03);
+}
+.cert-add-name    { flex: 2; min-width: 160px; font-size: 12px; }
+.cert-add-date    { flex: 1; min-width: 120px; font-size: 12px; }
+.cert-add-renewal { flex: 0 0 70px; font-size: 12px; }
+.cert-add-trigger {
+  width: 100%; padding: 6px; border: 1px dashed var(--border);
+  border-radius: 7px; background: transparent; color: var(--text-3);
+  font-size: 12px; cursor: pointer; transition: var(--t);
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.cert-add-trigger:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
+
+/* ═══════════════════════════════════════════════════════════════
+   DEPARTMENT CARDS — redesigned with contact + resident stats + unit occupancy
+═══════════════════════════════════════════════════════════════ */
+.departments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+  padding: 16px 0 8px;
+}
+
+.dept-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--dept-1); /* accent edge — overridden by data-accent */
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  transition: box-shadow var(--t), border-color var(--t), transform var(--t);
+}
+.dept-card:hover { box-shadow: 0 2px 8px rgba(45,122,255,.06); border-color: var(--blue-mid); }
+.dept-card[data-accent="1"] { border-left-color: var(--dept-1); }
+.dept-card[data-accent="2"] { border-left-color: var(--dept-2); }
+.dept-card[data-accent="3"] { border-left-color: var(--dept-3); }
+.dept-card[data-accent="4"] { border-left-color: var(--dept-4); }
+.dept-card[data-accent="5"] { border-left-color: var(--dept-5); }
+.dept-card[data-accent="6"] { border-left-color: var(--dept-6); }
+
+/* Header */
+.dept-card-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.dept-card-icon {
+  width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+  background: linear-gradient(135deg, #2d7aff, #1d4ed8);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; color: #fff;
+}
+.dept-card-title-block { flex: 1; min-width: 0; }
+.dept-card-name {
+  font-size: 14px; font-weight: 700; color: var(--text-1);
+  letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* ── DEPARTMENT TABLE ──────────────────────────────────────────── */
+.dept-summary-strip {
+  display:flex;border-bottom:1px solid var(--border);
+  background:var(--surface-2);
+}
+.dept-summary-item {
+  flex:1;display:flex;align-items:center;gap:8px;
+  padding:8px 16px;border-right:1px solid var(--border);
+}
+.dept-summary-item:last-child { border-right:none; }
+.dept-summary-num { font-size:.9rem;font-weight:700;color:var(--text-1); }
+.dept-summary-warn { color:var(--warning) !important; }
+.dept-summary-label { font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em; }
+
+.dept-table-row td { padding:8px 12px;vertical-align:middle; }
+.dept-table-row:hover { background:var(--surface-2); }
+
+.dept-tbl-name { font-size:13px;font-weight:600;color:var(--text-1);line-height:1.3; }
+.dept-tbl-code { font-size:10px;font-weight:700;color:var(--text-4);letter-spacing:.07em;text-transform:uppercase;margin-top:1px; }
+.dept-tbl-head { display:flex;align-items:center;gap:5px; }
+.dept-tbl-head-name { font-size:12px;color:var(--text-2); }
+.dept-tbl-mail { color:var(--blue);font-size:10px;opacity:.6;transition:opacity .15s; }
+.dept-tbl-mail:hover { opacity:1; }
+.dept-tbl-empty { font-size:11px;color:var(--text-4); }
+.dept-tbl-institution { font-size:11px;color:var(--text-3); }
+
+.dept-tbl-units { display:inline-flex;align-items:center;gap:6px;cursor:pointer; }
+.dept-tbl-count { font-size:13px;font-weight:700;color:var(--text-1); }
+.dept-tbl-occ-bars { display:flex;gap:2px;align-items:flex-end; }
+.dept-tbl-occ-bar { width:5px;height:12px;border-radius:2px; }
+.dept-tbl-units:hover .dept-tbl-occ-bar { opacity:.75; }
+.occ-full    { background:var(--danger); }
+.occ-partial { background:var(--warning); }
+.occ-free    { background:var(--ok);opacity:.5; }
+
+.dept-tbl-res { display:flex;gap:3px;justify-content:center;flex-wrap:wrap;align-items:center; }
+.dept-tbl-res-pill {
+  font-size:10px;font-weight:600;padding:2px 5px;border-radius:3px;
+  cursor:pointer;transition:opacity .15s;white-space:nowrap;
+}
+.dept-tbl-res-pill:hover { opacity:.7; }
+.res-int { background:var(--ok-lt);color:var(--ok);border:1px solid var(--ok-mid); }
+.res-rot { background:var(--partial-lt);color:var(--partial);border:1px solid var(--partial-mid); }
+.res-ext { background:var(--violet-lt);color:var(--violet);border:1px solid var(--violet-mid); }
+
+.btn-icon-sm {
+  width:24px;height:24px;border-radius:4px;border:1px solid var(--border);
+  background:transparent;color:var(--text-3);cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:10px;transition:all .15s;
+}
+.btn-icon-sm:hover { background:var(--blue-lt);color:var(--blue);border-color:var(--blue-mid); }
+.btn-icon-sm--danger:hover { background:var(--danger-lt);color:var(--danger);border-color:var(--danger-mid); }
+.row-actions { display:flex;gap:2px;justify-content:flex-end; }
+.dept-institution-badge {
+  display:inline-flex;align-items:center;gap:4px;
+  margin-top:3px;
+  font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--blue);background:var(--blue-lt);
+  border:1px solid var(--blue-mid);
+  border-radius:3px;padding:2px 6px;
+  max-width:200px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+.tuc-type-badge {
+  display:inline-flex;align-items:center;
+  margin-top:3px;
+  font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  border-radius:3px;padding:1px 5px;
+}
+.tuc-type--training_unit { background:rgba(58,191,191,.12);color:var(--teal);border:1px solid rgba(58,191,191,.25); }
+.tuc-type--clinical_unit { background:rgba(99,102,241,.12);color:#6366f1;border:1px solid rgba(99,102,241,.25); }
+.tuc-type--icu           { background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2); }
+.tuc-type--outpatient    { background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.2); }
+.tuc-type--surgical      { background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.2); }
+.tuc-type--research      { background:rgba(124,111,207,.12);color:var(--violet);border:1px solid rgba(124,111,207,.25); }
+
+/* Contact block */
+.dept-contact-block {
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.dept-contact-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px; color: var(--text-1);
+}
+.dept-contact-row i { font-size: 11px; color: var(--text-3); width: 14px; text-align: center; flex-shrink: 0; }
+.dept-contact-row--empty { color: var(--text-3); font-style: italic; }
+.dept-contact-row--sub { color: var(--text-2); font-size: 11.5px; }
+.dept-contact-info { flex: 1; min-width: 0; }
+.dept-contact-name { font-weight: 600; display: block; }
+.dept-contact-role { font-size: 10px; color: var(--text-3); }
+.dept-contact-mail {
+  width: 24px; height: 24px; border-radius: 6px;
+  background: var(--blue-lt); color: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; flex-shrink: 0; transition: var(--t);
+}
+.dept-contact-mail:hover { background: var(--blue); color: #fff; }
+.dept-contact-link { color: var(--blue); text-decoration: none; }
+.dept-contact-link:hover { text-decoration: underline; }
+
+/* Resident stats */
+.dept-residents-block {
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.dept-block-label {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .10em; text-transform: uppercase;
+  color: var(--text-3); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.dept-block-count {
+  background: var(--surface-2); border: 1px solid var(--border);
+  font-size: 10px; padding: 1px 6px; border-radius: 10px;
+  color: var(--text-2); font-weight: 600;
+}
+.dept-res-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+}
+.dept-res-stat {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 4px; border-radius: 8px; background: var(--surface-2);
+}
+.dept-res-stat--total { background: rgba(45,122,255,.06); }
+.dept-res-num { font-size: 18px; font-weight: 700; color: var(--text-1); line-height: 1; }
+.dept-res-label { font-size: 9px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); }
+.dept-res-label--int { color: var(--cat-internal); }
+.dept-res-label--rot { color: var(--cat-rotating); }
+.dept-res-label--ext { color: var(--cat-external); }
+
+/* Clinical units mini-list */
+.dept-units-block { padding: 10px 14px; flex: 1; }
+.dept-units-list { display: flex; flex-direction: column; gap: 4px; }
+.dept-unit-row {
+  display: flex; align-items: center;
+  padding: 4px 8px; border-radius: 6px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  font-size: 11.5px;
+}
+.dept-unit-name { flex: 1; min-width: 0; color: var(--text-1); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dept-unit-occ {
+  font-size: 10px; font-weight: 700; padding: 1px 6px;
+  border-radius: 10px; flex-shrink: 0; font-family: var(--font-data);
+}
+.dept-unit-occ--free  { background: rgba(13,158,110,.1); color: var(--ok); }
+.dept-unit-occ--warn  { background: rgba(245,158,11,.1); color: var(--warn); }
+.dept-unit-occ--full  { background: rgba(239,68,68,.1); color: #ef4444; }
+.dept-unit-more { font-size: 11px; color: var(--text-3); padding: 2px 8px; }
+.dept-unit-empty { font-size: 11px; color: var(--text-3); font-style: italic; padding: 4px 8px; }
+
+/* Actions */
+.dept-card-actions {
+  display: flex; gap: 5px; justify-content: flex-end;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CLINICAL UNIT SLOTS — occupancy timeline
+═══════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════
+   TRAINING UNIT CARDS — VIEW TOGGLE + TIMELINE
+═══════════════════════════════════════════════════════════════════ */
+
+/* View toggle buttons */
+.tuc-view-toggle {
+  display: flex; gap: 2px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 3px;
+}
+.tuc-view-btn {
+  width: 32px; height: 28px; border-radius: 6px; border: none;
+  background: transparent; color: var(--text-3);
+  cursor: pointer; font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--t);
+}
+.tuc-view-btn.active {
+  background: var(--blue); color: #fff;
+  box-shadow: 0 2px 6px rgba(45,122,255,.3);
+}
+.tuc-view-btn:hover:not(.active) { background: var(--border); color: var(--text-1); }
+
+/* Horizon selector */
+.tuc-horizon-row {
+  display: flex; align-items: center; gap: 4px;
+}
+.tuc-horizon-label {
+  font-size: 11px; color: var(--text-3); font-weight: 500;
+}
+.tuc-horizon-btn {
+  padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text-2);
+  font-size: 11px; font-weight: 600; cursor: pointer; transition: var(--t);
+}
+.tuc-horizon-btn.active {
+  background: var(--blue); color: #fff; border-color: var(--blue);
+}
+.tuc-horizon-btn:hover:not(.active) { border-color: var(--blue); color: var(--blue); }
+
+/* ── Card header shared ── */
+.tuc-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 8px; margin-bottom: 10px;
+}
+.tuc-head-right {
+  display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+}
+.tuc-name-row {
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.tuc-sub {
+  font-size: 11px; color: var(--text-3); margin-top: 2px;
+}
+
+/* Capacity pill */
+.tuc-cap-pill {
+  font-size: 12px; font-weight: 700;
+  padding: 2px 8px; border-radius: 20px;
+  font-family: var(--font-data);
+  background: rgba(13,158,110,.1); color: var(--ok);
+  border: 1px solid rgba(13,158,110,.2);
+}
+.tuc-cap-pill--warn  { background: rgba(245,158,11,.1); color: var(--warn); border-color: rgba(245,158,11,.2); }
+.tuc-cap-pill--full  { background: rgba(239,68,68,.1);  color: #ef4444; border-color: rgba(239,68,68,.2); }
+.tuc-cap-pill--free  { background: var(--ok-lt); color: var(--ok); border-color: var(--ok-mid); }
+
+/* ── TIMELINE BODY ── */
+.tuc-timeline-body {
+  margin-bottom: 8px;
+  padding: 8px 12px 0;
+}
+
+/* Header row with month labels */
+.tuc-tl-header {
+  display: flex; align-items: center;
+  margin-bottom: 4px;
+}
+.tuc-tl-slot-label {
+  width: 32px; flex-shrink: 0;
+}
+.tuc-tl-months {
+  flex: 1; display: flex; gap: 2px;
+}
+.tuc-tl-month-label {
+  flex: 1; text-align: center;
+  font-size: 9.5px; font-weight: 700;
+  color: var(--text-3); text-transform: uppercase;
+  letter-spacing: .04em; padding: 0 2px;
+}
+.tuc-tl-month-label--current {
+  color: var(--blue); font-weight: 800;
+}
+
+/* Each slot row */
+.tuc-tl-row {
+  display: flex; align-items: center; gap: 0;
+  margin-bottom: 3px;
+}
+.tuc-tl-avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), #6366f1);
+  color: #fff; font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; cursor: default;
+  box-shadow: 0 1px 4px rgba(45,122,255,.3);
+}
+.tuc-tl-slot-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-3); font-size: 10px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Month cells */
+.tuc-tl-cell {
+  flex: 1; height: 26px; border-radius: 4px;
+  margin: 0 1px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700;
+  transition: transform .1s;
+  cursor: default;
+  position: relative;
+}
+.tuc-tl-cell:hover { transform: scaleY(1.08); z-index: 1; }
+
+.tuc-tl-cell--free {
+  background: rgba(13,158,110,.1);
+  border: 1px dashed rgba(13,158,110,.3);
+  color: var(--ok);
+}
+.tuc-tl-cell--free.tuc-tl-cell--current {
+  background: rgba(13,158,110,.18);
+  border-style: solid;
+  box-shadow: 0 0 0 1px rgba(13,158,110,.3);
+}
+.tuc-tl-cell--occupied {
+  background: linear-gradient(135deg, rgba(45,122,255,.18), rgba(99,102,241,.14));
+  border: 1px solid rgba(45,122,255,.25);
+  color: var(--blue);
+}
+.tuc-tl-cell--partial {
+  background: linear-gradient(135deg,
+    rgba(13,158,110,.12) 0%, rgba(13,158,110,.12) 40%,
+    rgba(45,122,255,.14) 60%, rgba(45,122,255,.14) 100%);
+  border: 1px solid rgba(245,158,11,.3);
+  color: var(--warn);
+}
+.tuc-tl-cell--current {
+  outline: 2px solid rgba(45,122,255,.3);
+  outline-offset: 1px;
+}
+.tuc-tl-cell-name {
+  font-size: 8px; font-weight: 800;
+  letter-spacing: .03em; opacity: .8;
+}
+.tuc-tl-cell-free { font-size: 10px; }
+
+/* Legend */
+.tuc-tl-legend {
+  display: flex; gap: 12px; margin-top: 6px;
+}
+.tuc-tl-leg-item {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10px; color: var(--text-3);
+}
+.tuc-tl-leg-dot {
+  width: 10px; height: 10px; border-radius: 3px;
+}
+.tuc-tl-leg-dot--occupied { background: rgba(45,122,255,.25); border: 1px solid rgba(45,122,255,.4); }
+.tuc-tl-leg-dot--partial  { background: rgba(245,158,11,.25); border: 1px solid rgba(245,158,11,.4); }
+.tuc-tl-leg-dot--free     { background: rgba(13,158,110,.15); border: 1px dashed rgba(13,158,110,.4); }
+
+/* "Free in Xd" chip */
+.tuc-free-soon {
+  margin-left: auto; flex-shrink: 0;
+  font-size: 10px; font-weight: 700;
+  padding: 1px 7px; border-radius: 10px;
+  background: rgba(245,158,11,.1); color: var(--warn);
+  border: 1px solid rgba(245,158,11,.25);
+}
+
+/* Timeline mode card — slightly wider look */
+.tuc--timeline-mode {
+  /* let the timeline breathe */
+}
+
+.tuc-slots {
+  display: flex; flex-direction: column; gap: 3px;
+  margin: 6px 0 6px;
+}
+.tuc-slot {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px; border-radius: 6px; font-size: 11px;
+}
+.tuc-slot--occupied {
+  background: rgba(45,122,255,.06);
+  border: 1px solid rgba(45,122,255,.15);
+}
+.tuc-slot--free {
+  background: rgba(13,158,110,.05);
+  border: 1px dashed rgba(13,158,110,.25);
+}
+.tuc-slot-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+.tuc-slot-dot--active { background: var(--blue); box-shadow: 0 0 5px rgba(45,122,255,.5); }
+.tuc-slot-dot--free   { background: var(--ok); opacity: .6; }
+.tuc-slot-name { font-weight: 600; color: var(--text-1); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tuc-slot-available { color: var(--ok); font-weight: 500; font-style: italic; }
+.tuc-slot-dates {
+  font-size: 10px; font-family: var(--font-data); font-weight: 500;
+  color: var(--text-3); flex-shrink: 0; white-space: nowrap;
+}
+
+/* External contact block in staff modal */
+.external-contact-block { display: flex; flex-direction: column; gap: 10px; }
+.form-hint { font-size: 10px; color: var(--text-3); font-weight: 400; }
+
+/* pd-link in profile drawer */
+.pd-link { color: var(--blue); text-decoration: none; }
+.pd-link:hover { text-decoration: underline; }
+
+/* ======================================================-==========
+   NEUMOCARE — Clinical Precision Design System v11.0
+   FULL REWRITE — All typography, spacing & layout fixes applied
+
+   CHANGES FROM v10:
+   ─ Token scale shifted up one step system-wide (10→11, 11→12, 12→13, 13→15)
+   ─ Body bumped 14→15px, line-height 1.5→1.55
+   ─ Content area padding uses clamp() for viewport-aware breathing room
+   ─ Navbar subtitle color elevated from --text-3 to --text-2
+   ─ Stats grid capped at 4 columns on wide screens
+   ─ Charts grid locked to 2-col on wide screens
+   ─ Table headers 10→11px; cell padding increased
+   ─ Form labels 10→11px; controls 13→14px, min-height 38→40px
+   ─ Badges/status indicators 10→11px
+   ─ Profile modal left panel widened: clamp(200,22%,260) → clamp(240,26%,320)
+   ─ Research/innovation/training/dept grids min-width bumped
+   ─ Live stats sidebar: all metric/detail text scaled up
+   ─ Rotation dots: tooltip font bumped; dot size increased
+   ─ All responsive breakpoints re-tuned to match new scale
+=================================-=============================== */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500;600&display=swap');
+
+/* ----------------------------------------------------------------
+   DESIGN TOKENS
+---------------------------------------------------------------- */
+:root {
+  /* ═══════════════════════════════════════════════════════════════
+     NEUMOCARE DESIGN SYSTEM v12
+     Clinician-grade: WCAG AA contrast, unambiguous semantics,
+     Instrument Serif deployed, blue reserved for actions only
+  ═══════════════════════════════════════════════════════════════ */
+
+  /* ── Brand ink ─────────────────────────────────────────────── */
+  --ink:   #07111f;
+  --ink-2: #132035;
+  --ink-3: #1e3050;
+
+  /* ── Action blue — ONLY for interactive/clickable elements ─── */
+  --blue:     #2563eb;
+  --blue-lt:  #eff6ff;
+  --blue-mid: #bfdbfe;
+  --blue-dim: rgba(37,99,235,.12);
+  --blue-glow:rgba(37,99,235,.28);
+
+  /* ── Surfaces & borders ─────────────────────────────────────── */
+  --canvas:    #f0f4f8;
+  --surface:   #fdfcfb;
+  --surface-2: #f5f4f0;
+  --surface-3: #edebe5;
+  --border:    #e3dfd6;
+  --border-2:  #cac5ba;
+  --border-3:  #9a9690;
+
+  /* ── Text — ALL pass WCAG AA on white ──────────────────────── */
+  --text-1: #07111f;   /* 19.3:1  — headings, primary content  */
+  --text-2: #344154;   /* 7.4:1   — secondary content           */
+  --text-3: #5a6472;   /* 4.8:1   — labels, meta (was #7a90b0 = 3.8 FAIL) */
+  --text-4: #909399;   /* 3.1:1   — placeholders only           */
+
+  /* ── Semantic colours (capacity / status) ──────────────────── */
+  --ok:        #059669; --ok-lt:    #d1fae5; --ok-mid: #6ee7b7;
+  --partial:   #0891b2; --partial-lt:#e0f7fa; --partial-mid:#67e8f9;
+  --warn:      #d97706; --warn-lt:  #fef3c7; --warn-mid:#fcd34d;
+  --danger:    #dc2626; --danger-lt:#fee2e2; --danger-mid:#fca5a5;
+  --info:      #2563eb; --info-lt:  #eff6ff;
+  --neutral:   #64748b; --neutral-lt:#f5f4f0; --neutral-mid:#cac5ba;
+  --teal:      #0891b2; --teal-lt:  #e0f7fa;
+  --purple:    #7c3aed; --purple-lt:#ede9fe;
+  --violet:    #6d28d9; --violet-lt:#f5f3ff;
+
+  /* ── Resident category colours (neutral, non-hierarchical) ─── */
+  --cat-internal: #059669;  /* green  — home dept resident        */
+  --cat-rotating: #0891b2;  /* teal   — rotating from another dept */
+  --cat-external: #7c3aed;  /* violet — external institution      */
+
+  /* ── Department accent palette (sidebar-aligned) ────────────── */
+  --dept-1: #3b82f6;  /* blue   */
+  --dept-2: #10b981;  /* emerald */
+  --dept-3: #22d3ee;  /* cyan   */
+  --dept-4: #f59e0b;  /* amber  */
+  --dept-5: #a78bfa;  /* violet */
+  --dept-6: #fb7185;  /* rose   */
+
+  /* ── Research pipeline ─────────────────────────────────────── */
+  --phase1:#4d9aff; --phase2:#00e5a0; --phase3:#ffbe3d; --phase4:#ff5566;
+  --stage-idea:#9ca3af; --stage-proto:#60a5fa; --stage-pilot:#34d399;
+  --stage-val:#fbbf24;  --stage-scale:#f97316; --stage-market:#10b981;
+
+  /* ── Typography ─────────────────────────────────────────────── */
+  --font-ui:      'DM Sans', system-ui, sans-serif;
+  --font-display: 'Instrument Serif', Georgia, serif;   /* NOW USED */
+  --font-data:    'DM Mono', 'Courier New', monospace;
+  --font-body:    var(--font-ui);
+  --font-mono:    var(--font-data);
+
+  /* ── Type scale v12 — min 12px for ALL information-bearing text */
+  --t-10: 13px;   /* table headers, badges, nav section labels     */
+  --t-11: 14px;   /* meta text, form hints, timestamps             */
+  --t-12: 15px;   /* buttons, nav links, filter controls           */
+  --t-13: 16px;   /* table body, card content, body copy           */
+  --t-15: 17px;   /* modal titles, card titles                     */
+  --t-18: 20px;   /* navbar title, section headers                 */
+  --t-24: 28px;   /* dashboard stat values                         */
+  --t-hero: clamp(28px, 3vw, 42px); /* display headings           */
+
+  /* ── Layout ─────────────────────────────────────────────────── */
+  --sidebar-w:  clamp(220px, 16vw, 248px);
+  --sidebar-sm: 56px;
+  --panel-w:    360px;
+  --topbar-h:   60px;
+
+  /* ── Elevation ──────────────────────────────────────────────── */
+  --shadow-xs: 0 1px 2px rgba(7,17,31,.04);
+  --shadow-sm: 0 1px 4px rgba(7,17,31,.06), 0 1px 2px rgba(7,17,31,.04);
+  --shadow:    0 4px 12px rgba(7,17,31,.08), 0 2px 4px rgba(7,17,31,.04);
+  --shadow-md: 0 8px 24px rgba(7,17,31,.10), 0 3px 8px rgba(7,17,31,.05);
+  --shadow-lg: 0 16px 40px rgba(7,17,31,.12), 0 6px 16px rgba(7,17,31,.06);
+  --shadow-xl: 0 32px 64px rgba(7,17,31,.18), 0 12px 24px rgba(7,17,31,.08);
+  --shadow-blue: 0 4px 16px rgba(37,99,235,.22);
+
+  /* ── Radii ──────────────────────────────────────────────────── */
+  --r-xs: 4px; --r-sm: 6px; --r: 10px;
+  --r-lg: 14px; --r-xl: 18px; --r-2xl: 24px;
+
+  /* ── Motion ─────────────────────────────────────────────────── */
+  --t:    150ms cubic-bezier(.4,0,.2,1);
+  --t-md: 240ms cubic-bezier(.4,0,.2,1);
+  --t-lg: 360ms cubic-bezier(.4,0,.2,1);
+
+  /* ── Sidebar dark surface ───────────────────────────────────── */
+  --p-bg:      #07111f; --p-surface: #0c1c30; --p-surface-2:#112340;
+  --p-border:  rgba(255,255,255,.06); --p-border-2:rgba(255,255,255,.11);
+  --p-text:    rgba(255,255,255,.92); --p-muted:   rgba(255,255,255,.44);
+  --p-faint:   rgba(255,255,255,.14);
+  --p-blue:    #60a5fa; --p-green:  #34d399;
+  --p-amber:   #fbbf24; --p-red:    #f87171; --p-teal: #22d3ee;
+  --p-violet:  #a78bfa;
+
+  /* ── Spacing ────────────────────────────────────────────────── */
+  --content-pad-x: clamp(24px, 3vw, 52px);
+  --content-pad-y: clamp(22px, 2.2vw, 36px);
+}
+
+/* ----------------------------------------------------------------
+   RESET & BASE
+---------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+[v-cloak] { display: none !important; }
+
+html { height: 100%; overflow-x: hidden; }
+
+body {
+  font-family: var(--font-ui);
+  font-size: 15px;           /* was 14px */
+  background: var(--canvas);
+  background-image: radial-gradient(circle, rgba(10,22,40,.07) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--text-1);
+  line-height: 1.55;         /* was 1.5 */
+  min-height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, select, textarea { font-family: inherit; }
+a { color: var(--blue); text-decoration: none; }
+
+/* ----------------------------------------------------------------
+   LAYOUT
+---------------------------------------------------------------- */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ================================================================
+   SIDEBAR — REDESIGNED v2
+   Instrument-panel aesthetic: deep navy base, per-section accent
+   blades, razor active state, generous breathing room
+================================================================ */
+
+/* ── Section accent tokens ─────────────────────────────────── */
+:root {
+  --sb-accent-1: #4d9aff;   /* Dashboard  — blue      */
+  --sb-accent-2: #34d399;   /* Clinical   — emerald   */
+  --sb-accent-3: #22d3ee;   /* Training   — cyan      */
+  --sb-accent-4: #fbbf24;   /* Admin      — amber     */
+  --sb-accent-5: #a78bfa;   /* Research   — violet    */
+  --sb-accent-6: #fb7185;   
+}
+
+/* ── SIDEBAR ───────────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: #0f2d54;
+  display: flex; flex-direction: column;
+  position: fixed; height: 100vh;
+  left: 0; top: 0; z-index: 200;
+  transition: width var(--t-md);
+  overflow: hidden; flex-shrink: 0;
+  isolation: isolate;
+  border-right: 0.5px solid rgba(255,255,255,.05);
+}
+
+/* Right-edge teal shimmer */
+.sidebar::before {
+  content: '';
+  position: absolute; top: 0; right: 0;
+  width: 1px; height: 100%;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    rgba(0,179,179,.35) 30%,
+    rgba(0,179,179,.18) 70%,
+    transparent 100%
+  );
+  pointer-events: none; z-index: 1;
+}
+
+/* Subtle ambient glow at bottom */
+.sidebar::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 180px;
+  background: radial-gradient(ellipse at 50% 100%, rgba(0,179,179,.07) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+}
+
+.sidebar-collapsed { width: var(--sidebar-sm); }
+
+/* ── Header ─────────────────────────────────────────────────── */
+.sidebar-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 14px; height: var(--topbar-h);
+  border-bottom: 0.5px solid rgba(255,255,255,.05);
+  flex-shrink: 0; position: relative; z-index: 2;
+}
+.sidebar-logo {
+  display: flex; align-items: center;
+  white-space: nowrap; overflow: hidden;
+}
+.sb-neumax-svg {
+  height: 22px; width: auto; display: block; flex-shrink: 0;
+  filter: drop-shadow(0 0 8px rgba(0,212,212,.22));
+}
+.sb-neumax-mono {
+  height: 26px; width: 26px; display: block;
+  filter: drop-shadow(0 0 6px rgba(0,212,212,.35));
+}
+.sidebar-toggle {
+  background: rgba(255,255,255,.04);
+  border: 0.5px solid rgba(255,255,255,.08);
+  color: rgba(255,255,255,0.55);
+  width: 26px; height: 26px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; flex-shrink: 0;
+  transition: all .18s; cursor: pointer;
+}
+.sidebar-toggle:hover {
+  background: rgba(255,255,255,.09);
+  color: #fff;
+  border-color: rgba(255,255,255,0.30);
+}
+
+/* ── Department context strip ───────────────────────────────── */
+.sidebar-dept-ctx {
+  padding: 10px 16px 9px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 0.5px solid rgba(255,255,255,.04);
+  flex-shrink: 0; position: relative; z-index: 2;
+}
+.sidebar-dept-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: #00B3B3;
+  box-shadow: 0 0 7px rgba(0,179,179,.65);
+  flex-shrink: 0;
+}
+.sidebar-dept-name {
+  font-size: .75rem; font-weight: 600;
+  color: #fff; letter-spacing: -.005em; line-height: 1.2;
+}
+.sidebar-dept-sub {
+  font-size: .52rem; font-family: var(--font-mono, monospace);
+  letter-spacing: .1em; text-transform: uppercase;
+  color: rgba(255,255,255,0.55); margin-top: 1px;
+}
+
+/* ── Nav scroll area ────────────────────────────────────────── */
+.sidebar-nav {
+  flex: 1; padding: 4px 8px 10px;
+  overflow-y: auto; overflow-x: hidden;
+  position: relative; z-index: 2;
+}
+.sidebar-nav::-webkit-scrollbar { width: 0; }
+
+/* ── Section groups ─────────────────────────────────────────── */
+.sidebar-section { margin-bottom: 2px; padding: 0; }
+
+.sidebar-section-title {
+  font-size: .55rem;
+  font-family: var(--font-mono, monospace);
+  letter-spacing: .14em; text-transform: uppercase;
+  color: rgba(255,255,255,0.42);
+  padding: 13px 6px 4px;
+  white-space: nowrap; overflow: hidden;
+  display: block;
+}
+.sidebar-section:first-child .sidebar-section-title { padding-top: 6px; }
+
+.sidebar-menu { list-style: none; margin: 0; padding: 0; }
+
+/* ── Nav link ───────────────────────────────────────────────── */
+.sidebar-menu-link {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: rgba(255,255,255,0.92);
+  font-size: .825rem; font-weight: 500;
+  letter-spacing: -.005em;
+  transition: all .15s;
+  white-space: nowrap; overflow: hidden;
+  margin-bottom: 1px; min-height: 36px;
+  position: relative; cursor: pointer;
+  text-decoration: none;
+}
+.sidebar-menu-link i { font-size: 13px; width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+.sidebar-menu-link svg { flex-shrink: 0; opacity: .75; }
+
+/* Hover */
+.sidebar-menu-link:hover {
+  background: rgba(255,255,255,.06);
+  color: #fff;
+}
+.sidebar-menu-link:hover i,
+.sidebar-menu-link:hover svg { opacity: 1; }
+
+/* ── ACTIVE STATE ───────────────────────────────────────────── */
+.sidebar-menu-link.active {
+  background: rgba(0,179,179,.1);
+  color: #fff; font-weight: 600;
+}
+.sidebar-menu-link.active i,
+.sidebar-menu-link.active svg { opacity: 1; color: #00B3B3; }
+
+/* Teal left blade */
+.sidebar-menu-link.active::before {
+  content: '';
+  position: absolute; left: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 18px;
+  background: #00B3B3;
+  border-radius: 0 3px 3px 0;
+  box-shadow: 0 0 10px rgba(0,179,179,.6);
+}
+
+/* ── Tooltip when collapsed ─────────────────────────────────── */
+.sidebar-collapsed .sidebar-menu-link::after {
+  content: attr(data-tooltip);
+  position: absolute; left: calc(var(--sidebar-sm) - 6px); top: 50%;
+  transform: translateY(-50%);
+  background: #0a2448; color: #fff;
+  padding: 5px 12px; border-radius: var(--r-sm);
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity var(--t);
+  z-index: 9999; border: 1px solid rgba(255,255,255,.09);
+  box-shadow: var(--shadow-md);
+}
+.sidebar-collapsed .sidebar-menu-link:hover::after { opacity: 1; }
+
+/* ── Footer / user area ─────────────────────────────────────── */
+.sidebar-footer {
+  padding: 10px; border-top: 0.5px solid rgba(255,255,255,.05);
+  flex-shrink: 0; position: relative; z-index: 2;
+}
+.sidebar-user {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: 8px;
+  background: rgba(255,255,255,.04);
+  border: 0.5px solid rgba(255,255,255,.08);
+  overflow: hidden; transition: all .18s; cursor: pointer;
+}
+.sidebar-user:hover { background: rgba(255,255,255,.09); }
+.sidebar-user-avatar {
+  width: 30px; height: 30px;
+  border-radius: 8px; /* rounded square — not circle */
+  background: linear-gradient(135deg, #00B3B3 0%, #4A9EE8 100%);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: .7rem; font-weight: 700; flex-shrink: 0;
+  letter-spacing: .02em;
+  box-shadow: 0 0 0 1.5px rgba(0,179,179,.3);
+}
+.user-info { min-width: 0; overflow: hidden; }
+.user-name {
+  font-size: .75rem; font-weight: 600;
+  color: #fff; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; letter-spacing: -.01em;
+}
+.user-role {
+  font-size: .52rem; font-family: var(--font-mono, monospace);
+  letter-spacing: .08em; text-transform: uppercase;
+  color: rgba(255,255,255,0.65); margin-top: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ── Collapsed state ────────────────────────────────────────── */
+.sidebar-collapsed .sidebar-logo span,
+.sidebar-collapsed .sidebar-section-title,
+.sidebar-collapsed .sidebar-menu-link span,
+.sidebar-collapsed .sidebar-dept-ctx,
+.sidebar-collapsed .user-info { display: none; }
+.sidebar-collapsed .sidebar-header { justify-content: center; }
+.sidebar-collapsed .sidebar-logo  { justify-content: center; }
+.sidebar-collapsed .sidebar-menu-link { justify-content: center; padding: 7px; min-height: 34px; }
+.sidebar-collapsed .sidebar-user { justify-content: center; padding: 8px; background: transparent; border-color: transparent; }
+.mobile-open { transform: none !important; }
+
+
+.main-content {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  transition: margin-left var(--t-md);
+}
+.main-content-expanded { margin-left: var(--sidebar-sm); }
+
+/* ----------------------------------------------------------------
+   TOP NAVBAR — REDESIGNED v2
+---------------------------------------------------------------- */
+.top-navbar {
+  background: rgba(255,255,255,.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  height: var(--topbar-h);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  flex-shrink: 0;
+  z-index: 100;
+  box-shadow: 0 1px 0 var(--border), 0 2px 8px rgba(10,22,40,.04);
+}
+
+.navbar-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+
+.navbar-title-block { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.navbar-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--text-1); letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.15;
+}
+.navbar-subtitle {
+  font-size: 11px;
+  color: var(--text-3);
+  font-weight: 500;
+  white-space: nowrap;
+  letter-spacing: .01em;
+}
+.navbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.mobile-menu-toggle {
+  display: none; background: none; border: none;
+  color: var(--text-2); font-size: 16px; padding: 8px; border-radius: var(--r-sm);
+  min-width: 44px; min-height: 44px;
+}
+
+/* Search */
+.search-container { position: relative; }
+.search-box { position: relative; }
+.search-input {
+  width: 210px; padding: 7px 12px 7px 34px;
+  border: 1px solid var(--border-2); border-radius: var(--r);
+  font-size: var(--t-12); background: var(--surface-2);
+  color: var(--text-1); transition: var(--t-md);
+}
+.search-input:focus {
+  outline: none; border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-dim);
+  background: var(--surface); width: 250px;
+}
+.search-input::placeholder { color: var(--text-4); }
+.search-icon {
+  position: absolute; left: 10px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3); font-size: var(--t-11); pointer-events: none;
+}
+
+.navbar-user-btn {
+  display: flex; align-items: center; gap: 8px;
+  background: none; border: none; padding: 6px 10px;
+  border-radius: var(--r); cursor: pointer; transition: var(--t);
+  min-height: 44px;
+}
+.navbar-user-btn:hover { background: var(--surface-2); }
+.navbar-user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), var(--ink-2));
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: var(--t-11); font-weight: 700; border: 1.5px solid var(--border-2);
+}
+.text-xs { font-size: var(--t-11); color: var(--text-3); }
+
+.user-dropdown {
+  position: absolute; right: 0; top: calc(100% + 5px);
+  width: 185px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-lg);
+  overflow: hidden; z-index: 50; animation: dropIn .15s ease;
+}
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-6px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+.user-dropdown button {
+  width: 100%; text-align: left; padding: 9px 14px;
+  font-size: var(--t-12); font-weight: 500; background: none; border: none;
+  color: var(--text-2); display: flex; align-items: center; gap: 8px; transition: var(--t);
+  min-height: 44px;
+}
+.user-dropdown button i { color: var(--text-3); font-size: var(--t-12); }
+.user-dropdown button:hover { background: var(--surface-2); color: var(--text-1); }
+
+/* ----------------------------------------------------------------
+   CONTENT AREA
+---------------------------------------------------------------- */
+.content-area {
+  flex: 1;
+  padding: var(--content-pad-y) var(--content-pad-x); /* was flat 18px 20px */
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
+.content-area > * {
+  max-width: 1440px;
+}
+
+/* ----------------------------------------------------------------
+   BREADCRUMB
+---------------------------------------------------------------- */
+.breadcrumb {
+  display: flex; /* visible on ALL screen sizes */
+  align-items: center; gap: 6px;
+  margin-bottom: 16px; font-size: var(--t-11);
+  flex-wrap: wrap; color: var(--text-3);
+}
+.breadcrumb button {
+  background: none; border: none; color: var(--text-3);
+  display: flex; align-items: center; gap: 4px;
+  cursor: pointer; transition: var(--t); padding: 0; font-family: var(--font-ui);
+  font-size: var(--t-11);
+}
+.breadcrumb button:hover { color: var(--blue); }
+.bc-sep { color: var(--border-2); }
+.breadcrumb-link { color: var(--blue); cursor: pointer; font-size: var(--t-11); }
+.breadcrumb-link:hover { text-decoration: underline; }
+.breadcrumb-item { color: var(--text-3); font-size: var(--t-11); }
+.breadcrumb-item.active { color: var(--text-2); font-weight: 500; }
+.breadcrumb-sep { color: var(--text-4); font-size: 10px; }
+.bc-current { color: var(--blue); font-weight: 700; font-size: var(--t-11); }
+
+/* ----------------------------------------------------------------
+   ALERT BANNER
+---------------------------------------------------------------- */
+.alert-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(90deg, var(--danger), #b91c1c);
+  color: #fff; border-radius: var(--r-lg);
+  padding: 12px 18px; font-size: var(--t-12); font-weight: 600;
+  margin-bottom: 16px; box-shadow: 0 4px 16px rgba(220,53,69,.28);
+  flex-wrap: wrap; gap: 10px;
+}
+.alert-banner button { background: none; border: none; color: rgba(255,255,255,0.92); cursor: pointer; }
+.alert-more { font-size: var(--t-12); opacity: .8; margin-left: 6px; }
+
+/* ----------------------------------------------------------------
+   DASHBOARD HEADER
+---------------------------------------------------------------- */
+.dashboard-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap; gap: 14px;
+}
+.dashboard-header h2 {
+  font-family: var(--font-display);
+  font-size: var(--t-24); font-weight: 400; font-style: italic;
+  display: flex; align-items: center; gap: 12px; letter-spacing: -.01em;
+}
+.dashboard-header h2 i { color: var(--blue); font-size: 22px; }
+.dashboard-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ----------------------------------------------------------------
+   DASHBOARD GREETING ZONE — new top-of-dashboard welcome strip
+---------------------------------------------------------------- */
+.db-greeting {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+
+  font-family: var(--font-ui);
+}
+.db-greeting-left {}
+.db-greeting-time {
+  font-family: var(--font-ui);
+  font-size: 13px; font-weight: 400;
+  color: var(--text-3); margin-bottom: 4px;
+  letter-spacing: 0;
+}
+.db-greeting-title {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.4vw, 32px);
+  font-style: italic; font-weight: 400;
+  color: var(--text-1); letter-spacing: -.02em; line-height: 1.1;
+}
+.db-greeting-title span { color: var(--blue); }
+
+/* ── On-call timeline (replaces the dense table on dashboard) */
+.oncall-timeline {
+  display: flex; flex-direction: column; gap: 0;
+}
+.oncall-tl-item {
+  display: flex; align-items: stretch; gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.oncall-tl-item:last-child { border-bottom: none; padding-bottom: 0; }
+.oncall-tl-item:first-child { padding-top: 0; }
+
+/* Left: time column */
+.oncall-tl-time {
+  width: 90px; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: flex-end;
+  gap: 2px; padding-top: 2px;
+}
+.oncall-tl-from {
+  font-family: var(--font-data); font-size: 14px; font-weight: 700;
+  color: var(--text-1); line-height: 1;
+}
+.oncall-tl-to {
+  font-family: var(--font-data); font-size: 11px; font-weight: 500;
+  color: var(--text-3); line-height: 1;
+}
+.oncall-tl-date {
+  font-size: 10px; color: var(--text-4); font-weight: 500; letter-spacing: .02em;
+}
+
+/* Center: vertical line connector */
+.oncall-tl-connector {
+  width: 2px; flex-shrink: 0; position: relative;
+  display: flex; flex-direction: column; align-items: center;
+}
+.oncall-tl-connector::before {
+  content: ''; position: absolute;
+  top: 8px; bottom: -14px; left: 0;
+  width: 2px; background: var(--border);
+}
+.oncall-tl-item:last-child .oncall-tl-connector::before { display: none; }
+.oncall-tl-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--border);
+  position: relative; z-index: 1; flex-shrink: 0;
+  margin-top: 6px;
+  transition: border-color var(--t), box-shadow var(--t);
+}
+.oncall-tl-item.is-now .oncall-tl-dot {
+  border-color: var(--ok); background: var(--ok);
+  box-shadow: 0 0 0 4px rgba(13,158,110,.15);
+  animation: dotPulse 2s ease-in-out infinite;
+}
+@keyframes dotPulse {
+  0%,100% { box-shadow: 0 0 0 3px rgba(13,158,110,.15); }
+  50%      { box-shadow: 0 0 0 7px rgba(13,158,110,.07); }
+}
+
+/* Right: person card */
+.oncall-tl-card {
+  flex: 1; min-width: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 14px;
+  flex-wrap: wrap;
+  transition: border-color var(--t), box-shadow var(--t);
+}
+.oncall-tl-item.is-now .oncall-tl-card {
+  background: rgba(13,158,110,.04);
+  border-color: rgba(13,158,110,.22);
+  box-shadow: 0 2px 8px rgba(13,158,110,.08);
+}
+.oncall-tl-avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), var(--teal));
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; flex-shrink: 0;
+}
+.oncall-tl-info { flex: 1; min-width: 0; }
+.oncall-tl-name {
+  font-size: 14px; font-weight: 600; color: var(--text-1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.oncall-tl-role {
+  font-size: 11px; color: var(--text-3); font-weight: 500; margin-top: 1px;
+}
+.oncall-tl-badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.oncall-now-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--ok); color: #fff;
+  font-size: 10px; font-weight: 700;
+  padding: 3px 9px; border-radius: 20px;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.oncall-now-badge::before {
+  content: '';
+  width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(255,255,255,.7);
+  animation: dotPulse2 1.5s ease-in-out infinite;
+}
+@keyframes dotPulse2 {
+  0%,100% { opacity: 1; } 50% { opacity: .3; }
+}
+
+/* ----------------------------------------------------------------
+   QUICK ACTIONS BAR — REDESIGNED v2
+---------------------------------------------------------------- */
+.quick-actions-bar {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 8px 12px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-xs);
+}
+
+/* Divider before the "New Announcement" button */
+.quick-actions-bar .ml-auto {
+  margin-left: auto;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+}
+
+.action-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 15px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r);
+  color: var(--text-2);
+  font-size: 12.5px; font-weight: 600;
+  transition: background var(--t), color var(--t), border-color var(--t), transform var(--t);
+  min-height: 36px; cursor: pointer;
+}
+.action-btn i {
+  font-size: 12px;
+  opacity: .7;
+  transition: opacity var(--t), transform var(--t);
+}
+.action-btn:hover {
+  background: var(--blue-lt);
+  border-color: var(--blue-mid);
+  color: var(--blue);
+  transform: translateY(-1px);
+}
+.action-btn:hover i { opacity: 1; transform: scale(1.1); }
+
+/* ----------------------------------------------------------------
+   FILTER BAR
+---------------------------------------------------------------- */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 13px 18px;         /* was 12px 16px */
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+.filter-bar .form-select {
+  flex: 1;
+  min-width: 150px;
+  max-width: 210px;
+  background-color: var(--surface);
+  font-size: var(--t-12);
+  min-height: 40px;
+}
+.filter-bar input[type="text"],
+.filter-bar input[type="search"] {
+  flex: 2;
+  min-width: 190px;
+  max-width: 290px;
+  background: var(--surface);
+  border-color: var(--blue-mid);
+  font-size: var(--t-12);
+  min-height: 40px;
+}
+.filter-bar input[type="text"]:focus,
+.filter-bar input[type="search"]:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-dim);
+}
+.filter-bar input[type="date"] {
+  min-width: 145px;
+  flex: 0 0 auto;
+  font-size: var(--t-12);
+  min-height: 40px;
+}
+
+/* ----------------------------------------------------------------
+   BUTTONS
+---------------------------------------------------------------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 9px 18px; border: none; border-radius: var(--r);
+  font-family: var(--font-ui); font-size: var(--t-12); font-weight: 600;
+  cursor: pointer; transition: var(--t); white-space: nowrap; line-height: 1;
+}
+.btn:disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
+.btn i { font-size: var(--t-11); }
+
+.btn-primary   { background: var(--blue); color: #fff; box-shadow: 0 1px 4px rgba(45,122,255,.3); }
+.btn-primary:hover { background: #1a66f0; box-shadow: var(--shadow-blue); transform: translateY(-1px); }
+
+.btn-secondary { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--surface-3); color: var(--text-1); }
+
+.btn-outline  { background: transparent; color: var(--blue); border: 1px solid var(--blue-mid); }
+.btn-outline:hover { background: var(--blue-lt); border-color: var(--blue); }
+
+.btn-outline-primary { background: transparent; color: var(--blue); border: 1px solid var(--blue-mid); }
+.btn-outline-primary:hover { background: var(--blue-lt); border-color: var(--blue); }
+
+.btn-ghost    { background: transparent; color: var(--text-2); border: 1px solid transparent; }
+.btn-ghost:hover { background: var(--surface-2); }
+
+.btn-danger   { background: var(--danger); color: #fff; box-shadow: 0 1px 4px rgba(220,53,69,.25); }
+.btn-danger:hover { background: #c82333; transform: translateY(-1px); }
+
+.btn-warning  { background: var(--warn); color: #fff; }
+.btn-warning:hover { background: #b45309; transform: translateY(-1px); }
+
+.btn-success  { background: var(--ok); color: #fff; }
+.btn-success:hover { background: #047857; transform: translateY(-1px); }
+
+.btn-icon { width: 36px; height: 36px; padding: 0; }
+.btn-sm   { padding: 6px 12px; font-size: var(--t-11); }
+.btn-lg   { padding: 11px 24px; font-size: var(--t-13); }
+.w-100    { width: 100%; }
+
+.btn-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 13px; border-radius: 20px;
+  font-size: var(--t-11); font-weight: 600; letter-spacing: .01em;
+  cursor: pointer; transition: var(--t); white-space: nowrap;
+  border: 1px solid transparent; font-family: var(--font-ui);
+  min-height: 32px;
+}
+.btn-pill-edit    { background: var(--surface-2); border-color: var(--border); color: var(--text-2); }
+.btn-pill-edit:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); transform: translateY(-1px); }
+.btn-pill-view    { background: var(--surface-2); border-color: var(--border); color: var(--text-2); }
+.btn-pill-view:hover { background: var(--teal-lt); border-color: var(--teal); color: var(--teal); transform: translateY(-1px); }
+.btn-pill-danger  { background: var(--surface-2); border-color: var(--border); color: var(--text-3); }
+.btn-pill-danger:hover { background: var(--danger-lt); border-color: rgba(220,53,69,.3); color: var(--danger); transform: translateY(-1px); }
+.btn-pill-primary { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+.btn-pill-primary:hover { background: var(--blue); color: #fff; transform: translateY(-1px); }
+.btn-pill-success { background: var(--ok-lt); border-color: var(--ok-mid); color: var(--ok); }
+.btn-pill-success:hover { background: var(--ok); color: #fff; transform: translateY(-1px); }
+
+/* ----------------------------------------------------------------
+   CARDS
+---------------------------------------------------------------- */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-xl); padding: 22px; box-shadow: var(--shadow-sm);
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; padding-bottom: 13px; border-bottom: 1px solid var(--border);
+  flex-wrap: wrap; gap: 10px;
+}
+.card-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: var(--t-13); font-weight: 700; color: var(--text-1); letter-spacing: -.015em;
+}
+.card-title i { color: var(--blue); font-size: 15px; }
+
+/* ----------------------------------------------------------------
+   STATS GRID — REDESIGNED v2
+---------------------------------------------------------------- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px; margin-bottom: 20px;
+}
+@media (min-width: 1100px) {
+  .stats-grid:not(.mini) {
+    grid-template-columns: repeat(4, 1fr);
   }
-});
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px 22px 18px;
+  box-shadow: 0 1px 3px rgba(10,22,40,.06), 0 4px 16px rgba(10,22,40,.04);
+  position: relative; overflow: hidden;
+  transition: transform var(--t-md), box-shadow var(--t-md);
+  animation: statCardIn .55s cubic-bezier(.22,1,.36,1) both;
+  cursor: pointer;
+}
+
+/* Per-card top accent line */
+.stat-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 3px; border-radius: 16px 16px 0 0;
+}
+.stat-card:nth-child(1)::before { background: linear-gradient(90deg, #4d9aff, #818cf8); }
+.stat-card:nth-child(2)::before { background: linear-gradient(90deg, #34d399, #059669); }
+.stat-card:nth-child(3)::before { background: linear-gradient(90deg, #22d3ee, #0891b2); }
+.stat-card:nth-child(4)::before { background: linear-gradient(90deg, #fbbf24, #f97316); }
+
+/* Soft ambient glow in background */
+.stat-card::after {
+  content: ''; position: absolute; top: -20px; right: -20px;
+  width: 100px; height: 100px; border-radius: 50%;
+  pointer-events: none;
+  opacity: .4;
+}
+.stat-card:nth-child(1)::after { background: radial-gradient(circle, rgba(77,154,255,.12) 0%, transparent 70%); }
+.stat-card:nth-child(2)::after { background: radial-gradient(circle, rgba(52,211,153,.10) 0%, transparent 70%); }
+.stat-card:nth-child(3)::after { background: radial-gradient(circle, rgba(34,211,238,.10) 0%, transparent 70%); }
+.stat-card:nth-child(4)::after { background: radial-gradient(circle, rgba(251,191,36,.10) 0%, transparent 70%); }
+
+.stat-card:nth-child(1) { animation-delay: .05s; }
+.stat-card:nth-child(2) { animation-delay: .10s; }
+.stat-card:nth-child(3) { animation-delay: .15s; }
+.stat-card:nth-child(4) { animation-delay: .20s; }
+
+@keyframes statCardIn {
+  from { opacity: 0; transform: translateY(16px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 2px 6px rgba(10,22,40,.06), 0 12px 32px rgba(10,22,40,.09);
+}
+
+/* ── Card header ──────────────────────────────────────────── */
+.stat-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 14px; gap: 8px;
+}
+.stat-header h3 {
+  font-family: var(--font-data);
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .13em;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+/* Icon pill — tinted per card */
+.stat-header i {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+.stat-card:nth-child(1) .stat-header i { background: rgba(77,154,255,.1);  color: #4d9aff; }
+.stat-card:nth-child(2) .stat-header i { background: rgba(52,211,153,.1);  color: #34d399; }
+.stat-card:nth-child(3) .stat-header i { background: rgba(34,211,238,.1);  color: #22d3ee; }
+.stat-card:nth-child(4) .stat-header i { background: rgba(251,191,36,.1);  color: #fbbf24; }
+
+/* ── Big editorial number ─────────────────────────────────── */
+.stat-main-value {
+  font-family: var(--font-display);
+  font-size: clamp(44px, 4.2vw, 64px);
+  font-weight: 400; font-style: italic;
+  color: var(--text-1); line-height: .9;
+  margin-bottom: 16px; letter-spacing: -.03em;
+  display: flex; align-items: baseline; gap: 6px;
+}
+
+/* ── Breakdown rows ───────────────────────────────────────── */
+.stat-breakdown {
+  display: flex; flex-direction: column;
+  border-top: 1px solid var(--border);
+  padding-top: 12px; gap: 0;
+}
+.breakdown-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 5px 0; font-size: 12px;
+  gap: 6px;
+  border-bottom: 1px dashed rgba(10,22,40,.06);
+}
+.breakdown-item:last-child { border-bottom: none; padding-bottom: 0; }
+.breakdown-item .label { color: var(--text-2); font-weight: 400; min-width: 0; }
+.breakdown-item .value {
+  font-family: var(--font-data); font-weight: 600;
+  font-size: 12px; color: var(--text-1); flex-shrink: 0;
+}
+
+/* Mini Stats */
+.stats-grid.mini { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important; gap: 10px; }
+.stat-card.mini  { padding: 14px; text-align: center; }
+.stat-card.mini .stat-value {
+  font-family: var(--font-display);
+  font-size: 30px; font-weight: 400; line-height: 1; margin: 8px 0 4px;
+}
+.stat-card.mini .stat-label {
+  font-family: var(--font-data);
+  font-size: var(--t-10); color: var(--text-3);
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.stat-value.large {
+  font-family: var(--font-display);
+  font-size: 36px; font-weight: 400; line-height: 1; margin: 8px 0 4px; text-align: center;
+}
+
+/* ----------------------------------------------------------------
+   CHARTS GRID
+---------------------------------------------------------------- */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); /* was 300px */
+  gap: 18px; margin: 18px 0;
+}
+@media (min-width: 1100px) {
+  .charts-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.chart-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 18px;
+}
+.chart-card h4 {
+  font-size: var(--t-13); font-weight: 700; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 6px; color: var(--text-2);
+}
+.chart-card h4 i { color: var(--blue); }
+.chart-bars { display: flex; flex-direction: column; gap: 11px; }
+.chart-bar-item { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+.bar-label { width: 110px; font-size: var(--t-12); font-weight: 500; color: var(--text-2); flex-shrink: 0; } /* was 90px */
+.bar-container { flex: 1; height: 22px; background: var(--surface-2); border-radius: 12px; overflow: hidden; min-width: 80px; }
+.bar-fill { height: 100%; border-radius: 12px; transition: width .3s ease; }
+.bar-value { width: 38px; font-family: var(--font-data); font-size: var(--t-12); font-weight: 600; color: var(--text-1); text-align: right; flex-shrink: 0; }
+.empty-chart { padding: 24px; text-align: center; color: var(--text-3); font-style: italic; background: var(--surface-2); border-radius: var(--r); }
+.mini-chart { padding: 12px; }
+.chart-row  { display: flex; align-items: center; gap: 8px; padding: 6px 0; flex-wrap: wrap; }
+.chart-label{ width: 80px; font-size: var(--t-11); flex-shrink: 0; } /* was 70px */
+.chart-bar  { flex: 1; height: 16px; background: var(--surface-2); border-radius: 8px; overflow: hidden; min-width: 60px; }
+.chart-value{ width: 34px; font-family: var(--font-data); font-size: var(--t-11); font-weight: 600; }
+
+/* ----------------------------------------------------------------
+   TAGS CLOUD
+---------------------------------------------------------------- */
+.tags-cloud {
+  display: flex; flex-wrap: wrap; gap: 8px 12px;
+  padding: 16px; justify-content: center; align-items: center;
+}
+.tags-cloud .need-tag {
+  background: var(--blue-lt); color: var(--blue); border: 1px solid var(--blue-mid);
+  padding: 4px 12px; border-radius: 20px; transition: var(--t); cursor: default;
+}
+.tags-cloud .need-tag:hover { transform: scale(1.05); background: var(--blue); color: white; }
+.tags-cloud.small .need-tag { font-size: var(--t-11) !important; padding: 2px 8px; }
+
+/* ----------------------------------------------------------------
+   NEEDS GRID
+---------------------------------------------------------------- */
+.needs-grid { display: flex; flex-direction: column; gap: 10px; }
+.need-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 7px 0; border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.need-item:last-child { border-bottom: none; }
+.need-name  { width: 190px; font-size: var(--t-12); font-weight: 500; flex-shrink: 0; }
+.need-count { width: 36px; font-family: var(--font-data); font-weight: 600; flex-shrink: 0; }
+.need-bar   { flex: 1; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; min-width: 80px; }
+.need-fill  { height: 100%; background: linear-gradient(90deg, var(--blue), var(--teal)); border-radius: 4px; transition: width .3s ease; }
+.category-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.category-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; }
+.category-card h5 {
+  font-size: var(--t-12); font-weight: 700; color: var(--blue);
+  margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+.category-item { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: var(--t-11); }
+
+/* ----------------------------------------------------------------
+   TABLES
+---------------------------------------------------------------- */
+.table-responsive {
+  overflow-x: auto;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-xs);
+  -webkit-overflow-scrolling: touch;
+}
+.table {
+  width: 100%; border-collapse: collapse;
+  font-size: var(--t-12); border-spacing: 0;
+  min-width: 560px;
+}
+/* Fixed layout so page 2 columns match page 1 */
+.table-staff {
+  table-layout: fixed;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STAFF COMPACT — card grid
+   Each card: horizontal layout — avatar | body (3 text rows) | actions
+   2-column grid keeps density high without looking like a raw list
+═══════════════════════════════════════════════════════════════ */
+.scc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 6px;
+  padding: 10px 0 8px;
+}
+
+/* Card shell — fixed min-height so all cards sit on the same baseline */
+.scc {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 10px 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: box-shadow var(--t), border-color var(--t);
+  position: relative;
+  overflow: hidden;
+  min-height: 68px;
+}
+/* Left accent blade */
+.scc::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; border-radius: 3px 0 0 3px;
+  background: var(--blue); opacity: 0;
+  transition: opacity var(--t);
+}
+.scc:hover { box-shadow: 0 2px 12px rgba(45,122,255,.10); border-color: var(--blue-mid); }
+.scc:hover::before { opacity: 1; }
+.scc--inactive { opacity: .5; }
+.scc--leave::before { background: var(--warn); opacity: 1; }
+
+/* Avatar — circle, smaller */
+.scc-avatar {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; position: relative;
+  background: linear-gradient(135deg, #334155, #475569);
+  margin-top: 2px;
+}
+.scc-initials {
+  font-size: 10px; font-weight: 700; letter-spacing: .02em;
+  line-height: 1; user-select: none; text-transform: uppercase;
+}
+.scc-avatar--attending_physician { background: linear-gradient(135deg, #0d9e6e, #065f46); }
+.scc-avatar--medical_resident    { background: linear-gradient(135deg, #2d7aff, #1d4ed8); }
+.scc-avatar--fellow              { background: linear-gradient(135deg, #0891b2, #0e7490); }
+.scc-avatar--nurse_practitioner  { background: linear-gradient(135deg, #d97706, #92400e); }
+
+/* Status dot */
+.scc-dot {
+  position: absolute; bottom: -1px; right: -1px;
+  width: 8px; height: 8px; border-radius: 50%;
+  border: 2px solid var(--surface);
+}
+.scc-dot--active   { background: var(--ok); }
+.scc-dot--on_leave { background: var(--warn); }
+.scc-dot--inactive { background: #94a3b8; }
+
+/* Body */
+.scc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+/* Row 1: full name — wraps naturally, never truncates */
+.scc-name-row { display: flex; align-items: flex-start; gap: 4px; }
+.scc-name {
+  font-size: 13px; font-weight: 600; color: var(--text-1);
+  line-height: 1.3; letter-spacing: -.01em;
+  flex: 1; min-width: 0; word-break: break-word;
+}
+.scc-warn {
+  color: var(--warn); font-size: 9.5px; flex-shrink: 0;
+  cursor: help; opacity: .55; transition: opacity var(--t); margin-top: 2px;
+}
+.scc:hover .scc-warn { opacity: .9; }
+
+/* Row 2: badge + cat pill + dept */
+.scc-meta-row {
+  display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; overflow: hidden;
+}
+.scc-type-badge { font-size: 9px !important; padding: 1px 6px !important; flex-shrink: 0; }
+.scc-cat-pill {
+  font-size: 8px; font-weight: 700; letter-spacing: .04em;
+  padding: 1px 4px; border-radius: 3px; text-transform: uppercase; flex-shrink: 0;
+}
+.scc-cat--ext { background: rgba(251,191,36,.15); color: var(--warn); }
+.scc-cat--int { background: rgba(13,158,110,.12); color: var(--ok); }
+.scc-dept-text { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Row 3: rotation chip — only rendered when active, silent otherwise */
+.scc-rotation-row { display: flex; align-items: center; margin-top: 2px; }
+
+/* Legacy selectors kept for safety */
+.scc-meta { display: flex; align-items: center; gap: 4px; }
+.scc-dept-row { display: flex; align-items: center; min-height: 14px; }
+.scc-no-rotation { display: none; }
+/* Action buttons — hidden at rest, appear on card hover */
+.scc-actions {
+  display: flex; flex-direction: column; gap: 3px;
+  align-self: center; flex-shrink: 0;
+  opacity: 0;
+  transform: translateX(4px);
+  transition: opacity var(--t), transform var(--t);
+  pointer-events: none;
+}
+.scc:hover .scc-actions {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+/* Make the action buttons smaller and more subtle in this context */
+.scc-actions .rot-action-btn {
+  width: 26px; height: 26px; font-size: 10px;
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text-3);
+}
+.scc-actions .rot-action-btn:hover {
+  background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue);
+}
+.scc-actions .rot-action-btn--danger:hover {
+  background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.25); color: #ef4444;
+}
+
+/* Clear-filters pill */
+.btn-pill--clear {
+  background: rgba(239,68,68,.08) !important;
+  color: #ef4444 !important;
+  border-color: rgba(239,68,68,.2) !important;
+}
+.btn-pill--clear:hover {
+  background: rgba(239,68,68,.15) !important;
+}
+.table thead th {
+  background: var(--surface-2); padding: 9px 14px; text-align: left;
+  font-family: var(--font-data);
+  font-size: var(--t-10); font-weight: 700;                            /* was 10px (old token) */
+  text-transform: uppercase; letter-spacing: .10em; color: var(--text-3); /* reduced from .12em */
+  border-bottom: 2px solid var(--border); white-space: nowrap;
+  position: sticky; top: 0; z-index: 1; cursor: pointer; user-select: none;
+}
+.table thead th i { margin-left: 4px; font-size: var(--t-10); color: var(--text-3); }
+.table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t);
+  cursor: pointer;
+}
+.table tbody tr:last-child { border-bottom: none; }
+.table tbody tr:hover { background: var(--blue-lt); }
+.table tbody tr:hover td:first-child { border-left-color: var(--blue) !important; }
+.table-striped tbody tr:nth-child(even)      { background: rgba(244,246,250,.7); }
+.table-striped tbody tr:nth-child(even):hover{ background: var(--blue-lt); }
+.table tbody td {
+  padding: 8px 14px;
+  color: var(--text-1);
+  vertical-align: middle;
+  line-height: 1.35;
+}
+
+/* Cell helpers */
+.table tbody td .font-medium {
+  font-size: var(--t-12); font-weight: 600; color: var(--text-1);
+  letter-spacing: -.01em; display: block;
+}
+.table .text-xs.text-gray-500 {
+  font-size: var(--t-11); color: var(--text-3); display: block; margin-top: 2px;
+}
+.table .text-xs.text-blue-600 {
+  font-family: var(--font-data);
+  font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--blue); background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  padding: 1px 7px; border-radius: var(--r-xs); display: inline-block; margin-top: 3px;
+}
+.font-mono { font-family: var(--font-data); }
+
+.resident-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 12px;                      /* was 2px 8px */
+  font-family: var(--font-data); font-size: var(--t-10); font-weight: 600;
+  margin-top: 4px; white-space: nowrap; max-width: 100%;
+}
+.resident-badge i { font-size: var(--t-10); margin-right: 2px; }
+.resident-department_internal { background: var(--blue-lt); color: var(--blue); border: 1px solid var(--blue-mid); }
+.resident-rotating_other_dept { background: var(--ok-lt); color: #065f46; border: 1px solid var(--ok-mid); }
+.resident-external_resident   { background: var(--purple-lt); color: #5b21b6; border: 1px solid #d8b4fe; }
+.resident-institution { font-size: var(--t-10); opacity: 0.8; margin-left: 2px; }
+
+.table tbody tr.row-active    { border-left: 3px solid var(--ok); }
+.table tbody tr.row-on_leave  { border-left: 3px solid var(--warn); }
+.table tbody tr.row-inactive  { border-left: 3px solid var(--neutral); }
+.table tbody tr.row-scheduled { border-left: 3px solid var(--info); }
+.table tbody tr.row-completed    { border-left: 3px solid var(--teal); }
+.table tbody tr.row-cancelled    { border-left: 3px solid var(--neutral); }
+
+/* ── Absence-specific status rows ────────────────────────────────── */
+/* Currently absent — amber left edge, same as on_leave */
+.table tbody tr.row-currently_absent {
+  border-left: 3px solid var(--warn);
+  background: rgba(251,191,36,.04);
+}
+/* Planned leave — blue tint, upcoming */
+.table tbody tr.row-planned_leave {
+  border-left: 3px solid var(--p-accent);
+  background: rgba(77,154,255,.03);
+}
+/* Returned to duty — faded, greyed out, past event */
+.table tbody tr.row-returned,
+.table tbody tr.row-expired {
+  border-left: 3px solid rgba(52,211,153,.35);
+  opacity: 0.55;
+  transition: opacity var(--t);
+}
+.table tbody tr.row-returned:hover,
+.table tbody tr.row-expired:hover {
+  opacity: 1;  /* Reveal on hover so user can see/edit if needed */
+}
+/* Rotation terminated early */
+.table tbody tr.row-terminated_early {
+  border-left: 3px solid var(--danger);
+  opacity: 0.50;
+  transition: opacity var(--t);
+}
+.table tbody tr.row-terminated_early:hover { opacity: 1; }
+/* Medical staff inactive */
+.table tbody tr.row-inactive {
+  opacity: 0.50;
+  transition: opacity var(--t);
+}
+.table tbody tr.row-inactive:hover { opacity: 1; }
+
+.text-center { text-align: center; }
+
+.table-actions {
+  display: flex; gap: 3px; align-items: center; flex-wrap: nowrap;
+}
+.table-actions .btn-sm {
+  width: 26px !important; height: 26px !important; padding: 0;
+  border: 1px solid transparent; border-radius: var(--r-sm);
+  color: var(--text-4); background: transparent; transition: var(--t);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px !important;
+  opacity: 0.55;
+}
+.table-actions .btn-sm i { font-size: 10px !important; }
+.table-actions .btn-sm:hover {
+  background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue);
+  opacity: 1; transform: none;
+}
+.table-actions .btn-sm.btn-outline-danger:hover {
+  background: var(--danger-lt); border-color: var(--danger-mid); color: var(--danger);
+}
+
+.na-value {
+  font-family: var(--font-data); font-size: var(--t-10); font-weight: 600;
+  color: var(--text-4); background: var(--surface-2);
+  border: 1px dashed var(--border-2); padding: 1px 7px;
+  border-radius: var(--r-xs); letter-spacing: .03em; display: inline-block;
+}
+
+/* On-call shift cell */
+.oncall-shift-cell {
+  display: flex; flex-direction: column; gap: 2px;
+  min-width: 170px;                    /* was 160px */
+}
+.oncall-shift-start, .oncall-shift-end {
+  display: flex; align-items: baseline; gap: 6px;
+  font-family: var(--font-data); flex-wrap: wrap;
+}
+.oncall-shift-label { font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-4); width: 28px; flex-shrink: 0; }
+.oncall-shift-time  { font-size: 15px; font-weight: 700; color: var(--text-1); letter-spacing: -.01em; } /* was 14px */
+.oncall-shift-date  { font-size: var(--t-11); color: var(--text-3); }
+.oncall-shift-sep   { width: 20px; height: 1px; background: var(--border-2); margin: 3px 0 3px 34px; }
+
+.absence-duration       { font-family: var(--font-display); font-size: 22px; font-weight: 400; color: var(--text-1); line-height: 1; }
+.absence-duration-label { font-family: var(--font-data); font-size: var(--t-10); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); margin-left: 3px; }
+
+.coverage-ok  { font-size: var(--t-12); color: var(--ok);     font-weight: 600; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.coverage-gap { font-size: var(--t-12); color: var(--danger); font-weight: 600; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+
+.days-pill {
+  display: inline-flex; align-items: center;
+  background: var(--teal-lt); color: var(--teal);
+  border: 1px solid rgba(8,145,178,.2);
+  padding: 3px 10px; border-radius: 20px;
+  font-family: var(--font-data); font-size: var(--t-11); font-weight: 700; white-space: nowrap;
+}
+.days-pill.days-urgent { background: var(--warn-lt); color: var(--warn); border-color: rgba(217,119,6,.2); }
+.days-pill.days-future { background: var(--blue-lt); color: var(--blue); border-color: var(--blue-mid); }
+
+/* ----------------------------------------------------------------
+   EMPTY STATES
+---------------------------------------------------------------- */
+.empty-state {
+  text-align: center; padding: 44px 28px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.empty-state-icon { font-size: 40px; color: var(--blue); opacity: .18; display: block; margin-bottom: 4px; }
+.empty-state-title { font-size: var(--t-15); font-weight: 700; color: var(--text-2); letter-spacing: -.01em; }
+.empty-state-description { font-size: var(--t-12); color: var(--text-3); line-height: 1.5; }
+.empty-state .btn { margin-top: 6px; }
+
+.table .empty-state { padding: 30px 22px; }
+.table .empty-state-icon  { font-size: 30px; margin-bottom: 2px; }
+.table .empty-state-title { font-size: var(--t-12); }
+.table .empty-state-description { font-size: var(--t-11); }
+
+.loading-state { text-align: center; padding: 48px; color: var(--text-3); display: flex; align-items: center; justify-content: center; gap: 10px; }
+.loading-state i { color: var(--blue); }
+
+.text-sm   { font-size: 13px; }
+.text-gray-400 { color: var(--text-4); }
+.py-6      { padding-top: 24px; padding-bottom: 24px; }
+
+/* ----------------------------------------------------------------
+   SKELETON LOADERS
+---------------------------------------------------------------- */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-2) 25%,
+    var(--border) 50%,
+    var(--surface-2) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--r-sm);
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton-row  { height: 52px; margin-bottom: 4px; border-radius: var(--r-sm); }
+.skeleton-card { height: 130px; margin-bottom: 14px; border-radius: var(--r-lg); }
+.skeleton-text { height: 14px; margin-bottom: 8px; border-radius: 4px; }
+.skeleton-text.short  { width: 40%; }
+.skeleton-text.medium { width: 65%; }
+.skeleton-text.full   { width: 100%; }
+
+/* ----------------------------------------------------------------
+   PAGINATION
+---------------------------------------------------------------- */
+.pagination {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px; padding: 16px; border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.pagination-info { font-family: var(--font-data); font-size: var(--t-11); color: var(--text-3); }
+
+/* ----------------------------------------------------------------
+   BADGES & STATUS
+---------------------------------------------------------------- */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: var(--r-xs);           /* was 2px 8px */
+  font-family: var(--font-data);
+  font-size: var(--t-10); font-weight: 700;                /* now resolves to 11px */
+  text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; /* was .06em */
+}
+.badge-primary   { background: var(--info-lt);    color: #1448b8; }
+.badge-secondary { background: var(--neutral-lt); color: var(--neutral); }
+.badge-success   { background: var(--ok-lt);      color: #065f46; }
+.badge-danger    { background: var(--danger-lt);  color: #9b1c2a; }
+.badge-warning   { background: var(--warn-lt);    color: #78350f; }
+.badge-info      { background: var(--teal-lt);    color: #164e63; }
+.badge-green     { background: var(--ok-lt);      color: #065f46; }
+.badge-red       { background: var(--danger-lt);  color: #9b1c2a; }
+.badge-yellow    { background: var(--warn-lt);    color: #78350f; }
+.badge-purple    { background: var(--purple-lt);  color: #5b21b6; }
+.badge-gray      { background: var(--neutral-lt); color: var(--neutral); }
+.badge-normal    { background: var(--ok-lt);      color: #065f46; }
+.badge-high      { background: var(--warn-lt);    color: #78350f; }
+.badge-urgent    { background: var(--danger-lt);  color: #9b1c2a; }
+.badge-orange    { background: #fff7ed; color: #c2410c; }
+.badge-blue      { background: var(--info-lt);    color: #1448b8; }
+
+.status-indicator {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: var(--r-xs);
+  font-family: var(--font-data);
+  font-size: var(--t-10); font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em; white-space: nowrap;
+}
+.status-active    { background: var(--ok-lt);      color: #065f46; }
+.status-normal    { background: var(--ok-lt);      color: #065f46; }
+.status-oncall    { background: var(--info-lt);    color: #1448b8; }
+.status-on_leave  { background: var(--warn-lt);    color: #78350f; }
+.status-inactive  { background: var(--neutral-lt); color: var(--neutral); }
+.status-planned   { background: var(--info-lt);    color: #1448b8; }
+.status-unplanned { background: var(--danger-lt);  color: #9b1c2a; }
+.status-scheduled { background: var(--info-lt);    color: #1448b8; }
+.status-completed { background: var(--ok-lt);      color: #065f46; }
+.status-cancelled { background: var(--neutral-lt); color: var(--neutral); }
+.status-upcoming  { background: var(--teal-lt);    color: #164e63; }
+.status-busy      { background: var(--warn-lt);    color: #78350f; }
+
+/* ----------------------------------------------------------------
+   TRAINING UNITS GRID
+---------------------------------------------------------------- */
+.training-units-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); /* was 260px */
+  gap: 16px; padding: 16px;
+}
+.training-unit-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--teal); border-radius: var(--r-lg);
+  padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  box-shadow: var(--shadow-xs); transition: var(--t-md);
+}
+.training-unit-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.training-unit-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 10px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px;
+}
+.training-unit-title { font-size: var(--t-12); font-weight: 700; color: var(--text-1); display: flex; align-items: center; gap: 7px; letter-spacing: -.015em; }
+.training-unit-title i { color: var(--teal); font-size: 14px; }
+.training-unit-stats { display: flex; flex-direction: column; }
+.training-unit-stat-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 0; border-bottom: 1px solid var(--border); font-size: var(--t-12); flex-wrap: wrap; gap: 5px;
+}
+.training-unit-stat-row:last-child { border-bottom: none; }
+.training-unit-stat-label { font-family: var(--font-data); font-size: var(--t-10); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); }
+.training-unit-actions { display: flex; gap: 6px; padding-top: 2px; flex-wrap: wrap; }
+.training-unit-action-btn { flex: 1; min-width: 100px; }
+.unit-resident-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 17px; height: 17px; background: rgba(255,255,255,.25);
+  border-radius: 50%; font-family: var(--font-data); font-size: var(--t-10); font-weight: 800;
+}
+
+/* ----------------------------------------------------------------
+   DEPARTMENTS GRID
+---------------------------------------------------------------- */
+.departments-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); /* was 280px */
+  gap: 16px; padding: 16px;
+}
+.department-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--blue); border-radius: var(--r-lg);
+  padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  box-shadow: var(--shadow-xs); transition: var(--t-md);
+}
+.department-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.department-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.department-title { font-size: var(--t-12); font-weight: 700; color: var(--text-1); display: flex; align-items: center; gap: 7px; letter-spacing: -.015em; }
+.department-title i { color: var(--blue); font-size: 14px; }
+.department-info { display: flex; flex-direction: column; }
+.department-info-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: var(--t-12); flex-wrap: wrap; gap: 5px; }
+.department-info-row:last-child { border-bottom: none; }
+.department-info-label { font-family: var(--font-data); font-size: var(--t-10); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); }
+.department-units { margin-top: 2px; }
+.department-units-label { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--text-3); margin-bottom: 6px; }
+.department-units-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.department-unit-tag { background: var(--blue-lt); color: var(--blue); border: 1px solid var(--blue-mid); padding: 2px 8px; border-radius: var(--r-xs); font-family: var(--font-data); font-size: var(--t-10); font-weight: 600; letter-spacing: .02em; }
+.na-tag { background: var(--neutral-lt); color: var(--text-3); border-color: var(--border); }
+.department-actions { display: flex; gap: 6px; padding-top: 2px; flex-wrap: wrap; }
+.department-action-btn { flex: 1; min-width: 100px; }
+
+/* ----------------------------------------------------------------
+   ANNOUNCEMENTS
+---------------------------------------------------------------- */
+.announcement-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 16px; box-shadow: var(--shadow-xs);
+  transition: var(--t-md); margin-bottom: 10px;
+  border-left: 3px solid transparent;
+}
+.announcement-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.announcement-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
+.announcement-title { font-size: var(--t-13); font-weight: 700; color: var(--text-1); letter-spacing: -.015em; } /* was 14px fixed */
+.announcement-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; font-size: var(--t-11); color: var(--text-3); flex-wrap: wrap; }
+.announcement-body { font-size: var(--t-12); color: var(--text-2); line-height: 1.65; margin-bottom: 10px; }
+.announcement-footer { display: flex; justify-content: space-between; align-items: center; font-size: var(--t-11); color: var(--text-3); padding-top: 10px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
+
+.announcement-card.unread {
+  border-left-color: var(--blue);
+  background: linear-gradient(90deg, var(--blue-lt) 0%, var(--surface) 80px);
+}
+.announcement-card.unread .announcement-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.announcement-card.unread .announcement-title::before {
+  content: '';
+  display: inline-block;
+  width: 7px; height: 7px;
+  background: var(--blue);
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: statusPulse 2.2s ease-in-out infinite;
+  box-shadow: 0 0 0 2px rgba(45,122,255,.2);
+}
+
+/* ----------------------------------------------------------------
+   RESEARCH LINES
+---------------------------------------------------------------- */
+.research-lines-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); /* was 320px */
+  gap: 18px; padding: 18px;
+}
+.research-line-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 20px; box-shadow: var(--shadow-sm);
+  transition: var(--t-md); position: relative; overflow: hidden;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.research-line-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.research-line-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, var(--blue), var(--teal));
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+.research-line-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; gap: 8px; }
+.research-line-number { background: var(--blue-lt); color: var(--blue); padding: 4px 12px; border-radius: 20px; font-family: var(--font-data); font-size: var(--t-11); font-weight: 700; letter-spacing: .5px; }
+.research-line-actions { display: flex; gap: 6px; }
+.research-line-actions .btn-icon {
+  width: 32px; height: 32px; border-radius: var(--r-sm); background: var(--surface-2);
+  border: 1px solid var(--border); color: var(--text-2);
+  display: flex; align-items: center; justify-content: center; font-size: 13px;
+  cursor: pointer; transition: var(--t);
+}
+.research-line-actions .btn-icon:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+.research-line-name { font-family: var(--font-display); font-size: 21px; font-weight: 400; font-style: italic; color: var(--text-1); line-height: 1.3; letter-spacing: -.01em; margin-bottom: 4px; } /* was 19px */
+.research-line-description { font-size: var(--t-12); color: var(--text-2); line-height: 1.65; }
+
+.research-coordinator-section { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; margin: 6px 0 2px; }
+.coordinator-label { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-3); margin-bottom: 10px; }
+.coordinator-info  { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+/* ── Improvement 1: Collapsible profile sections ── */
+.profile-section-head {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,.04);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  cursor: pointer; user-select: none;
+  transition: background var(--t);
+}
+.profile-section-head:hover { background: rgba(255,255,255,.07); }
+.psh-chevron { margin-left: auto; font-size: 10px; color: rgba(255,255,255,0.55); transition: transform .2s ease; }
+.profile-section.collapsed .psh-chevron { transform: rotate(-90deg); }
+.profile-section-body { overflow: hidden; transition: max-height .25s ease; max-height: 600px; }
+.profile-section.collapsed .profile-section-body { max-height: 0; }
+
+/* ── Improvement 2: Stronger tab active indicator ── */
+.profile-tabs {
+  display: flex; gap: 0; background: transparent;
+  border-radius: 0; padding: 0; margin-bottom: 12px;
+  border-bottom: 2px solid var(--border); flex-wrap: wrap;
+}
+.profile-tab {
+  flex: 1; padding: 9px 14px; background: none; border: none;
+  border-bottom: 3px solid transparent; margin-bottom: -2px;
+  border-radius: 0; font-size: var(--t-12); font-weight: 600;
+  color: var(--text-3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: color var(--t), border-color var(--t);
+  min-width: 80px; font-family: var(--font-ui);
+}
+.profile-tab i { font-size: 12px; transition: color var(--t); }
+.profile-tab:hover { color: var(--text-1); background: var(--surface-2); }
+.profile-tab.active { color: var(--blue); border-bottom-color: var(--blue); background: none; box-shadow: none; }
+.profile-tab.active i { color: var(--blue); }
+
+/* ── Improvement 3: Nil activity row ── */
+.activity-nil-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: var(--r);
+  background: var(--surface); border: 1px solid var(--border);
+  font-size: var(--t-12); color: var(--text-3);
+}
+.activity-nil-row i { color: var(--teal); font-size: 14px; }
+
+/* ── Improvement 4: Context strip ── */
+.profile-context-strip {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 2px; margin-bottom: 2px;
+  font-size: var(--t-11); color: var(--text-3);
+}
+.pcs-name { font-weight: 600; color: var(--text-2); }
+.pcs-sep  { color: var(--border-2); }
+.pcs-tab  { color: var(--blue); font-weight: 600; text-transform: capitalize; }
+
+/* ── Improvement 5: Edit button in identity ── */
+.profile-edit-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 8px; padding: 5px 14px;
+  background: rgba(45,122,255,.15); border: 1px solid rgba(45,122,255,.3);
+  border-radius: 20px; color: var(--blue);
+  font-size: var(--t-11); font-weight: 600; cursor: pointer;
+  transition: var(--t); font-family: var(--font-ui);
+}
+.profile-edit-btn:hover { background: rgba(45,122,255,.25); border-color: rgba(45,122,255,.5); }
+.profile-edit-btn i { font-size: 11px; }
+.coordinator-chip {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  border-radius: var(--r); padding: 9px 13px; width: 100%;
+}
+.coordinator-chip i { color: var(--blue); font-size: 13px; flex-shrink: 0; }
+.coordinator-name  { font-size: var(--t-15); font-weight: 700; color: var(--text-1); letter-spacing: -.01em; }
+.coordinator-email { font-family: var(--font-data); font-size: var(--t-11); color: var(--text-3); }
+.coordinator-empty { display: flex; justify-content: space-between; align-items: center; color: var(--text-3); font-size: var(--t-12); font-style: italic; flex-wrap: wrap; gap: 10px; }
+.research-capabilities { font-size: var(--t-12); font-weight: 600; color: var(--blue); background: var(--blue-lt); padding: 8px 12px; border-radius: var(--r-sm); border-left: 3px solid var(--blue); margin-top: 4px; }
+.capabilities-label { display: block; }
+.research-keywords { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.keyword-tag { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-2); padding: 4px 10px; border-radius: 20px; font-family: var(--font-data); font-size: var(--t-10); font-weight: 600; transition: var(--t); }
+.keyword-tag:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+
+.trials-note {
+  margin: 14px 20px 20px; padding: 12px 16px;
+  background: var(--blue-lt); border-radius: var(--r);
+  display: flex; align-items: center; gap: 10px;
+  font-size: var(--t-12); color: var(--blue); border: 1px solid var(--blue-mid); flex-wrap: wrap;
+}
+.trials-note i { font-size: 16px; color: var(--blue); }
+.trials-note a { color: var(--blue); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; transition: var(--t); }
+.trials-note a:hover { color: #1a66f0; }
+
+.innovation-projects-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(370px, 1fr)); /* was 340px */
+  gap: 18px; padding: 18px;
+}
+.innovation-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+  padding: 22px; box-shadow: var(--shadow-sm); transition: var(--t-md);
+  display: flex; flex-direction: column; gap: 14px;
+}
+.innovation-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.innovation-category {
+  display: inline-block; padding: 4px 12px; border-radius: 20px;
+  font-family: var(--font-data); font-size: var(--t-10); font-weight: 700;
+  text-transform: uppercase; letter-spacing: .8px; margin-bottom: 4px; align-self: flex-start;
+}
+.innovation-category.dispositivo           { background: #e0f2fe; color: #0369a1; border: 1px solid #b8d0ff; }
+.innovation-category.salud-digital         { background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
+.innovation-category.ia-ml                 { background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; }
+.innovation-category.tecnología-quirúrgica { background: #fff1f2; color: #9f1239; border: 1px solid #fecdd3; }
+.innovation-title { font-family: var(--font-display); font-size: 21px; font-weight: 400; font-style: italic; color: var(--text-1); line-height: 1.3; letter-spacing: -.01em; } /* was 19px */
+.innovation-stage { margin: 2px 0 6px; }
+.stage-badge { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-2); padding: 4px 12px; border-radius: 20px; font-family: var(--font-data); font-size: var(--t-11); font-weight: 600; }
+.innovation-description { font-size: var(--t-12); color: var(--text-2); line-height: 1.65; margin-bottom: 6px; }
+.innovation-research-line { display: flex; align-items: center; gap: 8px; font-size: var(--t-12); color: var(--blue); font-weight: 500; padding: 8px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.innovation-research-line i { font-size: var(--t-12); color: var(--blue); }
+.innovation-needs { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; margin: 6px 0; }
+.needs-label { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--text-3); margin-bottom: 10px; }
+.needs-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.need-tag { background: var(--surface); border: 1px solid var(--border-2); color: var(--text-2); padding: 5px 12px; border-radius: 20px; font-family: var(--font-data); font-size: var(--t-11); font-weight: 600; transition: var(--t); }
+.need-tag:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+.innovation-actions { display: flex; justify-content: flex-end; margin-top: 6px; }
+.partner-needs-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.need-checkbox {
+  display: inline-flex; align-items: center; padding: 5px 12px;
+  border: 1.5px solid var(--border); border-radius: 20px;
+  font-size: var(--t-12); font-weight: 500; color: var(--text-2);
+  cursor: pointer; transition: var(--t);
+}
+.need-checkbox:hover  { border-color: var(--blue-mid); background: var(--blue-lt); color: var(--blue); }
+.need-selected { border-color: var(--blue); background: var(--blue-lt); color: var(--blue); }
+
+/* ----------------------------------------------------------------
+   MODALS
+---------------------------------------------------------------- */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(10,22,40,.55); backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 9000;
+  padding: 20px 16px;
+  animation: fadeIn .15s ease;
+  overflow-y: auto;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.modal-container {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl);
+  width: 100%;
+  max-width: min(640px, calc(100vw - 32px));
+  max-height: 92vh;
+  display: flex; flex-direction: column; box-shadow: var(--shadow-xl);
+  animation: slideUp .22s cubic-bezier(.22,1,.36,1);
+  overflow: visible;
+  margin: auto;
+}
+.modal-wide    { max-width: min(820px, calc(100vw - 32px)); }
+.modal-sm      { max-width: min(460px, calc(100vw - 32px)); }
+.modal-profile { max-width: min(1100px, calc(100vw - 48px)); height: 88vh; max-height: 88vh; overflow: hidden; }
+.modal-unit-residents { max-width: min(720px, calc(100vw - 32px)); }
+
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 24px; border-bottom: 1px solid var(--border);
+  background: var(--surface); flex-shrink: 0;
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+}
+.modal-title { display: flex; align-items: center; gap: 9px; font-size: var(--t-15); font-weight: 700; color: var(--text-1); letter-spacing: -.015em; }
+.modal-title i { color: var(--blue); font-size: var(--t-15); }
+.modal-title-badge { background: var(--blue-lt); color: var(--blue); padding: 2px 9px; border-radius: 20px; font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-left: 2px; }
+.modal-close {
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text-3);
+  width: 30px; height: 30px; border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--t-11); transition: var(--t); flex-shrink: 0;
+}
+.modal-close:hover { background: var(--danger-lt); border-color: rgba(220,53,69,.2); color: var(--danger); }
+
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.modal-footer {
+  padding: 16px 24px; border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end; gap: 10px;
+  background: var(--surface-2); flex-shrink: 0; flex-wrap: wrap;
+  border-radius: 0 0 var(--r-xl) var(--r-xl);
+}
+.modal-tabs {
+  display: flex; gap: 3px; background: var(--surface-2);
+  border-radius: var(--r); padding: 3px; margin-bottom: 18px; flex-wrap: wrap;
+}
+.modal-tab {
+  flex: 1; padding: 8px 14px; background: none; border: none;
+  border-radius: var(--r-sm); font-size: var(--t-12); font-weight: 600;
+  color: var(--text-2); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 5px; transition: var(--t);
+  min-width: 80px; font-family: var(--font-ui);
+  min-height: 38px;
+}
+.modal-tab:hover { color: var(--text-1); }
+.modal-tab.active { background: var(--surface); color: var(--blue); box-shadow: var(--shadow-xs); }
+
+.has-error .form-control { border-color: var(--danger); background: var(--danger-lt); }
+.error-text { color: var(--danger); font-size: var(--t-10); margin-top: 4px; display: block; }
+.form-help  { font-size: var(--t-10); color: var(--text-4); margin-top: 4px; display: block; }
+.form-hint  { font-size: var(--t-11); color: var(--text-3); font-weight: 400; margin-left: 4px; }
+
+/* ----------------------------------------------------------------
+   PROFILE MODAL
+---------------------------------------------------------------- */
+.modal-profile .modal-body { padding: 0; display: flex; overflow: hidden; min-height: 0; flex: 1; }
+.profile-layout {
+  display: flex; flex: 1; overflow: hidden; min-height: 0;
+}
+
+/* Profile modal: center vertically on desktop */
+.modal-overlay:has(.modal-profile) {
+  align-items: center;
+}
+
+.profile-left {
+  width: clamp(220px, 24%, 280px);
+  flex-shrink: 0; background: var(--ink);
+  padding: 18px 16px; display: flex; flex-direction: column; gap: 12px;
+  position: relative; overflow-y: auto; overflow-x: hidden;
+}
+.profile-left::before {
+  content: ''; position: absolute; top: -60px; right: -60px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(45,122,255,.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.profile-avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), var(--ink-3));
+  color: white; display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 600; margin: 0 auto 8px;
+  border: 2px solid rgba(255,255,255,.15);
+  box-shadow: 0 4px 14px rgba(0,0,0,.3);
+}
+.profile-identity {
+  padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,.08);
+  position: relative; z-index: 1; text-align: center;
+}
+.profile-full-name {
+  font-family: var(--font-display); font-size: 18px; font-weight: 400; font-style: italic;
+  color: #fff; letter-spacing: -.01em; line-height: 1.2; margin-bottom: 2px;
+}
+.profile-role-line { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .11em; color: rgba(255,255,255,0.85); margin-bottom: 6px; }
+.profile-dept-pill { display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); color: rgba(255,255,255,0.97); padding: 2px 9px; border-radius: 20px; font-size: var(--t-10); font-weight: 600; margin-bottom: 5px; }
+.profile-dept-pill i { font-size: var(--t-10); }
+.profile-status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 20px; font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; }
+.profile-status-pill.active   { background: rgba(13,158,110,.2); color: #6ee7b7; border: 1px solid rgba(13,158,110,.3); }
+.profile-status-pill.on_leave { background: rgba(217,119,6,.2);  color: #fcd34d; border: 1px solid rgba(217,119,6,.3); }
+.profile-status-pill.inactive { background: rgba(100,116,139,.2);color: rgba(255,255,255,0.55); border: 1px solid rgba(100,116,139,.3); }
+.profile-status-pill.active::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: #4ade80; display: block;
+  animation: statusPulse 2.2s ease-in-out infinite;
+  box-shadow: 0 0 0 2px rgba(74,222,128,.25);
+}
+
+.profile-section {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: var(--r); overflow: hidden;
+}
+.profile-section-head {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,.04);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  flex-wrap: wrap; gap: 6px;
+}
+.psh-left { display: flex; align-items: center; gap: 7px; }
+.psh-left i { font-size: var(--t-12); color: var(--blue); }
+.profile-section-head h4 { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: rgba(255,255,255,0.75); margin: 0; }
+.profile-section-head i { font-size: var(--t-12); color: var(--p-blue); }
+
+.profile-creds { padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,.08); position: relative; z-index: 1; }
+.profile-creds-label { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .13em; color: rgba(255,255,255,0.65); margin-bottom: 10px; }
+.profile-cred-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 4px 10px; border-bottom: 1px solid rgba(255,255,255,.04); gap: 8px; flex-wrap: wrap;
+}
+.profile-cred-row:last-child { border-bottom: none; }
+.pcr-key { font-family: var(--font-data); font-size: var(--t-10); font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: rgba(255,255,255,0.55); flex-shrink: 0; padding-top: 1px; }
+.pcr-val { font-size: var(--t-11); font-weight: 600; color: #fff; text-align: right; letter-spacing: -.01em; line-height: 1.3; } /* was --t-12 */
+.pcr-na  { font-family: var(--font-data); font-size: var(--t-11); color: rgba(255,255,255,0.55); font-style: italic; font-weight: 400; }
+
+.profile-contact { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 6px; }
+.profile-contact-btn {
+  display: flex; align-items: center; gap: 8px; padding: 7px 12px;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09);
+  border-radius: var(--r); color: rgba(255,255,255,0.85);
+  font-size: var(--t-12); cursor: pointer; transition: var(--t);
+  text-decoration: none; font-family: var(--font-ui);
+}
+.profile-contact-btn i { font-size: var(--t-11); color: var(--p-blue); width: 13px; text-align: center; flex-shrink: 0; }
+.profile-contact-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
+.profile-contact-btn.disabled { opacity: .3; cursor: default; pointer-events: none; }
+
+.research-stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 2px; padding: 6px 10px 8px; }
+.research-stat { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); border-radius: var(--r); padding: 7px 6px; text-align: center; }
+.research-stat .stat-value { font-family: var(--font-display); font-size: 18px; font-weight: 400; color: var(--p-blue); line-height: 1.2; margin-bottom: 2px; }
+.research-stat .stat-label { font-family: var(--font-data); font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: rgba(255,255,255,0.75); }
+
+.leave-balance-item { padding: 4px 10px 8px; }
+.balance-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.balance-type  { font-family: var(--font-data); font-size: var(--t-11); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: rgba(255,255,255,0.65); }
+.balance-days  { font-family: var(--font-data); font-size: var(--t-11); font-weight: 700; color: rgba(255,255,255,0.92); }
+.progress-bar  { width: 100%; height: 4px; background: rgba(255,255,255,.1); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 2px; transition: width .3s ease; }
+
+.profile-role-item { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-bottom: 1px solid rgba(255,255,255,.05); }
+.profile-role-item:last-child { border-bottom: none; }
+.profile-role-item i { width: 18px; font-size: 13px; }
+.profile-role-item span { font-size: var(--t-12); color: #fff; }
+
+.resident-category-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: 16px;
+  font-family: var(--font-data); font-size: var(--t-11); font-weight: 600;
+  white-space: nowrap;
+}
+.resident-category-badge i { font-size: var(--t-11); }
+
+.profile-right {
+  flex: 1; background: var(--surface-2); overflow-y: auto; padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 0; min-width: 0; min-height: 0;
+}
+.profile-right::-webkit-scrollbar { width: 4px; }
+.profile-right::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+
+.tab-content { flex: 1; display: flex; flex-direction: column; gap: 0; }
+
+
+.activity-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 10px 12px; margin-bottom: 8px; box-shadow: var(--shadow-xs);
+}
+.activity-card .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.activity-card .card-header h4 { font-size: var(--t-12); font-weight: 600; display: flex; align-items: center; gap: 8px; margin: 0; }
+.activity-card .card-header h4 i { color: var(--blue); font-size: 13px; }
+.rotation-name { font-family: var(--font-display); font-size: 19px; font-weight: 400; font-style: italic; color: var(--blue); margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.rotation-details { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.rotation-details .detail-item { display: flex; flex-direction: column; gap: 2px; }
+.rotation-details .detail-item .label { font-family: var(--font-data); font-size: var(--t-10); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--text-3); }
+.rotation-details .detail-item .value { font-size: var(--t-11); font-weight: 600; color: var(--text-1); }
+.rotation-details .detail-item .value.highlight { color: var(--teal); font-family: var(--font-display); font-size: var(--t-15); }
+
+.upcoming-shifts, .upcoming-leave, .rotation-history { display: flex; flex-direction: column; gap: 6px; }
+.shift-item, .leave-item, .history-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.shift-item:last-child, .leave-item:last-child, .history-item:last-child { border-bottom: none; }
+.shift-info, .leave-info, .history-info { flex: 1; min-width: 0; }
+.shift-date, .leave-dates { font-size: var(--t-11); font-weight: 600; color: var(--text-1); margin-bottom: 2px; }
+.shift-time, .leave-reason, .history-dates { font-family: var(--font-data); font-size: var(--t-10); color: var(--text-3); }
+.history-unit { font-size: var(--t-11); font-weight: 600; color: var(--text-1); margin-bottom: 2px; }
+.more-indicator { text-align: center; padding: 6px 0 2px; font-size: var(--t-11); color: var(--text-3); font-style: italic; }
+.empty-state.small { padding: 10px 12px; display: flex; align-items: center; gap: 8px; flex-direction: row; justify-content: center; }
+.empty-state.small i { font-size: 14px; margin-bottom: 0; color: var(--text-3); opacity: .5; display: inline; }
+
+.research-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 10px 12px; margin-bottom: 8px; }
+.research-card h4 { font-size: var(--t-12); font-weight: 600; display: flex; align-items: center; gap: 8px; margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.research-card h4 i { color: var(--blue); font-size: 13px; }
+.research-lines-list { display: flex; flex-direction: column; gap: 6px; }
+.line-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; gap: 6px; }
+.line-title { font-size: var(--t-11); font-weight: 600; color: var(--text-1); }
+.line-stats { font-family: var(--font-data); font-size: var(--t-10); color: var(--text-3); }
+.trial-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+.trial-stats-grid .stat-item { text-align: center; }
+.trial-stats-grid .stat-item .stat-value { font-family: var(--font-display); font-size: 24px; font-weight: 400; color: var(--blue); line-height: 1.2; margin-bottom: 2px; } /* was 22px */
+.trial-stats-grid .stat-item .stat-label { font-family: var(--font-data); font-size: var(--t-10); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--text-3); }
+.recent-list { margin-top: 10px; }
+.list-header { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-3); margin-bottom: 7px; }
+.list-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; background: var(--surface-2); border-radius: var(--r-sm); margin-bottom: 4px; font-size: var(--t-11); flex-wrap: wrap; gap: 6px; }
+.item-title { font-weight: 500; color: var(--text-1); }
+.projects-stats { text-align: center; margin-bottom: 14px; }
+.project-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 7px; flex-wrap: wrap; gap: 8px; }
+.project-title { font-size: var(--t-11); font-weight: 500; color: var(--text-1); }
+.publication-item { padding: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 7px; }
+.pub-title { font-size: var(--t-11); font-weight: 600; color: var(--text-1); margin-bottom: 3px; }
+.pub-meta  { font-family: var(--font-data); font-size: var(--t-10); color: var(--text-3); }
+
+.supervision-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+.supervision-stats .stat-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; text-align: center; box-shadow: none; cursor: default; }
+.supervision-stats .stat-card:hover { transform: none; }
+.supervision-stats .stat-card .stat-value { font-family: var(--font-display); font-size: 30px; font-weight: 400; color: var(--blue); line-height: 1.2; margin-bottom: 3px; } /* was 28px */
+.supervision-stats .stat-card .stat-label { font-family: var(--font-data); font-size: var(--t-10); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--text-3); }
+.supervision-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px; }
+.supervision-card h4 { font-size: var(--t-12); font-weight: 600; display: flex; align-items: center; gap: 8px; margin: 0 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.supervision-card h4 i { color: var(--ok); }
+.resident-item { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; margin-bottom: 10px; }
+.resident-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+.resident-name { font-size: var(--t-12); font-weight: 600; color: var(--text-1); }
+.resident-details { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+.resident-details .detail { display: flex; flex-direction: column; gap: 2px; }
+.resident-details .detail .label { font-family: var(--font-data); font-size: var(--t-10); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--text-3); }
+.resident-details .detail .value { font-size: var(--t-11); font-weight: 500; color: var(--text-1); }
+.resident-evaluation { padding-top: 8px; border-top: 1px solid var(--border); font-size: var(--t-11); }
+.resident-evaluation .label { color: var(--text-3); margin-right: 6px; }
+.resident-evaluation .value { font-weight: 600; color: var(--warn); }
+
+.unit-meta-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+.umc { padding: 12px 14px; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
+.umc:last-child { border-right: none; }
+.umc-key { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-3); }
+.umc-val { font-size: var(--t-12); font-weight: 600; color: var(--text-1); letter-spacing: -.01em; }
+.umc-na  { font-family: var(--font-data); font-size: var(--t-11); color: var(--text-3); font-style: italic; font-weight: 400; }
+.umc-capacity { display: flex; flex-direction: column; gap: 5px; }
+.cap-bar  { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.cap-fill { height: 100%; border-radius: 2px; background: var(--ok); transition: width .4s ease; }
+.cap-fill.cap-warn { background: var(--warn); }
+.cap-fill.cap-full { background: var(--danger); }
+
+.unit-residents-table { width: 100%; border-collapse: collapse; }
+.unit-residents-table thead th { background: var(--surface-2); padding: 9px 14px; font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-3); border-bottom: 2px solid var(--border); text-align: left; white-space: nowrap; }
+.unit-residents-table tbody tr { border-bottom: 1px solid var(--border); transition: background var(--t); cursor: pointer; }
+.unit-residents-table tbody tr:last-child { border-bottom: none; }
+.unit-residents-table tbody tr:hover { background: var(--blue-lt); }
+.unit-residents-table tbody td { padding: 9px 14px; font-size: var(--t-11); vertical-align: middle; }
+.rotation-dates-cell { font-family: var(--font-data); font-size: var(--t-11); white-space: nowrap; }
+.rd-start { color: var(--text-1); font-weight: 600; }
+.rd-sep   { color: var(--text-3); margin: 0 4px; }
+.rd-end   { color: var(--text-2); }
+.unit-empty { text-align: center; padding: 36px 20px; }
+.unit-empty i  { font-size: 34px; color: var(--blue); opacity: .15; display: block; margin-bottom: 10px; }
+.unit-empty h5 { font-size: var(--t-13); font-weight: 700; color: var(--text-2); margin-bottom: 5px; }
+.unit-empty p  { font-size: var(--t-12); color: var(--text-3); }
+
+/* ----------------------------------------------------------------
+   FORMS
+---------------------------------------------------------------- */
+.form-group { margin-bottom: 14px; }
+.form-label {
+  display: block; font-family: var(--font-ui);
+  font-size: var(--t-10); font-weight: 600;
+  text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-3); margin-bottom: 6px;
+}
+.form-control, .form-select {
+  width: 100%; padding: 9px 13px;                     /* was 8px 12px */
+  border: 1px solid var(--border-2); border-radius: var(--r);
+  font-family: var(--font-ui); font-size: var(--t-12); font-weight: 400; /* was --t-13=13px old */
+  color: var(--text-1); background: var(--surface);
+  transition: var(--t); -webkit-appearance: none; line-height: 1.4;
+  min-height: 40px;                                   /* was 38px */
+}
+.form-control:focus, .form-select:focus {
+  outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-dim);
+}
+.form-control::placeholder, textarea::placeholder { color: var(--text-4); font-size: var(--t-11); }
+.form-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237a90b0' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 11px center;
+  padding-right: 30px; cursor: pointer;
+}
+textarea.form-control { min-height: 80px; resize: vertical; }
+.grid.gap-4 { gap: 16px; }
+
+.resident-category-selector { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.category-option {
+  flex: 1; min-width: 100px; border: 1.5px solid var(--border);
+  border-radius: var(--r); cursor: pointer; transition: var(--t);
+}
+.category-option div { display: flex; align-items: center; gap: 8px; padding: 9px 12px; font-size: var(--t-12); font-weight: 500; }
+.category-option:hover { border-color: var(--blue-mid); background: var(--blue-lt); color: var(--blue); }
+.category-option.selected { border-color: var(--blue); background: var(--blue-lt); color: var(--blue); }
+.hidden { display: none; }
+
+.toggle-row { display: flex; border: 1px solid var(--border-2); border-radius: var(--r); overflow: hidden; flex-wrap: wrap; }
+.toggle-opt { flex: 1; padding: 8px 12px; background: var(--surface-2); border: none; font-size: var(--t-12); font-weight: 600; color: var(--text-2); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: var(--t); min-width: 100px; font-family: var(--font-ui); min-height: 40px; }
+.toggle-opt.active      { background: var(--blue-lt); color: var(--blue); }
+.toggle-opt.active-warn { background: var(--warn-lt); color: var(--warn); }
+
+.reason-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.reason-option { border: 1.5px solid var(--border); border-radius: var(--r); cursor: pointer; transition: var(--t); }
+.reason-option div { display: flex; align-items: center; gap: 8px; padding: 9px 12px; font-size: var(--t-12); font-weight: 500; }
+.reason-option:hover { border-color: var(--blue); background: var(--blue-lt); }
+.reason-selected { border-color: var(--blue); background: var(--blue-lt); box-shadow: 0 0 0 1px var(--blue); }
+
+.duration-preview { display: flex; justify-content: space-between; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 9px 14px; flex-wrap: wrap; gap: 8px; }
+.dp-label { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); }
+.dp-value { font-family: var(--font-display); font-size: 20px; font-weight: 400; color: var(--text-1); }
+
+.coverage-warning { background: var(--danger-lt); border: 1px solid rgba(220,53,69,.2); border-radius: var(--r-sm); padding: 8px 12px; font-size: var(--t-12); color: var(--danger); margin-top: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.confirm-details { background: var(--blue-lt); border: 1px solid var(--blue-mid); border-radius: var(--r); padding: 10px 14px; font-size: var(--t-12); color: var(--text-2); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.confirm-details i { color: var(--blue); flex-shrink: 0; }
+
+.form-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px; margin-bottom: 14px; }
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+
+.priority-selector { display: flex; gap: 6px; flex-wrap: wrap; }
+.priority-option { flex: 1; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: var(--r); background: none; font-size: var(--t-12); font-weight: 600; color: var(--text-2); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; transition: var(--t); font-family: var(--font-ui); min-width: 72px; min-height: 40px; }
+.priority-option.active { border-color: var(--blue); background: var(--blue-lt); color: var(--blue); }
+.priority-dot { width: 7px; height: 7px; border-radius: 50%; }
+.priority-dot.normal { background: var(--ok); }
+.priority-dot.high   { background: var(--warn); }
+.priority-dot.urgent { background: var(--danger); }
+
+.preview-card { background: var(--surface-2); border: 1px solid var(--border); border-left: 3px solid var(--blue); border-radius: var(--r); padding: 14px; margin-bottom: 14px; }
+.preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; flex-wrap: wrap; gap: 8px; }
+.preview-time  { font-family: var(--font-data); font-size: var(--t-11); color: var(--text-3); }
+.preview-title { font-size: var(--t-15); font-weight: 700; margin-bottom: 6px; color: var(--text-1); letter-spacing: -.015em; }
+.preview-text  { font-size: var(--t-12); color: var(--text-2); margin-bottom: 10px; line-height: 1.55; }
+.preview-footer { display: flex; justify-content: space-between; font-size: var(--t-11); color: var(--text-3); padding-top: 8px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.preview-footer i { color: var(--blue); margin-right: 4px; }
+
+
+
+.comms-tab.active { background: var(--surface); color: var(--blue); box-shadow: var(--shadow-xs); }
+
+
+.quick-status h4 { font-size: var(--t-12); font-weight: 700; display: flex; align-items: center; gap: 7px; margin-bottom: 12px; }
+.status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+.status-option { padding: 12px; border: 1.5px solid var(--border); border-radius: var(--r); background: var(--surface); cursor: pointer; text-align: center; transition: var(--t-md); }
+.status-option:hover { border-color: var(--blue); background: var(--blue-lt); transform: translateY(-1px); }
+.status-option.active { border-color: var(--blue); background: var(--blue-lt); }
+.status-icon { width: 36px; height: 36px; border-radius: var(--r); display: flex; align-items: center; justify-content: center; margin: 0 auto 7px; font-size: 14px; color: #fff; }
+.status-icon.normal    { background: var(--ok); }
+.status-icon.busy      { background: var(--warn); }
+.status-icon.shortage  { background: var(--blue); }
+.status-icon.equipment { background: var(--teal); }
+.status-desc { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; color: var(--text-1); text-transform: uppercase; letter-spacing: .04em; }
+
+.role-assignment-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; margin-bottom: 12px; }
+.role-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 7px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.role-header i { color: var(--blue); font-size: 15px; }
+.role-header h4 { font-size: var(--t-12); font-weight: 600; flex: 1; }
+.role-badge { padding: 2px 8px; border-radius: 12px; font-size: var(--t-10); font-weight: 600; background: var(--neutral-lt); color: var(--neutral); }
+.role-badge.role-current { background: var(--ok-lt); color: var(--ok); }
+.role-current-holder { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 7px 11px; margin-bottom: 10px; font-size: var(--t-11); }
+.holder-label { color: var(--text-3); margin-right: 4px; }
+.holder-name  { font-weight: 600; color: var(--text-1); }
+.holder-date  { color: var(--text-3); font-size: var(--t-10); margin-left: 8px; }
+.role-assign-control { padding: 4px 0; }
+.role-warning { color: var(--warn); font-size: var(--t-10); margin-top: 4px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.role-error   { color: var(--danger); font-size: var(--t-10); margin-top: 4px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.roles-info-box { background: var(--blue-lt); border: 1px solid var(--blue-mid); border-radius: var(--r); padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-size: var(--t-11); color: var(--blue); flex-wrap: wrap; }
+.roles-info-box i { font-size: 13px; }
+
+.capabilities-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 12px; }
+.capability-check { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: var(--t-11); }
+.capability-check input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; }
+
+.certificate-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.cert-tag { background: var(--surface); border: 1px solid var(--border-2); color: var(--text-2); padding: 4px 10px; border-radius: 20px; font-size: var(--t-11); font-weight: 500; cursor: pointer; transition: var(--t); }
+.cert-tag:hover { background: var(--blue-lt); border-color: var(--blue-mid); }
+.cert-tag.active { background: var(--blue); border-color: var(--blue); color: white; }
+
+.checkbox-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: var(--t-12); color: var(--text-2); min-height: 24px; }
+.checkbox-label input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; }
+
+.rotation-preview { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; font-size: var(--t-12); }
+.alert { border-radius: var(--r); padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: flex-start; gap: 8px; font-size: var(--t-12); }
+.alert-info { background: var(--blue-lt); border: 1px solid var(--blue-mid); color: var(--blue); }
+.alert-info i { font-size: 15px; margin-top: 1px; flex-shrink: 0; }
+.info-box { background: var(--blue-lt); padding: 10px 14px; border-radius: var(--r); margin-top: 12px; font-size: var(--t-11); color: var(--blue); display: flex; align-items: center; gap: 8px; }
+.info-box i { font-size: 13px; }
+
+.btn-with-badge { position: relative; }
+.badge-sm { position: absolute; top: -8px; right: -8px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 10px; background: var(--danger); color: white; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.header-actions { display: flex; gap: 8px; align-items: center; }
+
+.sec-chip { padding: 2px 8px; border-radius: 20px; font-family: var(--font-data); font-size: var(--t-10); font-weight: 800; text-transform: uppercase; letter-spacing: .07em; }
+.chip-live     { background: var(--danger); color: #fff; }
+.chip-active   { background: var(--ok);     color: #fff; }
+.chip-upcoming { background: var(--info-lt);color: var(--blue); }
+.chip-none     { background: var(--neutral-lt); color: var(--neutral); }
+
+.profile-data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.pdc { padding: 9px 14px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 3px; }
+.pdc:nth-child(2n)        { border-right: none; }
+.pdc:nth-last-child(-n+2) { border-bottom: none; }
+.pdc.pdc-full             { grid-column: 1 / -1; border-right: none; }
+.pdc:only-child           { border-right: none; border-bottom: none; }
+.pdc-key { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--text-3); line-height: 1; }
+.pdc-val { font-size: var(--t-11); font-weight: 600; color: var(--text-1); letter-spacing: -.01em; line-height: 1.3; } /* was 12px fixed */
+.pdc-val.mono   { font-family: var(--font-data); font-size: var(--t-11); color: var(--blue); }
+.pdc-val.accent { color: var(--teal); font-family: var(--font-data); font-size: var(--t-15); font-weight: 700; }
+.pdc-val.pdc-na { font-family: var(--font-data); font-size: var(--t-11); color: var(--text-3); font-style: italic; font-weight: 400; }
+
+/* ----------------------------------------------------------------
+   TOASTS
+---------------------------------------------------------------- */
+.toast-container {
+  position: fixed; top: 16px; right: 16px;
+  z-index: 99999; display: flex; flex-direction: column; gap: 6px;
+  max-width: 320px; width: calc(100% - 32px);
+}
+.toast {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 11px 13px;
+  display: flex; align-items: flex-start; gap: 9px;
+  box-shadow: var(--shadow-lg); animation: toastIn .22s cubic-bezier(.22,1,.36,1);
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(20px) scale(.96); }
+  to   { opacity: 1; transform: none; }
+}
+.toast-icon { width: 28px; height: 28px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+.toast-success .toast-icon { background: var(--ok-lt);     color: var(--ok); }
+.toast-error   .toast-icon { background: var(--danger-lt); color: var(--danger); }
+.toast-warning .toast-icon { background: var(--warn-lt);   color: var(--warn); }
+.toast-info    .toast-icon { background: var(--blue-lt);   color: var(--blue); }
+.toast-content { flex: 1; min-width: 0; }
+.toast-title   { font-size: var(--t-12); font-weight: 700; color: var(--text-1); margin-bottom: 2px; }
+.toast-message { font-size: var(--t-11); color: var(--text-2); line-height: 1.4; }
+.toast-close   { background: none; border: none; color: var(--text-3); font-size: var(--t-11); cursor: pointer; padding: 3px; border-radius: var(--r-sm); flex-shrink: 0; }
+.toast-success { border-left: 3px solid var(--ok); }
+.toast-error   { border-left: 3px solid var(--danger); }
+.toast-warning { border-left: 3px solid var(--warn); }
+.toast-info    { border-left: 3px solid var(--blue); }
+
+/* ----------------------------------------------------------------
+   LOGIN
+---------------------------------------------------------------- */
+/* ================================================================
+   LOGIN PAGE — NeuomoCare MVP / neumAC brand
+================================================================ */
+
+/* ── Full-screen container with animated dark background ── */
+.login-container {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: #04111f;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Animated background orbs */
+.lc-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+
+.lc-orb {
+  position: absolute; border-radius: 50%;
+  filter: blur(80px);
+  animation: lc-pulse 8s ease-in-out infinite;
+}
+.lc-orb--1 {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(0,119,182,.28) 0%, transparent 70%);
+  top: -150px; left: -150px;
+  animation-delay: 0s;
+}
+.lc-orb--2 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(0,180,216,.18) 0%, transparent 70%);
+  bottom: -100px; right: -100px;
+  animation-delay: -3s;
+}
+.lc-orb--3 {
+  width: 350px; height: 350px;
+  background: radial-gradient(circle, rgba(2,62,138,.25) 0%, transparent 70%);
+  top: 40%; left: 55%;
+  animation-delay: -6s;
+}
+@keyframes lc-pulse {
+  0%, 100% { transform: scale(1) translate(0, 0); opacity: .8; }
+  50%       { transform: scale(1.12) translate(20px, -20px); opacity: 1; }
+}
+
+/* Subtle dot grid */
+.lc-grid {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ── Card ── */
+.login-card {
+  position: relative; z-index: 1;
+  background: rgba(255,255,255,.98);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  /* Top accent bar in brand gradient */
+  border-top: 3px solid transparent;
+  background-clip: padding-box;
+  padding: 36px 32px 32px;
+  width: 100%; max-width: 420px;
+  box-shadow:
+    0 0 0 1px rgba(0,119,182,.1),
+    0 4px 6px rgba(0,0,0,.05),
+    0 24px 60px rgba(0,0,0,.20),
+    0 0 80px rgba(0,119,182,.07);
+  animation: lc-rise .5s cubic-bezier(.22,1,.36,1);
+  overflow: hidden; /* clip the pseudo-element */
+}
+/* Top accent line — brand gradient */
+.login-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #00b4d8, #0077b6, #023e8a);
+}
+@keyframes lc-rise {
+  from { opacity: 0; transform: translateY(24px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Top brand strip: neumAC wordmark ── */
+.lc-brand {
+  display: flex; justify-content: center;
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(0,119,182,.1);
+}
+.lc-brand-logo {
+  display: flex; align-items: center; gap: 14px;
+}
+.lc-neumax-svg {
+  width: 108px; height: auto;
+}
+.lc-brand-divider {
+  width: 1.5px; height: 36px;
+  background: linear-gradient(to bottom, transparent, rgba(0,119,182,.4), transparent);
+}
+.lc-brand-area {
+  display: flex; flex-direction: column; gap: 1px;
+}
+.lc-brand-area span {
+  font-family: var(--font-ui);
+  font-size: 9.5px; font-weight: 600;
+  letter-spacing: .06em;
+  color: #0077b6;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+/* ── NeuomoCare product identity ── */
+.lc-product {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-top: 4px;
+}
+.lc-product-name {
+  font-family: var(--font-ui);
+  font-size: 28px; font-weight: 300;
+  color: #04111f;
+  letter-spacing: -.02em;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.lc-product-name span {
+  font-weight: 700;
+  background: linear-gradient(90deg, #0077b6, #00b4d8);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.lc-product-sub {
+  font-size: 11px; font-weight: 500;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: #7a90b0;
+}
+
+/* ── Divider ── */
+.lc-sep {
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(0,119,182,.15), transparent);
+  margin: 4px 0 20px;
+}
+
+/* ── Error ── */
+.login-error {
+  background: #fff0f1; border: 1px solid #fca5a5;
+  border-radius: 10px; padding: 10px 14px;
+  color: #dc2626; font-size: 13px;
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 16px;
+}
+
+/* ── Form fields ── */
+.lc-form { display: flex; flex-direction: column; gap: 14px; }
+
+.lc-field { display: flex; flex-direction: column; gap: 5px; }
+
+.lc-label {
+  font-size: 11.5px; font-weight: 600;
+  color: #3d5278; letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.lc-input-wrap {
+  position: relative; display: flex; align-items: center;
+}
+.lc-input-icon {
+  position: absolute; left: 14px;
+  font-size: 13px; color: #aab8cc;
+  pointer-events: none;
+  transition: color .2s;
+}
+.lc-input {
+  width: 100%; height: 48px;
+  padding: 0 44px 0 40px;
+  background: #fff;
+  border: 1.5px solid #d8e2ee;
+  border-radius: 11px;
+  font-size: 14px; color: #0a1628;
+  font-family: var(--font-ui);
+  outline: none;
+  transition: border-color .2s, background .2s, box-shadow .2s;
+}
+.lc-input::placeholder { color: #aab8cc; }
+.lc-input:focus {
+  border-color: #0077b6;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0,119,182,.12);
+}
+.lc-input:focus + .lc-input-icon,
+.lc-input-wrap:focus-within .lc-input-icon { color: #0077b6; }
+
+.lc-field--error .lc-input { border-color: #dc2626; }
+.lc-field-err { font-size: 11.5px; color: #dc2626; }
+
+.lc-eye {
+  position: absolute; right: 12px;
+  background: none; border: none; cursor: pointer;
+  color: #aab8cc; padding: 6px;
+  transition: color .2s;
+}
+.lc-eye:hover { color: #0077b6; }
+
+/* ── Remember / Forgot row ── */
+.lc-meta-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 2px;
+}
+.lc-remember {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12.5px; color: #7a90b0; cursor: pointer;
+}
+.lc-remember input { accent-color: #0077b6; width: 14px; height: 14px; }
+.lc-forgot {
+  font-size: 12.5px; color: #0077b6;
+  text-decoration: none; font-weight: 500;
+}
+.lc-forgot:hover { text-decoration: underline; }
+
+/* ── Submit button ── */
+.lc-submit {
+  margin-top: 8px;
+  width: 100%; height: 50px;
+  background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);
+  color: #fff; border: none; border-radius: 12px;
+  font-size: 15px; font-weight: 600;
+  font-family: var(--font-ui);
+  cursor: pointer; letter-spacing: .02em;
+  box-shadow: 0 4px 20px rgba(0,119,182,.35);
+  transition: opacity .2s, transform .15s, box-shadow .2s;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.lc-submit-arrow {
+  font-size: 12px;
+  transition: transform .2s;
+}
+.lc-submit:hover:not(:disabled) .lc-submit-arrow {
+  transform: translateX(3px);
+}
+.lc-submit:hover:not(:disabled) {
+  opacity: .92;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(0,119,182,.5);
+}
+.lc-submit:active:not(:disabled) { transform: translateY(0); }
+.lc-submit:disabled { opacity: .6; cursor: not-allowed; }
+
+
+
+/* Keep password-toggle alias working if used elsewhere */
+.password-input-wrapper { position: relative; }
+.password-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-3); cursor: pointer; padding: 5px; min-width: 32px; min-height: 32px; display: flex; align-items: center; justify-content: center; }
+.password-toggle:hover { color: var(--blue); }
+.forgot-password { font-size: var(--t-12); color: var(--blue); text-decoration: none; }
+.forgot-password:hover { text-decoration: underline; }
+
+/* ----------------------------------------------------------------
+   LIVE STATS SIDEBAR
+---------------------------------------------------------------- */
+.stats-toggle-btn {
+  position: fixed; right: 0; top: 50%; transform: translateY(-50%);
+  z-index: 91; background: var(--p-bg); border: none;
+  border-radius: var(--r) 0 0 var(--r); padding: 18px 8px;
+  cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  box-shadow: -4px 0 20px rgba(0,0,0,.45); transition: var(--t-md);
+}
+.stats-toggle-btn::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--p-blue); border-radius: var(--r) 0 0 0;
+  box-shadow: 0 0 12px rgba(77,154,255,.5);
+}
+.stats-toggle-btn i { font-size: var(--t-12); color: var(--p-blue); }
+.stats-toggle-btn:hover { background: #0e1f35; }
+.toggle-label { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; writing-mode: vertical-rl; color: var(--p-muted); }
+
+.live-stats-sidebar {
+  position: fixed; right: 0; top: 0; width: var(--panel-w); height: 100vh;
+  background: var(--p-bg); z-index: 300;
+  display: flex; flex-direction: column;
+  transform: translateX(100%); transition: transform var(--t-md);
+  box-shadow: -12px 0 60px rgba(0,0,0,.55); overflow-y: auto;
+}
+.live-stats-sidebar.open { transform: translateX(0); }
+.live-stats-sidebar::-webkit-scrollbar { width: 2px; }
+.live-stats-sidebar::-webkit-scrollbar-thumb { background: var(--p-border-2); border-radius: 1px; }
+
+.live-stats-header {
+  flex-shrink: 0; height: 60px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 18px; border-bottom: 1px solid var(--p-border);
+  background: rgba(255,255,255,.018); position: relative;
+}
+.live-stats-header::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--p-blue), var(--p-teal)); box-shadow: 0 0 14px rgba(77,154,255,.45); }
+.header-title { display: flex; align-items: center; gap: 10px; }
+.header-title > i { font-size: var(--t-15); color: var(--p-blue); }
+.title-content h3 { font-size: var(--t-12); font-weight: 700; color: var(--p-text); margin: 0; } /* was --t-13 old=13px */
+.header-subtitle { font-family: var(--font-data); font-size: var(--t-10); color: var(--p-muted); margin-top: 1px; }
+.header-close { background: rgba(255,255,255,.05); border: 1px solid var(--p-border); color: var(--p-muted); width: 28px; height: 28px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; font-size: var(--t-11); cursor: pointer; transition: var(--t); }
+.header-close:hover { background: rgba(255,77,77,.18); color: var(--p-red); border-color: rgba(255,77,77,.3); }
+
+.status-timeline   { padding: 18px; border-bottom: 1px solid var(--p-border); }
+.metrics-dashboard { padding: 18px; border-bottom: 1px solid var(--p-border); }
+.staff-availability{ padding: 18px; border-bottom: 1px solid var(--p-border); }
+.status-actions    { padding: 18px; }
+
+.timeline-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.timeline-header h4 { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: 1.4px; color: var(--p-muted); display: flex; align-items: center; gap: 5px; margin: 0; }
+.timeline-header h4 i { color: var(--p-blue); }
+.timeline-refresh { background: rgba(255,255,255,.05); border: 1px solid var(--p-border); color: var(--p-muted); width: 26px; height: 26px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; font-size: var(--t-10); cursor: pointer; transition: var(--t); }
+.timeline-refresh:hover { background: rgba(77,154,255,.15); color: var(--p-blue); }
+
+.timeline-items { display: flex; flex-direction: column; gap: 2px; }
+.timeline-item  { display: flex; gap: 10px; }
+.timeline-marker { display: flex; flex-direction: column; align-items: center; padding-top: 6px; flex-shrink: 0; }
+.marker-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-live   { background: var(--p-red); box-shadow: 0 0 0 3px rgba(255,85,102,.18), 0 0 12px rgba(255,85,102,.4); animation: statusPulse 1.8s ease-in-out infinite; }
+.dot-recent { background: var(--p-blue); box-shadow: 0 0 6px rgba(77,154,255,.35); }
+.marker-line { width: 1px; flex: 1; background: var(--p-border); margin-top: 5px; min-height: 8px; }
+.timeline-item:last-child .marker-line { display: none; }
+
+.status-card { flex: 1; background: var(--p-surface); border: 1px solid var(--p-border); border-radius: var(--r); padding: 11px; margin-bottom: 8px; }
+.status-card.current { border-color: rgba(255,85,102,.3); border-left: 3px solid var(--p-red); background: linear-gradient(135deg, rgba(255,85,102,.07) 0%, transparent 60%); }
+.status-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 7px; flex-wrap: wrap; gap: 6px; }
+.status-title { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; color: var(--p-text); text-transform: uppercase; display: flex; align-items: center; gap: 5px; }
+.status-title i { color: var(--p-blue); font-size: var(--t-10); }
+.status-badge { padding: 2px 7px; border-radius: var(--r-xs); font-family: var(--font-data); font-size: var(--t-10); font-weight: 800; text-transform: uppercase; letter-spacing: .07em; }
+.status-badge.live   { background: var(--p-red); color: #fff; }
+.status-badge.recent { background: rgba(77,154,255,.2); color: var(--p-blue); border: 1px solid rgba(77,154,255,.3); }
+.status-content  { margin-bottom: 7px; }
+.status-location { font-size: var(--t-12); font-weight: 700; color: var(--p-text); display: flex; align-items: center; gap: 5px; margin-bottom: 5px; flex-wrap: wrap; }
+.status-location i { color: var(--p-blue); font-size: var(--t-10); }
+.status-text { font-size: var(--t-11); color: rgba(255,255,255,0.85); line-height: 1.55; padding: 7px 9px; background: rgba(255,255,255,.03); border-radius: var(--r-sm); border-left: 2px solid rgba(77,154,255,.28); }
+.status-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 7px; border-top: 1px solid var(--p-border); font-family: var(--font-data); font-size: var(--t-10); color: var(--p-muted); flex-wrap: wrap; gap: 6px; }
+.status-author, .status-time { display: flex; align-items: center; gap: 4px; font-weight: 600; }
+.time-divider { color: var(--p-faint); margin: 0 3px; }
+.empty-timeline { text-align: center; padding: 26px 12px; }
+.empty-timeline i  { font-size: 26px; color: var(--p-muted); opacity: .2; display: block; margin-bottom: 10px; }
+.empty-timeline h5 { font-size: var(--t-12); font-weight: 700; color: var(--p-muted); margin-bottom: 4px; }
+.empty-timeline p  { font-size: var(--t-11); color: var(--p-faint); }
+
+.metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
+.metric-card { background: var(--p-surface); border: 1px solid var(--p-border); border-radius: var(--r); padding: 11px; position: relative; overflow: hidden; transition: var(--t); }
+.metric-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.metric-card:nth-child(1)::before { background: var(--p-blue); }
+.metric-card:nth-child(2)::before { background: var(--p-green); }
+.metric-card:nth-child(3)::before { background: var(--p-amber); }
+.metric-card:nth-child(4)::before { background: var(--p-red); }
+.metric-card:hover { background: var(--p-surface-2); }
+.metric-header { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
+.metric-icon { width: 24px; height: 24px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; font-size: var(--t-11); flex-shrink: 0; }
+.metric-card:nth-child(1) .metric-icon { background: rgba(77,154,255,.15);  color: var(--p-blue); }
+.metric-card:nth-child(2) .metric-icon { background: rgba(0,229,160,.15);   color: var(--p-green); }
+.metric-card:nth-child(3) .metric-icon { background: rgba(255,190,61,.15);  color: var(--p-amber); }
+.metric-card:nth-child(4) .metric-icon { background: rgba(255,85,102,.15);  color: var(--p-red); }
+.metric-title { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--p-muted); }
+.metric-value { font-family: var(--font-display); font-size: 30px; font-weight: 400; line-height: 1; margin-bottom: 7px; letter-spacing: -.02em; } /* was 28px */
+.metric-card:nth-child(1) .metric-value { color: var(--p-blue); }
+.metric-card:nth-child(2) .metric-value { color: var(--p-green); }
+.metric-card:nth-child(3) .metric-value { color: var(--p-amber); }
+.metric-card:nth-child(4) .metric-value { color: var(--p-red); }
+.metric-details { display: flex; flex-direction: column; }
+.detail-item { display: flex; justify-content: space-between; align-items: center; font-size: var(--t-10); padding: 3px 0; border-bottom: 1px solid var(--p-border); }
+.detail-item:last-child { border-bottom: none; }
+.detail-label { color: var(--p-muted); }
+.detail-value { font-family: var(--font-data); font-weight: 600; color: var(--p-text); font-size: var(--t-11); }
+
+.availability-header { margin-bottom: 10px; }
+.availability-header h4 { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: 1.4px; color: var(--p-muted); display: flex; align-items: center; justify-content: space-between; gap: 6px; margin: 0; }
+.availability-total { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; color: var(--p-blue); background: rgba(77,154,255,.1); border: 1px solid rgba(77,154,255,.2); padding: 2px 8px; border-radius: var(--r-xs); }
+.availability-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.availability-card { background: var(--p-surface); border: 1px solid var(--p-border); border-radius: var(--r); padding: 9px 10px; display: flex; align-items: center; gap: 8px; transition: var(--t); }
+.availability-card:hover { background: var(--p-surface-2); }
+.availability-icon { width: 28px; height: 28px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; font-size: var(--t-12); flex-shrink: 0; }
+.availability-icon.attending   { background: rgba(77,154,255,.2);   color: var(--p-blue); }
+.availability-icon.resident    { background: rgba(0,212,212,.2);    color: var(--p-teal); }
+.availability-icon.oncall      { background: rgba(255,190,61,.2);   color: var(--p-amber); }
+.availability-icon.unavailable { background: rgba(255,255,255,.06); color: var(--p-muted); }
+.availability-content { min-width: 0; }
+.availability-role   { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--p-muted); }
+.availability-count  { font-family: var(--font-display); font-size: 22px; font-weight: 400; color: var(--p-text); line-height: 1.1; letter-spacing: -.02em; } /* was 20px */
+.availability-status { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--p-green); }
+.availability-card:last-child .availability-status { color: var(--p-muted); }
+
+.actions-header h4 { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: 1.4px; color: var(--p-muted); display: flex; align-items: center; gap: 6px; margin: 0 0 10px; }
+.action-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px; margin-bottom: 10px; }
+.btn-action { padding: 9px 7px; font-size: var(--t-11); font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 4px; border-radius: var(--r); cursor: pointer; transition: var(--t); font-family: var(--font-ui); }
+.btn-action i { font-size: 15px; }
+.btn-action.btn-primary { background: var(--blue); color: #fff; border: none; box-shadow: var(--shadow-blue); }
+.btn-action.btn-primary:hover { background: #1a66f0; }
+.btn-action.btn-ghost   { background: rgba(255,255,255,.05); border: 1px solid var(--p-border); color: var(--p-muted); }
+.btn-action.btn-ghost:hover   { background: rgba(255,255,255,.09); color: var(--p-text); }
+.btn-action.btn-outline { background: rgba(255,255,255,.04); border: 1px solid var(--p-border-2); color: var(--p-text); }
+
+.status-expiry { display: flex; justify-content: space-between; align-items: center; background: rgba(77,154,255,.07); border: 1px solid rgba(77,154,255,.18); border-radius: var(--r); padding: 7px 11px; flex-wrap: wrap; gap: 6px; }
+.expiry-header { display: flex; align-items: center; gap: 5px; font-family: var(--font-data); font-size: var(--t-10); color: var(--p-muted); font-weight: 600; }
+.expiry-timer  { font-family: var(--font-display); font-size: 17px; font-weight: 400; color: var(--p-blue); }
+
+/* ================================================================
+   COMPACT ROTATION VIEW
+================================================================ */
+.compact-rotations-view { padding: 16px; }
+
+.resident-rotation-summary {
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--surface); border-radius: var(--r-lg);
+  border: 1px solid var(--border); overflow: hidden;
+}
+
+.resident-row {
+  display: flex; align-items: center;
+  padding: 13px 18px; border-bottom: 1px solid var(--border);
+  transition: background var(--t); gap: 18px; flex-wrap: wrap;
+}
+.resident-row:last-child { border-bottom: none; }
+.resident-row:hover { background: var(--blue-lt); }
+
+.resident-info { min-width: 190px; flex-shrink: 0; }
+.resident-name { font-weight: 600; color: var(--text-1); font-size: 15px; }    /* was 14px */
+.resident-year { font-size: var(--t-11); color: var(--text-3); font-family: var(--font-data); }
+
+.rotation-timeline-dots {
+  flex: 1; display: flex; gap: 8px; align-items: center;
+  flex-wrap: wrap; min-width: 220px;
+}
+
+.rotation-dot {
+  width: 38px; height: 38px;                        /* was 34px */
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--t-12); font-weight: 600;
+  cursor: pointer; transition: all 0.2s ease;
+  position: relative; border: 2px solid transparent; flex-shrink: 0;
+}
+.rotation-dot:hover { transform: scale(1.15); z-index: 10; box-shadow: var(--shadow-md); }
+.rotation-dot:active { transform: scale(0.95); }
+
+.rotation-dot.completed { background: var(--ok-lt); color: #065f46; border-color: var(--ok-mid); }
+.rotation-dot.active-now { background: var(--blue); color: white; box-shadow: 0 0 0 3px var(--blue-glow); animation: pulse-active 2s infinite; }
+.rotation-dot.scheduled  { background: var(--info-lt); color: #0369a1; border-color: var(--blue-mid); }
+.rotation-dot.upcoming   { background: #fef3c7; color: #854d0e; border-color: #fcd34d; }
+.rotation-dot.empty {
+  background: transparent; border: 2px dashed var(--border-2);
+  color: var(--text-3); opacity: 0.7; cursor: pointer;
+}
+.rotation-dot.empty:hover { opacity: 1; border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
+
+@keyframes pulse-active {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(45,122,255,0.2); }
+  50%       { box-shadow: 0 0 0 6px rgba(45,122,255,0.1); }
+}
+
+/* CSS tooltip for rotation dots */
+.rotation-dot[data-tooltip] { position: relative; }
+.rotation-dot[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute; bottom: 100%; left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink); color: white;
+  padding: 7px 12px; border-radius: var(--r-sm);
+  font-size: var(--t-11); white-space: nowrap;
+  z-index: 100; margin-bottom: 8px; box-shadow: var(--shadow-md);
+  pointer-events: none; font-weight: 500;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.rotation-actions { flex-shrink: 0; margin-left: auto; }
+
+/* View toggle pills */
+.view-toggle {
+  display: flex; gap: 4px;
+  background: var(--surface-2); padding: 4px;
+  border-radius: var(--r); border: 1px solid var(--border);
+}
+.view-toggle .btn-pill {
+  padding: 6px 13px; font-size: var(--t-12);
+  background: transparent; border: none; color: var(--text-2);
+}
+.view-toggle .btn-pill.active {
+  background: var(--surface); color: var(--blue); box-shadow: var(--shadow-xs);
+}
+
+/* ================================================================
+   COMPACT ON-CALL STACK VIEW
+================================================================ */
+.oncall-stack { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
+
+.oncall-date-group {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); overflow: hidden;
+}
+.oncall-date-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+.oncall-date-header .badge { font-size: var(--t-12); padding: 4px 12px; }
+
+.oncall-stack-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 16px; border-bottom: 1px solid var(--border);
+  transition: background var(--t); cursor: pointer; flex-wrap: wrap;
+}
+.oncall-stack-row:last-child { border-bottom: none; }
+.oncall-stack-row:hover { background: var(--blue-lt); }
+.oncall-stack-row.primary { border-left: 3px solid var(--blue); }
+.oncall-stack-row.backup  { border-left: 3px solid var(--neutral); opacity: 0.9; }
+
+.oncall-time-badge {
+  font-family: var(--font-data); font-size: var(--t-12); font-weight: 600;
+  color: var(--text-2); min-width: 105px;
+  background: var(--surface-2); padding: 4px 8px;
+  border-radius: var(--r-sm); text-align: center;
+}
+.oncall-physician {
+  flex: 1; font-size: 15px; font-weight: 600; color: var(--text-1); /* was 14px */
+  display: flex; align-items: center; gap: 8px;
+}
+.oncall-type-badge {
+  font-size: var(--t-10); font-weight: 700; text-transform: uppercase;
+  padding: 2px 7px; border-radius: var(--r-xs);
+  background: var(--surface-2); color: var(--text-3);
+}
+.oncall-status-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--neutral); transition: all var(--t);
+}
+.oncall-status-dot.active {
+  background: var(--ok);
+  box-shadow: 0 0 0 3px rgba(13,158,110,0.2);
+  animation: pulse-oncall 2s infinite;
+}
+@keyframes pulse-oncall {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(13,158,110,0.2); }
+  50%       { box-shadow: 0 0 0 6px rgba(13,158,110,0.1); }
+}
+.oncall-actions { display: flex; gap: 4px; }
+
+/* ================================================================
+   WEEK GRID VIEW
+================================================================ */
+.rotation-week-grid {
+  display: grid;
+  grid-template-columns: 210px repeat(7, 1fr); /* was 200px */
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  margin: 16px;
+}
+.week-header {
+  background: var(--surface-2); padding: 12px;
+  font-weight: 600; text-align: center;
+  font-size: var(--t-12); color: var(--text-2);
+}
+.week-resident-cell {
+  background: var(--surface); padding: 12px;
+  font-weight: 600; font-size: var(--t-12);
+}
+.week-day-cell {
+  background: var(--surface); padding: 8px; min-height: 80px; position: relative;
+}
+.rotation-block {
+  background: var(--blue-lt); border-left: 3px solid var(--blue);
+  padding: 6px; margin: 2px 0; font-size: var(--t-10);
+  border-radius: var(--r-xs); cursor: pointer; transition: var(--t);
+}
+.rotation-block:hover { transform: translateX(2px); box-shadow: var(--shadow-sm); }
+.rotation-block.active { background: var(--blue); color: white; border-left-color: white; }
+
+/* ----------------------------------------------------------------
+   ANIMATIONS
+---------------------------------------------------------------- */
+@keyframes statusPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.2); opacity: .7; }
+}
+.table tbody tr { animation: rowFadeIn .3s ease both; }
+.table tbody tr:nth-child(1) { animation-delay: .03s; }
+.table tbody tr:nth-child(2) { animation-delay: .06s; }
+.table tbody tr:nth-child(3) { animation-delay: .09s; }
+.table tbody tr:nth-child(4) { animation-delay: .12s; }
+.table tbody tr:nth-child(5) { animation-delay: .15s; }
+.table tbody tr:nth-child(6) { animation-delay: .18s; }
+.table tbody tr:nth-child(7) { animation-delay: .21s; }
+.table tbody tr:nth-child(8) { animation-delay: .24s; }
+@keyframes rowFadeIn {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.fa-spin { animation: spin 1s linear infinite; }
+
+/* ----------------------------------------------------------------
+   UTILITY
+---------------------------------------------------------------- */
+.mb-6 { margin-bottom: 24px; } .mb-4 { margin-bottom: 16px; }
+.mb-3 { margin-bottom: 12px; } .mb-2 { margin-bottom: 8px; }
+.mt-3 { margin-top: 12px; }    .mt-2 { margin-top: 8px; }
+.mt-6 { margin-top: 20px; }    .mt-4 { margin-top: 16px; }
+.ml-auto { margin-left: auto; }
+.flex { display: flex; } .items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; }
+.grid { display: grid; }
+.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.col-span-2  { grid-column: span 2; }
+.col-span-full { grid-column: 1 / -1; }
+.text-center { text-align: center; }
+.font-medium   { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.relative { position: relative; }
+.absolute { position: absolute; }
+.space-y-4 > * + * { margin-top: 16px; }
+.w-full { width: 100%; }
+.hidden { display: none; }
+.text-gray-500  { color: var(--text-3); }
+.text-gray-400  { color: var(--text-4); }
+.text-gray-700  { color: var(--text-1); }
+.text-green-600 { color: var(--ok); }
+.text-red-600   { color: var(--danger); }
+.text-blue-600  { color: var(--blue); }
+
+/* ----------------------------------------------------------------
+   RESPONSIVE
+---------------------------------------------------------------- */
+@media (max-width: 1100px) {
+  .sidebar { transform: translateX(-100%); width: var(--sidebar-w); z-index: 500; }
+  .sidebar.mobile-open { transform: none; }
+  .sidebar-backdrop {
+    display: none; position: fixed; inset: 0;
+    background: rgba(10,22,40,.5); z-index: 499;
+  }
+  .sidebar-backdrop.active { display: block; }
+  .main-content { margin-left: 0 !important; }
+  .content-area { overflow-y: auto; }
+  .mobile-menu-toggle { display: flex; align-items: center; justify-content: center; }
+
+  .stats-toggle-btn {
+    bottom: 20px; top: auto; right: 0; transform: none;
+    border-radius: var(--r) var(--r) 0 0;
+    flex-direction: row; padding: 10px 16px; gap: 8px;
+    writing-mode: horizontal-tb;
+  }
+  .stats-toggle-btn .toggle-label { writing-mode: horizontal-tb; letter-spacing: .05em; }
+
+  .modal-profile { height: 94vh; max-height: 94vh; overflow: hidden; }
+  .profile-layout { flex-direction: column; overflow-y: auto; overflow-x: hidden; }
+  .profile-left { width: 100%; min-width: unset; overflow: visible; flex-shrink: 0; }
+  .profile-right { overflow-y: visible; flex: unset; min-height: unset; padding: 12px; }
+  .profile-tabs { flex-wrap: wrap; gap: 0; position: sticky; top: 0; z-index: 10; background: var(--surface); padding: 0 12px; margin: -12px -12px 8px; border-bottom: 2px solid var(--border); }
+  .profile-tab { flex: 1; min-width: 70px; font-size: var(--t-11); padding: 8px 8px; }
+  .profile-context-strip { display: none; }
+  .charts-grid { grid-template-columns: 1fr; }
+  .stats-grid:not(.mini) { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --content-pad-x: 14px;
+    --content-pad-y: 14px;
+  }
+  .top-navbar { padding: 0 12px; }
+  .search-input { width: 140px; }
+  .search-input:focus { width: 190px; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+  .grid-cols-2 { grid-template-columns: 1fr; }
+  .training-units-grid, .departments-grid { grid-template-columns: 1fr; }
+  .table { min-width: 480px; }
+  .unit-meta-strip { grid-template-columns: 1fr 1fr; }
+  .dashboard-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .dashboard-actions { width: 100%; }
+  .dashboard-actions .btn { flex: 1; }
+  .profile-left { width: 100%; }
+  .stats-grid.mini { grid-template-columns: 1fr 1fr !important; }
+  .need-name { width: 120px; }
+  .bar-label { width: 80px; }
+  .rotation-details { grid-template-columns: 1fr; }
+  .trial-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .supervision-stats { grid-template-columns: repeat(2, 1fr); }
+  .resident-details { grid-template-columns: 1fr 1fr; }
+  .filter-bar { gap: 6px; }
+  .filter-bar .form-control,
+  .filter-bar .form-select { min-width: 120px; max-width: 100%; }
+  .research-lines-grid,
+  .innovation-projects-grid { grid-template-columns: 1fr; }
+
+  /* breadcrumb always visible — defined in base styles */
+
+  /* Larger touch targets on mobile */
+  .table-actions .btn-sm { width: 44px !important; height: 44px !important; }
+  .btn-pill { min-height: 38px; padding: 8px 14px; }
+  .sidebar-menu-link { min-height: 48px; }
+
+  /* Compact views mobile */
+  .resident-row { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .resident-info { width: 100%; }
+  .rotation-timeline-dots { width: 100%; justify-content: flex-start; }
+  .rotation-actions { margin-left: 0; width: 100%; }
+  .oncall-stack-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .oncall-time-badge { width: 100%; }
+  .oncall-physician { width: 100%; }
+  .oncall-actions { width: 100%; justify-content: flex-end; }
+  .rotation-week-grid { grid-template-columns: 150px repeat(7, 1fr); font-size: 11px; }
+}
+
+/* Narrow modals collapse grid */
+@media (max-width: 580px) {
+  .modal-body .grid-cols-2 { grid-template-columns: 1fr; }
+  .modal-body .col-span-2  { grid-column: span 1; }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --t-hero: clamp(28px, 9vw, 40px);
+  }
+  .login-card { padding: 22px 16px; }
+
+  /* Bottom-sheet modals on phones */
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal-container {
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    max-height: 96vh; margin: 0; max-width: 100%;
+  }
+  .modal-body {
+    min-height: 0; max-height: calc(96vh - 120px); overflow-y: auto;
+  }
+  .modal-tabs { flex-direction: column; }
+  .modal-tab { width: 100%; }
+  .reason-grid { grid-template-columns: 1fr 1fr; }
+  .metrics-grid { grid-template-columns: 1fr 1fr; }
+  .availability-grid { grid-template-columns: 1fr 1fr; }
+  .action-buttons { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .trial-stats-grid { grid-template-columns: 1fr 1fr; }
+  .supervision-stats { grid-template-columns: 1fr; }
+  .resident-details { grid-template-columns: 1fr; }
+  .profile-tabs { flex-direction: column; }
+  .profile-tab { width: 100%; }
+  .table-actions { flex-wrap: nowrap; }
+  .filter-bar { flex-direction: column; }
+  .filter-bar .form-control,
+  .filter-bar .form-select { min-width: unset; max-width: 100%; flex: none; width: 100%; }
+
+  .stats-toggle-btn { bottom: 0; border-radius: var(--r) var(--r) 0 0; width: auto; padding: 10px 20px; }
+
+  /* Live stats: full-width bottom sheet on phones */
+  .live-stats-sidebar {
+    width: 100%; height: 75vh; top: auto; bottom: 0;
+    transform: translateY(100%);
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    box-shadow: 0 -12px 60px rgba(0,0,0,.55);
+  }
+  .live-stats-sidebar.open { transform: translateY(0); }
+  .rotation-week-grid { grid-template-columns: 120px repeat(7, 1fr); font-size: 10px; }
+  .rotation-dot { width: 30px; height: 30px; font-size: 11px; }
+  .view-toggle .btn-pill { padding: 4px 8px; font-size: 11px; }
+}
+
+/* ----------------------------------------------------------------
+   SCROLLBAR
+---------------------------------------------------------------- */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-3); }
+
+/* ----------------------------------------------------------------
+   PRINT
+---------------------------------------------------------------- */
+@media print {
+  .sidebar, .top-navbar, .stats-toggle-btn,
+  .live-stats-sidebar, .toast-container, .modal-overlay,
+  .quick-actions-bar, .filter-bar { display: none !important; }
+  .main-content { margin-left: 0 !important; height: auto; overflow: visible; }
+  .content-area { padding: 0; overflow: visible; }
+  body { background: #fff; background-image: none; color: #000; font-size: 12px; }
+  .card, .stat-card { box-shadow: none; border: 1px solid #ddd; }
+  .table thead th { background: #f5f5f5; color: #333; }
+  .table tbody tr { border-bottom: 1px solid #eee; animation: none; }
+  .badge, .status-indicator { border: 1px solid #ccc; background: #f5f5f5; color: #333; }
+}
+
+/* ================================================================
+   STAFF PROFILE DRAWER  —  NeumoCaré Premium v2
+   A full-height right-side panel replacing the old modal.
+   Status-coded accent colour system. Smooth slide transitions.
+================================================================ */
+
+/* ── Transitions ──────────────────────────────────────────────── */
+.drawer-backdrop-enter-active,
+.drawer-backdrop-leave-active { transition: opacity 280ms cubic-bezier(.4,0,.2,1); }
+.drawer-backdrop-enter-from,
+.drawer-backdrop-leave-to   { opacity: 0; }
+
+.drawer-slide-enter-active  { transition: transform 320ms cubic-bezier(.22,1,.36,1), opacity 240ms ease; }
+.drawer-slide-leave-active  { transition: transform 240ms cubic-bezier(.4,0,1,1), opacity 200ms ease; }
+.drawer-slide-enter-from    { transform: translateX(100%); opacity: 0; }
+.drawer-slide-leave-to      { transform: translateX(100%); opacity: 0; }
+
+/* ── Backdrop ──────────────────────────────────────────────── */
+.profile-drawer-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(7,17,31,.55);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  z-index: 8900;
+}
+
+/* ── Drawer shell ──────────────────────────────────────────── */
+.profile-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(820px, 100vw);
+  display: flex;
+  background: var(--surface-1, #fff);
+  z-index: 9000;
+  box-shadow: -8px 0 48px rgba(0,0,0,.22), -2px 0 8px rgba(0,0,0,.12);
+  overflow: hidden;
+}
+
+/* ── LEFT IDENTITY PANEL ───────────────────────────────────── */
+.pd-identity {
+  width: 236px; flex-shrink: 0;
+  background: #0f2d54;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  border-right: 0.5px solid rgba(255,255,255,.06);
+}
+
+/* Top teal accent line */
+.pd-status-bar {
+  height: 2px; flex-shrink: 0;
+  background: linear-gradient(90deg, var(--teal-2,#00B3B3) 0%, rgba(0,179,179,0) 100%);
+}
+
+/* ── HERO ─────────────────────────────────────────────────── */
+.pd-hero {
+  padding: 22px 18px 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  border-bottom: 0.5px solid rgba(255,255,255,.05);
+  position: relative; flex-shrink: 0;
+}
+
+.pd-close {
+  position: absolute; top: 12px; right: 12px;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(255,255,255,.06); border: 0.5px solid rgba(255,255,255,.1);
+  color: rgba(255,255,255,0.65); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .18s;
+}
+.pd-close:hover { background: rgba(255,255,255,.12); color: #fff; }
+.pd-close svg { width: 11px; height: 11px; }
+
+/* Avatar */
+.pd-avatar-block { position: relative; flex-shrink: 0; }
+.pd-avatar {
+  width: 66px; height: 66px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.25rem; font-weight: 700; color: #fff;
+  letter-spacing: -.02em;
+  background: linear-gradient(135deg, #00B3B3 0%, #0e7490 100%);
+  box-shadow: 0 0 0 2.5px rgba(0,179,179,.25), 0 0 0 5px rgba(0,179,179,.07);
+  /* FontAwesome icon override — hide icon, show initials via ::before */
+  font-family: 'DM Sans', sans-serif;
+}
+.pd-avatar i { display: none; } /* hide old fa icons */
+.pd-avatar::before {
+  content: attr(data-initials);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1.25rem; font-weight: 700;
+  color: #fff; letter-spacing: -.02em;
+}
+
+/* Resident avatar — slightly different gradient */
+.pd-avatar--resident {
+  background: linear-gradient(135deg, #1e40af 0%, #0e7490 100%);
+  box-shadow: 0 0 0 2.5px rgba(30,64,175,.25), 0 0 0 5px rgba(30,64,175,.07);
+}
+
+.pd-status-dot {
+  position: absolute; bottom: 3px; right: 3px;
+  width: 11px; height: 11px; border-radius: 50%;
+  border: 2px solid #0f2d54;
+}
+.dot--active   { background: #10b981; }
+.dot--on_leave { background: #f59e0b; }
+.dot--inactive { background: #6b7280; }
+
+.pd-name {
+  font-size: .9375rem; font-weight: 700; color: #fff;
+  line-height: 1.2; text-align: center; letter-spacing: -.01em;
+}
+.pd-role {
+  font-size: .575rem; font-family: 'DM Mono', monospace;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: rgba(255,255,255,0.75); text-align: center;
+}
+
+/* Pills */
+.pd-hero-meta { display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; }
+.pd-hero-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2.5px 8px; border-radius: 99px;
+  font-size: .575rem; font-family: 'DM Mono', monospace;
+  letter-spacing: .07em; text-transform: uppercase;
+  background: rgba(0,179,179,.1);
+  border: 0.5px solid rgba(0,179,179,.2);
+  color: #00B3B3;
+}
+.pd-hero-chip i { display: none; } /* hide fa icons */
+.pd-hero-chip--neutral {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(255,255,255,0.30);
+  color: rgba(255,255,255,0.75);
+}
+.pd-hero-chip--resident {
+  background: rgba(99,102,241,.1);
+  border-color: rgba(99,102,241,.22);
+  color: #818cf8;
+}
+.pd-hero-chip--resident {
+  background: rgba(99,102,241,.1);
+  border-color: rgba(99,102,241,.22);
+  color: #818cf8;
+}
+
+/* ── STATS STRIP ──────────────────────────────────────────── */
+.pd-stats-strip {
+  display: grid; grid-template-columns: 1fr 1fr;
+  border-bottom: 0.5px solid rgba(255,255,255,.05);
+  flex-shrink: 0;
+}
+.pd-stat {
+  padding: 10px 10px; text-align: center;
+  border-right: 0.5px solid rgba(255,255,255,.05);
+}
+.pd-stat:last-child { border-right: none; }
+.pd-stat-n {
+  font-size: 1.125rem; font-weight: 700;
+  color: #fff; line-height: 1;
+  font-family: 'DM Sans', sans-serif;
+}
+.pd-stat-n--teal { color: #00B3B3; }
+.pd-stat-l {
+  font-size: .52rem; font-family: 'DM Mono', monospace;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: rgba(255,255,255,0.55); margin-top: 2px;
+}
+
+/* ── INFO BODY ────────────────────────────────────────────── */
+.pd-body { flex: 1; overflow-y: auto; }
+
+.pd-section {
+  padding: 12px 16px;
+  border-bottom: 0.5px solid rgba(255,255,255,.05);
+}
+.pd-section:last-child { border-bottom: none; }
+
+/* New section head — no collapse, just a label */
+.pd-section-head {
+  display: flex; align-items: center; gap: 6px;
+  cursor: default; background: none; border: none;
+  width: 100%; padding: 0; margin-bottom: 7px;
+}
+.pd-section-icon { display: none; } /* hide old icon containers */
+.pd-section-title {
+  font-size: 8.5px; font-family: 'DM Mono', monospace;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: rgba(255,255,255,0.42); flex: 1; text-align: left;
+}
+.pd-section-chevron { display: none; } /* no collapse chevron */
+
+/* Section body always visible */
+.pd-section-body { max-height: none !important; overflow: visible !important; }
+.pd-section--collapsed .pd-section-body { max-height: none !important; }
+
+/* Info rows */
+.pd-row {
+  display: flex; align-items: center;
+  justify-content: space-between; padding: 3px 0;
+}
+.pd-row-key {
+  display: flex; align-items: center; gap: 6px;
+  font-size: .675rem; color: rgba(255,255,255,0.55);
+}
+.pd-row-key svg { flex-shrink: 0; opacity: .7; }
+.pd-row-val {
+  font-size: .675rem; color: #fff;
+  font-weight: 500; text-align: right;
+}
+.pd-row-na { color: rgba(255,255,255,0.55) !important; font-weight: 400 !important; }
+
+/* Origin block — for rotating/external residents */
+.pd-origin-block {
+  background: rgba(255,255,255,.03);
+  border: 0.5px solid rgba(255,255,255,.07);
+  border-radius: 7px; padding: 8px 10px;
+}
+.pd-origin-name {
+  font-size: .72rem; font-weight: 600;
+  color: rgba(255,255,255,0.92);
+  display: flex; align-items: center; gap: 5px;
+  margin-bottom: 3px;
+}
+.pd-origin-contact {
+  font-size: .6rem; font-family: 'DM Mono', monospace;
+  color: rgba(255,255,255,0.55); padding-left: 16px;
+}
+
+/* Dates block */
+.pd-dates-block {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.pd-date-kv { display: flex; flex-direction: column; gap: 1px; }
+.pd-date-k {
+  font-size: .55rem; font-family: 'DM Mono', monospace;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+}
+.pd-date-v { font-size: .72rem; color: rgba(255,255,255,0.97); font-weight: 500; }
+.pd-date-arrow { color: rgba(255,255,255,0.30); font-size: .75rem; }
+
+/* Contact rows */
+.pd-contact-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 0; font-size: .675rem;
+  color: rgba(255,255,255,0.75); text-decoration: none;
+  transition: color .15s;
+}
+.pd-contact-row svg { flex-shrink: 0; opacity: .6; }
+.pd-contact-row:hover { color: #fff; }
+.pd-contact-row--disabled { color: rgba(255,255,255,0.42) !important; pointer-events: none; }
+
+/* Capabilities */
+.pd-capability-row {
+  display: flex; align-items: center; gap: 7px;
+  padding: 3px 0; font-size: .675rem; color: rgba(255,255,255,0.85);
+}
+.pd-cap-icon { width: 16px; height: 16px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; flex-shrink: 0; }
+.pd-cap-icon--pi  { background: rgba(245,158,11,.12); color: #f59e0b; }
+.pd-cap-icon--coi { background: rgba(99,102,241,.12); color: #818cf8; }
+.pd-cap-icon--sup { background: rgba(0,179,179,.12); color: #00B3B3; }
+.pd-cap-label { font-size: .675rem; color: rgba(255,255,255,0.85); }
+
+/* Role items */
+.pd-role-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 3px 0; font-size: .675rem; color: rgba(255,255,255,0.85);
+}
+
+/* Edit button */
+.pd-edit-btn {
+  margin: 10px 14px; padding: 7px 12px; border-radius: 8px;
+  background: rgba(255,255,255,.04);
+  border: 0.5px solid rgba(255,255,255,.09);
+  color: rgba(255,255,255,0.65); font-size: .72rem;
+  display: flex; align-items: center; gap: 6px;
+  cursor: pointer; justify-content: center;
+  transition: all .18s; flex-shrink: 0; width: calc(100% - 28px);
+}
+.pd-edit-btn:hover { background: rgba(255,255,255,.09); color: rgba(255,255,255,0.92); }
+.pd-edit-btn i { display: none; }
+.pd-edit-btn svg { flex-shrink: 0; }
+
+/* ── RIGHT CONTENT PANEL ───────────────────────────────────── */
+.pd-content {
+  flex: 1; display: flex; flex-direction: column;
+  background: var(--surface-1, #fff); min-width: 0;
+}
+
+/* Tab bar */
+.pd-tabs {
+  display: flex; align-items: center; gap: 0;
+  border-bottom: 0.5px solid var(--border-color, rgba(0,0,0,.08));
+  padding: 0 18px;
+  background: var(--surface-2, #f8f9fa);
+  flex-shrink: 0;
+}
+.pd-tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 11px 12px; font-size: .8rem; font-weight: 500;
+  color: var(--text-3, #6b7280);
+  border-bottom: 2px solid transparent;
+  cursor: pointer; white-space: nowrap;
+  background: none; border-top: none; border-left: none; border-right: none;
+  transition: all .15s;
+}
+.pd-tab.active { color: #00B3B3; border-bottom-color: #00B3B3; }
+.pd-tab i { display: none; }
+.pd-tab svg { flex-shrink: 0; }
+.pd-tabs-spacer { flex: 1; }
+
+/* Tab action buttons */
+.pd-tab-actions { display: flex; align-items: center; gap: 5px; }
+.pd-tab-action-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 9px; font-size: .7rem;
+  color: var(--text-2, #374151);
+  border: 0.5px solid var(--border-color, rgba(0,0,0,.1));
+  border-radius: 6px; background: transparent;
+  cursor: pointer; white-space: nowrap; transition: all .15s;
+}
+.pd-tab-action-btn:hover { border-color: #00B3B3; color: #00B3B3; }
+.pd-tab-action-btn i { display: none; }
+
+/* Tab body */
+.pd-tab-body { flex: 1; overflow-y: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
+
+/* Cards */
+.pd-card {
+  border: 0.5px solid var(--border-color, rgba(0,0,0,.08));
+  border-radius: 10px; overflow: hidden;
+}
+.pd-card-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 13px;
+  background: var(--surface-2, #f8f9fa);
+  border-bottom: 0.5px solid var(--border-color, rgba(0,0,0,.06));
+}
+.pd-card-icon {
+  width: 20px; height: 20px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.pd-card-icon i { display: none; }
+.pd-card-icon svg { flex-shrink: 0; }
+.pd-card-title { font-size: .78rem; font-weight: 600; color: var(--text-1, #111827); flex: 1; }
+.pd-badge {
+  font-size: .58rem; font-family: 'DM Mono', monospace;
+  padding: 2px 6px; border-radius: 99px;
+  background: var(--surface-3, #f3f4f6);
+  color: var(--text-3, #6b7280);
+  border: 0.5px solid var(--border-color, rgba(0,0,0,.08));
+}
+.pd-badge--ok { background: rgba(16,185,129,.08); color: #059669; border-color: rgba(16,185,129,.2); }
+.pd-badge--danger { background: rgba(239,68,68,.08); color: #dc2626; border-color: rgba(239,68,68,.2); }
+.pd-badge--warn { background: rgba(245,158,11,.08); color: #d97706; border-color: rgba(245,158,11,.2); }
+.pd-badge--blue { background: rgba(59,130,246,.08); color: #2563eb; border-color: rgba(59,130,246,.2); }
+.pd-badge--neutral { background: var(--surface-3,#f3f4f6); color: var(--text-3,#6b7280); border-color: var(--border-color,rgba(0,0,0,.08)); }
+.pd-badge--teal { background: rgba(0,179,179,.08); color: #00B3B3; border-color: rgba(0,179,179,.2); }
+
+/* Rotation name */
+.pd-rotation-name { font-size: .9375rem; font-weight: 700; color: var(--text-1,#111827); padding: 11px 13px 7px; }
+
+/* KV grid */
+.pd-grid-4 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 13px 11px; }
+.pd-kv { display: flex; flex-direction: column; gap: 1px; }
+.pd-kv-k { font-size: .58rem; font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3,#6b7280); }
+.pd-kv-v { font-size: .8rem; font-weight: 500; color: var(--text-1,#111827); }
+.pd-kv-v--accent { color: #00B3B3; }
+
+/* Clear row — empty state */
+.pd-clear-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 13px;
+  font-size: .78rem; color: var(--text-3,#6b7280);
+  border: 0.5px solid var(--border-color,rgba(0,0,0,.08));
+  border-radius: 10px;
+  background: var(--surface-2,#f8f9fa);
+}
+.pd-clear-row svg { flex-shrink: 0; }
+.pd-clear-row i { display: none; }
+
+/* Schedule grid */
+.pd-schedule-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.pd-schedule-col { padding: 10px 13px; border-right: 0.5px solid var(--border-color,rgba(0,0,0,.06)); }
+.pd-schedule-col:last-child { border-right: none; }
+.pd-schedule-label { font-size: .6rem; font-family: 'DM Mono', monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3,#6b7280); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+.pd-schedule-label i { display: none; }
+.pd-shift-row { display: flex; align-items: center; gap: 5px; padding: 3px 0; flex-wrap: wrap; }
+.pd-shift-date { font-size: .72rem; font-weight: 500; color: var(--text-1,#111827); }
+.pd-shift-time { font-size: .65rem; font-family: 'DM Mono', monospace; color: var(--text-3,#6b7280); }
+.pd-more { font-size: .65rem; color: var(--text-3,#6b7280); font-family: 'DM Mono', monospace; padding: 3px 0; }
+
+/* Nil / empty */
+.pd-nil { padding: 10px 13px; font-size: .78rem; color: var(--text-3,#6b7280); display: flex; align-items: center; gap: 6px; }
+.pd-nil i { display: none; }
+
+/* History rows */
+.pd-history-row { display: flex; align-items: center; gap: 8px; padding: 6px 13px; border-bottom: 0.5px solid var(--border-color,rgba(0,0,0,.06)); }
+.pd-history-row:last-child { border-bottom: none; }
+.pd-history-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; flex-shrink: 0; }
+.pd-history-body { flex: 1; }
+.pd-history-unit { font-size: .78rem; font-weight: 500; color: var(--text-1,#111827); }
+.pd-history-dates { font-size: .62rem; font-family: 'DM Mono', monospace; color: var(--text-3,#6b7280); }
+.pd-history-badge { font-size: .57rem; font-family: 'DM Mono', monospace; padding: 1.5px 6px; border-radius: 99px; background: rgba(16,185,129,.08); color: #059669; border: 0.5px solid rgba(16,185,129,.18); }
+
+/* Research rows */
+.pd-research-row { padding: 8px 13px; border-bottom: 0.5px solid var(--border-color,rgba(0,0,0,.06)); }
+.pd-research-row:last-child { border-bottom: none; }
+.pd-research-title { font-size: .8rem; font-weight: 600; color: var(--text-1,#111827); margin-bottom: 2px; }
+.pd-research-meta { font-size: .65rem; font-family: 'DM Mono', monospace; color: var(--text-3,#6b7280); }
+
+/* Resident category badge */
+.resident-category-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 7px; border-radius: 99px;
+  font-size: .62rem; font-family: 'DM Mono', monospace;
+  letter-spacing: .06em; text-transform: uppercase;
+  background: rgba(99,102,241,.08); color: #6366f1;
+  border: 0.5px solid rgba(99,102,241,.2);
+}
+.resident-category-badge i { display: none; }
+
+/* Transition */
+.drawer-slide-enter-active, .drawer-slide-leave-active { transition: transform .28s cubic-bezier(.4,0,.2,1); }
+.drawer-slide-enter-from, .drawer-slide-leave-to { transform: translateX(100%); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .profile-drawer { width: 100vw; flex-direction: column; }
+  .pd-identity { width: 100%; max-height: 280px; flex-direction: row; flex-wrap: wrap; }
+  .pd-hero { flex-direction: row; align-items: center; gap: 12px; text-align: left; flex: 1; }
+  .pd-hero-meta { justify-content: flex-start; }
+  .pd-stats-strip { grid-template-columns: repeat(2,1fr); width: 100%; }
+  .pd-body { display: none; }
+  .pd-schedule-grid { grid-template-columns: 1fr; }
+  .pd-grid-4 { grid-template-columns: 1fr 1fr; }
+}
+
+/* ================================================================
+   STAFF TABLE — AVATAR CHIP + CLEAN NAME CELL
+================================================================ */
+.staff-name-cell {
+  display: flex; align-items: center; gap: 10px;
+}
+.staff-avatar-chip {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 13px; font-weight: 400;
+  font-style: italic; color: white; letter-spacing: .01em;
+}
+.staff-avatar-chip.chip--active   { background: linear-gradient(135deg, #0d9e6e, #065f46); }
+.staff-avatar-chip.chip--on_leave { background: linear-gradient(135deg, #d97706, #92400e); }
+.staff-avatar-chip.chip--inactive { background: linear-gradient(135deg, #64748b, #334155); }
+
+.staff-name-block { min-width: 0; }
+.staff-name-primary { font-weight: 600; font-size: 14px; color: var(--text-1); white-space: nowrap; }
+.staff-name-sub {
+  font-family: var(--font-data); font-size: 10px; font-weight: 500;
+  color: var(--text-3); margin-top: 2px; display: flex; align-items: center; gap: 4px;
+}
+
+/* Rotation chip inside staff table */
+.staff-rotation-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 20px;
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  font-size: 11px; font-weight: 500; color: var(--blue);
+  max-width: 180px;
+}
+.src-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ok); flex-shrink: 0;
+  box-shadow: 0 0 5px rgba(13,158,110,.6);
+  animation: pulse-active 2s infinite;
+}
+.src-unit { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.src-dur  { font-family: var(--font-data); font-size: 10px; font-weight: 700; color: var(--blue); flex-shrink: 0; }
+
+/* ================================================================
+   ROTATION ORB SYSTEM — Premium clinical timeline
+================================================================ */
+
+/* Legend bar */
+.rot-legend {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  padding: 10px 18px; border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.rot-legend-item {
+  display: flex; align-items: center; gap: 5px;
+  font-family: var(--font-data); font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--text-3);
+}
+.rot-legend-item--note { margin-left: auto; font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 11px; color: var(--text-4); }
+.rot-legend-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+}
+.rot-legend-dot--active    { background: var(--blue); box-shadow: 0 0 6px var(--blue-glow); }
+.rot-legend-dot--scheduled { background: transparent; border: 2px solid var(--blue-mid); }
+.rot-legend-dot--done      { background: var(--ok-lt); border: 1.5px solid var(--ok-mid); }
+
+/* Row layout */
+.rot-compact { display: flex; flex-direction: column; }
+
+.rot-row {
+  display: flex; align-items: center; gap: 0;
+  padding: 11px 18px; border-bottom: 1px solid var(--border);
+  transition: background var(--t);
+}
+.rot-row:last-child { border-bottom: none; }
+.rot-row:hover { background: rgba(45,122,255,.03); }
+
+/* Who (left identity) */
+.rot-who {
+  display: flex; align-items: center; gap: 10px;
+  width: 200px; flex-shrink: 0; min-width: 0;
+}
+.rot-who-avatar {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--ink-3), var(--ink-2));
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 13px; font-style: italic;
+  border: 1.5px solid var(--border-2);
+}
+.rot-who-avatar--blue { background: linear-gradient(135deg, var(--blue), var(--ink-3)); }
+.rot-who-info { min-width: 0; }
+.rot-who-name { display: block; font-size: 13px; font-weight: 500; color: var(--text-1); white-space: normal; word-break: break-word; }
+.rot-who-meta { display: block; font-family: var(--font-data); font-size: 10px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; margin-top: 1px; }
+
+/* Orb track */
+.rot-track {
+  flex: 1; display: flex; align-items: center;
+  gap: 6px; padding: 0 14px; flex-wrap: wrap; min-width: 0;
+}
+
+/* Connector between orb groups */
+.rot-connector {
+  color: var(--text-4); font-size: 18px; line-height: 1;
+  margin: 0 2px; flex-shrink: 0; user-select: none;
+}
+
+/* THE ORB — pill shape carrying clinical duration label */
+.rot-orb {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; height: 32px; padding: 0 10px;
+  border-radius: 16px; cursor: pointer;
+  transition: transform .16s ease, box-shadow .16s ease;
+  flex-shrink: 0; user-select: none;
+}
+.rot-orb:hover { transform: translateY(-2px); z-index: 20; }
+.rot-orb:active { transform: translateY(0) scale(.97); }
+
+.rot-orb-label {
+  font-family: var(--font-data); font-size: 11px; font-weight: 700;
+  letter-spacing: .04em; white-space: nowrap; line-height: 1;
+}
+
+/* Orb states */
+.rot-orb--done {
+  background: var(--surface-2); border: 1.5px solid var(--border-2);
+  color: var(--text-3);
+}
+.rot-orb--done:hover { background: var(--ok-lt); border-color: var(--ok-mid); color: #065f46; box-shadow: 0 4px 12px rgba(13,158,110,.15); }
+
+.rot-orb--active {
+  background: var(--blue); border: none; color: white;
+  box-shadow: 0 0 0 3px var(--blue-glow), 0 3px 10px rgba(45,122,255,.35);
+  animation: orb-pulse 2.5s ease-in-out infinite;
+  min-width: 52px; height: 36px; font-size: 12px;
+}
+@keyframes orb-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(45,122,255,.25), 0 3px 10px rgba(45,122,255,.3); }
+  50%       { box-shadow: 0 0 0 6px rgba(45,122,255,.12), 0 3px 14px rgba(45,122,255,.4); }
+}
+
+.rot-orb--scheduled {
+  background: transparent; border: 2px solid var(--blue-mid);
+  color: var(--blue);
+}
+.rot-orb--scheduled:hover { background: var(--blue-lt); box-shadow: 0 4px 12px rgba(45,122,255,.15); }
+
+.rot-orb--add {
+  background: transparent; border: 2px dashed var(--border-2);
+  color: var(--text-4); width: 32px; min-width: 32px; padding: 0;
+  font-size: 11px;
+}
+.rot-orb--add:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
+
+/* Rich tooltip — replaces CSS data-tooltip */
+.rot-orb-tooltip {
+  position: absolute; bottom: calc(100% + 10px); left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: var(--ink); border: 1px solid rgba(255,255,255,.1);
+  border-radius: var(--r); padding: 10px 12px;
+  min-width: 170px; max-width: 220px;
+  box-shadow: var(--shadow-lg); pointer-events: none;
+  opacity: 0; transition: opacity .18s ease, transform .18s ease;
+  z-index: 200; white-space: normal;
+}
+.rot-orb:hover .rot-orb-tooltip {
+  opacity: 1; transform: translateX(-50%) translateY(0);
+}
+.rot-orb-tooltip::after {
+  content: ''; position: absolute; top: 100%; left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent; border-top-color: var(--ink);
+}
+.rot-tt-unit  { font-size: 13px; font-weight: 600; color: white; margin-bottom: 4px; }
+.rot-tt-dates { font-family: var(--font-data); font-size: 11px; color: rgba(255,255,255,0.92); margin-bottom: 4px; }
+.rot-tt-remaining { font-family: var(--font-data); font-size: 11px; font-weight: 700; color: var(--p-green); margin-bottom: 4px; }
+.rot-tt-tag {
+  display: inline-block; padding: 2px 8px; border-radius: 20px;
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; margin-top: 3px;
+}
+.rot-tt-tag--active    { background: rgba(45,122,255,.2); color: #7bbeff; }
+.rot-tt-tag--scheduled { background: rgba(45,122,255,.12); color: rgba(255,255,255,0.75); }
+.rot-tt-tag--done      { background: rgba(13,158,110,.15); color: #6ee7b7; }
+
+.rot-nil { font-size: 12px; color: var(--text-4); font-style: italic; }
+
+/* Row quick action button */
+.rot-row-actions { flex-shrink: 0; margin-left: 8px; }
+.rot-action-btn {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-3); cursor: pointer; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--t);
+}
+.rot-action-btn:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+
+/* ================================================================
+   ON-CALL ORB VIEW
+================================================================ */
+.oncall-orb-view { display: flex; flex-direction: column; }
+
+.oc-row {
+  display: flex; align-items: center; gap: 0;
+  padding: 11px 18px; border-bottom: 1px solid var(--border);
+  transition: background var(--t);
+}
+.oc-row:last-child { border-bottom: none; }
+.oc-row:hover { background: rgba(45,122,255,.03); }
+
+/* On-call shift orb — more compact, day-labelled */
+.oc-orb {
+  position: relative;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 46px; height: 46px; border-radius: 10px;
+  cursor: pointer; transition: transform .16s ease, box-shadow .16s ease;
+  flex-shrink: 0; user-select: none; gap: 2px;
+}
+.oc-orb:hover { transform: translateY(-2px); z-index: 20; }
+.oc-orb:active { transform: scale(.96); }
+
+.oc-orb-day  { font-family: var(--font-data); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; line-height: 1; }
+.oc-orb-date { font-family: var(--font-data); font-size: 10px; font-weight: 700; line-height: 1; }
+
+.oc-orb--primary {
+  background: var(--blue-lt); border: 1.5px solid var(--blue-mid); color: var(--blue);
+}
+.oc-orb--backup {
+  background: var(--surface-2); border: 1.5px dashed var(--border-2); color: var(--text-3);
+}
+.oc-orb--today {
+  background: var(--blue) !important; border-color: var(--blue) !important; color: white !important;
+  box-shadow: 0 0 0 3px var(--blue-glow), 0 3px 10px rgba(45,122,255,.35);
+  animation: orb-pulse 2.5s ease-in-out infinite;
+}
+.oc-orb--past { opacity: .45; }
+
+/* Demo orbs for legend */
+.oc-orb-demo {
+  display: inline-block; width: 14px; height: 14px; border-radius: 3px;
+}
+.oc-orb-demo--primary  { background: var(--blue-lt); border: 1.5px solid var(--blue-mid); }
+.oc-orb-demo--backup   { background: var(--surface-2); border: 1.5px dashed var(--border-2); }
+.oc-orb-demo--today    { background: var(--blue); }
+
+
+/* ================================================================
+   PREMIUM TABLE OVERHAUL  —  NeumoCaré v3
+   No initials. Role-icon system. Surgical information density.
+================================================================ */
+
+/* ── Core table reset — tighter, stronger ─────────────────────── */
+.table {
+  width: 100%; border-collapse: separate; border-spacing: 0;
+  font-size: 13px; min-width: 560px;
+}
+.table thead th {
+  background: var(--ink); padding: 10px 16px;
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .12em; color: rgba(255,255,255,0.85);
+  border-bottom: none; white-space: nowrap;
+  position: sticky; top: 0; z-index: 2; cursor: pointer; user-select: none;
+}
+.table thead th:first-child { border-radius: var(--r-sm) 0 0 0; }
+.table thead th:last-child  { border-radius: 0 var(--r-sm) 0 0; }
+.table thead th i { margin-left: 4px; font-size: 9px; color: rgba(255,255,255,0.55); }
+.table thead th:hover { color: rgba(255,255,255,0.92); }
+
+.table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t), box-shadow var(--t);
+  cursor: pointer; position: relative;
+}
+.table tbody tr:last-child td { border-bottom: none; }
+.table tbody tr:hover { background: var(--blue-lt); }
+.table tbody tr:hover td { border-bottom-color: var(--blue-mid); }
+
+/* Zebra — very subtle, doesn't fight hover */
+.table-striped tbody tr:nth-child(even)      { background: rgba(248,250,252,.8); }
+.table-striped tbody tr:nth-child(even):hover { background: var(--blue-lt); }
+
+.table tbody td {
+  padding: 12px 16px;
+  color: var(--text-1); vertical-align: middle;
+  line-height: 1.35; border-bottom: 1px solid var(--border);
+  height: 56px;
+}
+
+/* Status accent — left border as a meaningful signal strip */
+.table tbody tr.row-active   td:first-child { border-left: 3px solid var(--ok); }
+.table tbody tr.row-on_leave td:first-child { border-left: 3px solid var(--warn); }
+.table tbody tr.row-inactive td:first-child { border-left: 3px solid var(--neutral); }
+.table tbody tr.row-scheduled td:first-child { border-left: 3px solid var(--blue); }
+.table tbody tr.row-completed         td:first-child { border-left: 3px solid var(--teal); }
+.table tbody tr.row-cancelled         td:first-child { border-left: 3px solid var(--border-2); }
+.table tbody tr.row-currently_absent  td:first-child { border-left: 3px solid var(--warn); }
+.table tbody tr.row-planned_leave     td:first-child { border-left: 3px solid var(--p-accent); }
+.table tbody tr.row-returned          td:first-child { border-left: 3px solid rgba(52,211,153,.35); }
+.table tbody tr.row-terminated_early  td:first-child { border-left: 3px solid var(--danger); }
+
+/* Remove old border-left applied to whole row */
+.table tbody tr.row-active,
+.table tbody tr.row-on_leave,
+.table tbody tr.row-inactive,
+.table tbody tr.row-scheduled,
+.table tbody tr.row-completed,
+.table tbody tr.row-cancelled,
+.table tbody tr.row-currently_absent,
+.table tbody tr.row-planned_leave,
+.table tbody tr.row-returned,
+.table tbody tr.row-terminated_early { border-left: none; }
+
+/* ── Role icon — replaces initials avatar ─────────────────────── */
+.staff-role-icon {
+  width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; transition: var(--t);
+}
+.role-icon--attending_physician  { background: rgba(45,122,255,.1); color: var(--blue); border: 1px solid rgba(45,122,255,.2); }
+.role-icon--medical_resident     { background: rgba(13,158,110,.1); color: var(--ok); border: 1px solid rgba(13,158,110,.2); }
+.role-icon--fellow               { background: rgba(124,58,237,.1); color: var(--purple); border: 1px solid rgba(124,58,237,.2); }
+.role-icon--nurse_practitioner   { background: rgba(8,145,178,.1); color: var(--teal); border: 1px solid rgba(8,145,178,.2); }
+
+.table tbody tr:hover .staff-role-icon { transform: scale(1.06); }
+
+/* ── Name cell ────────────────────────────────────────────────── */
+.staff-name-cell { display: flex; align-items: center; gap: 8px; }
+.staff-name-block { min-width: 0; }
+.staff-name-primary { font-weight: 600; font-size: 13px; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.01em; }
+.staff-name-sub {
+  font-family: var(--font-data); font-size: 10px; font-weight: 500;
+  color: var(--text-3); margin-top: 2px; display: flex; align-items: center; gap: 4px;
+}
+
+/* ── Rotation chip inside staff table ─────────────────────────── */
+.staff-rotation-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 20px;
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  font-size: 11px; font-weight: 500; color: var(--blue);
+  max-width: 100%; overflow: hidden;
+}
+.src-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ok); flex-shrink: 0;
+  box-shadow: 0 0 5px rgba(13,158,110,.6);
+  animation: pulse-active 2s infinite;
+}
+.src-unit { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.src-dur  { font-family: var(--font-data); font-size: 10px; font-weight: 700; color: var(--blue); flex-shrink: 0; }
+
+/* ── Profile drawer avatar — icon, not initials ───────────────── */
+.pd-avatar {
+  font-size: 30px; /* icon size */
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--ink)));
+}
+.pd-avatar i { color: #fff; filter: drop-shadow(0 1px 3px rgba(0,0,0,.3)); }
+
+/* ── Rotation row avatars — icon, not initials ────────────────── */
+.rot-who-avatar {
+  font-size: 14px;
+  background: linear-gradient(135deg, var(--ink-3), var(--ink-2));
+  color: rgba(255,255,255,0.92);
+  border: 1.5px solid var(--border-2);
+}
+.rot-who-avatar i { }
+.rot-who-avatar--blue { background: linear-gradient(135deg, var(--blue), var(--ink-3)); color: #fff; }
+
+/* ── Supervision resident avatar — icon ───────────────────────── */
+.pd-resident-avatar {
+  background: linear-gradient(135deg, var(--ok), #065f46);
+  color: white; font-size: 14px;
+}
+.pd-resident-avatar i { }
+
+/* Remove old chip styles */
+.staff-avatar-chip { display: none; }
+
+
+/* ================================================================
+   WEEK VIEW  —  Real dates, meaningful content
+================================================================ */
+
+.week-view { display: flex; flex-direction: column; }
+
+/* Week navigator */
+.week-nav {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 18px; border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.week-nav-btn {
+  width: 32px; height: 32px; border-radius: var(--r-sm);
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-2); cursor: pointer; font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--t); flex-shrink: 0;
+}
+.week-nav-btn:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+.week-nav-label {
+  flex: 1; text-align: center; font-size: 13px; font-weight: 600;
+  color: var(--text-1); display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.week-nav-label i { color: var(--blue); font-size: 12px; }
+.week-nav-today {
+  background: var(--blue-lt); border: 1px solid var(--blue-mid); color: var(--blue);
+  padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: var(--t);
+}
+.week-nav-today:hover { background: var(--blue); color: white; }
+
+/* Grid */
+.week-grid {
+  display: grid;
+  grid-template-columns: 200px repeat(7, 1fr);
+  overflow-x: auto;
+}
+
+/* Header cells */
+.week-cell--header {
+  background: var(--ink); padding: 10px 8px;
+  font-family: var(--font-data); text-align: center;
+  border-right: 1px solid rgba(255,255,255,.05);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+}
+.week-cell--header.week-cell--name {
+  text-align: left; align-items: flex-start;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; color: rgba(255,255,255,0.65); padding: 10px 14px;
+}
+.week-cell--today.week-cell--header { background: var(--ink-2); }
+
+.week-hdr-day {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: rgba(255,255,255,0.75);
+}
+.week-hdr-num {
+  font-family: var(--font-display); font-size: 20px; font-weight: 400;
+  font-style: italic; color: rgba(255,255,255,0.85); line-height: 1;
+}
+.week-hdr-num--today {
+  color: var(--blue); text-shadow: 0 0 16px rgba(45,122,255,.5);
+}
+
+/* Data cells */
+.week-cell {
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  min-height: 60px; position: relative;
+}
+.week-cell:last-child { border-right: none; }
+.week-cell--name {
+  background: var(--surface); padding: 10px 12px;
+  border-right: 2px solid var(--border-2);
+}
+.week-cell--day {
+  padding: 5px 4px; background: var(--surface);
+  display: flex; flex-direction: column; gap: 3px;
+  transition: background var(--t);
+}
+.week-cell--today.week-cell--day { background: rgba(45,122,255,.04); }
+.week-cell--day:hover { background: rgba(45,122,255,.06); }
+
+/* Resident identity in week grid */
+.week-resident-who { display: flex; align-items: center; gap: 8px; }
+.week-resident-icon {
+  width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+  background: rgba(13,158,110,.1); border: 1px solid rgba(13,158,110,.2);
+  color: var(--ok); display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+}
+.week-resident-name { font-size: 12px; font-weight: 600; color: var(--text-1); white-space: nowrap; }
+.week-resident-year { font-family: var(--font-data); font-size: 10px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+
+/* Rotation block inside day cell */
+.week-block {
+  width: 100%; border-radius: 4px; padding: 3px 6px;
+  font-size: 10px; font-weight: 600; cursor: pointer;
+  transition: var(--t); position: relative;
+  display: flex; align-items: center; gap: 4px;
+  min-height: 22px; overflow: hidden; white-space: nowrap;
+}
+.week-block:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.week-block-unit { flex: 1; overflow: hidden; text-overflow: ellipsis; font-size: 10px; }
+.week-block-marker { font-size: 8px; flex-shrink: 0; opacity: .8; }
+.week-block-marker--start { color: inherit; }
+.week-block-marker--end   { color: inherit; }
+
+/* Block status colours — warm clinical teal-green for active */
+.week-block--active    { background: rgba(10,143,110,.18); border-left: 2px solid #0a8f6e; color: #065f46; }
+.week-block--scheduled { background: var(--blue-lt); border-left: 2px solid var(--blue-mid); color: var(--blue); }
+.week-block--completed { background: var(--surface-3); border-left: 2px solid var(--border-2); color: var(--text-3); }
+
+/* First/last day visual markers */
+.week-block--first { border-radius: 4px 4px 4px 4px; }
+.week-block--last  { }
+
+/* Empty today marker */
+.week-empty-today {
+  width: 100%; height: 3px; border-radius: 2px;
+  background: rgba(45,122,255,.15); margin: auto 0;
+}
+
+.week-empty-state {
+  grid-column: 1 / -1; padding: 32px;
+  text-align: center; color: var(--text-3); font-size: 13px;
+}
+
+/* ================================================================
+   ROTATION ORBS — warm teal-green for active (not pure blue/green)
+================================================================ */
+.rot-orb--active {
+  background: #0a8f6e;
+  border: none; color: white;
+  box-shadow: 0 0 0 3px rgba(10,143,110,.25), 0 3px 10px rgba(10,143,110,.3);
+  animation: orb-pulse-green 2.5s ease-in-out infinite;
+}
+@keyframes orb-pulse-green {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(10,143,110,.2), 0 3px 10px rgba(10,143,110,.25); }
+  50%       { box-shadow: 0 0 0 6px rgba(10,143,110,.1), 0 3px 14px rgba(10,143,110,.35); }
+}
+.src-dot { background: #0a8f6e; box-shadow: 0 0 5px rgba(10,143,110,.6); }
+
+/* ================================================================
+   ROTATION DETAIL SHEET  —  Read view, not a form
+================================================================ */
+.rot-detail-sheet {
+  position: fixed; top: 50%; right: 0; transform: translateY(-50%);
+  width: min(480px, 92vw); max-height: 90vh;
+  background: var(--surface); border-radius: var(--r-2xl) 0 0 var(--r-2xl);
+  box-shadow: -24px 0 80px rgba(0,0,0,.25);
+  display: flex; flex-direction: column;
+  z-index: 9100; overflow: hidden;
+  border-left: 1px solid var(--border);
+}
+
+/* Status bar at top */
+.rds-header { position: relative; flex-shrink: 0; }
+.rds-status-bar { height: 4px; }
+.rds-bar--active    { background: #0a8f6e; box-shadow: 0 0 20px rgba(10,143,110,.4); }
+.rds-bar--scheduled { background: var(--blue); box-shadow: 0 0 20px var(--blue-glow); }
+.rds-bar--completed { background: var(--neutral); }
+.rds-bar--cancelled { background: var(--danger); }
+
+.rds-header-content {
+  padding: 20px 24px 16px; display: flex; align-items: flex-start;
+  gap: 12px; border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, var(--surface), var(--surface-2));
+}
+.rds-title-block { flex: 1; min-width: 0; }
+.rds-unit {
+  font-family: var(--font-display); font-size: 22px; font-style: italic;
+  color: var(--text-1); line-height: 1.2; margin-bottom: 4px;
+}
+.rds-resident {
+  font-family: var(--font-data); font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--text-3);
+}
+
+.rds-body { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+/* Status badge */
+.rds-meta-row { display: flex; align-items: center; gap: 10px; }
+.rds-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 20px;
+  font-family: var(--font-data); font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.rds-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.rds-badge--active    { background: rgba(10,143,110,.12); color: #0a8f6e; border: 1px solid rgba(10,143,110,.25); }
+.rds-badge--scheduled { background: var(--blue-lt); color: var(--blue); border: 1px solid var(--blue-mid); }
+.rds-badge--done      { background: var(--neutral-lt); color: var(--neutral); border: 1px solid var(--neutral-mid); }
+.rds-badge--cancelled { background: var(--danger-lt); color: var(--danger); border: 1px solid var(--danger-mid); }
+.rds-category {
+  font-family: var(--font-data); font-size: 11px; font-weight: 600;
+  text-transform: capitalize; color: var(--text-3);
+}
+
+/* Duration span — visual timeline bar */
+.rds-span {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 14px 16px;
+}
+.rds-span-date { flex-shrink: 0; }
+.rds-span-date--end { text-align: right; }
+.rds-span-label {
+  font-family: var(--font-data); font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--text-4);
+  margin-bottom: 3px;
+}
+.rds-span-day { font-size: 12px; font-weight: 600; color: var(--text-1); white-space: nowrap; }
+.rds-span-line { flex: 1; min-width: 0; }
+.rds-span-track {
+  width: 100%; height: 5px; background: var(--border);
+  border-radius: 3px; overflow: hidden; margin-bottom: 5px;
+}
+.rds-span-fill {
+  height: 100%; border-radius: 3px; transition: width .6s ease;
+}
+.rds-fill--active    { background: linear-gradient(90deg, #0a8f6e, #0d9e6e); }
+.rds-fill--completed { background: var(--neutral-mid); }
+.rds-fill--scheduled { background: var(--blue-mid); }
+.rds-span-dur {
+  font-family: var(--font-data); font-size: 10px; font-weight: 600;
+  color: var(--text-3); text-align: center;
+}
+
+/* Remaining indicator */
+.rds-remaining {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: var(--r);
+  background: rgba(10,143,110,.08); border: 1px solid rgba(10,143,110,.18);
+  font-size: 13px; color: #0a8f6e; font-weight: 500;
+}
+.rds-remaining i { font-size: 13px; }
+.rds-remaining--scheduled {
+  background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue);
+}
+
+/* Data fields — reads like a record, not a form */
+.rds-fields {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); overflow: hidden;
+}
+.rds-field {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+}
+.rds-field:last-child { border-bottom: none; }
+.rds-field-key {
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em; color: var(--text-3);
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0; width: 130px; padding-top: 1px;
+}
+.rds-field-key i { color: var(--blue); font-size: 11px; width: 12px; }
+.rds-field-val { font-size: 13px; font-weight: 500; color: var(--text-1); line-height: 1.4; }
+.rds-field-na  { color: var(--text-4); font-style: italic; }
+
+/* Footer */
+.rds-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px; border-top: 1px solid var(--border);
+  background: var(--surface-2); flex-shrink: 0;
+}
+
+
+/* ================================================================
+   MODAL EDIT CONTEXT BANNER
+   Shows who/what is being edited — not a blank form
+================================================================ */
+.modal-edit-context {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 20px; background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.mec-icon {
+  width: 40px; height: 40px; border-radius: var(--r);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.mec-info { flex: 1; min-width: 0; }
+.mec-name {
+  font-size: 15px; font-weight: 700; color: var(--text-1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  letter-spacing: -.01em;
+}
+.mec-meta {
+  font-family: var(--font-data); font-size: 11px; color: var(--text-3);
+  margin-top: 2px; display: flex; align-items: center; gap: 5px;
+}
+.mec-sep { color: var(--border-2); }
+.mec-delete-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: var(--r);
+  background: transparent; border: 1px solid var(--danger-mid);
+  color: var(--danger); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: var(--t); flex-shrink: 0;
+  font-family: var(--font-ui);
+}
+.mec-delete-btn:hover { background: var(--danger-lt); box-shadow: 0 0 0 2px rgba(220,53,69,.15); }
+
+/* Danger outline button for table actions */
+.btn-outline-danger {
+  color: var(--danger) !important; border-color: var(--danger-mid) !important;
+}
+.btn-outline-danger:hover { background: var(--danger-lt) !important; }
+
+/* ================================================================
+   PREMIUM CONFIRMATION / DESTRUCTIVE WARNING MODAL
+================================================================ */
+.modal-confirm { overflow: hidden; }
+
+.modal-confirm--danger .modal-confirm-header { background: linear-gradient(to bottom, rgba(220,53,69,.06), var(--surface)); }
+.modal-confirm--warn   .modal-confirm-header { background: linear-gradient(to bottom, rgba(217,119,6,.06), var(--surface)); }
+
+.confirm-icon-wrap {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0;
+}
+.confirm-icon-wrap--danger { background: var(--danger-lt); color: var(--danger); border: 1.5px solid var(--danger-mid); }
+.confirm-icon-wrap--warn   { background: var(--warn-lt);   color: var(--warn);   border: 1.5px solid var(--warn-mid); }
+
+.modal-confirm-body { text-align: center; padding: 24px 28px; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+.confirm-message {
+  font-size: 15px; font-weight: 500; color: var(--text-1); line-height: 1.5;
+  max-width: 340px;
+}
+.confirm-details-block {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 10px 14px;
+  font-size: 12px; color: var(--text-2); text-align: left; width: 100%;
+}
+.confirm-details-block i { color: var(--blue); margin-top: 1px; flex-shrink: 0; }
+.confirm-warning-strip {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--danger-lt); border: 1px solid var(--danger-mid);
+  border-radius: var(--r); padding: 10px 14px;
+  font-size: 12px; color: var(--danger); width: 100%; text-align: left;
+}
+.confirm-warning-strip i { flex-shrink: 0; }
+.modal-confirm-footer {
+  justify-content: center; gap: 12px; padding: 16px 28px;
+}
+.modal-confirm-footer .btn { min-width: 120px; justify-content: center; }
+
+/* ================================================================
+   DARK BACKGROUND TEXT LEGIBILITY FIXES
+   All areas with --ink background: brighter, more readable text
+================================================================ */
+
+/* Table dark header — stronger text */
+.table thead th {
+  color: rgba(255,255,255,0.85) !important;
+  letter-spacing: .1em;
+}
+.table thead th:hover { color: #fff !important; }
+.table thead th i { color: rgba(255,255,255,0.55) !important; }
+
+/* Sidebar logo text */
+.sidebar-logo-name { color: #fff !important; }
+.sidebar-logo-sub  { color: rgba(255,255,255,0.85) !important; }
+
+/* Profile drawer — hero text (white on blue hero area) */
+.pd-hero .pd-name  { color: #fff; }
+.pd-hero .pd-role  { color: rgba(255,255,255,0.85); }
+.rot-who-name { color: var(--text-1) !important; }
+
+/* Week view dark header */
+.week-hdr-day { color: rgba(255,255,255,0.92) !important; }
+.week-hdr-num { color: #fff !important; }
+.week-cell--header.week-cell--name { color: rgba(255,255,255,0.92) !important; }
+
+/* Rotation orb tooltip */
+.rot-tt-dates { color: rgba(255,255,255,0.97) !important; }
+
+/* ================================================================
+   FORM UPGRADES — polished, record-like, not data-entry-like
+================================================================ */
+
+/* Form section separator — groups related fields visually */
+.form-section {
+  margin-bottom: 20px; border: 1px solid var(--border);
+  border-radius: var(--r-lg); overflow: hidden;
+}
+.form-section-head {
+  padding: 9px 14px; background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--text-3);
+  display: flex; align-items: center; gap: 7px;
+}
+.form-section-head i { color: var(--blue); font-size: 11px; }
+.form-section-body { padding: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-section-body .col-span-2 { grid-column: span 2; }
+
+/* Input fields — crisper, more intentional */
+.form-control, .form-select {
+  border: 1px solid var(--border-2) !important;
+  border-radius: var(--r) !important;
+  background: var(--surface) !important;
+  font-size: 13px !important;
+  color: var(--text-1) !important;
+  transition: border-color var(--t), box-shadow var(--t), background var(--t) !important;
+  letter-spacing: -.005em;
+}
+.form-control:focus, .form-select:focus {
+  border-color: var(--blue) !important;
+  box-shadow: 0 0 0 3px rgba(45,122,255,.1) !important;
+  background: var(--surface) !important;
+}
+/* Filled (has-value) state — subtle distinction */
+.form-control:not(:placeholder-shown),
+.form-select:not([value=""]) {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
+/* Labels — cleaner */
+.form-label {
+  font-family: var(--font-data) !important;
+  font-size: 10px !important; font-weight: 700 !important;
+  text-transform: uppercase !important; letter-spacing: .08em !important;
+  color: var(--text-3) !important; margin-bottom: 5px !important;
+}
+
+/* Required field marker */
+.form-label-required::after {
+  content: ' *'; color: var(--danger); font-size: 11px;
+}
+
+
+/* ================================================================
+   HIERARCHY & ICON SIZE PASS  —  NeumoCaré v4
+   Icons recede, text leads. Clear heading structure.
+================================================================ */
+
+/* ── Role icons — smaller, supportive not competing ──────────── */
+.staff-role-icon {
+  width: 28px !important; height: 28px !important;
+  border-radius: 7px !important;
+  font-size: 11px !important;
+}
+
+/* Rotation row avatar — smaller */
+.rot-who-avatar {
+  width: 30px !important; height: 30px !important;
+  border-radius: 8px !important;
+  font-size: 11px !important;
+}
+
+/* Week grid resident icon — smaller */
+.week-resident-icon {
+  width: 24px !important; height: 24px !important;
+  border-radius: 6px !important;
+  font-size: 10px !important;
+}
+
+/* On-call compact icons */
+.oc-row .rot-who-avatar {
+  width: 30px !important; height: 30px !important;
+  font-size: 11px !important;
+}
+
+/* pd-card icons in drawer */
+.pd-card-icon {
+  width: 22px !important; height: 22px !important;
+  font-size: 10px !important;
+}
+
+/* Table action buttons — icons only, tighter */
+.table-actions .btn i,
+.table-actions .btn-pill i { font-size: 11px !important; }
+
+/* Card-level icons (card-title i) — slightly smaller */
+.card-title i { font-size: 13px !important; }
+
+/* ── Name / primary text — larger, more presence ─────────────── */
+.staff-name-primary { font-size: 13px !important; }
+.staff-name-sub     { font-size: 10px !important; }
+
+/* Table body text bump */
+.table tbody td { font-size: 13px !important; }
+
+/* Rotation row names */
+.rot-who-name { font-size: 14px !important; }
+.rot-who-meta { font-size: 10px !important; }
+
+/* ── Heading hierarchy — clear 3-tier system ─────────────────── */
+
+/* TIER 1: View/section title — displayed above the card  */
+/* (card-title inside card-header) */
+.card-title {
+  font-family: var(--font-display) !important;
+  font-size: 18px !important;
+  font-style: italic !important;
+  font-weight: 400 !important;
+  letter-spacing: -.015em !important;
+  color: var(--text-1) !important;
+}
+
+/* TIER 2: Sub-section headings inside cards (pd-card-title, section heads) */
+.pd-card-title {
+  font-size: 13px !important; font-weight: 700 !important;
+  font-family: var(--font-ui) !important; font-style: normal !important;
+}
+
+/* TIER 3: Labels / meta — mono caps, small */
+/* Already handled by form-label, pd-section-title etc */
+
+/* Dashboard heading — keep serif, slightly larger */
+.dashboard-header h2 {
+  font-size: 26px !important;
+}
+.dashboard-header h2 i { font-size: 18px !important; }
+
+/* ── Modal titles — larger, more gravitas ─────────────────────── */
+.modal-title {
+  font-family: var(--font-display) !important;
+  font-size: 17px !important; font-style: italic !important;
+  font-weight: 400 !important; letter-spacing: -.01em !important;
+  gap: 10px !important;
+}
+.modal-title i {
+  font-style: normal !important;
+  font-size: 14px !important;
+}
+
+/* ── Filter bar separation from content ───────────────────────── */
+.filter-bar {
+  background: var(--surface-2) !important;
+  border-bottom: 2px solid var(--border-2) !important;
+  padding: 10px 18px !important;
+}
+
+/* ── Modal tabs — underline style, consistent with profile tabs ─ */
+.modal-tabs {
+  display: flex !important; gap: 0 !important;
+  background: none !important; padding: 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+  margin-bottom: 20px !important; border-radius: 0 !important;
+}
+.modal-tab {
+  background: none !important; border-radius: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  margin-bottom: -1px !important;
+  padding: 10px 18px !important;
+  font-size: 12px !important; font-weight: 600 !important;
+  color: var(--text-3) !important;
+  box-shadow: none !important; min-height: 0 !important;
+}
+.modal-tab:hover { color: var(--text-1) !important; background: var(--surface-2) !important; }
+.modal-tab.active {
+  color: var(--blue) !important;
+  border-bottom-color: var(--blue) !important;
+  background: none !important;
+}
+
+/* ── Table row height — more breathing room for reading ───────── */
+.table tbody td { height: 60px !important; }
+
+/* ── Subtle zebra with better contrast ───────────────────────── */
+.table-striped tbody tr:nth-child(even) { background: rgba(241,245,249,.7) !important; }
+
+/* ── Status indicators — unified sizing ──────────────────────── */
+.status-indicator {
+  font-size: 10px !important; padding: 3px 9px !important;
+  font-weight: 700 !important; letter-spacing: .06em !important;
+}
+
+/* ── pd-section-head icons — smaller ─────────────────────────── */
+.pd-section-icon {
+  width: 18px !important; height: 18px !important;
+}
+.pd-section-icon i { font-size: 9px !important; }
+
+/* ── Confirmation modal icon ─────────────────────────────────── */
+.confirm-icon-wrap { width: 38px !important; height: 38px !important; font-size: 14px !important; }
+
+
+/* ================================================================
+   SIDEBAR REBUILD — v5
+   Instrument: you know where you are. Icons recede. Names lead.
+================================================================ */
+
+/* Reset section backgrounds — no more box per section */
+.sidebar-section {
+  margin-bottom: 0 !important;
+  background: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+/* Section divider titles — visible but not dominant */
+.sidebar-section-title {
+  font-family: var(--font-data) !important;
+  font-size: 9px !important; font-weight: 800 !important;
+  text-transform: uppercase !important; letter-spacing: .18em !important;
+  color: rgba(255,255,255,0.75) !important;
+  padding: 18px 14px 5px !important;
+  white-space: nowrap; overflow: hidden;
+  display: flex; align-items: center; gap: 8px;
+}
+.sidebar-section-title::after {
+  content: ''; flex: 1; height: 1px;
+  background: rgba(255,255,255,.06);
+}
+
+/* [stale sidebar block removed — see main sidebar rules above] */
+
+/* [stale logo override removed — see .sidebar-logo / .sb-neumax-svg above] */
+
+/* User role text */
+.user-role { color: rgba(255,255,255,0.75) !important; }
+.user-name  { color: #fff !important; }
+
+/* ================================================================
+   TRAINING UNIT CARD — tuc
+================================================================ */
+.training-units-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px; padding: 12px 16px;
+}
+
+.tuc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex; flex-direction: column; gap: 0;
+  overflow: hidden;
+  transition: box-shadow var(--t), transform var(--t);
+  border-left: 3px solid var(--border);
+}
+.tuc:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.tuc--active { border-left-color: var(--ok); }
+.tuc--full   { border-left-color: var(--danger); }
+.tuc--warn   { border-left-color: var(--warn); }
+
+/* Head */
+.tuc-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 11px 12px 9px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.tuc-name-row { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.tuc-icon { font-size: 12px; color: var(--teal); flex-shrink: 0; opacity: 0.9; }
+.tuc-name {
+  font-family: var(--font-display); font-size: 14px;
+  font-style: italic; font-weight: 400;
+  color: #1a202c;
+  letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Sub — department · specialty */
+.tuc-sub {
+  font-size: 11px; color: var(--text-2); margin-top: 1px;
+}
+
+/* Meta — department + specialty tags */
+.tuc-meta {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.tuc-meta-item {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600;
+  /* Improvement 4: was text-3 (too faint) — now text-2 */
+  color: var(--text-2);
+}
+.tuc-meta-item i { font-size: 9px; color: var(--text-3); }
+
+/* Occupancy */
+.tuc-occupancy { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+.tuc-occ-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.tuc-occ-label {
+  font-family: var(--font-data); font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--text-3);
+}
+.tuc-occ-count {
+  font-family: var(--font-data); font-size: 14px; font-weight: 800;
+  color: var(--ok);
+}
+.tuc-occ-max { font-size: 12px; font-weight: 500; color: var(--text-2); }
+.tuc-occ-full { color: var(--danger) !important; }
+.tuc-occ-warn { color: #d97706 !important; }
+
+.tuc-occ-bar {
+  height: 5px; background: var(--border); border-radius: 3px; overflow: hidden;
+}
+.tuc-occ-fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--ok), #0d9e6e);
+  transition: width .4s ease;
+}
+.tuc-occ-fill--warn { background: linear-gradient(90deg, #f59e0b, #d97706); }
+.tuc-occ-fill--full { background: linear-gradient(90deg, var(--danger), #ef4444); }
+
+/* Supervisor strip */
+.tuc-supervisor {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 14px; border-bottom: 1px solid var(--border);
+  font-size: 12px; font-weight: 600;
+  color: #2d3748;
+}
+.tuc-supervisor i { font-size: 11px; color: var(--blue); }
+.tuc-supervisor--empty { padding: 5px 14px; border-bottom: 1px solid var(--border); }
+.tuc-supervisor--empty i { color: var(--text-4); font-size: 10px; }
+.tuc-sup-empty-label { font-size: 10px; color: var(--text-4); font-style: italic; font-weight: 400; }
+.tuc-sup-badge {
+  margin-left: auto; font-family: var(--font-data);
+  font-size: 9px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--blue);
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  padding: 2px 7px; border-radius: 20px;
+}
+
+/* Shared legend above all cards */
+.tuc-shared-legend {
+  grid-column: 1 / -1;
+  display: flex; gap: 14px; align-items: center;
+  padding: 2px 4px 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+
+/* Shared month header — right side of the legend row, auto-pushes right */
+.tuc-shared-month-header {
+  margin-left: auto;
+  display: flex; gap: 2px;
+  /* Width matches the month columns inside cards:
+     card padding (12px left) + slot-label (32px) + gap = ~46px offset from right edge
+     We mirror using padding-right to align labels above cells */
+  padding-right: 12px;
+}
+.tuc-shared-month-header .tuc-tl-month-label {
+  width: 44px; text-align: center;
+  font-size: 9.5px; font-weight: 700;
+  color: var(--text-3); text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.tuc-shared-month-header .tuc-tl-month-label--current {
+  color: var(--blue); font-weight: 800;
+}
+
+/* Clickable cell affordance */
+.tuc-tl-cell--clickable {
+  cursor: pointer;
+}
+.tuc-tl-cell--clickable:hover {
+  filter: brightness(1.12);
+  transform: scaleY(1.1);
+  z-index: 2;
+}
+
+/* Actions — small, unobtrusive */
+.tuc-actions {
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 10px;
+}
+.tuc-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: var(--r-sm);
+  font-size: 11px; font-weight: 600; cursor: pointer;
+  transition: var(--t); border: 1px solid transparent;
+  font-family: var(--font-ui);
+}
+.tuc-btn i { font-size: 9px; opacity: 0.7; }
+.tuc-btn-text { }
+.tuc-count-badge {
+  background: var(--blue); color: #fff;
+  font-size: 9px; font-weight: 700; border-radius: 20px;
+  padding: 1px 5px; line-height: 1.4;
+}
+
+.tuc-btn--ghost {
+  flex: 1; justify-content: center;
+  background: var(--surface-2); border-color: var(--border);
+  color: var(--text-2);
+}
+.tuc-btn--ghost:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+.tuc-btn--ghost:hover i { opacity: 1; }
+
+/* Edit + Delete — icon-only, whisper quiet */
+.tuc-btn--edit {
+  padding: 4px 7px; background: transparent; border-color: transparent;
+  color: var(--text-4);
+}
+.tuc-btn--edit:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+.tuc-btn--edit i { font-size: 10px; opacity: 1; }
+
+.tuc-btn--danger {
+  padding: 4px 7px; background: transparent; border-color: transparent;
+  color: var(--text-4);
+}
+.tuc-btn--danger:hover { background: var(--danger-lt); border-color: var(--danger-mid); color: var(--danger); }
+.tuc-btn--danger i { font-size: 10px; opacity: 1; }
+
+
+/* ================================================================
+   UNIT RESIDENTS MODAL — clean names list
+================================================================ */
+.urm-strip {
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 20px; border-bottom: 1px solid var(--border);
+  background: var(--surface-2); flex-shrink: 0;
+}
+.urm-stat { text-align: center; flex-shrink: 0; }
+.urm-stat-val {
+  display: block; font-family: var(--font-display);
+  font-size: 22px; font-style: italic; font-weight: 400;
+  color: var(--text-1); line-height: 1;
+}
+.urm-stat-key {
+  font-family: var(--font-data); font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--text-4);
+}
+.urm-occ-bar-wrap { flex: 1; }
+.urm-occ-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 5px; }
+.urm-occ-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--ok), #0d9e6e); transition: width .4s; }
+.urm-occ-full { background: linear-gradient(90deg, var(--danger), #ef4444) !important; }
+.urm-occ-warn { background: linear-gradient(90deg, var(--warn), #f59e0b) !important; }
+.urm-occ-label { font-family: var(--font-data); font-size: 10px; font-weight: 600; color: var(--text-3); text-align: center; }
+
+.urm-body { padding: 0 !important; }
+.urm-list { display: flex; flex-direction: column; }
+.urm-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 20px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background var(--t);
+}
+.urm-row:last-child { border-bottom: none; }
+.urm-row:hover { background: var(--blue-lt); }
+
+.urm-avatar {
+  width: 32px; height: 32px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; flex-shrink: 0;
+}
+.urm-info { flex: 1; min-width: 0; }
+.urm-name { font-size: 14px; font-weight: 600; color: var(--text-1); }
+.urm-sub { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.urm-sup { font-size: 11px; color: var(--text-3); display: flex; align-items: center; gap: 4px; }
+.urm-sup i { font-size: 10px; }
+.urm-days { text-align: center; flex-shrink: 0; }
+.urm-days-num {
+  display: block; font-family: var(--font-data); font-size: 16px;
+  font-weight: 700; color: var(--ok); line-height: 1;
+}
+.urm-days-urgent { color: var(--danger) !important; }
+.urm-days-future { color: var(--blue) !important; font-size: 12px !important; }
+.urm-days-lbl { font-family: var(--font-data); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-4); }
+.urm-chevron { font-size: 10px; color: var(--text-4); flex-shrink: 0; }
+
+/* ================================================================
+   UNIT CLINICIANS MODAL
+================================================================ */
+.ucm-hint {
+  font-size: 12px; color: var(--text-3); margin-bottom: 14px;
+  padding: 10px 12px; background: var(--blue-lt);
+  border: 1px solid var(--blue-mid); border-radius: var(--r);
+}
+.ucm-list { display: flex; flex-direction: column; gap: 3px; }
+.ucm-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: var(--r);
+  border: 1px solid transparent; cursor: pointer;
+  transition: var(--t);
+}
+.ucm-row:hover { background: var(--surface-2); }
+.ucm-row--checked { background: var(--blue-lt); border-color: var(--blue-mid); }
+.ucm-check { width: 15px; height: 15px; flex-shrink: 0; cursor: pointer; }
+.ucm-avatar {
+  width: 30px; height: 30px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; flex-shrink: 0;
+}
+.ucm-info { flex: 1; min-width: 0; }
+.ucm-name { font-size: 13px; font-weight: 600; color: var(--text-1); }
+.ucm-type { font-size: 10px; color: var(--text-3); font-family: var(--font-data); text-transform: capitalize; }
+.ucm-sup-toggle { flex-shrink: 0; }
+.ucm-sup-label {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 10px; font-weight: 700; cursor: pointer;
+  border: 1px solid var(--border); color: var(--text-3);
+  transition: var(--t); font-family: var(--font-data);
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.ucm-sup-label:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
+.ucm-sup-active { border-color: var(--blue) !important; color: var(--blue) !important; background: var(--blue-lt) !important; }
+.ucm-sup-active i { color: var(--blue); }
+
+/* ================================================================
+   GLOBAL FAINT TEXT FIX — readable section titles everywhere
+================================================================ */
+/* Section titles inside cards — not faint, properly readable */
+.card-header .card-title { color: var(--text-1) !important; }
+.card-title i { opacity: .8; }
+
+/* View section headers (h-style labels above tables) */
+.pd-section-title {
+  color: rgba(255,255,255,0.97) !important;
+  font-size: 10px !important; font-weight: 700 !important;
+}
+
+/* Form labels — readable, not faint */
+.form-label { color: var(--text-2) !important; }
+
+/* Table header text — in dark header, whiter */
+.table thead th { color: #fff !important; }
+
+/* [stale section title override removed] */
+
+/* Meta text in cards — not too faint */
+.tuc-meta-item { color: var(--text-2) !important; }
+.tuc-occ-label { color: var(--text-3) !important; }
+
+/* stat-label in profile drawer */
+/* pd-row-key color now handled by main CSS */
+
+
+/* ================================================================
+   PROFILE — Missing field displays
+================================================================ */
+
+/* Certificate status inline badge */
+.pd-row-cert { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pd-cert-status {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em;
+  padding: 2px 7px; border-radius: 20px;
+}
+.pd-cert-current { background: rgba(13,158,110,.15); color: #0a8f6e; border: 1px solid rgba(13,158,110,.25); }
+.pd-cert-expired { background: rgba(220,53,69,.12); color: var(--danger); border: 1px solid var(--danger-mid); }
+.pd-cert-status i { font-size: 9px; }
+
+/* Study certificate tags */
+.pd-cert-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.pd-cert-tag {
+  font-size: 10px; font-weight: 600; padding: 2px 8px;
+  border-radius: 20px; background: rgba(255,255,255,.08);
+  color: #fff; border: 1px solid rgba(255,255,255,.1);
+}
+.pd-cert-tag--other {
+  background: rgba(45,122,255,.15); color: rgba(147,197,253,.9);
+  border-color: rgba(45,122,255,.25);
+}
+
+/* Research capabilities */
+.pd-capability-row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.pd-capability-row:last-child { border-bottom: none; }
+.pd-cap-icon {
+  width: 22px; height: 22px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; flex-shrink: 0;
+}
+.pd-cap-icon--pi  { background: rgba(251,191,36,.15); color: #f59e0b; border: 1px solid rgba(251,191,36,.25); }
+.pd-cap-icon--coi { background: rgba(45,122,255,.15); color: var(--blue); border: 1px solid rgba(45,122,255,.25); }
+.pd-cap-icon--sup { background: rgba(13,158,110,.15); color: #0a8f6e; border: 1px solid rgba(13,158,110,.25); }
+.pd-cap-label {
+  font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.97);
+}
+
+
+/* ============ UNIT CAPACITY HINT (rotation modal) ============ */
+.unit-capacity-hint {
+  margin-top: 6px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  border: 1px solid var(--border-1);
+  background: var(--surface-1);
+  color: var(--text-2);
+}
+.unit-capacity-hint--warn {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #92400e;
+}
+.unit-capacity-hint--full {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #991b1b;
+}
+.ucap-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+.ucap-row i { margin-right: 4px; }
+.ucap-pct { font-family: var(--font-mono); font-size: 11px; opacity: 0.75; }
+.ucap-bar-track {
+  height: 4px;
+  background: var(--border-1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.ucap-bar-fill {
+  height: 100%;
+  background: var(--ok);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+.unit-capacity-hint--warn .ucap-bar-fill { background: var(--warn); }
+.unit-capacity-hint--full .ucap-bar-fill { background: var(--danger); }
+
+/* ============ ABSENCE OVERLAP WARNING ============ */
+.absence-overlap-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  background: rgba(245, 158, 11, 0.09);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #92400e;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.absence-overlap-warning i { margin-top: 2px; flex-shrink: 0; }
+.absence-overlap-warning div { display: flex; flex-direction: column; gap: 2px; }
+.absence-overlap-warning strong { font-weight: 600; }
+.absence-overlap-warning span { opacity: 0.85; font-size: 12px; }
+
+/* ============================================================
+   RESEARCH MODULE — NEW CLASSES (session 11)
+   ============================================================ */
+
+/* Research line card header: inactive badge + layout */
+.rline-header-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rline-inactive-badge { display: inline-flex; align-items: center; gap: 5px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-3); padding: 3px 10px; border-radius: 20px; font-family: var(--font-data); font-size: var(--t-10); font-weight: 600; letter-spacing: .04em; }
+.rline-inactive-badge i { font-size: 10px; opacity: .7; }
+.research-line-card:has(.rline-inactive-badge) { opacity: 0.7; }
+.research-line-card:has(.rline-inactive-badge):hover { opacity: 1; }
+
+/* Danger variant for delete icon button */
+.btn-icon--danger { color: var(--text-3) !important; }
+.btn-icon--danger:hover { background: rgba(239,68,68,0.1) !important; border-color: rgba(239,68,68,0.3) !important; color: var(--danger) !important; }
+
+/* Coordinator change button — compact inline */
+.coordinator-info { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.coordinator-change-btn { font-size: var(--t-11) !important; padding: 4px 10px !important; opacity: 0.7; flex-shrink: 0; }
+.coordinator-change-btn:hover { opacity: 1; }
+
+/* Trials table: PI column */
+.trial-pi-name { display: inline-flex; align-items: center; gap: 5px; font-size: var(--t-12); color: var(--text-2); }
+.trial-pi-name i { color: var(--blue); font-size: 11px; }
+.text-muted-sm { color: var(--text-3); font-size: var(--t-12); }
+
+/* Table: actions cell with multiple buttons side by side */
+.table-actions-cell { display: flex; gap: 4px; align-items: center; }
+
+/* Innovation card: lead investigator row */
+.innovation-lead { display: flex; align-items: center; gap: 8px; font-size: var(--t-12); color: var(--text-2); padding: 8px 0 6px; border-top: 1px solid var(--border); margin-top: 4px; }
+.innovation-lead i { color: var(--blue); font-size: 12px; flex-shrink: 0; }
+.innovation-lead span:first-of-type { font-weight: 600; color: var(--text-1); flex: 1; }
+.innovation-lead-role { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; letter-spacing: .05em; color: var(--blue); background: var(--blue-lt); padding: 2px 8px; border-radius: 20px; text-transform: uppercase; flex-shrink: 0; }
+
+/* Innovation: delete button in actions row */
+.innovation-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 6px; }
+
+/* ================================================================
+   RESEARCH MODULE — SESSION 11 IMPROVEMENTS
+================================================================ */
+
+/* FIX 16: Coordinator banner in staff profile research tab */
+.research-coordinator-banner {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: linear-gradient(135deg, rgba(139,92,246,.1) 0%, rgba(139,92,246,.05) 100%);
+  border: 1px solid rgba(139,92,246,.25); border-radius: var(--r-lg);
+  padding: 14px 16px; margin-bottom: 14px;
+}
+.rcb-icon {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(139,92,246,.2); border: 1px solid rgba(139,92,246,.35);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--purple); font-size: 14px; flex-shrink: 0;
+}
+.rcb-body { flex: 1; min-width: 0; }
+.rcb-title { font-size: var(--t-12); font-weight: 700; color: var(--purple); letter-spacing: -.01em; margin-bottom: 3px; }
+.rcb-lines { font-size: var(--t-11); color: var(--text-2); line-height: 1.5; }
+.rcb-lines strong { color: var(--text-1); }
+
+/* FIX 2+17: Multi-role badge container in research line rows */
+.pd-line-roles { display: flex; flex-wrap: wrap; gap: 4px; }
+.pd-badge--sm { font-size: 9px !important; padding: 2px 7px !important; }
+.pd-badge--gold { background: rgba(251,191,36,.15); color: var(--warn); border: 1px solid rgba(251,191,36,.3); }
+
+/* FIX 18: Trial role indicator in meta */
+.pd-trial-role { font-weight: 700; color: var(--blue); }
+
+/* FIX 21: Research line stats row on card */
+.rline-stats-row {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-data); font-size: var(--t-11); color: var(--text-3);
+  padding: 6px 0; border-top: 1px solid var(--border); flex-wrap: wrap;
+}
+.rline-stats-row i { font-size: 10px; }
+.rline-stat { display: flex; align-items: center; gap: 4px; }
+.rline-stat-sep { color: var(--border-2); }
+.rline-stat--active { color: var(--ok); font-weight: 700; }
+.rline-stat--active i { font-size: 6px; }
+
+/* FIX 26: Distinct trial status indicators */
+.status-recruiting {
+  background: rgba(59,130,246,.12); color: #2563eb;
+  border: 1px solid rgba(59,130,246,.25);
+  border-radius: 20px; padding: 3px 10px;
+  font-family: var(--font-data); font-size: var(--t-11); font-weight: 700;
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+}
+.status-recruiting::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #2563eb; animation: pulse-blue 1.5s ease-in-out infinite; }
+@keyframes pulse-blue { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.5; transform:scale(1.3); } }
+.status-suspended {
+  background: rgba(245,158,11,.1); color: #b45309;
+  border: 1px solid rgba(245,158,11,.25);
+  border-radius: 20px; padding: 3px 10px;
+  font-family: var(--font-data); font-size: var(--t-11); font-weight: 700;
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+}
+
+/* FIX 5: Multi-investigator checkbox grid in trial modal */
+.multi-investigator-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; max-height: 140px; overflow-y: auto; padding: 2px; }
+.investigator-checkbox {
+  display: inline-flex; align-items: center; padding: 5px 11px;
+  border: 1.5px solid var(--border); border-radius: 20px;
+  font-size: var(--t-12); font-weight: 500; color: var(--text-2);
+  cursor: pointer; transition: var(--t); white-space: nowrap;
+}
+.investigator-checkbox:hover { border-color: var(--blue-mid); background: var(--blue-lt); color: var(--blue); }
+.investigator-selected { border-color: var(--blue); background: var(--blue-lt); color: var(--blue); font-weight: 700; }
+
+/* FIX 6: Trial view button */
+.btn-pill-view {
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text-2);
+  padding: 4px 10px; border-radius: 20px; font-size: var(--t-11); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px; font-weight: 600;
+  transition: var(--t);
+}
+.btn-pill-view:hover { background: var(--teal-lt); border-color: var(--teal); color: var(--teal); }
+
+/* FIX 6: Trial detail modal layout */
+.trial-detail-meta-row {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border);
+}
+.trial-detail-line { display: flex; align-items: center; gap: 6px; font-size: var(--t-12); color: var(--blue); font-weight: 500; }
+.trial-detail-line i { font-size: 11px; }
+.trial-detail-dates { display: flex; align-items: center; gap: 5px; font-family: var(--font-data); font-size: var(--t-11); color: var(--text-3); }
+.trial-detail-section { margin-bottom: 16px; }
+.trial-detail-section-title { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-3); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.trial-detail-section-title--ok { color: var(--ok); }
+.trial-detail-section-title--danger { color: var(--danger); }
+.trial-detail-section-title--ok i, .trial-detail-section-title--danger i { font-size: 12px; }
+.trial-detail-text { font-size: var(--t-13); color: var(--text-2); line-height: 1.65; white-space: pre-wrap; }
+.trial-detail-criteria-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+@media (max-width: 600px) { .trial-detail-criteria-grid { grid-template-columns: 1fr; } }
+.trial-detail-investigators { display: flex; flex-direction: column; gap: 6px; }
+.trial-investigator-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.trial-investigator-row:last-child { border-bottom: none; }
+.trial-inv-role { font-family: var(--font-data); font-size: var(--t-10); font-weight: 700; letter-spacing: .06em; padding: 2px 8px; border-radius: 20px; flex-shrink: 0; text-transform: uppercase; }
+.pi-role  { background: rgba(251,191,36,.15); color: var(--warn); border: 1px solid rgba(251,191,36,.3); }
+.coi-role { background: var(--blue-lt); color: var(--blue); border: 1px solid var(--blue-mid); }
+.subi-role { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
+.trial-inv-name { font-size: var(--t-13); font-weight: 600; color: var(--text-1); }
+.trial-detail-email { display: inline-flex; align-items: center; gap: 7px; font-size: var(--t-13); color: var(--blue); font-weight: 500; text-decoration: none; }
+.trial-detail-email:hover { text-decoration: underline; }
+
+/* FIX 28+29: Assign coordinator modal improvements */
+.assign-coord-current {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  border-radius: var(--r); padding: 8px 12px; margin-bottom: 14px;
+  font-size: var(--t-12); color: var(--blue);
+}
+.assign-coord-current i { font-size: 13px; flex-shrink: 0; }
+.assign-coord-current strong { color: var(--text-1); }
+
+/* FIX 32: Partner needs sorted bar chart */
+.partner-needs-chart { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+.pneed-row { display: flex; align-items: center; gap: 12px; }
+.pneed-label { font-size: var(--t-12); font-weight: 600; color: var(--text-2); width: 160px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pneed-bar-wrap { flex: 1; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.pneed-bar { height: 100%; background: linear-gradient(90deg, var(--blue), var(--teal)); border-radius: 4px; transition: width .4s ease; min-width: 4px; }
+.pneed-count { font-family: var(--font-data); font-size: var(--t-11); font-weight: 700; color: var(--text-3); width: 20px; text-align: right; }
+
+/* ================================================================
+   RESEARCH LINES — COMPLETE CARD REDESIGN (Session 12)
+================================================================ */
+
+.research-lines-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 20px; padding: 20px;
+}
+
+.rline-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 0;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--t-md), transform var(--t-md);
+  position: relative;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.rline-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+.rline-card--inactive {
+  opacity: .72;
+}
+.rline-card--inactive:hover { opacity: 1; }
+
+/* Gradient top accent */
+.rline-card-accent {
+  height: 3px;
+  background: linear-gradient(90deg, var(--blue) 0%, var(--teal) 100%);
+  flex-shrink: 0;
+}
+
+/* Card body padding */
+.rline-card-header,
+.rline-card-name,
+.rline-card-description,
+.rline-activity-row,
+.rline-coord-row,
+.rline-scope,
+.rline-keywords { padding-left: 20px; padding-right: 20px; }
+
+/* Header row */
+.rline-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 16px; padding-bottom: 6px; flex-wrap: wrap; gap: 8px;
+}
+.rline-card-header-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rline-number-pill {
+  background: var(--blue-lt); color: var(--blue);
+  padding: 3px 11px; border-radius: 20px;
+  font-family: var(--font-data); font-size: var(--t-11); font-weight: 700;
+  letter-spacing: .06em;
+}
+.rline-inactive-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-3); padding: 3px 10px; border-radius: 20px;
+  font-family: var(--font-data); font-size: var(--t-10); font-weight: 600; letter-spacing: .04em;
+}
+.rline-inactive-badge i { font-size: 10px; opacity: .7; }
+
+.rline-card-actions { display: flex; gap: 5px; }
+.rline-action-btn {
+  width: 30px; height: 30px; border-radius: var(--r-sm);
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-3); display: flex; align-items: center; justify-content: center;
+  font-size: 12px; cursor: pointer; transition: var(--t);
+}
+.rline-action-btn:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+.rline-action-btn--danger:hover { background: var(--danger-lt); border-color: rgba(220,53,69,.25); color: var(--danger); }
+
+/* Name */
+.rline-card-name {
+  font-family: var(--font-display);
+  font-size: 22px; font-weight: 400; font-style: italic;
+  color: var(--text-1); line-height: 1.3; letter-spacing: -.01em;
+  margin: 6px 0 4px;
+}
+
+/* Description */
+.rline-card-description {
+  font-size: var(--t-12); color: var(--text-2); line-height: 1.65;
+  margin-bottom: 12px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Activity pills row */
+.rline-activity-row {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding-top: 0; padding-bottom: 12px;
+}
+.rline-activity-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 4px 10px;
+  font-family: var(--font-data); font-size: var(--t-11); font-weight: 600; color: var(--text-2);
+}
+.rline-activity-pill i { font-size: 10px; color: var(--text-3); }
+.rline-activity-pill--teal { background: rgba(0,229,160,.08); border-color: rgba(0,229,160,.25); color: #00c98f; }
+.rline-activity-pill--teal .rline-dot-pulse {
+  width: 6px; height: 6px; border-radius: 50%; background: #00c98f;
+  animation: pulse-teal 1.5s ease-in-out infinite;
+}
+@keyframes pulse-teal { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.4)} }
+.rline-activity-pill--purple { background: rgba(167,139,250,.1); border-color: rgba(167,139,250,.3); color: #a78bfa; }
+.rline-activity-pill--purple i { color: #a78bfa; font-size: 6px; }
+.rline-activity-label { color: var(--text-3); font-weight: 400; }
+
+/* Coordinator compact row */
+.rline-coord-row {
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  padding-top: 12px; padding-bottom: 12px;
+  margin-top: auto;
+}
+.rline-coord-label {
+  font-family: var(--font-data); font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--text-3);
+  margin-bottom: 8px;
+}
+.rline-coord-person {
+  display: flex; align-items: center; gap: 10px;
+}
+.rline-coord-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--blue-lt); border: 1.5px solid var(--blue-mid);
+  color: var(--blue); font-family: var(--font-data); font-size: var(--t-11);
+  font-weight: 700; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; letter-spacing: .02em;
+}
+.rline-coord-info {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px;
+}
+.rline-coord-name {
+  font-size: var(--t-13); font-weight: 700; color: var(--text-1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rline-coord-email {
+  font-family: var(--font-data); font-size: var(--t-11); color: var(--text-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rline-coord-change {
+  width: 28px; height: 28px; border-radius: var(--r-sm);
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text-3); display: flex; align-items: center; justify-content: center;
+  font-size: 11px; cursor: pointer; transition: var(--t); flex-shrink: 0;
+}
+.rline-coord-change:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+
+.rline-coord-empty {
+  display: flex; align-items: center; gap: 8px;
+  font-size: var(--t-12); color: var(--text-3); font-style: italic;
+}
+.rline-coord-empty i { font-size: 13px; opacity: .5; }
+.rline-coord-assign {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px; background: var(--surface); border: 1px solid var(--border-2);
+  border-radius: 20px; font-size: var(--t-11); font-weight: 600; color: var(--blue);
+  cursor: pointer; transition: var(--t); white-space: nowrap;
+}
+.rline-coord-assign:hover { background: var(--blue-lt); border-color: var(--blue-mid); }
+
+/* Scope text */
+.rline-scope {
+  display: flex; align-items: flex-start; gap: 7px;
+  font-size: var(--t-12); color: var(--text-2); line-height: 1.5;
+  padding-top: 10px; padding-bottom: 4px;
+  border-top: 1px solid var(--border);
+}
+.rline-scope i { color: var(--teal); font-size: 11px; margin-top: 2px; flex-shrink: 0; }
+
+/* Keywords */
+.rline-keywords {
+  display: flex; flex-wrap: wrap; gap: 5px;
+  padding-top: 8px; padding-bottom: 16px;
+}
+.rline-kw-chip {
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-2); padding: 3px 9px; border-radius: 20px;
+  font-family: var(--font-data); font-size: 10px; font-weight: 600;
+  transition: var(--t); cursor: default;
+}
+.rline-kw-chip:hover {
+  background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue);
+}
+
+/* ================================================================
+   INNOVATION PROJECTS — COMPLETE REDESIGN (Session 12)
+================================================================ */
+
+/* Pipeline overview bar above filter */
+.pipeline-overview {
+  display: flex; gap: 0; padding: 0 20px 0;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto; scrollbar-width: none;
+}
+.pipeline-overview::-webkit-scrollbar { display: none; }
+
+.pipeline-stage-tile {
+  flex: 1; min-width: 80px; padding: 12px 10px 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  border: 1px solid transparent; border-bottom-width: 2px;
+  border-radius: var(--r) var(--r) 0 0;
+  transition: var(--t-md); background: transparent;
+}
+.pipeline-stage-tile:hover { background: var(--surface-2); }
+.pipeline-stage-tile--active { border-color: currentColor; }
+.pst-count {
+  font-family: var(--font-data); font-size: 20px; font-weight: 700;
+  color: var(--text-2); line-height: 1;
+}
+.pst-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-3); text-align: center;
+  line-height: 1.2;
+}
+.pst-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  opacity: .6; margin-top: 2px;
+}
+
+/* Grid */
+.inno-projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(390px, 1fr));
+  gap: 20px; padding: 20px;
+}
+
+/* Card */
+.inno-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  display: flex; flex-direction: column;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--t-md), transform var(--t-md);
+  position: relative; overflow: hidden;
+  padding: 0;
+}
+.inno-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+
+/* Stage-colored left bar */
+.inno-card-bar {
+  position: absolute; top: 0; left: 0; bottom: 0; width: 4px;
+  background: var(--stage-color, #7a90b0);
+  border-radius: var(--r-lg) 0 0 var(--r-lg);
+}
+
+/* Inner padding wrapper — all content has left padding to clear the bar */
+.inno-card-top,
+.inno-card-title,
+.inno-stage-track,
+.inno-card-description,
+.inno-meta-row,
+.inno-team-section,
+.inno-partner-section,
+.inno-needs-section,
+.inno-keywords { padding-left: 20px; padding-right: 18px; }
+
+/* Top row */
+.inno-card-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 16px; padding-bottom: 6px;
+}
+.inno-cat-badge {
+  display: inline-flex; align-items: center;
+  padding: 4px 12px; border-radius: 20px;
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+}
+.inno-cat--dispositivo             { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+.inno-cat--salud-digital           { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.inno-cat--ia---ml                 { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+.inno-cat--tecnologia-quirurgica   { background: #fff1f2; color: #9f1239; border: 1px solid #fecdd3; }
+
+.inno-card-actions { display: flex; gap: 5px; }
+.inno-action-btn {
+  width: 28px; height: 28px; border-radius: var(--r-sm);
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-3); display: flex; align-items: center; justify-content: center;
+  font-size: 11px; cursor: pointer; transition: var(--t);
+}
+.inno-action-btn:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+.inno-action-btn--danger:hover { background: var(--danger-lt); border-color: rgba(220,53,69,.25); color: var(--danger); }
+
+/* Title */
+.inno-card-title {
+  font-family: var(--font-ui, 'DM Sans', sans-serif);
+  font-size: 14px; font-weight: 500; font-style: normal;
+  color: var(--text-1); line-height: 1.4; letter-spacing: 0;
+  margin: 4px 0 10px; white-space: normal;
+}
+
+/* Stage pipeline track */
+.inno-stage-track {
+  display: flex; align-items: center; gap: 3px;
+  padding-bottom: 12px; flex-wrap: wrap;
+}
+.inno-stage-node {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--border-2);
+  background: var(--surface-2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; color: var(--text-3);
+  transition: var(--t);
+  flex-shrink: 0;
+}
+.inno-stage-node--done {
+  background: var(--surface-2); border-color: var(--border);
+  color: var(--text-3); font-size: 8px;
+}
+.inno-stage-node--done i { color: var(--ok); }
+.inno-stage-node--current {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--stage-color) 20%, transparent);
+  color: #fff;
+}
+.inno-stage-node--future {
+  opacity: .3;
+}
+/* Connector line between nodes */
+.inno-stage-node + .inno-stage-node::before {
+  content: '';
+  display: block; width: 6px; height: 1.5px;
+  background: var(--border); margin-right: 3px; flex-shrink: 0;
+}
+.inno-stage-label {
+  margin-left: 8px; font-family: var(--font-data); font-size: 10px;
+  font-weight: 700; letter-spacing: .04em; display: flex; align-items: center; gap: 5px;
+}
+.inno-stage-label i { font-size: 10px; }
+
+/* Description */
+.inno-card-description {
+  font-size: var(--t-12); color: var(--text-2); line-height: 1.65;
+  padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+
+/* Meta row: line badge + funding */
+.inno-meta-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding-bottom: 10px;
+}
+.inno-line-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: var(--t-11); color: var(--blue); font-weight: 600;
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  padding: 3px 9px; border-radius: 20px;
+}
+.inno-line-badge i { font-size: 10px; }
+.inno-funding-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 20px;
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+}
+.inno-funding--seeking { background: rgba(245,158,11,.1); color: #b45309; border: 1px solid rgba(245,158,11,.25); }
+.inno-funding--applied { background: rgba(59,130,246,.1); color: #2563eb; border: 1px solid rgba(59,130,246,.25); }
+.inno-funding--funded  { background: rgba(16,185,129,.1); color: #059669; border: 1px solid rgba(16,185,129,.3); }
+
+/* Team section */
+.inno-team-section {
+  background: var(--surface-2); border-top: 1px solid var(--border);
+  padding-top: 12px; padding-bottom: 12px;
+}
+.inno-team-label {
+  font-family: var(--font-data); font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--text-3);
+  margin-bottom: 10px;
+}
+.inno-team-members { display: flex; flex-direction: column; gap: 7px; }
+.inno-team-member { display: flex; align-items: center; gap: 9px; }
+.inno-member-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--surface); border: 1.5px solid var(--border-2);
+  color: var(--text-2); font-family: var(--font-data); font-size: 10px;
+  font-weight: 700; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.inno-member-avatar--lead {
+  background: rgba(251,191,36,.12); border-color: rgba(251,191,36,.4); color: var(--warn);
+}
+.inno-member-info { display: flex; flex-direction: column; gap: 0; }
+.inno-member-name { font-size: var(--t-12); font-weight: 600; color: var(--text-1); line-height: 1.3; }
+.inno-member-role {
+  font-family: var(--font-data); font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--text-3);
+}
+.inno-member-overflow {
+  font-family: var(--font-data); font-size: var(--t-11); color: var(--text-3);
+  font-weight: 600; padding: 2px 0;
+}
+
+/* Partner section */
+.inno-partner-section { padding-top: 10px; padding-bottom: 10px; border-top: 1px solid var(--border); }
+.inno-partner-found {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(16,185,129,.06); border: 1px solid rgba(16,185,129,.2);
+  border-radius: var(--r); padding: 8px 12px;
+  font-size: var(--t-12); color: var(--text-2);
+}
+.inno-partner-found i { color: #059669; font-size: 14px; flex-shrink: 0; }
+.inno-partner-found-label { font-weight: 600; color: var(--text-3); font-size: var(--t-11); text-transform: uppercase; letter-spacing: .06em; }
+.inno-partner-name { font-weight: 700; color: var(--text-1); font-size: var(--t-13); }
+
+.inno-needs-section { padding-top: 10px; padding-bottom: 10px; border-top: 1px solid var(--border); }
+.inno-needs-label { font-size: var(--t-11); color: var(--text-3); font-weight: 600; margin-bottom: 7px; display: flex; align-items: center; gap: 5px; }
+.inno-needs-label i { font-size: 11px; color: var(--warn); }
+.inno-needs-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.inno-need-chip {
+  background: var(--warn-lt, rgba(255,190,61,.1)); border: 1px solid rgba(255,190,61,.3);
+  color: #c28200; padding: 3px 9px; border-radius: 20px;
+  font-family: var(--font-data); font-size: 10px; font-weight: 600;
+}
+
+/* Keywords */
+.inno-keywords {
+  display: flex; flex-wrap: wrap; gap: 5px;
+  padding-top: 10px; padding-bottom: 14px;
+  border-top: 1px solid var(--border);
+}
+.inno-kw-chip {
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-3); padding: 2px 8px; border-radius: 20px;
+  font-family: var(--font-data); font-size: 10px; font-weight: 600;
+  transition: var(--t); cursor: default;
+}
+.inno-kw-chip:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+
+/* ================================================================
+   INNOVATION PROJECT MODAL — Stage picker + partner toggle
+================================================================ */
+
+/* Stage picker */
+.ipm-stage-picker {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 14px 16px 12px;
+  margin-bottom: 20px;
+}
+.ipm-stage-picker-label {
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--text-3); margin-bottom: 10px;
+}
+.ipm-stage-options {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.ipm-stage-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 13px; border-radius: 20px;
+  border: 1.5px solid var(--border-2); background: var(--surface);
+  font-size: var(--t-12); font-weight: 600; color: var(--text-2);
+  cursor: pointer; transition: var(--t);
+}
+.ipm-stage-btn i { font-size: 11px; }
+.ipm-stage-btn:hover { border-color: var(--blue-mid); background: var(--blue-lt); color: var(--blue); }
+.ipm-stage-btn--active { font-weight: 700; }
+
+/* Partner toggle */
+.ipm-partner-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.ipm-partner-toggle {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+}
+.ipm-partner-toggle input { display: none; }
+.ipm-partner-toggle-track {
+  width: 38px; height: 20px; border-radius: 20px;
+  background: var(--border-2); transition: background var(--t); position: relative; flex-shrink: 0;
+}
+.ipm-partner-toggle-track::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform var(--t);
+}
+.ipm-partner-toggle-track--on { background: var(--ok); }
+.ipm-partner-toggle-track--on::after { transform: translateX(18px); }
+.ipm-partner-toggle-label { font-size: var(--t-12); font-weight: 600; color: var(--text-2); }
+
+.ipm-partner-found-row {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(16,185,129,.06); border: 1px solid rgba(16,185,129,.2);
+  border-radius: var(--r); padding: 10px 14px;
+}
+.ipm-partner-found-row i { color: #059669; font-size: 16px; flex-shrink: 0; }
+.ipm-partner-found-row .form-control { background: transparent; border-color: rgba(16,185,129,.3); flex: 1; }
+
+/* ================================================================
+   BATCH FIX — 10 IMPROVEMENTS
+================================================================ */
+
+/* ── 1. View transition animation ────────────────────────────── */
+.content-view-enter {
+  animation: viewEnter 220ms cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes viewEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── 2. On-call table — fixed column proportions ─────────────── */
+.table-oncall { table-layout: fixed; }
+.table-oncall col.col-period   { width: 26%; }
+.table-oncall col.col-physician{ width: 22%; }
+.table-oncall col.col-type     { width: 10%; }
+.table-oncall col.col-coverage { width: 14%; }
+.table-oncall col.col-backup   { width: 18%; }
+.table-oncall col.col-actions  { width: 10%; }
+
+/* Shift period cell — no wrapping, readable layout */
+.oncall-shift-cell {
+  display: flex; flex-direction: column; gap: 3px; min-width: 0;
+}
+.oncall-shift-date-row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: var(--text-2);
+  white-space: nowrap;
+}
+.oncall-shift-overnight {
+  font-size: 9px; font-weight: 700; padding: 1px 5px;
+  border-radius: 4px; background: var(--warn-lt);
+  color: var(--warn); border: 1px solid var(--warn-mid);
+}
+.oncall-shift-time-row {
+  display: flex; align-items: center; gap: 5px;
+}
+.oncall-shift-time {
+  font-family: var(--font-data); font-size: 15px; font-weight: 700;
+  color: var(--text-1); line-height: 1; white-space: nowrap;
+}
+.oncall-shift-arrow {
+  font-size: 11px; color: var(--text-4);
+}
+
+/* Past shift dimming */
+.row-past td { opacity: .5; }
+
+/* ── 3. Rotation progress bar in table ───────────────────────── */
+.rot-progress-wrap {
+  display: flex; flex-direction: column; gap: 3px; min-width: 0;
+}
+.rot-progress-bar {
+  height: 4px; background: var(--border);
+  border-radius: 4px; overflow: hidden; width: 100%;
+}
+.rot-progress-fill {
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, var(--blue), var(--teal));
+  transition: width .4s ease;
+}
+.rot-progress-fill.urgent { background: linear-gradient(90deg, var(--warn), var(--danger)); }
+.rot-progress-fill.done   { background: linear-gradient(90deg, var(--ok), #059669); }
+.rot-days-label {
+  font-size: 10px; font-weight: 600; color: var(--text-3);
+  white-space: nowrap;
+}
+.rot-days-label.urgent { color: var(--warn); }
+
+/* ── 4. Incomplete profile indicator ─────────────────────────── */
+.incomplete-flag {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(217,119,6,.1); color: var(--warn);
+  border: 1px solid rgba(217,119,6,.2);
+  font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 20px;
+  text-transform: uppercase; letter-spacing: .05em;
+  vertical-align: middle; margin-left: 4px;
+}
+.incomplete-flag i { font-size: 9px; }
+
+/* ── 5. Empty states — personality ───────────────────────────── */
+.empty-state {
+  text-align: center; padding: 48px 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.empty-state-icon {
+  font-size: 44px; opacity: .12; display: block;
+  margin-bottom: 6px;
+}
+.empty-state-title {
+  font-family: var(--font-display);
+  font-size: 20px; font-weight: 400; font-style: italic;
+  color: var(--text-2); letter-spacing: -.01em;
+}
+.empty-state-description {
+  font-size: 13px; color: var(--text-3); line-height: 1.55;
+  max-width: 340px;
+}
+.empty-state .btn { margin-top: 8px; }
+/* Compact table empty state */
+.table .empty-state { padding: 36px 22px; }
+.table .empty-state-icon  { font-size: 32px; }
+.table .empty-state-title { font-size: 16px; }
+.table .empty-state-description { font-size: 12px; }
+
+/* ── 6. Global search results dropdown ───────────────────────── */
+.search-results-dropdown {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-lg);
+  z-index: 9999; overflow: hidden;
+  animation: dropIn .15s ease;
+  min-width: 340px;
+}
+.search-results-group { border-bottom: 1px solid var(--border); }
+.search-results-group:last-child { border-bottom: none; }
+.search-group-label {
+  font-family: var(--font-data); font-size: 9.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .14em;
+  color: var(--text-4); padding: 10px 14px 5px;
+}
+.search-result-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; cursor: pointer;
+  transition: background var(--t); min-height: 44px;
+}
+.search-result-item:hover { background: var(--blue-lt); }
+.search-result-item i {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; flex-shrink: 0;
+  background: var(--surface-2); color: var(--text-3);
+}
+.search-result-item:hover i { background: var(--blue-dim); color: var(--blue); }
+.search-result-text { min-width: 0; }
+.search-result-name { font-size: 13px; font-weight: 600; color: var(--text-1); }
+.search-result-meta { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+.search-no-results { padding: 24px; text-align: center; color: var(--text-3); font-size: 13px; }
+
+/* ── 7. Announcements unread badge ───────────────────────────── */
+.announcement-unread-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--blue); margin-left: 6px; vertical-align: middle;
+  box-shadow: 0 0 0 3px rgba(45,122,255,.2);
+  animation: dotPulse2 2s ease-in-out infinite;
+}
+.announcement-row.unread { background: rgba(45,122,255,.03); }
+.announcement-row.unread td:first-child {
+  border-left: 3px solid var(--blue);
+}
+
+/* ── 8. Mobile touch targets & nav improvements ──────────────── */
+@media (max-width: 1100px) {
+  /* Bottom tab bar for mobile */
+  .mobile-bottom-nav {
+    display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+    background: #07111f; border-top: 1px solid rgba(255,255,255,.08);
+    z-index: 300; padding: 6px 0 max(6px, env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 20px rgba(0,0,0,.25);
+  }
+  .mobile-nav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 3px; padding: 6px 4px; cursor: pointer;
+    color: rgba(255,255,255,0.75); font-size: 9.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .06em;
+    transition: color var(--t); border: none; background: none;
+    min-height: 52px;
+  }
+  .mobile-nav-item i { font-size: 18px; }
+  .mobile-nav-item.active { color: #4d9aff; }
+  .mobile-nav-item.active i { filter: drop-shadow(0 0 6px rgba(77,154,255,.5)); }
+  .content-area { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+}
+
+@media (max-width: 480px) {
+  /* On-call table: collapse to card view on phones */
+  .table-oncall thead { display: none; }
+  .table-oncall tbody tr {
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 14px; border-bottom: 1px solid var(--border);
+    border-radius: var(--r-lg); margin: 6px 0;
+    background: var(--surface); box-shadow: var(--shadow-xs);
+  }
+  .table-oncall tbody td {
+    padding: 0; border: none; display: flex; align-items: center;
+    gap: 8px; font-size: 13px;
+  }
+  .table-oncall tbody td::before {
+    content: attr(data-label);
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text-4); min-width: 70px;
+  }
+  .oncall-shift-cell { flex-direction: row; }
+
+  /* Stats grid single column */
+  .stats-grid:not(.mini) { grid-template-columns: 1fr; }
+
+  /* Quick actions: scrollable row */
+  .quick-actions-bar {
+    overflow-x: auto; flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px 10px;
+  }
+  .quick-actions-bar .ml-auto { margin-left: 0; border-left: none; padding-left: 0; }
+
+  /* db greeting stacks */
+  .db-greeting { flex-direction: column; align-items: flex-start; }
+  .db-greeting .quick-actions-bar { width: 100%; }
+
+  /* Cards grid 1 col */
+  .rline-cards-grid,
+  .inno-projects-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ── 9. Typography hierarchy inside cards ─────────────────────── */
+/* Make primary values pop, dim secondary labels */
+.card-stat-value {
+  font-family: var(--font-data); font-size: 22px; font-weight: 700;
+  color: var(--text-1); line-height: 1;
+}
+.card-stat-label {
+  font-size: 11px; font-weight: 500; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: .08em;
+}
+.card-meta { font-size: 11px; color: var(--text-4); }
+
+/* Table cell hierarchy */
+.cell-primary { font-size: 13px; font-weight: 600; color: var(--text-1); line-height: 1.3; }
+.cell-secondary { font-size: 11px; color: var(--text-3); font-weight: 400; margin-top: 1px; }
+
+/* ── 10. Consistent confirm dialog tone ───────────────────────── */
+/* Already handled by showConfirmation - just ensure details text is readable */
+.confirm-details {
+  font-size: 13px; color: var(--text-2); margin-top: 6px;
+  padding: 10px 14px; background: var(--surface-2);
+  border-radius: var(--r); border: 1px solid var(--border);
+  line-height: 1.5;
+}
+
+/* Mobile bottom nav — hidden on desktop */
+.mobile-bottom-nav { display: none; }
+@media (max-width: 1100px) {
+  .mobile-bottom-nav { display: flex; }
+}
+
+/* ================================================================
+   KEYWORD CHIP EDITOR (modal input)
+================================================================ */
+.kw-editor {
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-1);
+  transition: border-color .15s, box-shadow .15s;
+  cursor: text;
+}
+.kw-editor:focus-within {
+  border-color: var(--blue-mid);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+}
+.kw-chips-area {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 6px; padding: 8px 10px; min-height: 42px;
+}
+.kw-chip-edit {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  color: var(--blue); border-radius: 20px;
+  padding: 3px 4px 3px 10px;
+  font-family: var(--font-data); font-size: 11px; font-weight: 600;
+  white-space: nowrap;
+  animation: kwPopIn .18s cubic-bezier(.34,1.56,.64,1);
+}
+.kw-chip-text { line-height: 1.2; }
+.kw-chip-remove {
+  display: flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  border: none; background: transparent; color: var(--blue);
+  cursor: pointer; padding: 0; font-size: 9px;
+  transition: background .12s, color .12s;
+}
+.kw-chip-remove:hover { background: var(--blue); color: #fff; }
+.kw-input-inline {
+  flex: 1; min-width: 120px; border: none; background: transparent;
+  outline: none; font-size: 13px; color: var(--text-1);
+  font-family: var(--font-body); padding: 2px 0;
+}
+.kw-input-inline::placeholder { color: var(--text-3); }
+
+@keyframes kwPopIn {
+  from { transform: scale(.6); opacity: 0; }
+  to   { transform: scale(1);  opacity: 1; }
+}
+
+/* Vue transition for chip removal */
+.kw-chip-enter-active { transition: all .18s cubic-bezier(.34,1.56,.64,1); }
+.kw-chip-leave-active { transition: all .14s ease; }
+.kw-chip-enter-from  { transform: scale(.5); opacity: 0; }
+.kw-chip-leave-to    { transform: scale(.5); opacity: 0; }
+
+/* Display chips on cards — extra pop */
+.rline-kw-chip, .inno-kw-chip {
+  transition: background .15s, border-color .15s, color .15s, transform .15s;
+}
+.rline-kw-chip:hover { transform: translateY(-1px); }
+.inno-kw-chip:hover  { transform: translateY(-1px); }
+
+/* Search highlight on research line cards when keyword matches */
+.rline-card--kw-match { box-shadow: 0 0 0 2px var(--blue-mid); }
+
+/* ================================================================
+   CLINICAL TRIALS — enrollment progress + date cells
+================================================================ */
+.enrollment-wrap { display: flex; flex-direction: column; gap: 3px; min-width: 70px; }
+.enrollment-nums { display: flex; align-items: baseline; gap: 2px; font-family: var(--font-data); font-size: 11px; }
+.enrollment-actual { font-weight: 700; color: var(--text-1); }
+.enrollment-sep    { color: var(--text-3); font-size: 10px; }
+.enrollment-target { color: var(--text-3); }
+.enrollment-bar    { height: 4px; background: var(--surface-3); border-radius: 4px; overflow: hidden; }
+.enrollment-fill   { height: 100%; border-radius: 4px; transition: width .4s ease; }
+
+.trial-dates-cell { min-width: 90px; }
+.trial-dates-wrap { display: flex; flex-direction: column; gap: 2px; }
+.trial-date-from, .trial-date-to {
+  display: flex; align-items: center; gap: 4px;
+  font-family: var(--font-data); font-size: 10.5px; color: var(--text-2); white-space: nowrap;
+}
+
+.trial-sponsor-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-2); border-radius: var(--r-sm);
+  padding: 2px 7px; font-size: 10.5px; font-weight: 500;
+  max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ================================================================
+   INNOVATION PROJECTS — TRL level track
+================================================================ */
+.inno-trl-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 20px 4px;
+}
+.inno-trl-track {
+  display: flex; gap: 3px; flex: 1;
+}
+.inno-trl-pip {
+  flex: 1; height: 5px; border-radius: 3px;
+  background: var(--surface-3); transition: background .2s;
+}
+.inno-trl-pip--filled {
+  opacity: .85;
+}
+.inno-trl-pip--current {
+  opacity: 1;
+  box-shadow: 0 0 0 2px rgba(255,255,255,.6), 0 0 0 3px var(--stage-color, #60a5fa);
+}
+.inno-trl-label {
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  color: var(--stage-color, var(--text-2)); white-space: nowrap;
+  background: var(--stage-bg, var(--surface-2));
+  border: 1px solid var(--stage-color, var(--border));
+  border-radius: 20px; padding: 2px 7px;
+}
+
+
+
+
+.analytics-tab:hover { color: var(--text-1); background: var(--surface-2); }
+
+.analytics-tab i { font-size: 12px; opacity: .8; }
+
+
+
+.timeline-chart {
+  display: flex; align-items: flex-end; gap: 4px;
+  padding: 16px 20px 8px;
+  height: 120px; overflow-x: auto;
+  scrollbar-width: thin;
+}
+.timeline-bar-col {
+  display: flex; flex-direction: column; align-items: center;
+  flex: 1; min-width: 28px; max-width: 48px;
+  height: 100%;
+}
+.timeline-bar-wrap {
+  flex: 1; width: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-end; position: relative;
+}
+.timeline-bar-fill {
+  width: 70%; border-radius: 3px 3px 0 0;
+  background: var(--blue); opacity: .75;
+  transition: height .4s ease, opacity .2s;
+  min-height: 4px;
+}
+.timeline-bar-fill:hover { opacity: 1; }
+.timeline-bar-val {
+  position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  color: var(--blue); white-space: nowrap;
+}
+.timeline-bar-label {
+  font-family: var(--font-data); font-size: 9px; color: var(--text-3);
+  margin-top: 4px; white-space: nowrap;
+}
+
+/* ================================================================
+   TRIAL DETAIL MODAL — sponsor + enrollment enhancements
+================================================================ */
+.trial-detail-enroll {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 10px 14px;
+  margin-bottom: 4px;
+}
+.trial-enroll-label { font-size: 11px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.trial-enroll-nums  { font-family: var(--font-data); font-size: 18px; font-weight: 700; color: var(--text-1); }
+.trial-enroll-bar   { flex: 1; height: 6px; background: var(--surface-3); border-radius: 4px; overflow: hidden; }
+.trial-enroll-fill  { height: 100%; border-radius: 4px; background: var(--blue); transition: width .5s ease; }
+.trial-enroll-pct   { font-family: var(--font-data); font-size: 12px; font-weight: 700; color: var(--blue); }
+
+/* ================================================================
+   TRIAL DETAIL MODAL — full redesign
+================================================================ */
+.tdm-container {
+  max-width: 860px; width: 92vw;
+  max-height: 88vh; display: flex; flex-direction: column;
+  padding: 0; overflow: hidden;
+}
+.tdm-hero {
+  background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 24px 16px; flex-shrink: 0;
+}
+.tdm-hero-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+.tdm-badges { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tdm-protocol {
+  font-family: var(--font-data); font-size: 12px; font-weight: 700;
+  color: var(--blue); background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  border-radius: 6px; padding: 3px 9px; letter-spacing: .03em;
+}
+.tdm-phase-badge {
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em;
+  padding: 3px 10px; border-radius: 20px;
+}
+.tdm-phase--phase-i   { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+.tdm-phase--phase-ii  { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.tdm-phase--phase-iii { background: #fefce8; color: #854d0e; border: 1px solid #fde68a; }
+.tdm-phase--phase-iv  { background: #fdf2f8; color: #86198f; border: 1px solid #f0abfc; }
+.tdm-study-type-badge {
+  font-size: 10px; font-weight: 600; color: var(--text-2);
+  background: var(--surface-3); border: 1px solid var(--border);
+  border-radius: 20px; padding: 3px 9px;
+}
+.tdm-close { margin-left: auto; flex-shrink: 0; }
+.tdm-title {
+  font-family: var(--font-display); font-size: 21px; font-style: italic;
+  color: var(--text-1); line-height: 1.4; margin: 0 0 12px; font-weight: 400;
+}
+.tdm-meta-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; }
+.tdm-meta-sep { color: var(--border-2); }
+.tdm-line { color: var(--text-2); display: flex; align-items: center; gap: 5px; }
+.tdm-line i { color: var(--blue); font-size: 11px; }
+.tdm-dates { color: var(--text-2); display: flex; align-items: center; gap: 5px; font-family: var(--font-data); }
+.tdm-dates i { font-size: 11px; color: var(--teal); }
+
+.tdm-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+/* KPI strip */
+.tdm-kpi-strip {
+  display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.tdm-kpi {
+  flex: 1; min-width: 140px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 12px 14px;
+}
+.tdm-kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); margin-bottom: 4px; }
+.tdm-kpi-value { font-family: var(--font-data); font-size: 22px; font-weight: 700; color: var(--text-1); line-height: 1.2; }
+.tdm-kpi-value--text { font-size: 14px; font-weight: 600; font-family: var(--font-body); }
+.tdm-kpi-denom { font-size: 13px; font-weight: 400; color: var(--text-3); }
+.tdm-kpi-bar { height: 5px; background: var(--surface-3); border-radius: 4px; overflow: hidden; margin: 6px 0 3px; }
+.tdm-kpi-fill { height: 100%; border-radius: 4px; transition: width .5s ease; }
+.tdm-kpi-pct { font-size: 10.5px; font-weight: 600; color: var(--blue); font-family: var(--font-data); }
+.tdm-kpi-sub { font-size: 10.5px; color: var(--text-3); margin-top: 3px; font-family: var(--font-data); }
+
+/* Two-column grid */
+.tdm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 640px) { .tdm-grid { grid-template-columns: 1fr; } }
+.tdm-col { display: flex; flex-direction: column; gap: 12px; }
+
+/* Sections */
+.tdm-section {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 12px 14px;
+}
+.tdm-section--ok    { border-left: 3px solid var(--ok); }
+.tdm-section--danger { border-left: 3px solid var(--danger); }
+.tdm-section-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-3);
+  display: flex; align-items: center; gap: 5px; margin-bottom: 8px;
+}
+.tdm-section--ok .tdm-section-label     { color: var(--ok); }
+.tdm-section--danger .tdm-section-label { color: var(--danger); }
+.tdm-section-text { font-size: 13px; color: var(--text-2); line-height: 1.65; margin: 0; }
+
+/* Investigators */
+.tdm-inv-list { display: flex; flex-direction: column; gap: 8px; }
+.tdm-inv-row  { display: flex; align-items: center; gap: 10px; }
+.tdm-inv-avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: var(--surface-3); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-data); font-size: 10px; font-weight: 700; color: var(--text-2);
+}
+.tdm-inv-avatar--pi  { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+.tdm-inv-avatar--sub { background: var(--surface-2); }
+.tdm-inv-info { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; }
+.tdm-inv-name { font-size: 13px; font-weight: 500; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tdm-inv-badge {
+  flex-shrink: 0; font-family: var(--font-data); font-size: 9px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .06em; border-radius: 4px; padding: 2px 5px;
+}
+.tdm-inv-badge--pi  { background: var(--blue-lt);  color: var(--blue);  border: 1px solid var(--blue-mid); }
+.tdm-inv-badge--coi { background: var(--teal-lt, rgba(0,229,160,.1));  color: var(--teal);  border: 1px solid rgba(0,229,160,.25); }
+.tdm-inv-badge--sub { background: var(--surface-3); color: var(--text-3); border: 1px solid var(--border); }
+.tdm-empty-hint { font-size: 12px; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
+
+.tdm-contact-link {
+  display: inline-flex; align-items: center; gap: 7px; font-size: 13px;
+  color: var(--blue); text-decoration: none; font-weight: 500;
+}
+.tdm-contact-link:hover { text-decoration: underline; }
+.tdm-footer { border-top: 1px solid var(--border); padding: 12px 24px; flex-shrink: 0; }
+
+
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.chart-card h4 {
+  font-size: 13px; font-weight: 600; color: var(--text-1);
+  margin: 0 0 16px; display: flex; align-items: center; gap: 8px;
+}
+.chart-bar-item { display: flex; align-items: center; gap: 10px; }
+.bar-label { font-size: 12px; color: var(--text-2); min-width: 80px; font-weight: 500; }
+.bar-container { flex: 1; height: 10px; background: var(--surface-3); border-radius: 6px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 6px; transition: width .5s cubic-bezier(.34,1.56,.64,1); }
+.bar-value { font-family: var(--font-data); font-size: 11px; font-weight: 700; color: var(--text-2); min-width: 20px; text-align: right; }
+
+
+.perf-bar-cell { display: flex; align-items: center; gap: 6px; }
+.perf-mini-bar { flex: 1; height: 6px; background: var(--surface-3); border-radius: 4px; overflow: hidden; min-width: 40px; }
+.perf-mini-fill { height: 100%; border-radius: 4px; background: var(--blue); transition: width .4s ease; }
+.perf-num { font-family: var(--font-data); font-size: 11px; font-weight: 700; color: var(--text-2); min-width: 18px; text-align: right; }
+
+/* Stats grid upgrades */
+.stat-card .stat-main-value { font-family: var(--font-data); font-size: 36px; font-weight: 800; color: var(--text-1); line-height: 1; margin: 8px 0; }
+.stat-breakdown { display: flex; gap: 16px; margin-top: 8px; }
+.breakdown-item { display: flex; flex-direction: column; gap: 2px; }
+.breakdown-item .label { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); font-weight: 700; }
+.breakdown-item .value { font-family: var(--font-data); font-size: 16px; font-weight: 700; color: var(--text-1); }
+
+/* ================================================================
+   INNOVATION PROJECTS — upgraded card design
+================================================================ */
+/* Replace left bar with top gradient banner */
+.inno-card { padding: 0; }
+.inno-card-bar {
+  position: absolute; top: 0; left: 0; right: 0; bottom: auto;
+  width: auto; height: 3px;
+  background: var(--stage-color, #7a90b0);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+
+/* Add subtle stage-color glow on hover */
+.inno-card:hover {
+  box-shadow: 0 8px 32px -4px color-mix(in srgb, var(--stage-color, #7a90b0) 20%, transparent),
+              0 2px 8px rgba(0,0,0,.08);
+}
+
+/* Stage track — make it more substantial */
+.inno-stage-node {
+  width: 26px; height: 26px;
+  font-size: 9px;
+}
+.inno-stage-node--current {
+  width: 30px; height: 30px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--stage-color) 20%, transparent);
+}
+.inno-stage-label {
+  font-size: 11px; padding: 3px 10px;
+  background: color-mix(in srgb, var(--stage-color) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--stage-color) 30%, transparent);
+  border-radius: 20px;
+}
+
+/* Category badges — slightly richer */
+.inno-cat-badge { font-size: 10px; letter-spacing: .06em; }
+
+/* Team member avatars */
+.inno-member-avatar {
+  box-shadow: 0 1px 3px rgba(0,0,0,.15);
+}
+.inno-member-avatar--lead {
+  box-shadow: 0 0 0 2px var(--blue-mid), 0 1px 3px rgba(0,0,0,.15);
+}
+
+/* Partner / needs chips */
+.inno-need-chip, .rline-kw-chip, .inno-kw-chip {
+  transition: all .15s ease;
+}
+.inno-need-chip:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,.1); }
+
+/* Funding badge colours more vivid */
+.inno-funding--seeking  { background: #fef9c3; color: #854d0e; border: 1px solid #fde68a; }
+.inno-funding--applied  { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.inno-funding--funded   { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+
+/* Pipeline overview tiles */
+.pipeline-stage-tile {
+  transition: all .2s ease;
+  cursor: pointer;
+  position: relative;
+}
+.pipeline-stage-tile::after {
+  content: attr(data-count);
+}
+.pipeline-stage-tile:hover { background: var(--surface-2); }
+
+/* ================================================================
+   STAFF REASSIGNMENT MODAL
+================================================================ */
+.rsm-container {
+  max-width: 820px; width: 94vw;
+  max-height: 85vh; display: flex; flex-direction: column;
+  padding: 0; overflow: hidden;
+}
+.rsm-header {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 20px 24px; border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(220,53,69,.04) 0%, var(--surface) 100%);
+  flex-shrink: 0;
+}
+.rsm-header-icon {
+  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+  background: var(--danger-lt); border: 1px solid rgba(220,53,69,.2);
+  color: var(--danger); display: flex; align-items: center; justify-content: center;
+  font-size: 16px; margin-top: 2px;
+}
+.rsm-header-text { flex: 1; min-width: 0; }
+.rsm-title  { font-size: 16px; font-weight: 700; color: var(--text-1); margin: 0 0 4px; }
+.rsm-subtitle { font-size: 13px; color: var(--text-2); margin: 0; line-height: 1.5; }
+
+.rsm-body { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+.rsm-section { border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; }
+.rsm-section-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px; font-weight: 700; color: var(--text-1);
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.rsm-section-header i { color: var(--blue); font-size: 12px; }
+.rsm-count {
+  margin-left: auto; background: var(--blue-lt); color: var(--blue);
+  border: 1px solid var(--blue-mid); border-radius: 20px;
+  padding: 1px 8px; font-size: 11px; font-weight: 800;
+}
+
+.rsm-table { display: flex; flex-direction: column; }
+.rsm-row {
+  display: grid; grid-template-columns: 1.4fr .6fr .8fr .6fr 1.4fr;
+  gap: 10px; align-items: center;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+}
+.rsm-row:last-child { border-bottom: none; }
+.rsm-row--head {
+  background: var(--surface-2); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em; color: var(--text-3);
+  padding: 7px 14px;
+}
+.rsm-cell-date { display: flex; align-items: center; gap: 6px; color: var(--text-1); font-weight: 500; font-family: var(--font-data); }
+.rsm-cell-date i { color: var(--blue); font-size: 10px; }
+.rsm-cell-meta  { color: var(--text-2); }
+.rsm-cell-note  { color: var(--text-3); font-style: italic; font-size: 11px; display: flex; align-items: center; gap: 4px; }
+
+.rsm-role-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 20px;
+  font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
+}
+.rsm-role--primary { background: var(--blue-lt); color: var(--blue); border: 1px solid var(--blue-mid); }
+.rsm-role--backup  { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.rsm-role--neutral { background: var(--surface-3); color: var(--text-2); border: 1px solid var(--border); }
+
+.rsm-select {
+  width: 100%; padding: 6px 8px; font-size: 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-sm); color: var(--text-1);
+  cursor: pointer; outline: none;
+  transition: border-color var(--t);
+}
+.rsm-select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(77,154,255,.12); }
+
+.rsm-notice {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 12px 16px;
+  font-size: 12px; color: var(--text-2); line-height: 1.6;
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.rsm-notice i { color: var(--blue); margin-top: 1px; flex-shrink: 0; }
+
+.rsm-footer { border-top: 1px solid var(--border); padding: 14px 24px; flex-shrink: 0; }
+
+/* ================================================================
+   ON-CALL COMPACT — backup orb variant (green, distinct from primary blue)
+================================================================ */
+.rot-orb--backup-oc {
+  background: linear-gradient(135deg, #059669, #047857);
+  border-color: rgba(5,150,105,.4);
+  color: #fff;
+}
+.rot-orb--backup-oc .rot-orb-label { color: #fff; }
+
+/* ================================================================
+   WIDE DESKTOP & ULTRA-WIDE RESPONSIVE RULES
+   Target: hospital workstations (1440–2560px), large monitors
+================================================================ */
+
+/* ── 1600px+: Standard wide desktop ────────────────────────── */
+@media (min-width: 1600px) {
+  :root {
+    --sidebar-w: clamp(280px, 17vw, 340px);
+    --content-pad-x: 32px;
+    --content-pad-y: 28px;
+  }
+
+  /* Bigger sidebar text */
+  .sidebar-menu-link {
+    font-size: 14.5px;
+    padding: 10px 17px;
+    min-height: 43px;
+    gap: 13px;
+  }
+  .sidebar-menu-link i { font-size: 15px; width: 19px; }
+  .sidebar-section-title { font-size: 10.5px; padding: 16px 17px 7px; }
+
+  /* Expand content max-width */
+  .content-area > * { max-width: 1680px; }
+
+  /* Wider stats grid — 5 cols on very wide screens */
+  .stats-grid:not(.mini) { grid-template-columns: repeat(5, 1fr); }
+
+  /* Dashboard summary cards get bigger */
+  .stat-card { padding: 22px 24px; }
+  .stat-value { font-size: clamp(28px, 2.4vw, 42px); }
+
+  /* Table typography bump */
+  .table tbody td { font-size: 13.5px; }
+  .table thead th { font-size: 12px; }
+
+  /* Card grids: more columns */
+  .research-lines-grid,
+  .innovation-projects-grid { grid-template-columns: repeat(3, 1fr); }
+  .training-units-grid { grid-template-columns: repeat(3, 1fr); }
+  .departments-grid { grid-template-columns: repeat(4, 1fr); }
+
+  /* Wider modals */
+  .modal-wide { max-width: min(960px, calc(100vw - 48px)); }
+  .modal-container:not(.modal-sm):not(.modal-wide):not(.rsm-container):not(.tdm-container) {
+    max-width: min(700px, calc(100vw - 48px));
+  }
+}
+
+/* ── 1920px+: Hospital large monitor / radiologist display ──── */
+@media (min-width: 1920px) {
+  :root {
+    --sidebar-w: clamp(300px, 15.5vw, 360px);
+    --content-pad-x: 40px;
+    --content-pad-y: 32px;
+  }
+
+  .sidebar-menu-link {
+    font-size: 15px;
+    padding: 11px 18px;
+    min-height: 45px;
+  }
+  .sidebar-menu-link i { font-size: 15.5px; width: 20px; }
+  .sidebar-section-title { font-size: 11px; letter-spacing: .16em; padding: 17px 18px 8px; }
+  .sidebar-logo .logo-text-main { font-size: 15px; }
+
+  .content-area > * { max-width: 1920px; }
+
+  /* Typography scale up for reading distance */
+  body, .table tbody td { font-size: 14px; }
+  .form-label { font-size: 13px; }
+  .form-control, .form-select { font-size: 14px; height: 42px; }
+
+  /* 6-col stats on ultra-wide */
+  .stats-grid:not(.mini) { grid-template-columns: repeat(6, 1fr); }
+  .departments-grid { grid-template-columns: repeat(5, 1fr); }
+  .research-lines-grid { grid-template-columns: repeat(4, 1fr); }
+
+  /* Bigger table rows — easier to read on large monitors */
+  .table tbody tr td { padding: 14px 14px; }
+
+  /* Orb tracks wrap gracefully */
+  .rot-compact .rot-row { flex-wrap: nowrap; }
+}
+
+/* ── 2560px+: 2K/4K ultra-wide (some ICU/OR setups) ─────────── */
+@media (min-width: 2560px) {
+  :root { --sidebar-w: 380px; }
+  .sidebar-menu-link { font-size: 16px; padding: 12px 20px; min-height: 48px; }
+  .sidebar-section-title { font-size: 11.5px; }
+  .content-area > * { max-width: 2400px; }
+}
+
+/* ── Orb track overflow fix on narrow laptops (1100–1280px) ─── */
+@media (min-width: 1100px) and (max-width: 1280px) {
+  .rot-orbs { flex-wrap: wrap; gap: 6px; }
+  .rot-orb  { flex-shrink: 0; }
+}
+
+/* ── rsm reassign target styling ──────────────────────────────── */
+.rsm-reassign-target {
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+.rsm-reassign-target .form-label {
+  font-size: var(--t-12); color: var(--text-2); margin-bottom: 6px;
+}
+.rsm-note {
+  font-size: var(--t-11); color: var(--text-3); font-style: italic;
+}
+.rsm-cell-wide { font-size: var(--t-11); color: var(--text-3); }
+
+/* ═══════════════════════════════════════════════════════════════
+   SESSION 16 — Hospitals / Network / Clinical Units
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --chuac:    #0a7cff;
+  --sergas:   #00a96e;
+  --ext-hosp: #9b59b6;
+}
+
+/* ── Network dot (small inline colour indicator) ── */
+.hospital-network-dot,
+.hnd--chuac, .hnd--sergas, .hnd--external {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.hnd--chuac    { background: var(--chuac); }
+.hnd--sergas   { background: var(--sergas); }
+.hnd--external { background: var(--ext-hosp); }
+
+/* ── Staff table hospital cell ── */
+.hospital-cell {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--t-12);
+  color: var(--text-1);
+}
+.hospital-name-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+/* ── Profile modal hospital pill ── */
+.pd-pill--hospital {
+  background: color-mix(in srgb, var(--canvas) 85%, var(--blue));
+  color: var(--text-2);
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ── Hospital network strip (CHUAC / SERGAS / External radio) ── */
+.hospital-network-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.hns-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px 6px 10px;
+  border-radius: 7px;
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  font-size: var(--t-12);
+  font-weight: 500;
+  color: var(--text-2);
+  transition: border-color var(--t), background var(--t);
+  user-select: none;
+}
+.hns-option input[type="radio"] { display: none; }
+.hns-option:hover {
+  border-color: var(--blue);
+  background: color-mix(in srgb, var(--canvas) 92%, var(--blue));
+}
+.hns-option.active {
+  border-color: var(--blue);
+  background: color-mix(in srgb, var(--canvas) 86%, var(--blue));
+  color: var(--text-1);
+}
+.hns-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.hns-dot--chuac    { background: var(--chuac); }
+.hns-dot--sergas   { background: var(--sergas); }
+.hns-dot--external { background: var(--ext-hosp); }
+
+/* ── Inline "add new hospital" mini-form ── */
+.inline-add-hospital {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  animation: fadeSlideDown 160ms cubic-bezier(.4,0,.2,1);
+}
+.iah-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  opacity: .5;
+  margin-bottom: 8px;
+}
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ================================================================
+   NEUMOCARE v12 ADDITIONS
+   All gaps from the design review addressed below
+================================================================ */
+
+/* ── Instrument Serif — NOW DEPLOYED ─────────────────────────── */
+.db-greeting-title {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.8vw, 36px);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--text-1);
+  letter-spacing: -.01em;
+}
+.db-greeting-title span {
+  font-style: italic;
+  color: var(--blue);
+}
+.db-greeting-subtitle {
+  font-family: var(--font-display);
+  font-size: var(--t-13);
+  font-style: italic;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+.db-situation-sentence {
+  font-size: var(--t-12);
+  color: var(--text-2);
+  margin-top: 8px;
+  line-height: 1.5;
+  padding: 10px 14px;
+  background: var(--blue-lt);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.db-situation-sentence i { color: var(--blue); margin-top: 2px; flex-shrink: 0; }
+
+/* ── View section headers with Instrument Serif ──────────────── */
+.view-display-title {
+  font-family: var(--font-display);
+  font-size: var(--t-18);
+  font-weight: 400;
+  color: var(--text-1);
+  letter-spacing: -.01em;
+}
+
+/* dept-card accent consolidated above */
+
+/* ── Dept resident category mini-bar ─────────────────────────── */
+.dept-res-bar {
+  display: flex;
+  height: 5px;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 8px;
+  gap: 1px;
+}
+.dept-res-bar-seg { height: 100%; border-radius: 2px; min-width: 4px; transition: flex var(--t); }
+.dept-res-bar-seg--int { background: var(--cat-internal); }
+.dept-res-bar-seg--rot { background: var(--cat-rotating); }
+.dept-res-bar-seg--ext { background: var(--cat-external); }
+.dept-res-bar-seg--empty { background: var(--border); flex: 1; }
+
+/* ── Department unit rows — clickable ────────────────────────── */
+.dept-unit-row {
+  cursor: pointer;
+  transition: background var(--t), padding-left var(--t);
+}
+.dept-unit-row:hover {
+  background: var(--blue-lt);
+  padding-left: 8px;
+  border-radius: var(--r-sm);
+}
+.dept-unit-row:hover .dept-unit-name { color: var(--blue); }
+
+/* ── Dept resident counts — clickable ────────────────────────── */
+.dept-res-stat {
+  cursor: pointer;
+  transition: transform var(--t), box-shadow var(--t);
+  border-radius: var(--r-sm);
+  padding: 4px 6px;
+}
+.dept-res-stat:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); background: var(--surface); }
+
+/* ── Capacity pill — partial state (was missing) ─────────────── */
+.tuc-cap-pill--partial { background: var(--partial-lt); color: var(--partial); border: 1px solid var(--partial-mid); }
+
+/* ── Training Unit timeline — scroll fix ─────────────────────── */
+.tuc-tl-months {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-2) transparent;
+  scroll-behavior: smooth;
+  position: relative;
+}
+.tuc-tl-months::-webkit-scrollbar { height: 3px; }
+.tuc-tl-months::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+/* Fade right edge to signal scrollable content */
+.tuc-timeline-body {
+  position: relative;
+}
+.tuc-timeline-body::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 32px; height: 100%;
+  background: linear-gradient(90deg, transparent, var(--surface) 85%);
+  pointer-events: none;
+  border-radius: 0 var(--r) var(--r) 0;
+}
+
+/* ── Timeline row — compact line-height ─────────────────────── */
+.tuc-tl-row { line-height: 1.3; }
+
+/* ── External contact badge — visible on cards ───────────────── */
+.ext-contact-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: var(--t-11); color: var(--cat-external);
+  background: var(--violet-lt);
+  border: 1px solid rgba(124,58,237,.2);
+  border-radius: var(--r-sm);
+  padding: 2px 7px;
+  text-decoration: none;
+  transition: background var(--t);
+}
+.ext-contact-chip:hover { background: rgba(124,58,237,.12); }
+.ext-contact-chip i { font-size: 10px; }
+
+/* ── Cross-navigation context chips ─────────────────────────── */
+.nav-context-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: var(--t-11); font-weight: 500;
+  color: var(--blue); background: var(--blue-lt);
+  border: 1px solid var(--blue-mid);
+  border-radius: var(--r-sm);
+  padding: 3px 9px;
+  cursor: pointer;
+  transition: background var(--t), border-color var(--t);
+  text-decoration: none;
+}
+.nav-context-chip:hover { background: var(--blue-mid); border-color: var(--blue); }
+.nav-context-chip i { font-size: 10px; }
+
+/* breadcrumb consolidated above */
+
+/* ── Skeleton loading — NOW wired to views ───────────────────── */
+.skeleton-view { padding: 4px; }
+.skeleton-card-row {
+  display: flex; gap: 16px; margin-bottom: 16px;
+}
+.skeleton-card-row .skeleton-card { flex: 1; }
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+/* ── Staff compact card — external contact visible ───────────── */
+.scc-ext-row {
+  display: flex; align-items: center; gap: 5px;
+  font-size: var(--t-11); color: var(--cat-external);
+  margin-top: 3px;
+}
+.scc-ext-row a { color: inherit; }
+
+/* ── Rotation orb track — month ruler ───────────────────────── */
+.rot-month-ruler {
+  display: flex;
+  height: 20px;
+  align-items: center;
+  padding-left: 168px; /* same as .rot-who width */
+  gap: 4px;
+  margin-bottom: -4px;
+}
+.rot-month-tick {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-family: var(--font-data);
+  color: var(--text-4);
+  letter-spacing: .02em;
+  min-width: 36px;
+  text-align: center;
+}
+.rot-month-tick.is-now {
+  color: var(--blue);
+  font-weight: 600;
+}
+
+/* ── Profile drawer — Rotations tab ─────────────────────────── */
+.profile-rot-item {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+  transition: border-color var(--t), box-shadow var(--t);
+  cursor: pointer;
+}
+.profile-rot-item:hover { border-color: var(--blue-mid); box-shadow: var(--shadow-sm); }
+.profile-rot-item--active {
+  border-color: var(--ok-mid);
+  background: var(--ok-lt);
+}
+.profile-rot-unit { font-weight: 600; font-size: var(--t-12); color: var(--text-1); }
+.profile-rot-dates { font-size: var(--t-11); color: var(--text-3); font-family: var(--font-data); }
+.profile-rot-status { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+
+/* ── Rotation modal — unit timeline mini preview ─────────────── */
+.rot-unit-preview {
+  margin-top: 8px;
+  padding: 10px;
+  background: var(--surface-2);
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+}
+.rot-unit-preview-title {
+  font-size: var(--t-11);
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 8px;
+}
+
+/* ── Conflict detection badge ─────────────────────────────────── */
+.conflict-badge {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--r);
+  font-size: var(--t-11);
+  line-height: 1.4;
+}
+.conflict-badge--warn { background: var(--warn-lt); color: #92400e; border: 1px solid var(--warn-mid); }
+.conflict-badge--ok   { background: var(--ok-lt); color: #065f46; border: 1px solid var(--ok-mid); }
+.conflict-badge--err  { background: var(--danger-lt); color: #991b1b; border: 1px solid var(--danger-mid); }
+.conflict-badge i { flex-shrink: 0; margin-top: 1px; }
+
+/* filter-bar already has flex-wrap:wrap in base definition */
+.tuc-horizon-row {
+  flex-wrap: wrap;
+  display: flex; align-items: center; gap: 4px;
+}
+
+/* ── Situation sentence on dashboard ─────────────────────────── */
+.db-situation-row {
+  display: flex; flex-direction: column; gap: 6px;
+  margin-top: 10px;
+}
+.situation-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: var(--t-12);
+  color: var(--text-2);
+  padding: 7px 12px;
+  border-radius: var(--r);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: border-color var(--t);
+  cursor: pointer;
+}
+.situation-item:hover { border-color: var(--blue-mid); }
+.situation-item i { color: var(--blue); width: 16px; text-align: center; flex-shrink: 0; }
+.situation-item strong { color: var(--text-1); }
+.situation-item .sit-action {
+  margin-left: auto;
+  font-size: var(--t-11);
+  color: var(--blue);
+  font-weight: 500;
+}
+
+/* ── Mobile bottom nav — Training Units added ────────────────── */
+@media (max-width: 768px) {
+  .mobile-nav-training { display: flex !important; }
+  .mobile-nav-research  { display: none !important; } /* deprioritise research on mobile */
+}
+
+/* ── Responsive timeline — auto-degrade at 900px ─────────────── */
+@media (max-width: 900px) {
+  .tuc-timeline-body .tuc-tl-months {
+    max-width: calc(100vw - 140px);
+  }
+}
+
+/* ── Table rows — compact line-height ────────────────────────── */
+.table tbody tr td { line-height: 1.35; }
+
+/* ── Rotation detail quick-view dates ────────────────────────── */
+.rot-detail-date-range {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-data);
+  font-size: var(--t-12);
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 4px 10px;
+}
+.rot-detail-date-range .sep { color: var(--text-4); }
+
+/* ================================================================
+   TIMELINE CELL POPOVER
+================================================================ */
+.tl-popover-backdrop {
+  position: fixed; inset: 0; z-index: 299;
+}
+.tl-popover {
+  position: fixed; z-index: 300;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.13), 0 2px 6px rgba(0,0,0,.08);
+  min-width: 220px; max-width: 300px;
+  overflow: hidden;
+  animation: popover-in .12s ease;
+}
+@keyframes popover-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tl-popover-header {
+  display: flex; align-items: center; gap: 5px;
+  padding: 8px 10px 7px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.tl-popover-unit  { font-weight: 700; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
+.tl-popover-sep   { color: var(--text-4); }
+.tl-popover-slot  { font-weight: 600; color: var(--text-2); flex-shrink: 0; }
+.tl-popover-month { font-weight: 700; color: var(--blue); flex-shrink: 0; text-transform: uppercase; letter-spacing: .04em; }
+.tl-popover-close {
+  margin-left: auto; flex-shrink: 0;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-4); font-size: 9px; padding: 2px 4px;
+  border-radius: 3px; transition: var(--t);
+}
+.tl-popover-close:hover { background: var(--border); color: var(--text-1); }
+
+.tl-popover-body { padding: 6px 10px 8px; display: flex; flex-direction: column; gap: 5px; }
+
+.tl-popover-entry {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; line-height: 1.4;
+}
+.tl-popover-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.tl-popover-dot--occupied { background: var(--blue); }
+.tl-popover-dot--partial  { background: var(--warn); }
+.tl-popover-dot--free     { background: var(--ok); }
+.tl-popover-name {
+  font-weight: 600; color: var(--text-1); flex: 1; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tl-popover-name--free { color: var(--ok); font-weight: 500; font-style: italic; }
+.tl-popover-dates {
+  font-size: 10.5px; color: var(--text-3); flex-shrink: 0;
+  font-family: var(--font-data);
+}
+.tl-popover-partial-badge {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .04em; padding: 1px 5px; border-radius: 3px;
+  background: rgba(245,158,11,.12); color: var(--warn);
+  border: 1px solid rgba(245,158,11,.25); flex-shrink: 0;
+}
+
+/* ================================================================
+   ABSENCE RESOLUTION MODAL
+================================================================ */
+.arm-actions {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.arm-action {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px; border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  cursor: pointer;
+  transition: border-color var(--t), background var(--t);
+}
+.arm-action:hover { border-color: var(--blue-mid); background: var(--blue-lt); }
+.arm-action--active {
+  border-color: var(--blue);
+  background: var(--blue-lt);
+  box-shadow: 0 0 0 2px rgba(45,122,255,.15);
+}
+.arm-action-icon {
+  width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.arm-action-icon--ok      { background: var(--ok-lt); color: var(--ok); }
+.arm-action-icon--warn    { background: var(--warn-lt); color: var(--warn); }
+.arm-action-icon--neutral { background: var(--surface); color: var(--text-3); border: 1px solid var(--border); }
+.arm-action-title { font-size: 13px; font-weight: 600; color: var(--text-1); }
+.arm-action-desc  { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+
+.arm-archive-notice {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 12px 14px; border-radius: 8px;
+  background: var(--neutral-lt, rgba(100,116,139,.08));
+  border: 1px solid var(--border);
+  font-size: 12px; color: var(--text-2); line-height: 1.5;
+}
+.arm-archive-notice i { color: var(--text-3); flex-shrink: 0; margin-top: 2px; }
+
+/* Resolve button in absence table */
+.btn-pill-resolve {
+  background: rgba(245,158,11,.1); color: var(--warn);
+  border: 1px solid rgba(245,158,11,.25);
+  font-weight: 600;
+}
+.btn-pill-resolve:hover { background: rgba(245,158,11,.2); border-color: var(--warn); }
+
+/* Pulse on completed rows to draw attention */
+.row-completed .btn-pill-resolve {
+  animation: resolve-pulse 2.5s ease-in-out infinite;
+}
+@keyframes resolve-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,.4); }
+  50%       { box-shadow: 0 0 0 4px rgba(245,158,11,.0); }
+}
+
+/* Permanent delete button — more severe visual than soft-cancel */
+.btn-pill-purge {
+  background: transparent;
+  color: var(--text-4);
+  border: 1px solid transparent;
+  opacity: 0.5;
+  transition: all var(--t);
+}
+.btn-pill-purge:hover {
+  background: var(--danger-lt);
+  color: var(--danger);
+  border-color: var(--danger-mid);
+  opacity: 1;
+}
+/* Only reveal on row hover — keeps it out of the way */
+tr:not(:hover) .btn-pill-purge {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ================================================================
+   RESEARCH HUB
+================================================================ */
+
+/* ── Hub shell ──────────────────────────────────────────────── */
+.research-hub {
+  position: relative;
+  display: flex; flex-direction: column; gap: 0;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.rhub-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 0 0; gap: 16px; flex-wrap: wrap;
+}
+.rhub-header-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+.rhub-eyebrow {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .14em; color: var(--blue); opacity: .85;
+  margin-bottom: 3px;
+}
+.rhub-title {
+  font-family: var(--font-ui);
+  font-size: 20px; font-style: normal; font-weight: 700;
+  color: var(--text-1); letter-spacing: -.03em;
+  line-height: 1; margin: 0;
+}
+.rhub-context-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px 4px 8px; border-radius: 20px;
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  color: var(--blue); font-size: 11px; font-weight: 600;
+  white-space: nowrap;
+}
+.rhub-ctx-clear {
+  background: none; border: none; cursor: pointer; color: var(--blue);
+  font-size: 9px; padding: 0 0 0 2px; opacity: .7;
+}
+.rhub-ctx-clear:hover { opacity: 1; }
+.rhub-header-right { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* ── Tab bar ────────────────────────────────────────────────── */
+.rhub-tabs {
+  display: flex; align-items: center; gap: 2px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 0; padding-bottom: 0;
+}
+.rhub-tab {
+  display: flex; align-items: center; gap: 7px;
+  padding: 10px 18px; border: none; background: none;
+  font-size: 13px; font-weight: 500; color: var(--text-3);
+  cursor: pointer; border-bottom: 2px solid transparent;
+  margin-bottom: -2px; transition: color var(--t), border-color var(--t);
+  white-space: nowrap;
+}
+.rhub-tab:hover { color: var(--text-1); }
+.rhub-tab--active { color: #009999; border-bottom-color: #009999; font-weight: 600; }
+.rhub-tab-count {
+  background: var(--surface-2); color: var(--text-3);
+  font-size: 10px; font-weight: 700; padding: 1px 6px;
+  border-radius: 10px; border: 1px solid var(--border);
+}
+.rhub-tab--active .rhub-tab-count { background: rgba(0,179,179,.1); color: #009999; border-color: rgba(0,179,179,.25); }
+.rhub-tab--active { color: #009999; border-bottom-color: #009999; }
+
+/* ── Panel (tab content area) ───────────────────────────────── */
+.rhub-panel { padding: 16px 0; }
+
+/* ── Filter bar ─────────────────────────────────────────────── */
+.rhub-filter-bar {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.rhub-filter-bar .form-control,
+.rhub-filter-bar .form-select { max-width: 200px; }
+.rhub-filter-bar .form-control { flex: 1; min-width: 160px; max-width: none; }
+
+/* ── Empty state ────────────────────────────────────────────── */
+.rhub-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 48px 24px; color: var(--text-3); text-align: center;
+  grid-column: 1 / -1;
+}
+.rhub-empty i { font-size: 28px; opacity: .35; }
+.rhub-empty p { font-size: 13px; margin: 0; }
+
+/* ── Lines grid ─────────────────────────────────────────────── */
+.rhub-lines-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+.rhl-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 16px 13px;
+  cursor: pointer; position: relative; overflow: hidden;
+  transition: box-shadow var(--t), border-color var(--t), transform var(--t);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.rhl-card:hover {
+  box-shadow: 0 4px 16px rgba(0,153,153,.12);
+  border-color: rgba(0,153,153,.3); transform: translateY(-1px);
+}
+.rhl-card--inactive { opacity: .6; }
+.rhl-accent {
+  position: absolute; top: 0; left: 0; right: 0; height: 4px;
+}
+/* Unique accent per line number */
+.rhl-card:nth-child(6n+1) .rhl-accent { background: linear-gradient(90deg, var(--dept-1), #6366f1); }
+.rhl-card:nth-child(6n+2) .rhl-accent { background: linear-gradient(90deg, var(--dept-2), #0891b2); }
+.rhl-card:nth-child(6n+3) .rhl-accent { background: linear-gradient(90deg, var(--dept-3), #0ea5e9); }
+.rhl-card:nth-child(6n+4) .rhl-accent { background: linear-gradient(90deg, var(--dept-4), #f97316); }
+.rhl-card:nth-child(6n+5) .rhl-accent { background: linear-gradient(90deg, var(--dept-5), #8b5cf6); }
+.rhl-card:nth-child(6n+0) .rhl-accent { background: linear-gradient(90deg, var(--dept-6), #ec4899); }
+.rhl-top { display: flex; align-items: center; gap: 6px; }
+.rhl-number {
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  color: var(--blue); background: var(--blue-lt);
+  border: 1px solid var(--blue-mid); padding: 1px 7px; border-radius: 20px;
+}
+.rhl-inactive-pill {
+  font-size: 9px; font-weight: 600; color: var(--text-4);
+  background: var(--surface-2); border: 1px solid var(--border);
+  padding: 1px 6px; border-radius: 20px;
+}
+.rhl-actions { margin-left: auto; display: flex; gap: 2px; opacity: 0; transition: opacity var(--t); }
+.rhl-card:hover .rhl-actions { opacity: 1; }
+.rhl-btn {
+  width: 24px; height: 24px; border-radius: 4px; border: none;
+  background: var(--surface-2); color: var(--text-3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; cursor: pointer; transition: var(--t);
+}
+.rhl-btn:hover { background: var(--blue-lt); color: var(--blue); }
+.rhl-btn--danger:hover { background: var(--danger-lt); color: var(--danger); }
+.rhl-name {
+  font-family: var(--font-ui, 'DM Sans', sans-serif);
+  font-size: 13.5px; font-style: normal; font-weight: 500;
+  color: var(--text-1); line-height: 1.35; margin: 0;
+  letter-spacing: 0; white-space: normal;
+}
+.rhl-desc {
+  font-size: 12.5px; color: var(--text-2); line-height: 1.55;
+  margin: 0; overflow: hidden; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.rhl-stats {
+  display: flex; align-items: center; gap: 0;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 7px; overflow: hidden; margin-top: 2px;
+}
+.rhl-stat {
+  flex: 1; padding: 8px 12px; cursor: pointer;
+  transition: background var(--t);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rhl-stat:hover { background: var(--blue-lt); }
+.rhl-stat-num {
+  font-family: var(--font-display, Georgia, serif); font-size: 18px; font-weight: 400; font-style: italic;
+  color: var(--text-1); line-height: 1;
+}
+.rhl-stat-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+.rhl-stat-live { font-size: 9px; font-weight: 700; color: var(--ok); }
+.rhl-stat-divider { width: 1px; background: var(--border); align-self: stretch; }
+.rhl-coordinator { margin-top: 2px; }
+.rhl-coord-row { display: flex; align-items: center; gap: 7px; }
+.rhl-coord-avatar {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--blue), #6366f1);
+  color: #fff; font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.rhl-coord-name { font-size: 12px; font-weight: 600; color: var(--text-2); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rhl-coord-btn { background: none; border: none; cursor: pointer; color: var(--text-4); font-size: 10px; padding: 2px; opacity: 0; transition: opacity var(--t); }
+.rhl-card:hover .rhl-coord-btn { opacity: 1; }
+.rhl-coord-btn:hover { color: var(--blue); }
+.rhl-coord-empty { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-4); font-style: italic; }
+.rhl-keywords { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.rhl-kw { font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 3px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-3); text-transform: uppercase; letter-spacing: .04em; }
+
+/* ── Trials list ────────────────────────────────────────────── */
+.rhub-trials-list { display: flex; flex-direction: column; gap: 4px; }
+.rht-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 6px;
+  background: var(--surface); border: 1px solid var(--border);
+  cursor: pointer; transition: border-color var(--t), background var(--t);
+}
+.rht-row:hover { border-color: var(--blue-mid); background: var(--blue-lt); }
+.rht-phase-badge {
+  width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 800; color: #fff; letter-spacing: -.02em;
+}
+.rht-main { flex: 1; min-width: 0; }
+.rht-title { font-size: 13px; font-weight: 500; color: var(--text-1); white-space: normal; word-break: break-word; }
+.rht-meta { font-size: 11px; color: var(--text-3); display: flex; gap: 4px; flex-wrap: nowrap; overflow: hidden; margin-top: 1px; }
+.rht-protocol { font-family: var(--font-data); font-size: 10px; color: var(--text-4); }
+.rht-sep { color: var(--border-2); }
+.rht-enrollment { flex-shrink: 0; min-width: 60px; }
+.rht-enroll-nums { font-family: var(--font-data); font-size: 11px; font-weight: 700; color: var(--text-2); text-align: right; }
+.rht-enroll-bar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 2px; }
+.rht-enroll-bar div { height: 100%; border-radius: 2px; transition: width .3s; }
+.rht-dates { font-size: 10px; color: var(--text-4); flex-shrink: 0; white-space: nowrap; font-family: var(--font-data); }
+.rht-status { flex-shrink: 0; }
+.rht-actions { display: flex; gap: 3px; opacity: 0; transition: opacity var(--t); flex-shrink: 0; }
+.rht-row:hover .rht-actions { opacity: 1; }
+
+
+.rha-subtabs {
+  display: flex; gap: 4px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border); padding-bottom: 0;
+}
+.rha-subtab {
+  padding: 8px 14px; border: none; background: none;
+  font-size: 12px; font-weight: 500; color: var(--text-3);
+  cursor: pointer; border-bottom: 2px solid transparent;
+  margin-bottom: -1px; transition: color var(--t), border-color var(--t);
+  display: flex; align-items: center; gap: 6px;
+}
+.rha-subtab:hover { color: var(--text-1); }
+.rha-subtab.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+
+
+.rha-kpi-strip {
+  display: flex; gap: 10px; margin-bottom: 16px;
+}
+.rha-kpi {
+  flex: 1; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px;
+}
+.rha-kpi-val { font-family: var(--font-display, Georgia, serif); font-size: 34px; font-weight: 400; font-style: italic; color: var(--text-1); line-height: 1; }
+.rha-kpi-label { font-size: 11px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: .06em; margin-top: 4px; }
+.rha-kpi-sub { font-size: 11px; color: var(--ok); font-weight: 600; margin-top: 2px; }
+
+
+.rha-charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.rha-chart-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px;
+}
+.rha-chart-card--wide { grid-column: 1 / -1; }
+.rha-chart-title {
+  font-size: 12px; font-weight: 700; color: var(--text-2);
+  text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 6px;
+}
+.rha-chart-badge {
+  margin-left: auto; font-size: 10px; font-weight: 600;
+  background: var(--blue-lt); color: var(--blue);
+  border: 1px solid var(--blue-mid); padding: 1px 7px; border-radius: 10px;
+  letter-spacing: 0; text-transform: none;
+}
+
+
+.rha-lines-overview { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 10px; }
+.rha-lines-table { display: flex; flex-direction: column; gap: 0; }
+.rha-lt-header {
+  display: grid; grid-template-columns: 50px 1fr 140px 60px 60px 80px;
+  gap: 12px; padding: 6px 8px;
+  font-size: 10px; font-weight: 700; color: var(--text-4);
+  text-transform: uppercase; letter-spacing: .06em;
+  border-bottom: 1px solid var(--border); margin-bottom: 4px;
+}
+.rha-lt-row {
+  display: grid; grid-template-columns: 50px 1fr 140px 60px 60px 80px;
+  gap: 12px; padding: 8px 8px; border-radius: 6px;
+  font-size: 12px; align-items: center;
+  transition: background var(--t);
+}
+.rha-lt-row:hover { background: var(--blue-lt); }
+.rha-lt-name { font-weight: 500; color: var(--text-1); white-space: normal; word-break: break-word; }
+.rha-lt-coord { color: var(--text-3); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Performance scorecard grid ─────────────────────────────── */
+.rha-perf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.rha-perf-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px;
+  cursor: pointer; transition: border-color var(--t), box-shadow var(--t);
+}
+.rha-perf-card:hover { border-color: var(--blue-mid); box-shadow: 0 2px 12px rgba(37,99,235,.08); }
+.rha-perf-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+.rha-perf-number { font-family: var(--font-display, Georgia, serif); font-size: 13px; font-weight: 400; font-style: italic; color: var(--blue); background: var(--blue-lt); border: 1px solid var(--blue-mid); padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
+.rha-perf-name { font-size: 13px; font-weight: 500; color: var(--text-1); flex: 1; min-width: 0; white-space: normal; word-break: break-word; /* overflow: hidden; text-overflow: ellipsis; }
+.rha-perf-coord { font-size: 11px; color: var(--text-3); flex-shrink: 0; }
+.rha-perf-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 10px; }
+.rha-ps { background: var(--surface-2); border-radius: 5px; padding: 6px 4px; text-align: center; }
+.rha-ps--ok { background: var(--ok-lt); }
+.rha-ps--blue { background: var(--blue-lt); }
+.rha-ps--purple { background: rgba(139,92,246,.08); }
+.rha-ps-val { font-family: var(--font-display, Georgia, serif); font-size: 18px; font-weight: 400; font-style: italic; color: var(--text-1); line-height: 1; }
+.rha-ps--ok .rha-ps-val { color: var(--ok); }
+.rha-ps--blue .rha-ps-val { color: var(--blue); }
+.rha-ps--purple .rha-ps-val { color: #7c3aed; }
+.rha-ps-label { font-size: 8px; font-weight: 600; color: var(--text-4); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+.rha-perf-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.rha-perf-bar-fill { height: 100%; background: linear-gradient(90deg, var(--blue), #6366f1); border-radius: 2px; transition: width .4s ease; }
+
+/* ── Line Detail Panel ───────────────────────────────────────── */
+.rldp-backdrop {
+  position: fixed; inset: 0; background: rgba(7,17,31,.25);
+  z-index: 180; backdrop-filter: blur(2px);
+}
+.rldp {
+  position: fixed; top: 0; right: 0; height: 100vh;
+  width: min(400px, 92vw);
+  background: var(--surface); border-left: 1px solid var(--border);
+  box-shadow: -8px 0 32px rgba(7,17,31,.12);
+  z-index: 181; display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform .28s cubic-bezier(.22,.61,.36,1);
+  overflow: hidden;
+}
+.rldp--open { transform: translateX(0); }
+.rldp-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 20px 20px 16px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.rldp-number { font-family: var(--font-display, Georgia, serif); font-size: 13px; font-weight: 400; font-style: italic; color: var(--blue); background: var(--blue-lt); border: 1px solid var(--blue-mid); padding: 2px 8px; border-radius: 20px; display: inline-block; margin-bottom: 6px; }
+.rldp-title { font-family: var(--font-ui, 'DM Sans', sans-serif); font-size: 16px; font-style: normal; font-weight: 500; color: var(--text-1); margin: 0; line-height: 1.3; }
+.rldp-close { background: none; border: none; cursor: pointer; color: var(--text-4); font-size: 14px; padding: 4px; flex-shrink: 0; transition: color var(--t); }
+.rldp-close:hover { color: var(--text-1); }
+.rldp-body { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; }
+.rldp-description { font-size: 13px; color: var(--text-2); line-height: 1.6; margin: 0; }
+.rldp-section-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-4); margin-bottom: 6px; }
+.rldp-coord { display: flex; align-items: center; gap: 8px; }
+.rldp-coord-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), #6366f1); color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.rldp-empty { font-size: 12px; color: var(--text-4); font-style: italic; }
+.rldp-stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rldp-stat-block {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 14px; cursor: pointer;
+  transition: border-color var(--t), background var(--t);
+}
+.rldp-stat-block:hover { border-color: var(--blue-mid); background: var(--blue-lt); }
+.rldp-stat-num { font-family: var(--font-display, Georgia, serif); font-size: 30px; font-weight: 400; font-style: italic; color: var(--text-1); line-height: 1; }
+.rldp-stat-label { font-size: 10px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; margin-top: 3px; }
+.rldp-stat-active { font-size: 10px; font-weight: 700; color: var(--ok); margin-top: 2px; }
+.rldp-stat-link { font-size: 10px; color: var(--blue); margin-top: 4px; opacity: 0; transition: opacity var(--t); }
+.rldp-stat-block:hover .rldp-stat-link { opacity: 1; }
+.rldp-text { font-size: 12px; color: var(--text-2); line-height: 1.5; margin: 0; }
+.rldp-keywords { display: flex; flex-wrap: wrap; gap: 4px; }
+.rldp-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════════════════════
+   DAILY BRIEFING STRIP  (dashboard)
+═══════════════════════════════════════════════════════════════ */
+.dbr-strip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px; margin-bottom: 16px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; flex-wrap: wrap;
+}
+.dbr-strip--clear {
+  color: var(--ok); font-size: 12px; font-weight: 600; gap: 7px;
+  background: var(--ok-lt); border-color: var(--ok-mid);
+}
+.dbr-label {
+  font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--text-4);
+  display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+}
+.dbr-label i { color: var(--warn); }
+.dbr-items {
+  display: flex; gap: 6px; flex: 1; flex-wrap: wrap;
+}
+.dbr-item {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 11px; border-radius: 20px; font-size: 12px;
+  font-weight: 500; cursor: pointer; transition: all var(--t);
+  border: 1px solid transparent; flex-shrink: 0;
+}
+.dbr-item--danger { background: var(--danger-lt); color: var(--danger); border-color: var(--danger-mid); }
+.dbr-item--warn   { background: var(--warn-lt);   color: var(--warn);   border-color: var(--warn-mid);   }
+.dbr-item--info   { background: var(--blue-lt);   color: var(--blue);   border-color: var(--blue-mid);   }
+.dbr-item--ok     { background: var(--ok-lt);     color: var(--ok);     border-color: var(--ok-mid);     }
+.dbr-item:hover   { filter: brightness(.95); transform: translateY(-1px); box-shadow: var(--shadow-xs); }
+.dbr-icon  { font-size: 11px; flex-shrink: 0; }
+.dbr-text  { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+.dbr-arrow { font-size: 9px; opacity: .6; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════════════════════
+   RESIDENT GAP WARNING STRIP  (rotations view)
+═══════════════════════════════════════════════════════════════ */
+.rgw-strip {
+  background: var(--warn-lt); border: 1px solid var(--warn-mid);
+  border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;
+}
+.rgw-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+}
+.rgw-icon  { color: var(--warn); font-size: 13px; flex-shrink: 0; }
+.rgw-title { font-size: 12px; font-weight: 700; color: var(--warn); flex: 1; }
+.rgw-sub   { font-size: 10px; color: var(--text-3); flex-shrink: 0; }
+.rgw-list  {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.rgw-item {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--surface); border: 1px solid var(--warn-mid);
+  border-radius: 8px; padding: 6px 10px; cursor: pointer;
+  transition: all var(--t);
+}
+.rgw-item:hover { border-color: var(--warn); box-shadow: 0 2px 8px rgba(217,119,6,.15); transform: translateY(-1px); }
+.rgw-avatar {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--warn), #d97706);
+  color: #fff; font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.rgw-info  { display: flex; flex-direction: column; gap: 1px; }
+.rgw-name  { font-size: 11px; font-weight: 700; color: var(--text-1); }
+.rgw-year  { font-family: var(--font-data); font-size: 9px; color: var(--text-4); font-weight: 600; text-transform: uppercase; }
+.rgw-gaps  { display: flex; gap: 3px; flex-wrap: wrap; }
+.rgw-gap-pill {
+  font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 10px;
+  background: rgba(217,119,6,.12); color: var(--warn);
+  border: 1px solid rgba(217,119,6,.25);
+}
+.rgw-add-icon { font-size: 10px; color: var(--blue); opacity: .6; margin-left: 2px; }
+.rgw-item:hover .rgw-add-icon { opacity: 1; }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   ON-CALL MODAL — overnight shift indicator
+═══════════════════════════════════════════════════════════════ */
+.oc-overnight-hint {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 6px; padding: 6px 10px;
+  background: rgba(99,102,241,.08);
+  border: 1px solid rgba(99,102,241,.2);
+  border-radius: 7px;
+  font-size: 11px; font-weight: 500; color: #4f46e5;
+}
+.oc-overnight-hint i { font-size: 10px; }
+.oc-overnight-hint strong { font-weight: 700; }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   DASHBOARD — compact KPI bar
+═══════════════════════════════════════════════════════════════ */
+.db-kpi-bar {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px; margin-bottom: 20px;
+}
+.db-kpi {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 18px 20px;
+  display: flex; align-items: flex-start; gap: 14px;
+  cursor: pointer; transition: all var(--t);
+  box-shadow: var(--shadow-xs);
+}
+.db-kpi:hover { border-color: var(--blue-mid); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.db-kpi-icon {
+  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.db-kpi-icon--teal   { background: rgba(0,153,153,.08);  }
+.db-kpi-icon--navy   { background: rgba(15,45,84,.07);   }
+.db-kpi-icon--amber  { background: rgba(239,159,39,.1);  }
+.db-kpi-icon--indigo { background: rgba(83,74,183,.08);  }
+/* legacy aliases */
+.db-kpi-icon--blue   { background: rgba(0,153,153,.08);  }
+.db-kpi-icon--green  { background: rgba(0,153,153,.08);  }
+.db-kpi-icon--purple { background: rgba(83,74,183,.08);  }
+
+/* KPI card top-stripe accents */
+.db-kpi { position: relative; overflow: hidden; }
+.db-kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:12px 12px 0 0; }
+.db-kpi--teal::before  { background: #009999; }
+.db-kpi--navy::before  { background: #0f2d54; }
+.db-kpi--amber::before { background: #ef9f27; }
+.db-kpi--indigo::before{ background: #534ab7; }
+.db-kpi-body { flex: 1; min-width: 0; }
+.db-kpi-val   { font-family: var(--font-data); font-size: 28px; font-weight: 800; color: var(--text-1); line-height: 1; margin-bottom: 3px; }
+.db-kpi-label { font-size: 13px; font-weight: 600; color: var(--text-2); margin-top: 0; letter-spacing: -.01em; }
+.db-kpi-sub   { font-size: 12px; color: var(--text-3); margin-top: 5px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.db-kpi-dot   { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.db-kpi-dot--ok     { background: var(--ok); }
+.db-kpi-dot--warn   { background: var(--warn); }
+.db-kpi-dot--blue   { background: var(--blue); }
+.db-kpi-dot--purple { background: #7c3aed; }
+
+/* ── Content grid ── */
+.db-content-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+}
+.db-content-card { padding: 13px 16px; }
+.db-content-card--full { grid-column: 1 / -1; }
+
+.db-cc-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.db-cc-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-2);
+  display: flex; align-items: center; gap: 6px;
+}
+.db-cc-link {
+  font-size: 10px; color: var(--blue); background: none; border: none;
+  cursor: pointer; display: flex; align-items: center; gap: 4px;
+  transition: opacity var(--t); padding: 0;
+}
+.db-cc-link:hover { opacity: .7; }
+.db-cc-loading { padding: 20px; text-align: center; color: var(--text-4); font-size: 13px; }
+.db-cc-empty {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text-3); padding: 12px 0;
+}
+
+/* On-call rows */
+.db-oc-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 0; border-bottom: 1px solid var(--border);
+}
+.db-oc-row:last-child { border-bottom: none; padding-bottom: 0; }
+.db-oc-date {
+  font-size: 10px; font-weight: 700; color: var(--text-3);
+  width: 70px; flex-shrink: 0; text-transform: capitalize;
+}
+.db-oc-date--today { color: var(--blue); }
+.db-oc-slot {
+  flex: 1; display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px; border-radius: 7px; border: 1px solid transparent; min-width: 0;
+}
+.db-oc-slot--ok      { background: rgba(5,150,105,.06); border-color: var(--ok-mid); }
+.db-oc-slot--gap     { background: var(--danger-lt); border-color: var(--danger-mid); cursor: pointer; }
+.db-oc-slot--soft    { background: var(--blue-lt); border-color: var(--blue-mid); }
+.db-oc-slot--backup  { flex: 0.8; }
+.db-oc-avatar {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--blue), #6366f1);
+  color: #fff; font-size: 8px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.db-oc-avatar--backup { background: linear-gradient(135deg, var(--ok), #059669); }
+.db-oc-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.db-oc-name { font-size: 11px; font-weight: 500; color: var(--text-1); white-space: normal; word-break: break-word; }
+.db-oc-time { font-family: var(--font-data); font-size: 9px; color: var(--text-3); }
+.db-oc-badge { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 10px; flex-shrink: 0; }
+.db-oc-badge--primary { background: var(--blue-lt); color: var(--blue); }
+.db-oc-badge--backup  { background: var(--ok-lt);   color: var(--ok); }
+.db-oc-gap  { font-size: 10px; font-weight: 600; color: var(--danger); flex: 1; }
+.db-oc-gap--soft { color: var(--text-4); font-weight: 400; font-style: italic; }
+.db-oc-assign { font-size: 10px; font-weight: 700; color: var(--blue); cursor: pointer; white-space: nowrap; }
+
+/* Rotation rows */
+.db-rot-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0; border-bottom: 1px solid var(--border);
+}
+.db-rot-row:last-child { border-bottom: none; padding-bottom: 0; }
+.db-rot-avatar {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--warn), #d97706);
+  color: #fff; font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.db-rot-avatar--start { background: linear-gradient(135deg, var(--ok), #059669); }
+.db-rot-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.db-rot-name { font-size: 12px; font-weight: 600; color: var(--text-1); }
+.db-rot-unit { font-size: 10px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-rot-chip { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 10px; flex-shrink: 0; }
+.db-rot-chip--ending  { background: var(--warn-lt);   color: var(--warn); }
+.db-rot-chip--starting{ background: var(--ok-lt);     color: var(--ok); }
+
+/* Gap grid */
+.db-gap-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.db-gap-item {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--surface-2); border: 1px solid var(--warn-mid);
+  border-radius: 8px; padding: 5px 10px; cursor: pointer;
+  transition: all var(--t);
+}
+.db-gap-item:hover { border-color: var(--warn); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(217,119,6,.12); }
+.db-gap-avatar {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--warn), #d97706);
+  color: #fff; font-size: 8px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.db-gap-info  { display: flex; flex-direction: column; }
+.db-gap-name  { font-size: 11px; font-weight: 700; color: var(--text-1); }
+.db-gap-year  { font-family: var(--font-data); font-size: 9px; color: var(--text-4); font-weight: 600; }
+.db-gap-pills { display: flex; gap: 3px; }
+.db-gap-pill  { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 8px; background: rgba(217,119,6,.1); color: var(--warn); border: 1px solid rgba(217,119,6,.2); }
+.db-gap-add   { font-size: 10px; color: var(--blue); opacity: .6; }
+.db-gap-item:hover .db-gap-add { opacity: 1; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .db-kpi-bar { grid-template-columns: repeat(2, 1fr); }
+  .db-content-grid { grid-template-columns: 1fr; }
+  .db-content-card--full { grid-column: 1; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MONTHLY HORIZON VIEW  (resident rotations)
+═══════════════════════════════════════════════════════════════ */
+.mv-view {
+  display: flex; flex-direction: column; gap: 0;
+}
+
+/* Navigator */
+.mv-nav {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+  background: var(--surface-2); flex-shrink: 0;
+}
+.mv-nav-btn {
+  width: 30px; height: 30px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text-3); cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; transition: all var(--t);
+}
+.mv-nav-btn:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+.mv-nav-center {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.mv-nav-label {
+  font-size: 13px; font-weight: 700; color: var(--text-1); letter-spacing: -.01em;
+}
+.mv-nav-today {
+  padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  border: 1px solid var(--blue-mid); background: var(--blue-lt); color: var(--blue);
+  cursor: pointer; transition: all var(--t);
+}
+.mv-nav-today:hover { background: var(--blue); color: #fff; }
+.mv-nav-horizon { display: flex; gap: 3px; flex-shrink: 0; }
+.mv-hz-btn {
+  padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text-3); cursor: pointer; transition: all var(--t);
+}
+.mv-hz-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+.mv-hz-btn:hover:not(.active) { border-color: var(--blue-mid); color: var(--blue); }
+
+/* Grid */
+.mv-grid {
+  display: grid;
+  /* grid-template-columns set inline via Vue :style binding */
+  border-left: 1px solid var(--border);
+  overflow-x: auto;
+  width: 100%;
+}
+
+/* Year label row */
+.mv-name-spacer {
+  grid-column: 1; height: 20px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.mv-year-cell {
+  height: 20px;
+  border-right: 1px solid transparent;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  display: flex; align-items: center; padding: 0 6px;
+}
+.mv-year-label {
+  font-family: var(--font-data); font-size: 9px; font-weight: 800;
+  color: var(--blue); text-transform: uppercase; letter-spacing: .1em;
+}
+
+/* Month header row */
+.mv-name-header {
+  padding: 8px 12px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em;
+  background: var(--ink); color: rgba(255,255,255,0.75);
+  border-right: 1px solid rgba(255,255,255,.1);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+}
+.mv-month-header {
+  padding: 8px 0; text-align: center;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em;
+  background: var(--ink); color: rgba(255,255,255,0.85);
+  border-right: 1px solid rgba(255,255,255,.08);
+  border-bottom: 1px solid var(--border);
+}
+.mv-month-header--current {
+  color: #fff; background: var(--ink-2);
+  box-shadow: inset 0 -2px 0 var(--blue);
+}
+
+/* Resident name cell */
+.mv-name-cell {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 12px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky; left: 0; z-index: 2; min-width: 0;
+}
+.mv-name-cell:hover { background: var(--blue-lt); }
+.mv-resident-icon {
+  width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--blue); font-size: 11px;
+}
+.mv-resident-text { min-width: 0; }
+.mv-resident-name {
+  font-size: 12px; font-weight: 600; color: var(--text-1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mv-resident-year {
+  font-family: var(--font-data); font-size: 10px; font-weight: 700;
+  color: var(--text-4); text-transform: uppercase; letter-spacing: .04em; margin-top: 1px;
+}
+
+/* Month area — bg cols + overlaid bars */
+.mv-months-area {
+  grid-column: 2 / -1;
+  position: relative;
+  display: grid;
+  /* grid-template-columns set inline via Vue :style binding */
+  border-bottom: 1px solid var(--border);
+  min-height: 48px;
+}
+.mv-month-bg {
+  border-right: 1px solid var(--border);
+  background: var(--surface); height: 100%;
+}
+.mv-month-bg:last-child { border-right: none; }
+.mv-month-bg--current { background: rgba(37,99,235,.025); }
+
+/* Rotation bar */
+.mv-rot-bar {
+  position: absolute; top: 7px; height: 26px;
+  border-radius: 5px;
+  display: flex; align-items: center;
+  padding: 0 7px; gap: 4px;
+  cursor: pointer; overflow: hidden;
+  transition: filter var(--t), transform var(--t), box-shadow var(--t);
+  z-index: 1; min-width: 4px;
+}
+.mv-rot-bar:hover {
+  filter: brightness(1.08); transform: translateY(-1px);
+  box-shadow: var(--shadow-sm); z-index: 2;
+}
+.mv-rot-bar--clipped-left  { border-radius: 0 5px 5px 0; padding-left: 4px; }
+.mv-rot-bar--clipped-right { border-radius: 5px 0 0 5px; padding-right: 4px; }
+.mv-rot-bar--clipped-left.mv-rot-bar--clipped-right { border-radius: 0; }
+
+.mv-rot-bar--active {
+  background: rgba(10,143,110,.2); border: 1px solid rgba(10,143,110,.45);
+  border-left: 3px solid #0a8f6e; color: #065f46;
+}
+.mv-rot-bar--scheduled {
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  border-left: 3px solid var(--blue); color: var(--blue);
+}
+.mv-rot-bar--completed {
+  background: var(--surface-3); border: 1px solid var(--border-2);
+  border-left: 3px solid var(--border-3); color: var(--text-3);
+}
+.mv-rot-bar--clipped-left { border-left-width: 1px; }
+
+.mv-rot-cap {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: currentColor; opacity: .6; flex-shrink: 0;
+}
+.mv-rot-cap--start { margin-right: 1px; }
+.mv-rot-cap--end   { margin-left: auto; }
+
+.mv-rot-label {
+  font-size: 10px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1; min-width: 0; letter-spacing: -.01em;
+}
+
+/* Empty state */
+.mv-empty-state {
+  grid-column: 1 / -1; padding: 48px; text-align: center;
+  color: var(--text-4); font-size: 13px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .mv-grid { /* responsive: inline style handles columns */ min-width: 0; }
+  .mv-resident-name { font-size: 11px; }
+  .mv-nav-horizon { display: none; }
+  .mv-rot-label { font-size: 9px; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   RESEARCH HUB — Mission Control + Portfolio (Lines tab)
+═══════════════════════════════════════════════════════════════ */
+.rhub-panel--mc { padding: 0; display: flex; flex-direction: column; gap: 0; }
+
+/* Portfolio KPI strip */
+.rp-kpi-strip {
+  display: flex; align-items: center; gap: 0;
+  padding: 14px 20px; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap; gap: 0;
+}
+.rp-kpi {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 0 20px 0 0; min-width: 100px;
+}
+.rp-kpi:first-child { padding-left: 0; }
+.rp-kpi-val {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 30px; font-weight: 400; font-style: italic;; font-style: italic;
+  color: var(--text-1); line-height: 1; letter-spacing: -.02em;
+}
+.rp-kpi-val--ok { color: var(--ok); }
+.rp-kpi-label {
+  font-size: 10px; font-weight: 500; font-family: monospace;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--text-4);
+}
+.rp-kpi-sub { font-size: 10px; color: var(--text-4); margin-top: 1px; }
+.rp-kpi-div {
+  width: 1px; height: 36px; background: var(--border);
+  flex-shrink: 0; margin: 0 20px 0 0;
+}
+.rp-kpi-search { margin-left: auto; min-width: 200px; }
+
+/* Mission Control layout */
+.rp-mc {
+  display: grid; grid-template-columns: 260px 1fr;
+  flex: 1; min-height: 480px;
+  border-top: none;
+}
+
+/* LEFT — line navigator */
+.rp-nav {
+  border-right: 0.5px solid rgba(255,255,255,.08);
+  overflow-y: auto; background: #0f2d54;
+  display: flex; flex-direction: column; padding: 10px 8px;
+  gap: 2px;
+}
+.rp-nav-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 10px; border-radius: 6px; cursor: pointer;
+  transition: all var(--t); border-left: 3px solid transparent;
+  background: transparent;
+}
+.rp-nav-item:hover { background: rgba(255,255,255,.06); border-left-color: rgba(255,255,255,.15); }
+.rp-nav-item--active {
+  background: rgba(0,179,179,.12) !important;
+  border-left-color: #00B3B3 !important;
+}
+.rp-nav-item--active .rp-nav-badge { color: #00B3B3 !important; }
+.rp-nav-item--inactive { opacity: .4; }
+.rp-nav-badge {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 18px; font-weight: 400; font-style: italic;
+  color: #00B3B3; flex-shrink: 0;
+  width: 36px; text-align: left; line-height: 1;
+  transition: all var(--t); padding-top: 2px;
+  letter-spacing: -.03em;
+}
+.rp-nav-info { flex: 1; min-width: 0; }
+.rp-nav-name {
+  font-size: 12px; font-weight: 400; color: rgba(255,255,255,.82);
+  white-space: normal; word-break: break-word;
+  line-height: 1.35; overflow: visible;
+}
+.rp-nav-meta {
+  font-size: 10px; color: rgba(255,255,255,.35); margin-top: 2px;
+  display: flex; align-items: center; gap: 5px;
+}
+.rp-nav-dot {
+  width: 3px; height: 3px; border-radius: 50%;
+  background: var(--border-2); flex-shrink: 0;
+}
+.rp-nav-status { flex-shrink: 0; }
+.rp-nav-live {
+  display: block; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--ok); box-shadow: 0 0 0 2px rgba(5,150,105,.25);
+  animation: rp-pulse 2s infinite;
+}
+@keyframes rp-pulse {
+  0%,100% { box-shadow: 0 0 0 2px rgba(5,150,105,.25); }
+  50%      { box-shadow: 0 0 0 5px rgba(5,150,105,.1);  }
+}
+.rp-nav-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 40px 20px; color: var(--text-4); font-size: 12px;
+}
+
+/* RIGHT — detail panel */
+.rp-detail {
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--surface);
+}
+.rp-detail--empty {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface-2);
+}
+.rp-detail-empty-inner { text-align: center; padding: 40px; }
+.rp-detail-empty-icon {
+  width: 56px; height: 56px; border-radius: 14px; margin: 0 auto 16px;
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: var(--blue);
+}
+.rp-detail-empty-title { font-size: 16px; font-weight: 700; color: var(--text-1); margin-bottom: 6px; }
+.rp-detail-empty-sub   { font-size: 13px; color: var(--text-3); max-width: 260px; margin: 0 auto; line-height: 1.5; }
+
+/* Detail header */
+.rp-detail-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 18px 24px 20px; gap: 12px; flex-shrink: 0;
+  min-height: 100px; background: #0f2d54;
+}
+.rp-detail-head-left { flex: 1; min-width: 0; }
+.rp-detail-num {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 52px; font-weight: 400; font-style: italic;
+  color: #00B3B3; line-height: .9;
+  display: block; margin-bottom: 8px; letter-spacing: -.04em;
+}
+.rp-detail-num--accent {
+  color: #00B3B3;
+  font-size: 52px;
+  text-shadow: 0 0 40px rgba(0,179,179,.3);
+}
+.rp-detail-title {
+  font-family: var(--font-ui, 'DM Sans', sans-serif);
+  font-size: 14px; font-weight: 500;
+  color: rgba(255,255,255,.92); letter-spacing: 0; line-height: 1.4; margin: 0;
+}
+.rp-detail-head-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.rp-detail-btn {
+  width: 30px; height: 30px; border-radius: 7px; border: none;
+  background: rgba(255,255,255,.15); color: #fff;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; transition: all var(--t);
+}
+.rp-detail-btn:hover { background: rgba(255,255,255,.28); }
+.rp-detail-btn--danger:hover { background: rgba(239,68,68,.3); }
+
+/* Detail body */
+.rp-detail-body { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
+.rp-detail-stats {
+  display: flex; gap: 0;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden;
+}
+.rp-ds-block {
+  flex: 1; padding: 14px 18px; cursor: pointer; transition: background var(--t);
+  border-right: 1px solid var(--border);
+}
+.rp-ds-block:last-child { border-right: none; }
+.rp-ds-block:hover { background: var(--blue-lt); }
+.rp-ds-val {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 32px; font-weight: 400; font-style: italic;; font-style: italic;
+  color: var(--text-1); line-height: 1; letter-spacing: -.02em;
+}0px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); margin-top: 4px; }
+.rp-ds-sub   { font-size: 10px; color: var(--text-4); margin-top: 2px; font-weight: 600; }
+
+.rp-detail-section { display: flex; flex-direction: column; gap: 8px; }
+.rp-detail-section-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .09em; color: var(--text-4);
+  display: flex; align-items: center; gap: 6px;
+}
+.rp-detail-section-label::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+.rp-detail-desc { font-size: 13px; color: var(--text-2); line-height: 1.6; margin: 0; }
+
+/* Coordinator row */
+.rp-detail-coord {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 8px;
+}
+.rp-detail-coord-avatar {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  color: #fff; font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.rp-detail-coord-name { font-size: 13px; font-weight: 600; color: var(--text-1); }
+.rp-detail-coord-role { font-size: 10px; color: var(--text-4); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+.rp-detail-no-coord { font-size: 12px; color: var(--text-4); font-style: italic; display: flex; align-items: center; }
+
+/* Trial list */
+.rp-trial-list { display: flex; flex-direction: column; gap: 6px; }
+.rp-trial-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 8px;
+  transition: border-color var(--t);
+}
+.rp-trial-row:hover { border-color: var(--blue-mid); }
+.rp-trial-info { flex: 1; min-width: 0; }
+.rp-trial-title { font-size: 12.5px; font-weight: 500; color: var(--text-1); white-space: normal; word-break: break-word; line-height: 1.4; word-break: break-word; verflow: ellipsis; }
+.rp-trial-meta  { font-size: 10px; color: var(--text-4); margin-top: 1px; font-family: var(--font-data); }
+.rp-trial-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; min-width: 80px; }
+.rp-trial-status { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+.rp-trial-status--recruiting { background: var(--ok-lt); color: var(--ok); }
+.rp-trial-status--active     { background: var(--blue-lt); color: var(--blue); }
+.rp-trial-status--done       { background: var(--surface-3); color: var(--text-3); }
+.rp-trial-bar {
+  width: 80px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden;
+}
+.rp-trial-bar-fill { height: 100%; border-radius: 2px; transition: width .4s; }
+.rp-trial-enroll { font-family: var(--font-data); font-size: 9px; color: var(--text-4); }
+
+.rp-view-all {
+  font-size: 11px; color: var(--blue); background: none; border: none;
+  cursor: pointer; display: flex; align-items: center; gap: 5px;
+  padding: 4px 0; transition: opacity var(--t); font-weight: 600;
+}
+.rp-view-all:hover { opacity: .7; }
+
+/* Detail footer */
+.rp-detail-footer {
+  display: flex; gap: 8px; align-items: center;
+  padding: 12px 24px; border-top: 1px solid var(--border);
+  background: var(--surface-2); flex-shrink: 0;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   UNITS OCCUPANCY PANEL + UNIT DETAIL DRAWER
+═══════════════════════════════════════════════════════════════ */
+.uop-trigger-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 14px; border-radius: 8px;
+  border: 1px solid var(--border-2); background: var(--surface-2);
+  color: var(--text-2); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all var(--t);
+}
+.uop-trigger-btn:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+
+.uop-backdrop {
+  position: fixed; inset: 0; background: rgba(7,17,31,.45);
+  z-index: 200; backdrop-filter: blur(3px);
+  display: flex; align-items: stretch; justify-content: flex-end;
+}
+.uop-panel {
+  width: min(760px, 96vw); height: 100vh;
+  background: var(--surface); border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-xl); display: flex; flex-direction: column; overflow: hidden;
+  transform: translateX(100%); transition: transform .3s cubic-bezier(.22,.61,.36,1);
+}
+.uop-panel--open { transform: translateX(0); }
+.uop-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.uop-header-left { display: flex; align-items: center; gap: 14px; }
+.uop-header-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--blue), #6366f1);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 16px; flex-shrink: 0;
+}
+.uop-title { font-size: 18px; font-weight: 700; color: var(--text-1); letter-spacing: -.02em; }
+.uop-subtitle { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+.uop-close {
+  width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text-3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all var(--t); font-size: 13px;
+}
+.uop-close:hover { background: var(--danger-lt); color: var(--danger); border-color: var(--danger-mid); }
+.uop-body { flex: 1; overflow-y: auto; padding: 16px 24px 32px; display: flex; flex-direction: column; gap: 24px; }
+.uop-swimlane-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--text-2); margin-bottom: 10px;
+}
+.uop-swimlane-title--muted { color: var(--text-4); }
+.uop-swimlane-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.uop-swimlane-dot--free { background: var(--ok); box-shadow: 0 0 5px rgba(5,150,105,.4); }
+.uop-swimlane-dot--occupied { background: var(--border-2); }
+.uop-unit-list { display: flex; flex-direction: column; gap: 6px; }
+.uop-unit-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--surface);
+  cursor: pointer; transition: all var(--t);
+}
+.uop-unit-row:hover { border-color: var(--blue-mid); box-shadow: 0 2px 10px rgba(37,99,235,.07); transform: translateX(2px); }
+.uop-unit-row--free    { border-left: 3px solid var(--ok); }
+.uop-unit-row--closing { border-left: 3px solid var(--warn); }
+.uop-unit-row--partial { border-left: 3px solid #60a5fa; }
+.uop-unit-row--occupied { opacity: .75; }
+.uop-unit-row--occupied:hover { opacity: 1; }
+.uop-unit-icon {
+  width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  display: flex; align-items: center; justify-content: center; color: var(--blue); font-size: 13px;
+}
+.uop-unit-icon--dim { background: var(--surface-3); border-color: var(--border); color: var(--text-4); }
+.uop-unit-info { flex: 1; min-width: 0; }
+.uop-unit-name { font-size: 13px; font-weight: 700; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.uop-unit-meta { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+.uop-unit-status-block { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.uop-status-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600;
+}
+.uop-status-pill--free    { background: var(--ok-lt); color: var(--ok); border: 1px solid var(--ok-mid); }
+.uop-status-pill--closing { background: var(--warn-lt); color: var(--warn); border: 1px solid var(--warn-mid); }
+.uop-status-pill--partial { background: var(--blue-lt); color: var(--blue); border: 1px solid var(--blue-mid); }
+.uop-status-pill--occupied{ background: var(--surface-3); color: var(--text-3); border: 1px solid var(--border); }
+.uop-slots-badge { font-family: var(--font-data); font-size: 10px; color: var(--text-3); }
+.uop-slots-badge--dim { color: var(--text-4); }
+.uop-unit-next { text-align: right; flex-shrink: 0; min-width: 70px; }
+.uop-next-label { font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-4); font-weight: 600; }
+.uop-next-date { font-family: var(--font-data); font-size: 12px; font-weight: 700; color: var(--text-1); margin-top: 2px; }
+.uop-next-date--far { color: var(--danger); }
+.uop-assign-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 13px; border-radius: 8px; flex-shrink: 0;
+  background: var(--blue); color: #fff; border: none;
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: all var(--t);
+}
+.uop-assign-btn:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(37,99,235,.3); }
+.uop-assign-btn--ghost {
+  background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border);
+}
+.uop-assign-btn--ghost:hover { background: var(--blue-lt); color: var(--blue); border-color: var(--blue-mid); }
+
+/* Unit Detail Drawer */
+.udd-backdrop { position: fixed; inset: 0; background: rgba(7,17,31,.3); z-index: 210; backdrop-filter: blur(2px); }
+.udd {
+  position: fixed; top: 50%; left: 50%; z-index: 211;
+  width: min(860px, 95vw); max-height: 92vh;
+  background: var(--surface); border-radius: 16px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.22), 0 4px 16px rgba(0,0,0,.12);
+  display: flex; flex-direction: column; overflow: hidden;
+  transform: translate(-50%, -48%) scale(.97); opacity: 0;
+  transition: transform .24s cubic-bezier(.22,.61,.36,1), opacity .2s ease;
+  pointer-events: none;
+}
+.udd--open { transform: translate(-50%, -50%) scale(1); opacity: 1; pointer-events: all); }
+.udd-header { padding: 22px 28px 18px; flex-shrink: 0; background: #0f2d54; }
+.udd-header-top { display: flex; align-items: flex-start; gap: 12px; flex: 1; min-width: 0; }
+.udd-icon { width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; background: rgba(0,179,179,.2); display: flex; align-items: center; justify-content: center; color: #00B3B3; }
+.udd-header-info { flex: 1; min-width: 0; }
+.udd-unit-name { font-size: 20px; font-weight: 400; font-style: italic; font-family: var(--font-display, Georgia, serif); color: #fff; letter-spacing: -.02em; }
+.udd-unit-meta { font-size: 12px; color: rgba(255,255,255,.55); margin-top: 3px; }
+.udd-close { width: 30px; height: 30px; border-radius: 7px; border: none; background: rgba(255,255,255,.12); color: rgba(255,255,255,.7); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.udd-close:hover { background: var(--danger-lt); color: var(--danger); border-color: var(--danger-mid); }
+.udd-status-strip { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.1); }
+.udd-cap-chip {
+  font-family: var(--font-data); font-size: 11px; font-weight: 700; color: var(--text-2);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px;
+}
+.udd-cap-bar { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; min-width: 50px; }
+.udd-cap-fill { height: 100%; border-radius: 3px; transition: width .4s; background: var(--ok); }
+.udd-body { flex: 1; overflow-y: auto; padding: 24px 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.udd-callout { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 10px; }
+.udd-callout--free { background: var(--ok-lt); border: 1px solid var(--ok-mid); }
+.udd-callout--warn { background: var(--warn-lt); border: 1px solid var(--warn-mid); }
+.udd-callout-icon { font-size: 18px; flex-shrink: 0; color: var(--ok); }
+.udd-callout--warn .udd-callout-icon { color: var(--warn); }
+.udd-callout-content { flex: 1; min-width: 0; }
+.udd-callout-title { font-size: 13px; font-weight: 700; color: var(--text-1); }
+.udd-callout-sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.udd-assign-cta {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px;
+  border-radius: 8px; flex-shrink: 0; background: var(--ok); color: #fff; border: none;
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: all var(--t);
+}
+.udd-assign-cta:hover { background: #047857; box-shadow: 0 3px 10px rgba(5,150,105,.3); }
+.udd-section { display: flex; flex-direction: column; gap: 10px; }
+.udd-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-4); display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.udd-empty { font-size: 12px; color: var(--text-3); font-style: italic; display: flex; align-items: center; gap: 6px; padding: 10px 0; }
+.udd-mini-timeline { display: flex; gap: 6px; }
+.udd-mt-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.udd-mt-cell {
+  width: 100%; aspect-ratio: 1/1; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid transparent; font-size: 9px; font-family: var(--font-data); font-weight: 700;
+}
+.udd-mt-cell--free     { background: var(--ok-lt); border-color: var(--ok-mid); color: var(--ok); }
+.udd-mt-cell--closing  { background: var(--warn-lt); border-color: var(--warn-mid); color: var(--warn); }
+.udd-mt-cell--partial  { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+.udd-mt-cell--occupied { background: rgba(45,122,255,.1); border-color: var(--blue-mid); color: var(--text-3); }
+.udd-mt-cell--current  { box-shadow: 0 0 0 2px var(--blue); }
+.udd-mt-occ { font-size: 9px; }
+.udd-mt-label { font-size: 9px; color: var(--text-4); text-transform: uppercase; letter-spacing: .04em; font-weight: 500; }
+.udd-mt-label--current { color: var(--blue); font-weight: 700; }
+.udd-rot-list { display: flex; flex-direction: column; gap: 6px; }
+.udd-rot-row {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border);
+}
+.udd-rot-avatar {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--blue), #6366f1); color: #fff;
+  font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+}
+.udd-rot-info { flex: 1; min-width: 0; }
+.udd-rot-name { font-size: 12px; font-weight: 600; color: var(--text-1); }
+.udd-rot-dates { font-size: 10px; color: var(--text-3); font-family: var(--font-data); margin-top: 1px; }
+.udd-rot-status { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; flex-shrink: 0; text-transform: capitalize; }
+.udd-rot-status--active    { background: var(--ok-lt); color: var(--ok); }
+.udd-rot-status--scheduled { background: var(--blue-lt); color: var(--blue); }
+.udd-rot-status--completed { background: var(--surface-3); color: var(--text-3); }
+.udd-footer {
+  padding: 12px 20px; border-top: 1px solid var(--border);
+  display: flex; gap: 8px; justify-content: flex-end; flex-shrink: 0; background: var(--surface-2);
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   RESEARCH KEYWORDS — beautiful colour-cycled chips
+═══════════════════════════════════════════════════════════ */
+.rp-kw-cloud {
+  display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0;
+}
+.rp-kw-chip {
+  display: inline-flex; align-items: center;
+  padding: 4px 11px; border-radius: 20px;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: .01em; cursor: default;
+  transition: transform var(--t), box-shadow var(--t);
+  border: 1px solid transparent;
+}
+.rp-kw-chip:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,.12); }
+
+/* 6 rotating colour presets */
+.rp-kw-chip--0 { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+.rp-kw-chip--1 { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+.rp-kw-chip--2 { background: #fdf4ff; border-color: #e9d5ff; color: #7e22ce; }
+.rp-kw-chip--3 { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
+.rp-kw-chip--4 { background: #ecfeff; border-color: #a5f3fc; color: #0e7490; }
+.rp-kw-chip--5 { background: #fff1f2; border-color: #fecdd3; color: #be123c; }
+
+/* Left nav keyword preview — smaller versions */
+.rp-nav-kws {
+  display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px;
+}
+.rp-nav-kw {
+  display: inline-flex; align-items: center;
+  padding: 2px 7px; border-radius: 20px;
+  font-size: 9px; font-weight: 600; letter-spacing: .01em;
+  border: 1px solid transparent;
+}
+.rp-nav-kw-more {
+  font-size: 9px; font-weight: 600; color: var(--text-4);
+  padding: 2px 4px;
+}
+
+/* Override old grey rhl-kw with the new system everywhere */
+.rhl-kw {
+  display: inline-flex; align-items: center;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: 10px; font-weight: 600; letter-spacing: .01em;
+  background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8;
+}
+.rhl-keywords { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   NEWS & POSTS VIEW
+═══════════════════════════════════════════════════════════════ */
+.news-view { display: flex; flex-direction: column; min-height: 0; }
+
+.news-filter-bar {
+  display: flex; gap: 10px; align-items: center;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  background: var(--surface-2); flex-wrap: wrap;
+}
+
+.news-list { display: flex; flex-direction: column; gap: 0; overflow-y: auto; }
+
+.news-empty {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px; padding: 60px 20px; color: var(--text-3);
+  font-size: 13px; text-align: center;
+}
+.news-empty i { font-size: 28px; opacity: .3; }
+
+.news-loading { display: flex; align-items: center; gap: 10px;
+  padding: 40px; justify-content: center; color: var(--text-4); font-size: 13px; }
+
+/* News card */
+.news-card {
+  display: flex; align-items: flex-start; gap: 0;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t);
+}
+.news-card:hover { background: var(--surface-2); }
+.news-card--update      { border-left: 3px solid var(--warn); }
+.news-card--article     { border-left: 3px solid var(--blue); }
+.news-card--publication { border-left: 3px solid #7c6fcf; }
+
+.news-card-left {
+  padding: 14px 12px 14px 14px; flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+.news-type-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 20px;
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; white-space: nowrap;
+}
+.ntb--update     { background: var(--warn-lt); color: var(--warn); border: 1px solid var(--warn-mid); }
+.ntb--article    { background: var(--blue-lt);  color: var(--blue); border: 1px solid var(--blue-mid); }
+.ntb--publication{ background: rgba(124,111,207,.1); color: #7c6fcf; border: 1px solid rgba(124,111,207,.25); }
+
+.news-card-body { flex: 1; min-width: 0; padding: 14px 12px; }
+
+.news-card-title {
+  font-size: 13px; font-weight: 700; color: var(--text-1);
+  line-height: 1.3; margin-bottom: 4px; letter-spacing: -.01em;
+}
+
+.news-card-excerpt {
+  font-size: 11px; color: var(--text-3); line-height: 1.55;
+  margin-bottom: 8px; overflow: hidden; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+
+.news-pub-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.news-journal  { font-size: 10px; font-weight: 700; color: #7c6fcf; font-family: var(--font-data); }
+.news-authors  { font-size: 10px; color: var(--text-3); }
+.news-doi      { font-size: 10px; color: #7c6fcf; display: inline-flex; align-items: center; gap: 3px; text-decoration: none; }
+.news-doi:hover{ text-decoration: underline; }
+
+.news-card-meta {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+}
+.news-meta-item {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; color: var(--text-4); font-family: var(--font-data);
+}
+.news-meta-item i { font-size: 9px; }
+.news-meta-line { color: var(--blue); }
+.news-wc { color: var(--text-4); }
+.news-expiry { color: var(--text-4); }
+.news-expiry--warn { color: var(--danger); }
+
+.news-card-right {
+  padding: 14px 16px; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+  min-width: 140px;
+}
+
+.news-status-badge {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; padding: 3px 8px; border-radius: 20px;
+}
+.nsb--published { background: var(--ok-lt); color: var(--ok); border: 1px solid var(--ok-mid); }
+.nsb--draft     { background: var(--surface-3); color: var(--text-3); border: 1px solid var(--border-2); }
+.nsb--archived  { background: var(--surface-3); color: var(--text-4); border: 1px solid var(--border); }
+
+.news-vis-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--surface-2);
+  color: var(--text-3); cursor: pointer; transition: all var(--t);
+}
+.news-vis-btn:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
+.news-vis-btn i { font-size: 9px; }
+
+.news-actions { display: flex; gap: 4px; }
+.btn-icon {
+  width: 26px; height: 26px; border-radius: 6px; border: none;
+  background: var(--surface-2); color: var(--text-3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; transition: all var(--t);
+}
+.btn-icon:hover          { background: var(--blue-lt); color: var(--blue); }
+.btn-icon--ok:hover      { background: var(--ok-lt); color: var(--ok); }
+.btn-icon--danger:hover  { background: var(--danger-lt); color: var(--danger); }
+
+/* Word counter in modal */
+.news-wc-counter {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10px; color: var(--text-3); font-family: var(--font-data);
+}
+.news-wc-counter--warn { color: var(--warn); }
+.news-wc-counter--over { color: var(--danger); }
+.news-wc-bar { width: 60px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.news-wc-fill { height: 100%; background: var(--blue); border-radius: 2px; transition: width .2s; }
+.news-wc-counter--warn .news-wc-fill { background: var(--warn); }
+.news-wc-counter--over .news-wc-fill { background: var(--danger); }
+
+.toggle-opt--public.active { background: var(--ok); border-color: var(--ok); color: #fff; }
+.form-hint { font-size: 10px; color: var(--text-4); margin-top: 4px; }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   NEWS READER DRAWER
+═══════════════════════════════════════════════════════════════ */
+.nrd-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(4,10,20,.78);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  z-index: 8900;
+}
+.nrd-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(780px, 94vw);
+  background: #0d1520 !important; border-radius: 20px 0 0 20px;
+  box-shadow: -32px 0 80px rgba(0,0,0,.6);
+  z-index: 9000; display: flex; flex-direction: column; overflow: hidden;
+  animation: nrd-in .3s cubic-bezier(.22,.61,.36,1);
+  color: #F0EDE8 !important;
+}
+/* Force all text inside drawer to be readable regardless of app theme */
+.nrd-drawer * { box-sizing: border-box; }
+.nrd-drawer .nrd-body { background: #0d1520 !important; color: #F0EDE8 !important; }
+.nrd-drawer .nrd-body p,
+.nrd-drawer .nrd-body div,
+.nrd-drawer .nrd-body span:not(.nrd-type-badge):not(.nrd-status-pill):not(.nrd-vis-pill):not(.nrd-line-tag):not(.update-line-pill) {
+  color: inherit;
+}
+@keyframes nrd-in {
+  from { transform: translateX(48px); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+/* Colour accent per post type */
+.nrd-drawer.nrd--article  { --nrd-accent: var(--blue);   --nrd-accent-lt: var(--blue-lt);  --nrd-accent-mid: var(--blue-mid);  }
+.nrd-drawer.nrd--update   { --nrd-accent: var(--warn);   --nrd-accent-lt: var(--warn-lt);  --nrd-accent-mid: var(--warn-mid);  }
+.nrd-drawer.nrd--publication { --nrd-accent: #7c6fcf;    --nrd-accent-lt: rgba(124,111,207,.1); --nrd-accent-mid: rgba(124,111,207,.3); }
+
+/* Progress bar */
+.nrd-progress { height: 3px; background: rgba(255,255,255,.08); flex-shrink: 0; }
+.nrd-progress-fill { height: 100%; width: 0%; background: var(--nrd-accent,var(--blue)); transition: width .1s linear; }
+
+/* Header */
+.nrd-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid rgba(255,255,255,.08); flex-shrink: 0;
+  background: rgba(14,22,33,.6);
+}
+.nrd-hdr-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.nrd-status-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  padding: 3px 9px; border-radius: 20px; flex-shrink: 0;
+}
+.nrd-status-pill.pub   { background: rgba(5,150,105,.18); color: #34d399; border: 1px solid rgba(5,150,105,.35); }
+.nrd-status-pill.draft { background: rgba(255,255,255,.08); color: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,.14); }
+.nrd-status-pill.arch  { background: rgba(255,255,255,.05); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,.1); }
+.nrd-vis-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+  padding: 3px 8px; border-radius: 20px; flex-shrink: 0;
+}
+.nrd-vis-pill.public   { background: rgba(11,158,217,.15); color: #38bdf8; border: 1px solid rgba(11,158,217,.3); }
+.nrd-vis-pill.internal { background: rgba(255,255,255,.07); color: rgba(255,255,255,0.65); border: 1px solid rgba(255,255,255,.12); }
+.nrd-close {
+  width: 30px; height: 30px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,0.85); cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; transition: all var(--t);
+}
+.nrd-close:hover { background: rgba(220,53,69,.15); color: #ef4444; border-color: rgba(220,53,69,.3); }
+
+/* Scrollable body */
+.nrd-body {
+  flex: 1; overflow-y: auto; padding: 2rem 2.5rem 3rem;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.nrd-body::-webkit-scrollbar { width: 4px; }
+.nrd-body::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+
+/* Reading typography */
+.nrd-eyebrow { display: flex; align-items: center; gap: 8px; margin-bottom: 1.125rem; flex-wrap: wrap; }
+.nrd-type-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+  padding: 3px 9px; border-radius: 4px;
+  background: var(--nrd-accent-lt,var(--blue-lt));
+  color: var(--nrd-accent,var(--blue));
+  border: 1px solid var(--nrd-accent-mid,var(--blue-mid));
+}
+.nrd-line-tag {
+  font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px;
+  background: rgba(255,255,255,.07); color: rgba(255,255,255,0.85); border: 1px solid rgba(255,255,255,.14);
+  font-family: var(--font-data);
+}
+.nrd-read-time { font-size: 10px; color: rgba(255,255,255,0.85); font-family: var(--font-data); }
+.nrd-title {
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  font-weight: 800; line-height: 1.2; letter-spacing: -.025em;
+  color: #F0EDE8 !important; margin-bottom: 1rem;
+}
+.nrd-byline {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  font-size: 11px; font-family: var(--font-data); color: rgba(255,255,255,0.97) !important;
+  padding-bottom: 1.25rem; margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}
+.nrd-byline-author {
+  display: flex; align-items: center; gap: 7px; color: #fff; font-weight: 600;
+}
+.nrd-avatar {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; font-family: var(--font-data);
+  background: var(--nrd-accent-lt,var(--blue-lt));
+  color: var(--nrd-accent,var(--blue));
+  border: 1px solid var(--nrd-accent-mid,var(--blue-mid));
+}
+.nrd-byline-dot { width: 2px; height: 2px; border-radius: 50%; background: rgba(255,255,255,.25); }
+.nrd-wc-bar { display: inline-flex; align-items: center; gap: 5px; }
+.nrd-wc-track { width: 36px; height: 3px; background: rgba(255,255,255,.12); border-radius: 2px; overflow: hidden; }
+.nrd-wc-fill { height: 100%; border-radius: 2px; background: var(--nrd-accent,var(--blue)); }
+
+/* Article body */
+.nrd-content p {
+  font-size: 1rem; line-height: 1.9; color: #c8d4e0 !important;
+  margin-bottom: 1.375rem; max-width: 65ch;
+}
+.nrd-content p:first-child { font-size: 1.0625rem; color: #e8edf2 !important; line-height: 1.85; }
+.nrd-content p:last-child { margin-bottom: 0; }
+
+/* Update body */
+.nrd-update-body {
+  font-size: 1rem; line-height: 1.9; color: #d0dce8 !important;
+  border-left: 3px solid #E09B3D; padding: 1rem 1.25rem;
+  background: rgba(224,155,61,.08); border-radius: 0 8px 8px 0; max-width: 65ch;
+}
+
+/* Publication */
+.nrd-pub-journal { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #7c6fcf; font-family: var(--font-data); margin-bottom: 6px; }
+.nrd-pub-authors { font-size: 14px; color: rgba(255,255,255,0.75); font-style: italic; line-height: 1.65; margin-bottom: 1.125rem; max-width: 60ch; }
+.nrd-pub-doi {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: #7c6fcf; font-family: var(--font-data);
+  padding: 8px 14px; border: 1px solid rgba(124,111,207,.25);
+  border-radius: 8px; background: rgba(124,111,207,.06);
+  text-decoration: none; transition: all var(--t);
+}
+.nrd-pub-doi:hover { background: rgba(124,111,207,.14); border-color: rgba(124,111,207,.4); }
+
+/* Footer actions */
+.nrd-footer {
+  border-top: 1px solid rgba(255,255,255,.08); padding: 14px 20px;
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  background: rgba(7,14,24,.6);
+}
+.nrd-footer-spacer { flex: 1; }
+
+/* Make news cards clickable */
+.news-card { cursor: pointer; }
+.news-card:hover .news-card-title { color: var(--blue); }
+.news-card--update:hover .news-card-title { color: var(--warn); }
+.news-card--publication:hover .news-card-title { color: #7c6fcf; }
+
+
+/* Photo Story post type */
+.toggle-opt--photo.active { background: var(--coral,#e05c4b); border-color: var(--coral,#e05c4b); color: #fff; }
+.news-card--photo_story { border-left-color: #e05c4b; }
+.ntb--photo_story { background: rgba(224,92,75,.1); color: #e05c4b; border: 1px solid rgba(224,92,75,.2); }
+.nrd-drawer.nrd--photo_story { --nrd-accent: #e05c4b; --nrd-accent-lt: rgba(224,92,75,.1); --nrd-accent-mid: rgba(224,92,75,.3); }
+
+
+/* Prev/Next nav in reader drawer — forced dark */
+.nrd-body [onclick] { color: #fff !important; }
+.nrd-body [onclick]:hover { color: #F0EDE8 !important; }
+.nrd-body [style*="border-top"] { border-top-color: rgba(255,255,255,0.30) !important; }
+.nrd-body [style*="color:var(--text-4)"] { color: rgba(255,255,255,0.92) !important; }
+.nrd-body [style*="color:var(--text-3)"] { color: rgba(255,255,255,0.97) !important; }
+.nrd-body [style*="color:var(--text-2)"] { color: #fff !important; }
+.nrd-body [style*="color:var(--text-1)"] { color: #F0EDE8 !important; }
+.nrd-body div[style*="font-size:12px"] { color: #fff !important; }
+.nrd-body div[style*="font-size:10px"] { color: rgba(255,255,255,0.92) !important; }
+.nrd-body div[style*="font-size:9px"]  { color: rgba(255,255,255,0.85) !important; }
+
+/* NRD — Photo Story gallery */
+.nrd-photo-gallery {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-bottom: 1.5rem;
+}
+.nrd-photo-slide { width: 100%; border-radius: 10px; overflow: hidden; }
+.nrd-photo-img {
+  width: 100%; display: block;
+  max-height: 420px; object-fit: cover;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+}
+.nrd-photo-caption {
+  font-size: .9375rem; line-height: 1.85;
+  color: #c8d4e0 !important;
+  border-left: 3px solid #e05c4b;
+  padding: .875rem 1.125rem;
+  background: rgba(224,92,75,.06);
+  border-radius: 0 8px 8px 0;
+  max-width: 65ch;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DEPARTMENT DETAIL PANEL
+═══════════════════════════════════════════════════════════════ */
+.dp-panel { width: min(680px, 96vw); }
+
+/* Stat bar tabs */
+.dp-stat-bar {
+  display: flex; border-bottom: 1px solid var(--border);
+  background: var(--surface-2); flex-shrink: 0;
+}
+.dp-stat {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 10px 8px; cursor: pointer; border-right: 1px solid var(--border);
+  border-bottom: 2px solid transparent; transition: all .15s; gap: 2px;
+}
+.dp-stat:last-child { border-right: none; }
+.dp-stat:hover { background: var(--surface); }
+.dp-stat.active { border-bottom-color: var(--blue); background: var(--blue-lt); }
+.dp-stat.active .dp-stat-num { color: var(--blue); }
+.dp-stat-num { font-size: .95rem; font-weight: 700; color: var(--text-1); line-height: 1; }
+.dp-stat-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); }
+
+/* Sections */
+.dp-section { display: flex; flex-direction: column; gap: 6px; }
+.dp-section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px;
+}
+.dp-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
+.dp-section-count { font-size: 11px; font-weight: 700; color: var(--text-3); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 1px 7px; }
+.dp-action-btn { font-size: 10px; font-weight: 600; color: var(--blue); background: var(--blue-lt); border: 1px solid var(--blue-mid); border-radius: 4px; padding: 3px 8px; cursor: pointer; transition: all .15s; }
+.dp-action-btn:hover { background: var(--blue); color: #fff; }
+.dp-empty { font-size: 12px; color: var(--text-4); padding: 12px 0; text-align: center; font-style: italic; }
+
+/* Staff rows */
+.dp-staff-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-radius: 6px; transition: background .15s;
+}
+.dp-staff-row:hover { background: var(--surface-2); }
+.dp-staff-avatar {
+  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--blue), #6366f1);
+  color: #fff; font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; letter-spacing: .03em;
+}
+.dp-staff-avatar--res { background: linear-gradient(135deg, var(--teal, #0d9488), #2563eb); }
+.dp-staff-info { flex: 1; min-width: 0; }
+.dp-staff-name { font-size: 13px; font-weight: 500; color: var(--text-1); white-space: normal; word-break: break-word; }
+.dp-staff-meta { font-size: 10px; color: var(--text-3); display: flex; align-items: center; gap: 5px; margin-top: 1px; }
+.dp-sup-badge { font-size: 9px; font-weight: 600; color: var(--blue); background: var(--blue-lt); border: 1px solid var(--blue-mid); border-radius: 3px; padding: 1px 4px; }
+.dp-cat-badge { font-size: 9px; font-weight: 700; border-radius: 3px; padding: 1px 5px; }
+.dp-cat--int { background: var(--ok-lt); color: var(--ok); border: 1px solid var(--ok-mid); }
+.dp-cat--rot { background: var(--partial-lt); color: var(--partial); border: 1px solid var(--partial-mid); }
+.dp-cat--ext { background: var(--violet-lt); color: var(--violet); border: 1px solid var(--violet-mid); }
+.dp-staff-unit { font-size: 10px; color: var(--text-3); display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.dp-staff-rotation { font-size: 10px; color: var(--blue); display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.dp-days-left { font-weight: 700; font-size: 10px; color: var(--text-2); background: var(--surface-2); border-radius: 3px; padding: 1px 4px; }
+.dp-status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.dp-dot--ok { background: var(--ok); }
+.dp-dot--warn { background: var(--warning); }
+
+/* Unit rows */
+.dp-unit-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 6px; transition: background .15s;
+}
+.dp-unit-row:hover { background: var(--surface-2); }
+.dp-unit-icon { width: 28px; height: 28px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 12px; flex-shrink: 0; }
+.dp-unit-info { flex: 1; min-width: 0; }
+.dp-unit-name { font-size: 13px; font-weight: 600; color: var(--text-1); }
+.dp-unit-meta { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
+.dp-unit-occ { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.dp-occ-track { width: 80px; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.dp-occ-fill { height: 100%; border-radius: 3px; transition: width .3s; }
+.dp-occ-fill--full    { background: var(--danger); }
+.dp-occ-fill--partial { background: var(--warning); }
+.dp-occ-fill--free    { background: var(--ok); }
+.dp-occ-label { font-size: 11px; font-weight: 700; color: var(--text-2); min-width: 28px; text-align: right; }
+
+/* Rotation rows */
+.dp-rot-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 6px; transition: background .15s;
+}
+.dp-rot-row:hover { background: var(--surface-2); }
+.dp-rot-status-bar { width: 3px; height: 36px; border-radius: 2px; flex-shrink: 0; }
+.dp-rot-bar--active    { background: var(--ok); }
+.dp-rot-bar--scheduled { background: var(--blue); }
+.dp-rot-info { flex: 1; min-width: 0; }
+.dp-rot-resident { font-size: 13px; font-weight: 600; color: var(--text-1); }
+.dp-rot-unit { font-size: 10px; color: var(--text-3); display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+.dp-rot-dates { text-align: right; flex-shrink: 0; }
+.dp-rot-period { font-size: 10px; color: var(--text-4); font-family: var(--font-data); }
+.dp-rot-remaining { font-size: 11px; font-weight: 700; color: var(--text-2); margin-top: 2px; }
+.dp-rot-remaining--urgent { color: var(--danger); }
+
+/* Slide transition */
+.dp-slide-enter-active, .dp-slide-leave-active { transition: opacity .2s; }
+.dp-slide-enter-from, .dp-slide-leave-to { opacity: 0; }
+
+/* Department panel — assign rotation button on resident rows */
+.dp-assign-btn {
+  width:22px;height:22px;border-radius:4px;border:1px solid var(--blue-mid);
+  background:var(--blue-lt);color:var(--blue);cursor:pointer;flex-shrink:0;
+  display:inline-flex;align-items:center;justify-content:center;font-size:9px;
+  transition:all .15s;
+}
+.dp-assign-btn:hover { background:var(--blue);color:#fff; }
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPREHENSIVE MOBILE RESPONSIVENESS
+   Targets: Android Chrome, iOS Safari, tablets (≤768px)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Viewport safety ── */
+html { -webkit-text-size-adjust: 100%; }
+* { -webkit-tap-highlight-color: transparent; }
+input, select, textarea { font-size: 16px !important; } /* prevents iOS zoom on focus */
+
+/* ── Touch targets — everything tappable ≥ 44px ── */
+@media (max-width: 768px) {
+  .btn-icon-sm { width:36px !important; height:36px !important; font-size:13px !important; }
+  .dp-assign-btn { width:32px !important; height:32px !important; font-size:11px !important; }
+  .rot-action-btn { min-width:38px !important; height:38px !important; }
+  .row-actions { gap:6px; }
+  .btn-pill { min-height:40px; padding:8px 14px; }
+  .scc-actions .rot-action-btn { width:42px !important; height:42px !important; }
+}
+
+/* ── Dept table → card stack on mobile ── */
+@media (max-width: 768px) {
+  .data-table-wrap { overflow-x: visible; }
+  .data-table thead { display: none; }
+  .data-table tbody { display: flex; flex-direction: column; gap: 8px; padding: 8px; }
+  .data-table tr.dept-table-row {
+    display: flex; flex-direction: column; gap: 6px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  }
+  .data-table tr.dept-table-row td {
+    display: flex; align-items: center; padding: 3px 0;
+    border: none; text-align: left !important;
+  }
+  .data-table tr.dept-table-row td::before {
+    content: attr(data-label);
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--text-4);
+    min-width: 72px; flex-shrink: 0;
+  }
+  .data-table tr.dept-table-row td:first-child { border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px; }
+  .data-table tr.dept-table-row td:first-child::before { display: none; }
+  .dept-tbl-name { font-size: 14px; }
+  .row-actions { justify-content: flex-start; }
+  .dept-summary-strip { flex-wrap: wrap; }
+  .dept-summary-item { min-width: 50%; border-bottom: 1px solid var(--border); }
+}
+
+/* ── Side panels — full screen on phones ── */
+@media (max-width: 480px) {
+  .uop-panel, .dp-panel {
+    width: 100vw !important;
+    border-left: none !important;
+    border-radius: 0 !important;
+  }
+  .uop-header { padding: 14px 16px 12px; }
+  .uop-body { padding: 12px 16px 80px; } /* 80px = bottom nav clearance */
+  .dp-stat-bar .dp-stat { padding: 8px 4px; }
+  .dp-stat-label { font-size: 8px; }
+  .dp-staff-row { padding: 8px; }
+  .dp-unit-row { padding: 8px; }
+  .dp-rot-row { padding: 8px; }
+}
+
+/* ── Filter bars — stack vertically on phones ── */
+@media (max-width: 600px) {
+  .filter-bar {
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .filter-bar .form-control,
+  .filter-bar .form-select,
+  .filter-bar input { width: 100% !important; max-width: 100% !important; min-width: unset !important; }
+}
+
+/* ── Dashboard KPIs — 2×2 on phones ── */
+@media (max-width: 600px) {
+  .db-kpi-bar { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .db-kpi { padding: 10px 10px; }
+  .db-kpi-val { font-size: 18px; }
+  .db-kpi-icon { width: 28px; height: 28px; font-size: 12px; }
+  .db-kpi-sub { display: none; }
+}
+
+/* ── Rotation week timeline — hidden on phones, show list instead ── */
+@media (max-width: 520px) {
+  .rotation-week-grid { display: none; }
+  .rotation-week-fallback { display: flex !important; flex-direction: column; gap: 6px; }
+}
+.rotation-week-fallback { display: none; }
+
+/* ── Staff card actions — always visible on mobile (not hover-only) ── */
+@media (max-width: 768px) {
+  .scc-actions { opacity: 1 !important; pointer-events: auto !important; }
+  .scc { overflow: visible; }
+}
+
+/* ── Modal full-screen on phones ── */
+@media (max-width: 480px) {
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal-container {
+    border-radius: 16px 16px 0 0;
+    max-height: 92vh; width: 100%; max-width: 100%; margin: 0;
+  }
+  .modal-body { max-height: calc(92vh - 130px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .modal-header { padding: 16px 16px 12px; }
+  .modal-footer { padding: 12px 16px; }
+  .grid-cols-2 { grid-template-columns: 1fr !important; }
+  .col-span-2 { grid-column: span 1 !important; }
+}
+
+/* ── Top navbar — compact on phones ── */
+@media (max-width: 480px) {
+  .top-navbar { padding: 0 10px; height: 52px; }
+  .nav-search-wrap { display: none; } /* search in content area */
+  .nav-actions > *:not(.mobile-menu-toggle):not(.nav-user-btn) { display: none; }
+  .header-title { font-size: 14px; }
+  .header-subtitle { display: none; }
+}
+
+/* ── Content area — safe area for notched phones ── */
+.content-area {
+  padding-bottom: calc(var(--content-pad-y) + env(safe-area-inset-bottom, 0px));
+}
+@media (max-width: 1100px) {
+  .content-area { padding-bottom: calc(72px + env(safe-area-inset-bottom, 16px)); }
+}
+
+/* ── Mobile bottom nav — safe area + larger touch targets ── */
+.mobile-bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (max-width: 480px) {
+  .mobile-bottom-nav { height: calc(58px + env(safe-area-inset-bottom, 0px)); }
+  .mobile-nav-item { font-size: 10px; padding: 6px 2px; min-width: 44px; }
+  .mobile-nav-item i { font-size: 19px; }
+  .mobile-nav-item span { display: none; } /* icon only on very small screens */
+}
+@media (min-width: 381px) and (max-width: 480px) {
+  .mobile-nav-item span { display: block; font-size: 9px; }
+}
+
+/* ── On-call schedule — stack on mobile ── */
+@media (max-width: 600px) {
+  .oncall-row { flex-wrap: wrap; }
+  .oncall-date-badge { width: 100%; margin-bottom: 4px; }
+}
+
+/* ── Staff profile drawer — full screen on phones ── */
+@media (max-width: 480px) {
+  .modal-profile { height: 100vh; max-height: 100vh; border-radius: 0; }
+  .profile-drawer-backdrop { display: none; }
+  .pd-close { width: 40px; height: 40px; }
+}
+
+/* ── Rotation timeline — horizontal scroll on tablets ── */
+@media (max-width: 900px) {
+  .tuc-timeline-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+/* ── Department panel stat bar — 2 per row on phones ── */
+@media (max-width: 400px) {
+  .dp-stat-bar { flex-wrap: wrap; }
+  .dp-stat { min-width: 50%; border-bottom: 1px solid var(--border); }
+}
+
+/* ── Unit clinicians modal — full width list on phones ── */
+@media (max-width: 480px) {
+  .ucm-row { padding: 12px 8px; min-height: 52px; }
+  .ucm-avatar { width: 36px; height: 36px; }
+  .ucm-name { font-size: 13px; }
+}
+
+/* ── Occupancy panel heatmap — scroll on mobile ── */
+@media (max-width: 600px) {
+  .uop-heatmap-grid { min-width: 480px; overflow-x: auto; }
+  .uop-body { -webkit-overflow-scrolling: touch; }
+}
+
+/* ── Absence and rotation forms — better spacing on phones ── */
+@media (max-width: 480px) {
+  .reason-grid { grid-template-columns: 1fr 1fr; }
+  .category-option { padding: 10px 8px; font-size: 11px; }
+  .hns-option { padding: 10px 8px; font-size: 11px; }
+  .cert-list-inline { font-size: 12px; }
+}
+
+/* ── Tables in cards — horizontal scroll ── */
+@media (max-width: 768px) {
+  .card .data-table-wrap.scrollable { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .card .data-table.no-mobile-stack { min-width: 560px; }
+}
+
+/* ── iOS safari misc fixes ── */
+@supports (-webkit-touch-callout: none) {
+  .modal-body { overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+  select { appearance: none; -webkit-appearance: none; }
+  .content-area { -webkit-overflow-scrolling: touch; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   APP LOADING SPLASH
+   ═══════════════════════════════════════════════════════════════ */
+.app-loading-splash {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--surface);
+  display: flex; align-items: center; justify-content: center;
+}
+.als-inner {
+  display: flex; flex-direction: column; align-items: center; gap: 20px;
+}
+.als-logo { width: 120px; height: auto; }
+.als-bar-wrap {
+  width: 180px; height: 3px;
+  background: var(--border);
+  border-radius: 2px; overflow: hidden;
+}
+.als-bar {
+  height: 100%; width: 40%;
+  background: linear-gradient(90deg, #48cae4, #4d9aff, #a5b4fc);
+  border-radius: 2px;
+  animation: als-slide 1.4s ease-in-out infinite;
+}
+@keyframes als-slide {
+  0%   { transform: translateX(-120%); }
+  50%  { transform: translateX(160%); }
+  100% { transform: translateX(160%); }
+}
+.als-label {
+  font-size: 12px; font-weight: 500;
+  color: var(--text-3); letter-spacing: .05em;
+}
+.splash-fade-leave-active { transition: opacity .35s ease; }
+.splash-fade-leave-to { opacity: 0; }
+
+/* Session expired — login error variant */
+.login-error--warn {
+  background: rgba(245,158,11,.1);
+  border-color: rgba(245,158,11,.3);
+  color: var(--warning);
+}
+.login-error--warn .fa-clock { color: var(--warning); }
+
+/* External resident field in rotation view */
+.rds-field--ext {
+  background: var(--violet-lt);
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin: 2px 0;
+}
+.rds-field--ext .rds-field-key { color: var(--violet); }
+.rds-mail-link {
+  margin-left: 6px; color: var(--blue); font-size: 11px;
+  opacity: .7; transition: opacity .15s;
+}
+.rds-mail-link:hover { opacity: 1; }
+
+/* ── Rotation form — date-derived status display ── */
+.rot-status-derived {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 14px; border-radius: 6px; font-size: 13px; font-weight: 600;
+  border: 1px solid; width: 100%; box-sizing: border-box;
+}
+.rot-status-active    { background: var(--ok-lt);      color: var(--ok);      border-color: var(--ok-mid); }
+.rot-status-scheduled { background: var(--blue-lt);    color: var(--blue);    border-color: var(--blue-mid); }
+.rot-status-completed { background: var(--surface-2);  color: var(--text-3);  border-color: var(--border); }
+
+.rot-status-hint {
+  font-size: 11px; color: var(--text-3); margin-top: 5px;
+  display: flex; align-items: flex-start; gap: 5px; line-height: 1.5;
+}
+.rot-status-hint i { margi
+/* ─── FOCUS STATES — visible keyboard navigation ─────────────── */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--blue) !important;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12) !important;
+}
+button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+.sidebar-menu-link:focus-visible {
+  outline-color: rgba(99,179,255,.8);
+}
+
+/* ─── EMPTY STATES — warmer, actionable ──────────────────────── */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 48px 24px; text-align: center;
+}
+.empty-state-icon {
+  width: 52px; height: 52px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: var(--text-3);
+  margin-bottom: 14px;
+}
+.empty-state-title {
+  font-size: var(--t-13); font-weight: 600; color: var(--text-1);
+  margin-bottom: 6px;
+}
+.empty-state-desc {
+  font-size: var(--t-11); color: var(--text-3);
+  max-width: 300px; line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+/* ─── STATUS BADGES — clinical precision ─────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 5px;
+  font-size: var(--t-10); font-weight: 600;
+  line-height: 1.4; white-space: nowrap;
+  border: 1px solid transparent;
+}
+.badge-active, .badge-ok      { background: var(--ok-lt);    color: #065f46; border-color: var(--ok-mid); }
+.badge-recruiting              { background: var(--info-lt);  color: #1e40af; border-color: var(--blue-mid); }
+.badge-completed               { background: var(--neutral-lt); color: var(--neutral); border-color: var(--border-2); }
+.badge-prep                    { background: var(--warn-lt);  color: #92400e; border-color: var(--warn-mid); }
+.badge-leave                   { background: var(--warn-lt);  color: #92400e; border-color: var(--warn-mid); }
+.badge-inactive                { background: var(--surface-3); color: var(--text-3); border-color: var(--border); }
+/* Dot prefix for status badges */
+.badge::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%;
+  background: currentColor; opacity: .7; flex-shrink: 0;
+}
+
+/* ─── MICRO-INTERACTIONS ──────────────────────────────────────── */
+/* Button press — physical feel */
+.btn:active:not(:disabled) {
+  transform: translateY(1px) scale(.99);
+  box-shadow: none !important;
+  transition: transform 60ms ease, box-shadow 60ms ease;
+}
+/* Pill button press */
+.btn-pill:active {
+  transform: scale(.97);
+  transition: transform 60ms ease;
+}
+/* Row click feedback */
+.table tr:active td { background: var(--blue-lt) !important; }
+/* Sidebar link press */
+.sidebar-menu-link:active {
+  transform: scale(.97);
+  transition: transform 80ms ease;
+}
+/* Modal open — slight scale */
+.modal-container {
+  animation: modal-pop .22s cubic-bezier(.22,1,.36,1);
+}
+@keyframes modal-pop {
+  from { transform: scale(.96) translateY(8px); opacity: 0; }
+  to   { transform: scale(1)   translateY(0);   opacity: 1; }
+}
+/* Smooth stat number updates */
+.db-kpi-val, .stat-val {
+  transition: color .3s ease;
+}
+
+/* ─── SCROLLBARS — thin, OS-native feel ──────────────────────── */
+* { scrollbar-width: thin; scrollbar-color: var(--border-2) transparent; }
+*::-webkit-scrollbar { width: 5px; height: 5px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--border-3); }
+n-top: 2px; flex-shrink: 0; color: var(--blue); }
+.rot-status-hint strong { color: var(--text-2); }
+
+/* ─── ROTATION STATUS PILLS — clear at a glance ──────────────── */
+.status-indicator {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: var(--t-10); font-weight: 700;
+  letter-spacing: .02em; white-space: nowrap;
+  border: 1px solid transparent;
+}
+.status-indicator::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%;
+  background: currentColor; opacity: .8;
+}
+.status-active       { background: var(--ok-lt);     color: #065f46; border-color: var(--ok-mid); }
+.status-scheduled    { background: var(--info-lt);   color: #1e40af; border-color: var(--blue-mid); }
+.status-completed    { background: var(--surface-3); color: var(--neutral); border-color: var(--border); }
+.status-extended     { background: var(--warn-lt);   color: #92400e; border-color: var(--warn-mid); }
+.status-terminated_early { background: var(--danger-lt); color: #991b1b; border-color: var(--danger-mid); }
+
+/* ── Sidebar department context ── */
+.sidebar-dept-ctx {
+    display: flex;
+    align-items: center;
+    gap: .625rem;
+    padding: .875rem 1.25rem;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    margin-bottom: .25rem;
+}
+.sidebar-dept-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--color-teal, #00B3B3);
+    flex-shrink: 0;
+}
+.sidebar-dept-name {
+    font-size: .75rem;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: .01em;
+    line-height: 1.2;
+}
+.sidebar-dept-sub {
+    font-size: .6rem;
+    color: rgba(255,255,255,0.65);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-top: .15rem;
+}
+
+/* ── Restored comms modal styles ── */
+.comms-tabs { display: flex; gap: 3px; background: var(--surface-2); border-radius: var(--r); padding: 3px; margin-bottom: 16px; flex-wrap: wrap; }
+.comms-tab { flex: 1; padding: 8px 12px; background: none; border: none; border-radius: var(--r-sm); font-size: var(--t-12); font-weight: 600; color: var(--text-2); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: var(--t); font-family: var(--font-ui); min-width: 110px; min-height: 40px; }
+.comms-content { padding: 0; }
+
+/* ══════════════════════════════════════════════════════
+   STAFF MODAL — Two-panel enrollment form
+══════════════════════════════════════════════════════ */
+
+/* Shell */
+.sm-modal {
+  display: flex;
+  max-width: min(820px, calc(100vw - 32px));
+  width: 100%;
+  max-height: 90vh;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0,0,0,.25), 0 4px 16px rgba(0,0,0,.1);
+  border: 0.5px solid rgba(255,255,255,.06);
+  margin: auto;
+  animation: slideUp .22s cubic-bezier(.22,1,.36,1);
+}
+
+/* ── LEFT: dark identity preview panel ── */
+.sm-left {
+  width: 216px; flex-shrink: 0;
+  background: #0f2d54;
+  display: flex; flex-direction: column;
+  position: relative; overflow: hidden;
+}
+.sm-left::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #00B3B3, rgba(0,179,179,0));
+}
+.sm-left::after {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(0,179,179,.2) 40%, transparent);
+}
+
+/* Live preview */
+.sm-preview {
+  padding: 26px 18px 18px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  border-bottom: 0.5px solid rgba(255,255,255,.06);
+  flex-shrink: 0;
+}
+.sm-preview-avatar {
+  width: 60px; height: 60px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.125rem; font-weight: 700; color: #fff;
+  letter-spacing: -.02em;
+  transition: all .3s;
+  position: relative;
+}
+.sm-preview-avatar--attending {
+  background: linear-gradient(135deg, #00B3B3, #4A9EE8);
+  box-shadow: 0 0 0 2.5px rgba(0,179,179,.2), 0 0 0 5px rgba(0,179,179,.06);
+}
+.sm-preview-avatar--resident {
+  background: linear-gradient(135deg, #1e40af, #0e7490);
+  box-shadow: 0 0 0 2.5px rgba(30,64,175,.2), 0 0 0 5px rgba(30,64,175,.06);
+}
+.sm-preview-avatar--empty {
+  background: rgba(255,255,255,.05);
+  border: 1.5px dashed rgba(255,255,255,.12);
+  box-shadow: none;
+}
+.sm-preview-name {
+  font-size: .8125rem; font-weight: 700;
+  color: #fff; text-align: center;
+  line-height: 1.25; letter-spacing: -.01em;
+  transition: all .2s;
+}
+.sm-preview-name--empty {
+  color: rgba(255,255,255,0.42); font-weight: 400; font-style: italic;
+}
+.sm-preview-role {
+  font-size: .55rem; font-family: var(--font-mono, monospace);
+  letter-spacing: .12em; text-transform: uppercase;
+  color: rgba(255,255,255,0.65); text-align: center;
+}
+.sm-preview-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.sm-preview-chip {
+  font-size: .54rem; font-family: var(--font-mono, monospace);
+  letter-spacing: .07em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 99px;
+  background: rgba(0,179,179,.1); border: 0.5px solid rgba(0,179,179,.2);
+  color: #00B3B3;
+}
+.sm-preview-chip--resident {
+  background: rgba(99,102,241,.1); border-color: rgba(99,102,241,.22); color: #818cf8;
+}
+.sm-preview-chip--external {
+  background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.22); color: #f59e0b;
+}
+
+/* Vertical step nav */
+.sm-step-nav { flex: 1; padding: 14px 12px; display: flex; flex-direction: column; }
+.sm-step-item {
+  display: flex; align-items: flex-start; gap: 9px;
+  padding: 7px 8px; border-radius: 7px;
+  cursor: pointer; transition: all .15s;
+}
+.sm-step-item:hover { background: rgba(255,255,255,.04); }
+.sm-step-item.active { background: rgba(0,179,179,.08); }
+.sm-step-num {
+  width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .6rem; font-weight: 700; flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,.12);
+  color: rgba(255,255,255,0.65); margin-top: 1px;
+  transition: all .2s;
+}
+.sm-step-item.active .sm-step-num {
+  background: rgba(0,179,179,.15); border-color: rgba(0,179,179,.4); color: #00B3B3;
+}
+.sm-step-item.done .sm-step-num {
+  background: #10b981; border-color: #10b981; color: #fff;
+}
+.sm-step-info { flex: 1; min-width: 0; }
+.sm-step-label {
+  font-size: .72rem; font-weight: 500;
+  color: rgba(255,255,255,0.65); letter-spacing: -.005em;
+  line-height: 1.2;
+}
+.sm-step-item.active .sm-step-label { color: #fff; font-weight: 600; }
+.sm-step-item.done .sm-step-label { color: rgba(255,255,255,0.65); }
+.sm-step-hint {
+  font-size: .56rem; font-family: var(--font-mono, monospace);
+  color: rgba(255,255,255,0.30); letter-spacing: .03em;
+  margin-top: 2px;
+}
+.sm-step-item.active .sm-step-hint { color: rgba(0,179,179,.45); }
+.sm-step-connector {
+  width: 1px; height: 10px;
+  background: rgba(255,255,255,.07);
+  margin: 0 0 0 18px; flex-shrink: 0;
+}
+.sm-step-connector.done { background: rgba(16,185,129,.35); }
+
+.sm-req-note {
+  margin: 0 12px 12px;
+  font-size: .54rem; font-family: var(--font-mono, monospace);
+  color: rgba(255,255,255,0.42); letter-spacing: .04em;
+  display: flex; align-items: center; gap: 5px;
+}
+.sm-req-dot { width: 5px; height: 5px; border-radius: 50%; background: #00B3B3; flex-shrink: 0; }
+
+/* ── RIGHT: form panel ── */
+.sm-right {
+  flex: 1; min-width: 0;
+  background: var(--surface, #fdfcfb);
+  display: flex; flex-direction: column;
+}
+
+/* Form header */
+.sm-form-header {
+  padding: 16px 22px 0;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.sm-form-title {
+  font-size: .8125rem; font-weight: 700;
+  color: var(--text-1, #111827); letter-spacing: -.01em;
+  display: flex; align-items: center; gap: 7px;
+}
+.sm-form-title svg { color: #00B3B3; flex-shrink: 0; }
+.sm-form-close {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--surface-2, #f8f9fa);
+  border: 0.5px solid var(--border, rgba(0,0,0,.08));
+  color: var(--text-3, #6b7280);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .15s;
+}
+.sm-form-close:hover { background: var(--surface-3, #f3f4f6); color: var(--text-1, #111827); }
+
+/* Form body */
+.sm-form-body {
+  flex: 1; overflow-y: auto;
+  padding: 18px 22px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.sm-form-body::-webkit-scrollbar { width: 4px; }
+.sm-form-body::-webkit-scrollbar-thumb { background: var(--border, rgba(0,0,0,.1)); border-radius: 2px; }
+
+/* Field grid */
+.sm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sm-field { display: flex; flex-direction: column; gap: 4px; }
+.sm-field.full { grid-column: 1 / -1; }
+
+/* Label */
+.sm-label {
+  font-size: .7rem; font-weight: 600;
+  color: var(--text-2, #374151); letter-spacing: -.003em;
+  display: flex; align-items: center; gap: 4px;
+}
+.sm-label .req { color: #00B3B3; font-weight: 700; }
+.sm-label .hint {
+  font-weight: 400; color: var(--text-3, #6b7280);
+  font-size: .63rem; margin-left: 1px;
+}
+
+/* Input */
+.sm-input {
+  height: 34px;
+  border: 1px solid var(--border-2, rgba(0,0,0,.1));
+  border-radius: 8px;
+  background: var(--surface-2, #f8f9fa);
+  padding: 0 11px;
+  font-size: .8rem;
+  color: var(--text-1, #111827);
+  outline: none; width: 100%;
+  transition: all .15s;
+  font-family: var(--font-ui, inherit);
+}
+.sm-input:focus {
+  border-color: #00B3B3;
+  box-shadow: 0 0 0 3px rgba(0,179,179,.1);
+  background: var(--surface, #fdfcfb);
+}
+.sm-input.filled {
+  background: var(--surface, #fdfcfb);
+  border-color: var(--border-2, rgba(0,0,0,.1));
+}
+.sm-select {
+  height: 34px;
+  border: 1px solid var(--border-2, rgba(0,0,0,.1));
+  border-radius: 8px;
+  background: var(--surface-2, #f8f9fa);
+  padding: 0 11px;
+  font-size: .8rem;
+  color: var(--text-1, #111827);
+  outline: none; width: 100%;
+  transition: all .15s;
+  font-family: var(--font-ui, inherit);
+  cursor: pointer;
+}
+.sm-select:focus { border-color: #00B3B3; box-shadow: 0 0 0 3px rgba(0,179,179,.1); background: var(--surface, #fdfcfb); }
+
+/* Section divider */
+.sm-divider {
+  display: flex; align-items: center; gap: 9px;
+  font-size: .58rem; font-family: var(--font-mono, monospace);
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-3, #6b7280); margin: 2px 0;
+}
+.sm-divider::before, .sm-divider::after {
+  content: ''; flex: 1; height: 0.5px;
+  background: var(--border, rgba(0,0,0,.08));
+}
+
+/* Network switcher */
+.sm-network { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.sm-network-opt {
+  padding: 6px 8px; border-radius: 7px;
+  border: 1px solid var(--border, rgba(0,0,0,.08));
+  background: var(--surface-2, #f8f9fa);
+  text-align: center; cursor: pointer;
+  font-size: .75rem; font-weight: 500;
+  color: var(--text-3, #6b7280);
+  transition: all .15s;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+}
+.sm-network-opt small { font-size: .58rem; font-weight: 400; color: var(--text-3, #6b7280); }
+.sm-network-opt:hover { border-color: rgba(0,179,179,.3); color: var(--text-1, #111827); }
+.sm-network-opt.active {
+  border-color: #00B3B3; background: rgba(0,179,179,.06);
+  color: #00B3B3;
+}
+.sm-network-opt.active small { color: rgba(0,179,179,.6); }
+
+/* Resident category cards */
+.sm-cat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.sm-cat-card {
+  padding: 11px 8px; border: 1px solid var(--border, rgba(0,0,0,.08));
+  border-radius: 10px; cursor: pointer;
+  text-align: center; transition: all .18s;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  position: relative; overflow: hidden;
+}
+.sm-cat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 2px; background: transparent; transition: background .18s;
+}
+.sm-cat-card:hover {
+  border-color: rgba(0,179,179,.3);
+  background: rgba(0,179,179,.03);
+}
+.sm-cat-card:hover::before { background: rgba(0,179,179,.3); }
+.sm-cat-card.active { border-color: #00B3B3; background: rgba(0,179,179,.06); }
+.sm-cat-card.active::before { background: #00B3B3; }
+.sm-cat-icon {
+  width: 30px; height: 30px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .18s;
+}
+.sm-cat-card.active .sm-cat-icon { background: rgba(0,179,179,.12); }
+.sm-cat-card:not(.active) .sm-cat-icon { background: var(--surface-2, #f8f9fa); }
+.sm-cat-name {
+  font-size: .7rem; font-weight: 600;
+  color: var(--text-1, #111827); transition: color .18s;
+}
+.sm-cat-card.active .sm-cat-name { color: #00B3B3; }
+.sm-cat-desc {
+  font-size: .58rem; color: var(--text-3, #6b7280);
+  line-height: 1.4; font-family: var(--font-mono, monospace);
+  letter-spacing: .02em;
+}
+
+/* Origin block (rotating/external) */
+.sm-origin-block {
+  background: var(--surface-2, #f8f9fa);
+  border: 1px solid var(--border, rgba(0,0,0,.08));
+  border-radius: 10px; padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+/* Capabilities grid */
+.sm-capabilities {
+  background: var(--surface-2, #f8f9fa);
+  border: 1px solid var(--border, rgba(0,0,0,.08));
+  border-radius: 10px; padding: 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.sm-cap-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: .8rem; color: var(--text-2, #374151);
+  cursor: pointer;
+}
+.sm-cap-item input[type=checkbox] { accent-color: #00B3B3; width: 14px; height: 14px; flex-shrink: 0; cursor: pointer; }
+
+/* Residency block */
+.sm-residency-row {
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px;
+  align-items: center;
+}
+.sm-residency-arrow { color: var(--text-3, #6b7280); font-size: .8rem; text-align: center; }
+
+/* Year chip */
+.sm-ryear-chip {
+  display: inline-flex; align-items: center;
+  padding: 5px 12px; border-radius: 6px;
+  background: rgba(0,179,179,.08); border: 1px solid rgba(0,179,179,.2);
+  font-size: .8rem; font-weight: 700; color: #00B3B3;
+}
+
+/* Form footer */
+.sm-form-footer {
+  padding: 12px 22px;
+  border-top: 0.5px solid var(--border, rgba(0,0,0,.08));
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface-2, #f8f9fa);
+  flex-shrink: 0;
+}
+.sm-footer-progress {
+  font-size: .63rem; font-family: var(--font-mono, monospace);
+  letter-spacing: .04em; color: var(--text-3, #6b7280);
+}
+.sm-footer-actions { display: flex; gap: 7px; align-items: center; }
+.sm-btn-back {
+  padding: 6px 14px; border-radius: 7px;
+  border: 0.5px solid var(--border, rgba(0,0,0,.1));
+  background: transparent; font-size: .78rem;
+  color: var(--text-2, #374151); cursor: pointer;
+  transition: all .15s;
+}
+.sm-btn-back:hover { background: var(--surface-3, #f3f4f6); }
+.sm-btn-next {
+  padding: 7px 18px; border-radius: 7px;
+  background: #00B3B3; border: none;
+  font-size: .78rem; font-weight: 600; color: #fff;
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: all .15s;
+}
+.sm-btn-next:hover { background: #009999; }
+.sm-btn-next:disabled { opacity: .45; cursor: not-allowed; }
+.sm-btn-save {
+  padding: 7px 18px; border-radius: 7px;
+  background: #00B3B3; border: none;
+  font-size: .78rem; font-weight: 600; color: #fff;
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: all .15s;
+}
+.sm-btn-save:hover { background: #009999; }
+.sm-btn-save:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Edit mode tab bar (reuses modal-tabs but inside sm-right) */
+.sm-edit-tabs {
+  display: flex; gap: 2px;
+  border-bottom: 0.5px solid var(--border, rgba(0,0,0,.08));
+  padding: 8px 22px 0; flex-shrink: 0;
+  background: var(--surface-2, #f8f9fa);
+}
+.sm-edit-tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 7px 12px; font-size: .78rem; font-weight: 500;
+  color: var(--text-3, #6b7280);
+  border-bottom: 2px solid transparent;
+  cursor: pointer; background: none; border-top: none; border-left: none; border-right: none;
+  white-space: nowrap; transition: all .15s;
+}
+.sm-edit-tab.active { color: #00B3B3; border-bottom-color: #00B3B3; }
+
+/* Inline hospital add */
+.sm-inline-add {
+  background: var(--surface-2, #f8f9fa);
+  border: 1px solid var(--border, rgba(0,0,0,.08));
+  border-radius: 10px; padding: 14px; margin-top: 8px;
+}
+.sm-inline-add-label {
+  font-size: .62rem; font-family: var(--font-mono, monospace);
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-3, #6b7280); margin-bottom: 10px;
+}
+
+/* ── Degree block ───────────────────────────────────────────── */
+.sm-degree-block {
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--surface-2,#f8f9fa);
+  border: 1px solid var(--border,rgba(0,0,0,.08));
+  border-radius: 10px; padding: 14px;
+}
+.sm-degree-baseline {
+  display: flex; align-items: center; gap: 10px;
+}
+.sm-degree-badge-md {
+  font-size: .65rem; font-family: var(--font-mono,monospace);
+  font-weight: 700; padding: 4px 10px; border-radius: 6px;
+  background: rgba(0,179,179,.1); border: 1px solid rgba(0,179,179,.2);
+  color: #00B3B3; letter-spacing: .06em; flex-shrink: 0;
+}
+.sm-degree-badge-phd {
+  font-size: .65rem; font-family: var(--font-mono,monospace);
+  font-weight: 700; padding: 3px 8px; border-radius: 5px;
+  background: rgba(99,102,241,.1); border: 0.5px solid rgba(99,102,241,.2);
+  color: #818cf8; letter-spacing: .06em; flex-shrink: 0;
+}
+.sm-degree-baseline-name {
+  font-size: .8rem; font-weight: 600; color: var(--text-1,#111827);
+}
+.sm-degree-baseline-hint {
+  font-size: .65rem; color: var(--text-3,#6b7280); font-family: var(--font-mono,monospace);
+}
+.sm-degree-phd-check {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  padding: 8px 10px; border-radius: 8px;
+  border: 1px solid var(--border,rgba(0,0,0,.08));
+  background: var(--surface,#fdfcfb); transition: all .15s;
+}
+.sm-degree-phd-check:hover { border-color: rgba(99,102,241,.3); background: rgba(99,102,241,.03); }
+.sm-degree-phd-info { display: flex; align-items: center; gap: 8px; }
+
+/* ── Role rows ──────────────────────────────────────────────── */
+.sm-roles-section { display: flex; flex-direction: column; gap: 4px; }
+.sm-roles-section-label {
+  font-size: .58rem; font-family: var(--font-mono,monospace);
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--text-3,#6b7280); padding: 6px 0 4px;
+  display: flex; align-items: center; gap: 8px;
+}
+.sm-roles-section-label::after { content:''; flex:1; height:0.5px; background:var(--border,rgba(0,0,0,.08)); }
+
+.sm-role-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; border-radius: 8px;
+  border: 1px solid var(--border,rgba(0,0,0,.08));
+  background: var(--surface,#fdfcfb); transition: all .15s;
+  cursor: pointer;
+}
+.sm-role-row:hover { border-color: rgba(0,179,179,.25); }
+.sm-role-row.active { border-color: rgba(0,179,179,.3); background: rgba(0,179,179,.04); }
+.sm-role-row.muted { opacity: .5; cursor: not-allowed; }
+.sm-role-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.sm-role-name { font-size: .78rem; font-weight: 500; color: var(--text-1,#111827); }
+.sm-role-hint { font-size: .65rem; color: var(--text-3,#6b7280); font-family: var(--font-mono,monospace); margin-top: 1px; }
+
+/* Toggle switch */
+.sm-toggle {
+  width: 32px; height: 18px; border-radius: 9px;
+  background: var(--border-2,rgba(0,0,0,.15));
+  position: relative; flex-shrink: 0;
+  transition: background .2s; cursor: pointer;
+}
+.sm-toggle.on { background: #00B3B3; }
+.sm-toggle.disabled { opacity: .4; cursor: not-allowed; }
+.sm-toggle-thumb {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; position: absolute;
+  top: 2px; left: 2px; transition: transform .2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+.sm-toggle.on .sm-toggle-thumb { transform: translateX(14px); }
+
+/* Role sub-panel */
+.sm-role-sub {
+  margin: 0 0 4px 22px;
+  background: rgba(0,179,179,.03);
+  border: 1px solid rgba(0,179,179,.15);
+  border-radius: 8px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.sm-role-sub-label {
+  font-size: .58rem; font-family: var(--font-mono,monospace);
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-3,#6b7280); margin-bottom: 5px;
+}
+.sm-role-line-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; border-radius: 6px; cursor: pointer;
+  font-size: .78rem; color: var(--text-2,#374151);
+  transition: all .12s;
+}
+.sm-role-line-item:hover { background: rgba(0,179,179,.06); }
+.sm-role-line-item.selected { background: rgba(0,179,179,.1); color: #00B3B3; font-weight: 500; }
+.sm-role-line-n {
+  font-family: var(--font-mono,monospace); font-size: .65rem;
+  color: var(--text-3,#6b7280); width: 22px; flex-shrink: 0;
+}
+.sm-role-line-item.selected .sm-role-line-n { color: rgba(0,179,179,.7); }
+.sm-role-line-name { flex: 1; }
+
+/* Role capability options */
+.sm-role-cap-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.sm-role-cap-opt {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border-radius: 7px;
+  border: 1px solid var(--border,rgba(0,0,0,.08));
+  font-size: .75rem; color: var(--text-2,#374151);
+  cursor: pointer; transition: all .15s; background: var(--surface,#fdfcfb);
+  flex: 1;
+}
+.sm-role-cap-opt:hover { border-color: rgba(0,179,179,.3); }
+.sm-role-cap-opt.active { border-color: rgba(0,179,179,.3); background: rgba(0,179,179,.06); color: #00B3B3; }
+
+/* Continue button — pulses teal when step 1 is complete */
+.sm-btn-next--ready {
+  animation: btnReadyPulse 2s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(0,179,179,.4);
+}
+@keyframes btnReadyPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(0,179,179,.4); }
+  60%  { box-shadow: 0 0 0 7px rgba(0,179,179,0); }
+  100% { box-shadow: 0 0 0 0 rgba(0,179,179,0); }
+}
+
+/* Absence reason grid — 3 cols, same card pattern as sm-cat-card */
+.sm-reason-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+/* sm-cat-card already covers the card styles — sm-reason-grid uses same cards */
+
+/* ── Clinical Trial — multi-select investigator grid ─────── */
+.sm-multi-check-grid {
+  display: flex; flex-wrap: wrap; gap: 5px;
+}
+.sm-check-pill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 99px; cursor: pointer;
+  font-size: .72rem; font-weight: 500;
+  border: 0.5px solid var(--border,rgba(0,0,0,.08));
+  background: var(--surface,#fdfcfb);
+  color: var(--text-2,#374151); transition: all .15s;
+}
+.sm-check-pill:hover { border-color: rgba(0,179,179,.3); }
+.sm-check-pill.active {
+  border-color: rgba(0,179,179,.35);
+  background: rgba(0,179,179,.07);
+  color: #00B3B3; font-weight: 600;
+}
+.sm-check-pill .hidden { display: none; }
+
+/* ── News modal — container ───────────────────────────────── */
+.nm-modal {
+  background: var(--surface,#fdfcfb);
+  border-radius: 16px;
+  width: min(700px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0,0,0,.22), 0 0 0 0.5px rgba(0,0,0,.08);
+}
+
+/* ── News modal — dark header strip ──────────────────────── */
+.nm-header {
+  background: #0f2d54;
+  padding: 14px 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-shrink: 0;
+  border-bottom: 0.5px solid rgba(255,255,255,.06);
+}
+.nm-header-left  { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.nm-header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.nm-type-icon {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  background: rgba(0,179,179,.1); border: 0.5px solid rgba(0,179,179,.2);
+  display: flex; align-items: center; justify-content: center;
+}
+.nm-header-meta  { min-width: 0; }
+.nm-header-title {
+  font-size: .82rem; font-weight: 700; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px;
+}
+.nm-header-sub   { display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+.nm-type-badge   { font-size: .6rem; font-family: monospace; letter-spacing: .08em; color: #00B3B3; text-transform: uppercase; }
+
+.nm-status-badge {
+  font-size: .6rem; font-family: monospace; padding: 3px 8px; border-radius: 99px;
+  font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  background: rgba(245,158,11,.1); color: #f59e0b; border: 0.5px solid rgba(245,158,11,.2);
+}
+
+/* ── Post type switcher bar ───────────────────────────────── */
+.nm-type-bar {
+  display: flex; gap: 0; padding: 0 18px;
+  background: var(--surface-2,#f5f4f0);
+  border-bottom: 0.5px solid var(--border,#e3dfd6);
+  flex-shrink: 0;
+}
+.nm-type-opt {
+  display: flex; align-items: center; gap: 5px;
+  padding: 9px 13px; font-size: .72rem; font-weight: 500;
+  color: var(--text-3,#5a6472); cursor: pointer; background: none; border: none;
+  border-bottom: 2px solid transparent; margin-bottom: -0.5px;
+  transition: all .15s; white-space: nowrap;
+}
+.nm-type-opt:hover { color: var(--text-1,#07111f); }
+.nm-type-opt.active { color: #009999; border-bottom-color: #009999; font-weight: 600; }
+
+/* ── Tabs ─────────────────────────────────────────────────── */
+.nm-tabs {
+  display: flex; padding: 0 18px; gap: 0;
+  border-bottom: 0.5px solid var(--border,#e3dfd6);
+  flex-shrink: 0; background: var(--surface,#fdfcfb);
+}
+.nm-tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 10px 14px; font-size: .75rem; font-weight: 500;
+  color: var(--text-3,#5a6472); cursor: pointer; background: none; border: none;
+  border-bottom: 2px solid transparent; margin-bottom: -0.5px;
+  transition: all .15s;
+}
+.nm-tab:hover { color: var(--text-1,#07111f); }
+.nm-tab.active { color: #009999; border-bottom-color: #009999; font-weight: 600; }
+
+/* ── Tab body ─────────────────────────────────────────────── */
+.nm-body {
+  flex: 1; overflow-y: auto; padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+/* ── Empty state ─────────────────────────────────────────── */
+.nm-tab-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 32px 16px; text-align: center;
+  color: var(--text-3,#5a6472); font-size: .78rem;
+  flex: 1;
+}
+.nm-tab-empty svg { opacity: .3; }
+
+/* ── Footer ──────────────────────────────────────────────── */
+.nm-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px;
+  border-top: 0.5px solid var(--border,#e3dfd6);
+  background: var(--surface-2,#f5f4f0);
+  flex-shrink: 0;
+}
+
+/* ── sm-field-hint ────────────────────────────────────────── */
+.sm-field-hint {
+  font-size: .65rem; color: var(--text-3,#5a6472);
+  font-family: monospace; margin-top: 3px;
+}
+
+/* ── Dashboard quick actions ────────────────────────────────── */
+.db-quick-actions {
+  display: flex; align-items: center; gap: 0;
+  background: var(--surface,#fdfcfb); border: .5px solid var(--border,#e3dfd6);
+  border-radius: 10px; padding: 6px 10px;
+  flex-shrink: 0;
+}
+.db-qa-btn {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11.5px; font-weight: 500; color: var(--text-2,#344154);
+  padding: 5px 10px; border-radius: 6px; border: none;
+  background: none; cursor: pointer; white-space: nowrap;
+  transition: background .12s;
+}
+.db-qa-btn:hover { background: var(--surface-2,#f5f4f0); }
+.db-qa-btn--primary {
+  background: #009999; color: #fff; border-radius: 6px;
+}
+.db-qa-btn--primary:hover { background: #008080; }
+.db-qa-divider { width: .5px; height: 18px; background: var(--border,#e3dfd6); flex-shrink: 0; }
+
+/* ── Dashboard KPI number font ──────────────────────────────── */
+.db-kpi-val {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 2rem; font-weight: 700; color: var(--text-1,#07111f);
+  line-height: 1; letter-spacing: -.02em;
+}
+
+/* ── Table: initials avatar ─────────────────────────────────── */
+.staff-table-av {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.staff-table-av--attending { background: linear-gradient(135deg,#009999,#4A9EE8); }
+.staff-table-av--resident  { background: linear-gradient(135deg,#1e40af,#0e7490); }
+.staff-table-av--leave     { background: linear-gradient(135deg,#854f0b,#ba7517); }
+
+/* ── Table: teal left blade on hover ────────────────────────── */
+.staff-table-row { transition: background .1s; position: relative; }
+.staff-table-row:hover { background: rgba(0,153,153,.03) !important; }
+.staff-table-row:hover td:first-child { box-shadow: inset 3px 0 0 #009999; }
+
+/* ── Table: active-dot for active rows ──────────────────────── */
+.status-active-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: #639922;
+}
+
+/* ── Table: specialization text ─────────────────────────────── */
+.staff-spec-text {
+  font-size: 12px; color: var(--text-2,#344154); font-style: italic;
+}
+
+/* ── Compact: role-based avatars ────────────────────────────── */
+.scc-avatar--attending { background: linear-gradient(135deg,#009999,#4A9EE8) !important; }
+.scc-avatar--resident  { background: linear-gradient(135deg,#1e40af,#0e7490) !important; }
+.scc-avatar--leave     { background: linear-gradient(135deg,#854f0b,#ba7517) !important; }
+
+/* ── Compact: specialization text ───────────────────────────── */
+.scc-spec-text {
+  font-size: 10.5px; color: var(--text-3,#5a6472);
+  font-style: italic; margin-top: 2px;
+}
+
+/* ── Compact: 3-col grid (was auto-fill 260px) ──────────────── */
+.scc-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 16px;
+}
+
+/* ── Compact: min card height so cards align ────────────────── */
+.scc { min-height: 72px; align-items: flex-start !important; }
+
+/* ── Dashboard: section gap breathing room ──────────────────── */
+.db-kpi-bar  { gap: 14px; margin-bottom: 22px; }
+.db-content-grid { gap: 16px; }
+.db-oc-row   { padding: 10px 0; }
+.db-rot-row  { padding: 9px 0; }
+.db-gap-grid { gap: 8px; padding: 4px 0; }
+
+/* ── "No backup" amber warning ──────────────────────────────── */
+.db-oc-gap--warn {
+  font-size: 11px; color: #854f0b; font-family: monospace;
+  font-style: normal;
+}
+
+/* ── Dashboard page background warm ─────────────────────────── */
+.db-greeting { margin-bottom: 24px; }
+.db-greeting-time { font-size: 11px; color: var(--text-3,#5a6472); font-family: monospace; letter-spacing: .04em; margin-bottom: 4px; }
+.db-greeting-title { font-size: 28px; font-weight: 400; color: var(--text-1,#07111f); font-family: 'Fraunces', Georgia, serif; font-style: italic; line-height: 1.15; }
+.db-greeting-title span { color: #009999; }
+
+/* Grouped sections divider in compact ──────────────────────── */
+.scc-section-divider {
+  grid-column: 1 / -1;
+  font-size: 10px; font-weight: 600; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--text-3,#5a6472);
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 0;
+}
+.scc-section-divider::before,
+.scc-section-divider::after {
+  content: ''; flex: 1; height: .5px; background: var(--border,#e3dfd6);
+}
+
+/* ════════════════════════════════════════════════════════
+   DASHBOARD REDESIGN
+   ════════════════════════════════════════════════════════ */
+
+/* ── Page background ── */
+.app-main { background: #f5f4f0; }
+
+/* ── Greeting ── */
+.db-greeting {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; margin-bottom: 22px;
+  font-family: var(--font-display, Georgia, serif);
+}
+.db-greeting-time { font-size: 11px; color: var(--text-4); font-family: monospace; letter-spacing: .04em; margin-bottom: 3px; }
+.db-greeting-title { font-size: 28px; font-weight: 400; color: var(--text-1); font-style: italic; line-height: 1.1; }
+.db-greeting-title span { color: #009999; }
+
+/* ── Quick actions bar ── */
+.db-quick-actions {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 10px; padding: 7px 10px; flex-shrink: 0;
+}
+.db-qa-btn {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11.5px; font-weight: 500; color: var(--text-2);
+  padding: 5px 9px; border-radius: 6px; background: none; border: none;
+  cursor: pointer; white-space: nowrap; transition: all .12s;
+}
+.db-qa-btn:hover { background: var(--surface-2); }
+.db-qa-btn--primary { background: #009999; color: #fff; }
+.db-qa-btn--primary:hover { background: #008080; }
+.db-qa-divider { width: 0.5px; height: 16px; background: var(--border); flex-shrink: 0; }
+
+/* ── Alert ribbon ── */
+.dbr-strip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; margin-bottom: 22px;
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 10px; overflow-x: auto;
+}
+.dbr-label {
+  font-size: 10px; font-family: monospace; font-weight: 700;
+  color: #009999; letter-spacing: .08em; text-transform: uppercase;
+  background: rgba(0,153,153,.08); padding: 3px 8px; border-radius: 4px;
+  flex-shrink: 0; display: flex; align-items: center; gap: 4px;
+}
+.dbr-item {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11.5px; padding: 4px 10px; border-radius: 6px;
+  cursor: pointer; white-space: nowrap; transition: opacity .12s;
+}
+.dbr-item:hover { opacity: .8; }
+.dbr-item--urgent  { background: rgba(226,75,74,.07);  color: #a32d2d; }
+.dbr-item--warning { background: rgba(239,159,39,.08); color: #854f0b; }
+.dbr-item--info    { background: rgba(55,138,221,.07); color: #185fa5; }
+.dbr-item--ok      { background: rgba(99,153,34,.07);  color: #3b6d11; }
+.dbr-strip--clear  { color: var(--text-3); font-size: 12.5px; gap: 8px; }
+
+/* ── KPI bar ── */
+.db-kpi-bar { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 22px; }
+.db-kpi {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 12px; padding: 18px 18px 16px;
+  display: flex; align-items: flex-start; gap: 13px;
+  cursor: pointer; transition: all .12s;
+  position: relative; overflow: hidden;
+}
+.db-kpi:hover { border-color: var(--border-2); box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.db-kpi-icon {
+  width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.db-kpi-body { flex: 1; min-width: 0; }
+.db-kpi-val   { font-size: 30px; font-weight: 700; color: var(--text-1); line-height: 1; letter-spacing: -.02em; font-family: var(--font-display, Georgia, serif); }
+.db-kpi-label { font-size: 12px; color: var(--text-3); margin-top: 3px; font-weight: 500; }
+.db-kpi-sub   { display: flex; gap: 0; flex-wrap: wrap; margin-top: 8px; font-size: 10.5px; color: var(--text-3); font-family: monospace; }
+.db-kpi-dot   { display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+.db-kpi-dot--ok     { background: #639922; }
+.db-kpi-dot--blue   { background: #4A9EE8; }
+.db-kpi-dot--warn   { background: #ef9f27; }
+.db-kpi-dot--purple { background: #534ab7; }
+
+/* ── Content grid ── */
+.db-content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.db-content-card { padding: 0; }
+.db-content-card--full { grid-column: 1 / -1; }
+.db-cc-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 18px; border-bottom: 0.5px solid var(--border);
+}
+.db-cc-title { font-size: 11px; font-weight: 600; color: var(--text-2); letter-spacing: .06em; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+.db-cc-link  { font-size: 11px; color: #009999; font-family: monospace; background: none; border: none; cursor: pointer; }
+
+/* On-call rows */
+.db-oc-row { display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-bottom: 0.5px solid var(--border-3, rgba(0,0,0,.04)); }
+.db-oc-row:last-child { border-bottom: none; }
+.db-oc-date { font-size: 11px; font-family: monospace; color: var(--text-3); width: 54px; flex-shrink: 0; }
+.db-oc-date--today { color: #009999; font-weight: 700; }
+.db-oc-slot { display: flex; align-items: center; gap: 8px; flex: 1; padding: 5px 9px; border-radius: 7px; }
+.db-oc-slot--ok   { background: rgba(0,153,153,.05); }
+.db-oc-slot--gap  { background: rgba(226,75,74,.05); cursor: pointer; }
+.db-oc-slot--backup { flex: 0 0 auto; min-width: 140px; }
+.db-oc-avatar { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg,#009999,#4A9EE8); display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.db-oc-avatar--backup { background: rgba(0,0,0,.12); }
+.db-oc-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.db-oc-name { font-size: 12px; font-weight: 600; color: var(--text-1); }
+.db-oc-time { font-size: 10px; font-family: monospace; color: var(--text-3); }
+.db-oc-badge { font-size: 9.5px; font-weight: 600; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; }
+.db-oc-badge--primary { background: rgba(0,153,153,.08); color: #009999; border: 0.5px solid rgba(0,153,153,.18); }
+.db-oc-badge--backup  { background: rgba(0,0,0,.05); color: var(--text-3); }
+.db-oc-gap { font-size: 11px; color: #a32d2d; font-weight: 500; }
+.db-oc-gap--warn { font-size: 10.5px; color: #854f0b; font-family: monospace; }
+.db-oc-gap--soft { font-size: 10.5px; color: #854f0b; font-family: monospace; }
+.db-oc-assign { font-size: 10.5px; color: #009999; margin-left: auto; font-family: monospace; cursor: pointer; }
+
+/* Rotation rows */
+.db-rot-row { display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-bottom: 0.5px solid var(--border-3, rgba(0,0,0,.04)); }
+.db-rot-row:last-child { border-bottom: none; }
+.db-rot-avatar { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg,#1e40af,#0e7490); display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.db-rot-avatar--start { background: linear-gradient(135deg,#3b6d11,#1d9e75); }
+.db-rot-info { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.db-rot-name { font-size: 12px; font-weight: 600; color: var(--text-1); }
+.db-rot-unit { font-size: 11px; color: var(--text-3); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-rot-chip { font-size: 10px; font-family: monospace; padding: 2px 8px; border-radius: 4px; flex-shrink: 0; }
+.db-rot-chip--ending  { background: rgba(239,159,39,.08); color: #854f0b; border: 0.5px solid rgba(239,159,39,.25); }
+.db-rot-chip--starting{ background: rgba(99,153,34,.08); color: #3b6d11; border: 0.5px solid rgba(99,153,34,.2); }
+
+.db-cc-empty { padding: 20px 18px; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-3); }
+
+/* Resident gap section */
+.db-gap-grid { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 18px 16px; }
+.db-gap-item {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 9px; padding: 8px 12px; cursor: pointer;
+  transition: border-color .12s;
+}
+.db-gap-item:hover { border-color: #ef9f27; }
+.db-gap-avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: linear-gradient(135deg,#1e40af,#0e7490);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.db-gap-info { display: flex; flex-direction: column; }
+.db-gap-name { font-size: 12px; font-weight: 600; color: var(--text-1); }
+.db-gap-year { font-size: 9px; font-family: monospace; color: var(--text-3); }
+.db-gap-pills { display: flex; gap: 3px; }
+.db-gap-pill {
+  font-size: 9.5px; font-family: monospace; padding: 2px 6px; border-radius: 3px;
+  background: rgba(239,159,39,.1); color: #854f0b; border: 0.5px solid rgba(239,159,39,.25);
+}
+.db-gap-add { font-size: 14px; color: var(--text-4); margin-left: 4px; }
+
+/* ════════════════════════════════════════════════════════
+   MEDICAL STAFF TABLE — REDESIGN
+   ════════════════════════════════════════════════════════ */
+
+/* Table row hover — teal left blade */
+.staff-table-row { cursor: pointer; transition: all .1s; }
+.staff-table-row:hover { background: rgba(0,153,153,.03); box-shadow: inset 3px 0 0 #009999; }
+
+/* Initials avatar in table */
+.staff-table-av {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: #fff;
+}
+.staff-table-av--attending { background: linear-gradient(135deg,#009999,#4A9EE8); }
+.staff-table-av--resident  { background: linear-gradient(135deg,#1e40af,#0e7490); }
+.staff-table-av--leave     { background: linear-gradient(135deg,#854f0b,#ba7517); }
+
+/* Specialization text */
+.staff-spec-text { font-size: 12px; color: var(--text-3); font-style: italic; }
+
+/* Active status dot — small green dot instead of full badge */
+.status-active-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: #639922; vertical-align: middle;
+}
+
+/* ════════════════════════════════════════════════════════
+   MEDICAL STAFF COMPACT — REDESIGN
+   ════════════════════════════════════════════════════════ */
+
+/* 3-column grid, fixed min height */
+.scc-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 16px;
+}
+
+/* Avatar colour by role */
+.scc-avatar--attending { background: linear-gradient(135deg,#009999,#4A9EE8) !important; }
+.scc-avatar--resident  { background: linear-gradient(135deg,#1e40af,#0e7490) !important; }
+.scc-avatar--leave     { background: linear-gradient(135deg,#854f0b,#ba7517) !important; }
+
+/* Specialization line */
+.scc-spec-text { font-size: 10.5px; color: var(--text-3); font-style: italic; margin-top: 2px; }
+
+/* Remove dept text styling — now shows institution */
+.scc-dept-text { font-size: 10.5px; color: #854f0b; font-family: monospace; }
+
+/* Section dividers in compact view */
+.scc-section-divider {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--text-3);
+  padding: 4px 0;
+}
+.scc-section-divider::before,
+.scc-section-divider::after { content:''; flex:1; height:.5px; background: var(--border); }
+
+/* Card spacing */
+.scc { min-height: 80px; }
+
+/* ════════════════════════════════════════════════════════
+   TRAINING UNIT CARD — CAPACITY BAR + CLEANUP
+   ════════════════════════════════════════════════════════ */
+
+/* Unit name — allow wrap, remove truncation */
+.tuc-name {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 13.5px; font-style: italic; font-weight: 400;
+  color: var(--text-1, #07111f); letter-spacing: -.01em;
+  white-space: normal; word-break: break-word; line-height: 1.3;
+}
+
+/* Supervisor in sub line */
+.tuc-specialty { font-size: 11px; color: var(--text-3); }
+.tuc-sub-sep   { font-size: 11px; color: var(--border-2); margin: 0 3px; }
+.tuc-supervisor{ font-size: 11px; color: var(--text-3); font-style: italic; }
+
+/* Capacity progress block */
+.tuc-cap-block { display: flex; flex-direction: column; gap: 3px; min-width: 52px; align-items: flex-end; }
+.tuc-cap-nums  { display: flex; align-items: baseline; gap: 1px; }
+.tuc-cap-current { font-size: 14px; font-weight: 700; font-family: var(--font-data, monospace); line-height: 1; }
+.tuc-cap-sep   { font-size: 11px; color: var(--text-4); margin: 0 1px; }
+.tuc-cap-max   { font-size: 11px; color: var(--text-4); }
+.tuc-cap-bar   { width: 52px; height: 5px; border-radius: 3px; background: var(--surface-3, #edebe5); overflow: hidden; }
+.tuc-cap-fill  { height: 100%; border-radius: 3px; transition: width .3s ease; }
+
+/* ════════════════════════════════════════════════════════
+   RESEARCH HUB — coordinator in nav, trial status
+   ════════════════════════════════════════════════════════ */
+
+/* Line nav — coordinator shown */
+.rp-nav-coord {
+  font-size: 10px; color: rgba(255,255,255,.38); font-family: monospace;
+  display: flex; align-items: center; gap: 4px; margin-top: 1px;
+}
+.rp-nav-coord-av {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: rgba(0,179,179,.25); display: inline-flex;
+  align-items: center; justify-content: center;
+  font-size: 7px; font-weight: 700; color: #00B3B3; flex-shrink: 0;
+}
+
+/* Trial status — live pulse for recruiting */
+@keyframes recruitPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .4; }
+}
+.rp-trial-status--recruiting::before {
+  content: '';
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: #10b981; margin-right: 5px; vertical-align: middle;
+  animation: recruitPulse 1.8s ease-in-out infinite;
+}
+.rp-trial-status--active::before {
+  content: '';
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: #009999; margin-right: 5px; vertical-align: middle;
+}
+.rp-trial-status--done {
+  opacity: .55;
+}
+
+/* ════════════════════════════════════════════════════════
+   FA-SPIN — CSS spinner for loading states
+   ════════════════════════════════════════════════════════ */
+.fa-spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ════════════════════════════════════════════════════════
+   MOBILE — comprehensive responsive layer
+   ════════════════════════════════════════════════════════ */
+
+/* ── sm-modal (two-panel forms) at mobile ── */
+@media (max-width: 640px) {
+  .sm-modal {
+    flex-direction: column !important;
+    max-height: 96vh;
+    border-radius: 16px 16px 0 0;
+    margin: auto 0 0;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .sm-left {
+    width: 100% !important;
+    flex-direction: row !important;
+    align-items: center;
+    padding: 14px 16px;
+    min-height: unset;
+    border-right: none;
+    border-bottom: 0.5px solid rgba(255,255,255,.08);
+    flex-shrink: 0;
+  }
+  .sm-preview {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 0;
+    border-bottom: none;
+    flex: 1;
+    min-width: 0;
+  }
+  .sm-preview-avatar {
+    width: 40px; height: 40px;
+    flex-shrink: 0;
+  }
+  .sm-preview-name  { font-size: .82rem; text-align: left; }
+  .sm-preview-role  { display: none; }
+  .sm-preview-chips { display: none; }
+  .sm-step-nav      { display: none; }
+  .sm-req-note      { display: none; }
+  .sm-right         { flex: 1; overflow-y: auto; }
+  .sm-form-body     { padding: 14px 16px; }
+  .sm-row           { grid-template-columns: 1fr; }
+
+  /* News modal at mobile */
+  .nm-modal {
+    border-radius: 16px 16px 0 0;
+    margin: auto 0 0;
+    width: 100%;
+    max-height: 96vh;
+  }
+  .nm-type-bar { overflow-x: auto; }
+}
+
+/* ── Quick actions bar at mobile ── */
+@media (max-width: 700px) {
+  .db-quick-actions {
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px 8px;
+  }
+  .db-qa-divider { display: none; }
+  .db-qa-btn { font-size: 11px; padding: 4px 7px; }
+  .db-greeting { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
+
+/* ── Compact staff cards at mobile ── */
+@media (max-width: 640px) {
+  .scc-grid {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    gap: 8px;
+  }
+}
+@media (min-width: 641px) and (max-width: 900px) {
+  .scc-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── Dashboard at mobile ── */
+@media (max-width: 640px) {
+  .db-kpi-bar        { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .db-kpi            { padding: 12px; }
+  .db-kpi-val        { font-size: 22px; }
+  .db-kpi-icon       { width: 28px; height: 28px; }
+  .db-content-grid   { grid-template-columns: 1fr; }
+  .db-gap-grid       { gap: 6px; }
+  .db-gap-item       { flex-wrap: wrap; }
+}
+
+/* ── Training unit grid at mobile ── */
+@media (max-width: 640px) {
+  .training-units-grid,
+  .tu-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ── Table at mobile — horizontal scroll ── */
+@media (max-width: 768px) {
+  .table-responsive-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-staff { min-width: 640px; }
+}
+
+/* ── Modal overlay at mobile — bottom sheet ── */
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .sm-modal {
+    border-radius: 16px 16px 0 0 !important;
+  }
+}
+
+/* ── Research line detail panel — L-number hero ── */
+.rldp-number-hero {
+  font-family: var(--font-display, 'Fraunces', Georgia, serif);
+  font-size: 42px; font-weight: 700; font-style: italic;
+  color: #009999; line-height: .9; flex-shrink: 0;
+  letter-spacing: -.03em;
+  filter: drop-shadow(0 0 16px rgba(0,179,179,.2));
+}
+/* Hide old rldp-number */
+.rldp-number { display: none; }
+
+/* ════════════════════════════════════════════════════════
+   RESEARCH HUB — Creative typography system
+   ════════════════════════════════════════════════════════ */
+
+/* Tab bar — warm surface, left-aligned, editorial feel */
+.rhub-tabs {
+  display: flex; align-items: center; gap: 0;
+  border-bottom: 0.5px solid var(--border, #e3dfd6);
+  background: var(--surface, #fdfcfb);
+  padding: 0 2px; margin-bottom: 0;
+}
+.rhub-tab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 11px 16px; border: none; background: none;
+  font-size: 12.5px; font-weight: 500; color: var(--text-3, #5a6472);
+  cursor: pointer; border-bottom: 2px solid transparent;
+  margin-bottom: -0.5px; transition: color .15s, border-color .15s;
+  white-space: nowrap; letter-spacing: 0;
+}
+.rhub-tab:hover { color: var(--text-1, #07111f); }
+.rhub-tab--active {
+  color: #009999; border-bottom-color: #009999; font-weight: 600;
+}
+.rhub-tab-count {
+  font-family: monospace; font-size: 10px; font-weight: 600;
+  padding: 1px 6px; border-radius: 10px;
+  background: var(--surface-2, #f5f4f0);
+  color: var(--text-3, #5a6472);
+  border: 0.5px solid var(--border, #e3dfd6);
+}
+.rhub-tab--active .rhub-tab-count {
+  background: rgba(0,179,179,.1); color: #009999;
+  border-color: rgba(0,179,179,.25);
+}
+
+/* ════════════════════════════════════════════════════════
+   RESEARCH HUB — CREATIVE TYPOGRAPHY SYSTEM
+   Rule: Fraunces italic for numbers/codes · DM Sans for names/prose
+   ════════════════════════════════════════════════════════ */
+
+/* ── Tab bar — teal accent, not blue ── */
+.rhub-tabs { border-bottom: 1.5px solid var(--border); }
+.rhub-tab { font-size: 12.5px; font-weight: 500; }
+.rhub-tab--active { color: #009999; border-bottom-color: #009999; }
+.rhub-tab--active .rhub-tab-count {
+  background: rgba(0,153,153,.08); color: #009999;
+  border-color: rgba(0,153,153,.2);
+}
+.rhub-tab:hover { color: var(--text-2); }
+
+/* ── L-number hero in detail head ── */
+.rp-detail-num {
+  font-family: var(--font-display, Georgia, serif) !important;
+  font-size: 64px !important; font-weight: 400 !important;
+  font-style: italic !important; line-height: .85 !important;
+  letter-spacing: -.04em !important;
+  display: block; margin-bottom: 10px;
+}
+
+/* ── Line title — calm DM Sans, never bold ── */
+.rp-detail-title {
+  font-family: var(--font-ui, 'DM Sans', sans-serif) !important;
+  font-size: 14px !important; font-weight: 500 !important;
+  font-style: normal !important; letter-spacing: 0 !important;
+  line-height: 1.4 !important; opacity: .9;
+}
+
+/* ── Portfolio KPI strip — Fraunces numbers ── */
+.rp-kpi-val {
+  font-style: italic !important;
+  letter-spacing: -.03em !important;
+}
+.rp-kpi-label {
+  font-size: 9px !important; letter-spacing: .12em !important;
+  text-transform: uppercase !important; font-weight: 600 !important;
+  opacity: .7;
+}
+
+/* ── Left nav ── */
+.rp-nav { background: #0f2d54 !important; }
+.rp-nav-item { border-radius: 6px; padding: 10px 10px; }
+.rp-nav-item:hover { background: rgba(255,255,255,.06) !important; }
+.rp-nav-item--active { background: rgba(0,179,179,.12) !important; box-shadow: none !important; }
+
+.rp-nav-badge {
+  background: transparent !important; border: none !important;
+  font-family: var(--font-display, Georgia, serif) !important;
+  font-size: 18px !important; font-weight: 400 !important;
+  font-style: italic !important; color: #00B3B3 !important;
+  letter-spacing: -.03em !important; width: 36px !important;
+  height: 36px !important; border-radius: 0 !important;
+  justify-content: flex-start !important; padding-left: 2px !important;
+}
+.rp-nav-item--active .rp-nav-badge { color: #00B3B3 !important; }
+
+.rp-nav-name {
+  color: rgba(255,255,255,.85) !important;
+  font-size: 12px !important; font-weight: 400 !important;
+  white-space: normal !important; word-break: break-word !important;
+  line-height: 1.35 !important;
+}
+.rp-nav-item--active .rp-nav-name { color: #fff !important; font-weight: 500 !important; }
+
+.rp-nav-meta { color: rgba(255,255,255,.35) !important; font-size: 10px !important; }
+.rp-nav-dot  { background: rgba(255,255,255,.2) !important; }
+
+/* Coordinator in nav */
+.rp-nav-coord { color: rgba(255,255,255,.35) !important; }
+.rp-nav-coord-av { background: rgba(0,179,179,.2) !important; }
+
+/* Keywords in nav */
+.rp-nav-kw {
+  background: rgba(255,255,255,.07) !important;
+  color: rgba(255,255,255,.5) !important;
+  border-color: transparent !important;
+  font-size: 9px !important;
+}
+
+/* ── Detail panel ── */
+.rp-detail { background: var(--surface) !important; }
+.rp-ds-block:hover { background: rgba(0,153,153,.04) !important; }
+
+/* ── Stats — Fraunces italic numbers ── */
+.rp-ds-val { letter-spacing: -.03em !important; }
+.rp-ds-label {
+  font-size: 9px !important; letter-spacing: .12em !important;
+  text-transform: uppercase !important; font-weight: 600 !important;
+  color: var(--text-4) !important;
+}
+
+/* ── Trial/Study rows — names never truncate ── */
+.rp-trial-title {
+  white-space: normal !important; word-break: break-word !important;
+  line-height: 1.4 !important; font-weight: 500 !important;
+}
+.rp-trial-info { flex: 1; min-width: 0; }
+
+/* Trial list rows */
+.rht-title {
+  white-space: normal !important; word-break: break-word !important;
+}
+
+/* ── rhl cards ── */
+.rhl-name {
+  font-style: normal !important; font-weight: 500 !important;
+  font-size: 14px !important;
+}
+.rhl-number {
+  font-family: var(--font-display, Georgia, serif) !important;
+  font-size: 13px !important; font-weight: 400 !important;
+  font-style: italic !important;
+  background: rgba(0,153,153,.08) !important;
+  color: #009999 !important; border-color: rgba(0,153,153,.2) !important;
+}
+.rhl-stat-num { letter-spacing: -.02em !important; }
+
+/* ── Analytics ── */
+.rha-kpi-val { letter-spacing: -.03em !important; }
+.rha-kpi-label {
+  font-size: 9px !important; letter-spacing: .1em !important;
+  text-transform: uppercase !important; color: var(--text-3) !important;
+}
+.rha-perf-name {
+  white-space: normal !important; word-break: break-word !important;
+}
+.rha-lt-name {
+  white-space: normal !important; word-break: break-word !important;
+}
+
+/* ── rldp detail panel (trial drawer) ── */
+.rldp-title {
+  font-family: var(--font-ui, 'DM Sans', sans-serif) !important;
+  font-style: normal !important; font-weight: 500 !important;
+  font-size: 15px !important;
+}
+.rldp-number {
+  font-family: var(--font-display, Georgia, serif) !important;
+  font-size: 13px !important; font-weight: 400 !important;
+  font-style: italic !important;
+  background: rgba(0,153,153,.08) !important;
+  color: #009999 !important; border-color: rgba(0,153,153,.2) !important;
+}
+.rldp-stat-num { letter-spacing: -.03em !important; }
+.rldp-empty { font-style: normal !important; color: var(--text-3) !important; }
+
+/* ── Detail head background — dark navy instead of blue ── */
+.rp-detail-head {
+  background: #0f2d54 !important;
+}
+
+/* ── Innovation cards ── */
+.inno-card-title {
+  font-size: 14px !important; font-weight: 500 !important;
+  line-height: 1.35 !important;
+}
+
+/* ════════════════════════════════════════════════════════
+   ROTATIONS VIEW — FIXES
+   ════════════════════════════════════════════════════════ */
+
+/* ── Unit name — no italic (it's operational, not editorial) ── */
+.udd-unit-name {
+  font-style: normal !important;
+  font-family: var(--font-ui, 'DM Sans', sans-serif) !important;
+  font-weight: 500 !important;
+  font-size: 15px !important;
+}
+.tuc-name {
+  font-style: normal !important;
+  font-family: var(--font-ui, 'DM Sans', sans-serif) !important;
+  font-weight: 500 !important;
+}
+
+/* ── Gap warning strip — full names, proper wrap ── */
+.rgw-name {
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  line-height: 1.3 !important;
+}
+.rgw-item {
+  align-items: flex-start !important;
+  max-width: 200px;
+}
+.rgw-info {
+  flex: 1; min-width: 0;
+}
+
+/* ── Dashboard gap chips — full names ── */
+.db-gap-name {
+  white-space: normal !important;
+  word-break: break-word !important;
+  font-size: 11px !important;
+  line-height: 1.3 !important;
+}
+.db-gap-item {
+  align-items: flex-start !important;
+  max-width: 220px;
+}
+
+/* ── Rotation who column — full name always visible ── */
+.rot-who { width: 220px !important; }
+.rot-who-name {
+  white-space: normal !important;
+  word-break: break-word !important;
+  line-height: 1.3 !important;
+}
+.rot-who-avatar {
+  background: linear-gradient(135deg,#1e40af,#0e7490) !important;
+  font-style: normal !important;
+}
+
+/* ── Breadcrumb separator ── */
+.breadcrumb-sep { margin: 0 6px; color: var(--text-4); }
+
+/* ════════════════════════════════════════════════════════
+   UNIT OCCUPANCY — ACTIVE vs SCHEDULED
+   ════════════════════════════════════════════════════════ */
+
+/* Scheduled count badge next to capacity numbers */
+.tuc-cap-sched {
+  font-size: 10px; font-family: monospace; font-weight: 600;
+  color: #534ab7; background: rgba(83,74,183,.08);
+  border: .5px solid rgba(83,74,183,.2);
+  padding: 1px 5px; border-radius: 3px; margin-left: 4px;
+}
+
+/* Secondary scheduled fill on progress bar */
+.tuc-cap-bar { position: relative; }
+.tuc-cap-sched-fill {
+  position: absolute; top: 0; left: 0; height: 100%;
+  background: rgba(83,74,183,.2); border-radius: 3px;
+  pointer-events: none;
+}
+.tuc-cap-fill { position: relative; z-index: 1; }
+
+/* Overlap conflict warning on card */
+.tuc-overlap-warn {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 9.5px; color: #854f0b; font-family: monospace;
+  margin-top: 4px;
+}
+
+/* Drawer status chips */
+.udd-sched-chip {
+  font-size: 10px; font-family: monospace; font-weight: 600;
+  color: #534ab7; background: rgba(83,74,183,.08);
+  border: .5px solid rgba(83,74,183,.2);
+  padding: 2px 8px; border-radius: 4px;
+}
+.udd-overlap-chip {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10px; font-family: monospace; font-weight: 600;
+  color: #854f0b; background: rgba(239,159,39,.08);
+  border: .5px solid rgba(239,159,39,.25);
+  padding: 2px 8px; border-radius: 4px;
+}
+
+/* tuc card stripe — only active occupancy drives colour */
+.tuc--active { border-left-color: var(--ok); }
+.tuc--warn   { border-left-color: var(--warn); }
+.tuc--full   { border-left-color: var(--danger); }
+/* Scheduled-only (no active now) — neutral stripe */
+.tuc--scheduled-only { border-left-color: rgba(83,74,183,.4); }
+
+/* ════════════════════════════════════════════════════════
+   GLOBAL NAME DISPLAY FIXES — no truncation on identity elements
+   ════════════════════════════════════════════════════════ */
+.oncall-tl-name  { white-space: normal !important; word-break: break-word !important; overflow: visible !important; text-overflow: unset !important; }
+.tl-popover-name { white-space: normal !important; word-break: break-word !important; overflow: visible !important; text-overflow: unset !important; }
+.uop-unit-name   { white-space: normal !important; word-break: break-word !important; overflow: visible !important; text-overflow: unset !important; }
+.tdm-inv-name    { white-space: normal !important; word-break: break-word !important; overflow: visible !important; text-overflow: unset !important; }
+.rline-coord-name{ white-space: normal !important; word-break: break-word !important; overflow: visible !important; text-overflow: unset !important; }
+.mv-resident-name{ white-space: normal !important; word-break: break-word !important; overflow: visible !important; text-overflow: unset !important; }
+.dept-card-name  { white-space: normal !important; word-break: break-word !important; overflow: visible !important; text-overflow: unset !important; }
+.mv-rot-label    { white-space: normal !important; word-break: break-word !important; overflow: visible !important; text-overflow: unset !important; }
+
+/* On-call compact names — give a little more room for "A. Maiso" format */
+.db-oc-name { font-size: 12px; overflow: visible; text-overflow: unset; white-space: normal; }
+
+/* Dashboard rotation name — "A. Varona" fits well */
+.db-rot-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+
+/* ════════════════════════════════════════════════════════
+   ROTATIONS TABLE — consistent with medical staff table
+   ════════════════════════════════════════════════════════ */
+.table-rot { table-layout: fixed; }
+.table-rot .staff-table-row:hover {
+  background: rgba(0,153,153,.03);
+  box-shadow: inset 3px 0 0 #009999;
+}
+
+/* Rotation status badge — exceptions only */
+.rot-status-badge {
+  font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px;
+  display: inline-block;
+}
+.rot-status-badge--active    { background: rgba(0,153,153,.08); color: #009999; }
+.rot-status-badge--scheduled { background: rgba(83,74,183,.08); color: #534ab7; }
+.rot-status-badge--completed { background: var(--surface-2); color: var(--text-4); }
+.rot-status-badge--terminated_early { background: rgba(226,75,74,.07); color: #a32d2d; }
+.rot-status-badge--extended  { background: rgba(239,159,39,.08); color: #854f0b; }
+
+/* Days left chip */
+.rot-days-chip { font-family: monospace; font-size: 11px; color: var(--text-3); }
+.rot-days-chip--urgent { color: #e24b4a; font-weight: 700; }
+.rot-days-chip--soon   { color: #ef9f27; font-weight: 600; }
+
+/* ════════════════════════════════════════════════════════
+   ABSENCES TABLE — consistent with medical staff table
+   ════════════════════════════════════════════════════════ */
+.table-absence { table-layout: fixed; }
+.table-absence .staff-table-row:hover {
+  background: rgba(239,159,39,.03);
+  box-shadow: inset 3px 0 0 #ef9f27;
+}
+
+/* Absence status */
+.abs-status-badge {
+  font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; display: inline-block;
+}
+.abs-status-badge--absent   { background: rgba(226,75,74,.07); color: #a32d2d; }
+.abs-status-badge--planned  { background: rgba(83,74,183,.08); color: #534ab7; }
+.abs-status-badge--returned { background: rgba(99,153,34,.08); color: #3b6d11; }
+
+/* Absence reason chip */
+.abs-reason-chip {
+  font-size: 10px; padding: 2px 7px; border-radius: 4px; display: inline-block;
+  background: var(--surface-2); color: var(--text-3);
+  border: 0.5px solid var(--border);
+}
+
+/* Coverage indicator */
+.abs-coverage-ok  { font-size: 11px; color: #009999; display: flex; align-items: center; gap: 4px; }
+.abs-coverage-no  { font-size: 11px; color: #854f0b; display: flex; align-items: center; gap: 4px; }
+
+/* ════════════════════════════════════════════════════════
+   ON-CALL TABLE
+   ════════════════════════════════════════════════════════ */
+.table-oncall .staff-table-row:hover {
+  background: rgba(239,159,39,.03);
+  box-shadow: inset 3px 0 0 #ef9f27;
+}
+.table-oncall { table-layout: fixed; }
+
+/* Primary physician cell with avatar */
+.oc-physician-cell { display: flex; align-items: center; gap: 9px; }
+.oc-physician-av   {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg,#009999,#4A9EE8);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 700; color: #fff;
+}
+.oc-physician-name { font-size: 12.5px; font-weight: 600; color: var(--text-1); }
+.oc-physician-time { font-size: 10px; font-family: monospace; color: var(--text-3); margin-top: 1px; }
+
+/* Shift type badge */
+.oc-type-badge {
+  font-size: 9.5px; font-weight: 600; padding: 2px 7px; border-radius: 4px; display: inline-block;
+}
+.oc-type-badge--primary_call    { background: rgba(0,153,153,.08); color: #009999; border: 0.5px solid rgba(0,153,153,.18); }
+.oc-type-badge--backup_call     { background: var(--surface-2); color: var(--text-3); }
+.oc-type-badge--weekend_coverage{ background: rgba(83,74,183,.08); color: #534ab7; }
+.oc-type-badge--float_physician { background: rgba(239,159,39,.08); color: #854f0b; }
+
+/* Today highlight */
+.oc-row-today { background: rgba(0,153,153,.03) !important; }
+.oc-today-tag {
+  font-size: 9px; font-family: monospace; font-weight: 700; color: #009999;
+  background: rgba(0,153,153,.1); padding: 1px 6px; border-radius: 3px; margin-left: 6px;
+}
+
+/* ════════════════════════════════════════════════════════
+   NEWS VIEW
+   ════════════════════════════════════════════════════════ */
+
+/* Author avatar initials */
+.news-author-av {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: linear-gradient(135deg,#009999,#4A9EE8);
+  font-size: 7px; font-weight: 700; color: #fff;
+  margin-right: 4px; flex-shrink: 0; vertical-align: middle;
+}
+
+/* Status dot for published (exception badge only for draft/archived) */
+.news-status-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: #639922; vertical-align: middle;
+}
+
+/* News card hover — teal accent */
+.news-card:hover {
+  border-color: rgba(0,153,153,.3) !important;
+  box-shadow: inset 3px 0 0 #009999, 0 2px 8px rgba(0,153,153,.08) !important;
+}
+
+/* News tabs — teal active (override blue) */
+.news-view .rhub-tab--active {
+  color: #009999 !important;
+  border-bottom-color: #009999 !important;
+}
+.news-view .rhub-tab--active .rhub-tab-count {
+  background: rgba(0,153,153,.08) !important;
+  color: #009999 !important;
+  border-color: rgba(0,153,153,.2) !important;
+}
+
+/* Card title — no truncation */
+.news-card-title {
+  white-space: normal !important;
+  word-break: break-word !important;
+}
+
+/* ════════════════════════════════════════════════════════
+   MONTHLY ROTATION VIEW — layout fixes
+   ════════════════════════════════════════════════════════ */
+
+/* Let the mv-view bleed to card edges */
+.card .mv-view {
+  /* No margin bleed — grid handles its own layout */
+  width: 100%;
+}
+
+/* mv-grid must clip properly inside the card */
+.mv-grid {
+  overflow-x: auto;
+  width: 100%; min-width: 0;
+}
+
+/* mv-view must have enough height to show content */
+.mv-view {
+  min-height: 300px;
+}
+
+/* name cell explicit grid column */
+.mv-name-cell { grid-column: 1; }
+
+/* months area always spans remaining columns */
+.mv-months-area { grid-column: 2 / -1; }
+
+/* Rotation bar colours */
+.mv-rot-bar--active    { background: #009999; color: #fff; }
+.mv-rot-bar--scheduled { background: #534ab7; color: #fff; }
+.mv-rot-bar--completed { background: var(--text-4); color: #fff; opacity: .6; }
+.mv-rot-bar:hover { filter: brightness(1.1); }
+
+/* Month header current highlight */
+.mv-month-header--current {
+  background: rgba(0,153,153,.06) !important;
+  color: #009999 !important;
+}
+
+/* Navigator today button */
+.mv-nav-today {
+  font-size: 10px; font-family: monospace; font-weight: 600;
+  padding: 2px 8px; border-radius: 4px; cursor: pointer;
+  background: rgba(0,153,153,.1); color: #009999;
+  border: 0.5px solid rgba(0,153,153,.2);
+}
+
+/* Horizon selector */
+.mv-hz-btn { 
+  font-size: 10px; font-family: monospace; padding: 3px 8px;
+  border-radius: 4px; cursor: pointer;
+  border: 0.5px solid var(--border); background: var(--surface);
+  color: var(--text-3);
+}
+.mv-hz-btn.active {
+  background: rgba(0,153,153,.08); color: #009999;
+  border-color: rgba(0,153,153,.2);
+}
+
+/* ── Unit card — clickable ────────────────── */
+.tuc { transition: box-shadow .15s, transform .15s; }
+.tuc:hover { box-shadow: 0 4px 20px rgba(0,0,0,.10); transform: translateY(-2px); }
+.tuc:hover .tuc-name { color: #009999; }
+
+/* ── UDD body full-width sections ── */
+.udd-section--full { grid-column: 1 / -1; }
+.udd-callout { grid-column: 1 / -1; }
+
+/* ── Unit Detail Modal — full-width spans ── */
+.udd-callout { grid-column: 1 / -1 !important; }
+.udd-section:has(.udd-mini-timeline) { grid-column: 1 / -1; }
+.udd-assign-cta { background: rgba(0,179,179,.15); color: #00B3B3; border: .5px solid rgba(0,179,179,.3); border-radius: 7px; padding: 6px 12px; font-size: 11.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: background .15s; }
+.udd-assign-cta:hover { background: rgba(0,179,179,.25); }
+.udd-cap-chip { background: rgba(255,255,255,.12); color: rgba(255,255,255,.8); border-radius: 6px; padding: 3px 10px; font-size: 12px; font-family: monospace; font-weight: 600; }
+.udd-sched-chip { background: rgba(0,179,179,.15); color: #00B3B3; border-radius: 6px; padding: 3px 10px; font-size: 11px; font-family: monospace; }
+.udd-overlap-chip { background: rgba(239,159,39,.12); color: #ef9f27; border-radius: 6px; padding: 3px 10px; font-size: 11px; display: flex; align-items: center; gap: 4px; }
+.udd-callout-title { font-size: 13px; font-weight: 600; }
+.udd-callout-content { flex: 1; }
+.udd-callout-sub { font-size: 11.5px; opacity: .75; margin-top: 2px; }
+.udd-section { display: flex; flex-direction: column; }
+
+/* ════════════════════════════════════════════════════════
+   CLINICAL UNITS — KPI STRIP
+   ════════════════════════════════════════════════════════ */
+.tu-kpi-strip {
+  display: flex; align-items: stretch; gap: 0;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  padding: 0;
+}
+.tu-kpi {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 12px 20px;
+  min-width: 100px;
+}
+.tu-kpi-num {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 28px; font-weight: 400; font-style: italic;
+  line-height: 1; letter-spacing: -.03em;
+}
+.tu-kpi--ok   .tu-kpi-num { color: var(--ok); }
+.tu-kpi--warn .tu-kpi-num { color: var(--warn); }
+.tu-kpi--full .tu-kpi-num { color: var(--danger); }
+.tu-kpi--danger .tu-kpi-num { color: #ef9f27; }
+.tu-kpi-label {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--text-3);
+}
+.tu-kpi-sub { font-size: 10px; color: var(--text-4); }
+.tu-kpi-div {
+  width: 1px; background: var(--border);
+  margin: 10px 0; flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════════════════════
+   CLINICAL UNITS — SUPERVISOR MISSING BADGE
+   ════════════════════════════════════════════════════════ */
+.tuc-overlap-strip {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10.5px; font-weight: 600;
+  color: #854f0b;
+  background: #faeeda; border-top: 1px solid #f6c05c;
+  padding: 5px 14px;
+}
+
+/* ════════════════════════════════════════════════════════
+   ROTATION MODAL — UNIT AVAILABILITY PICKER
+   ════════════════════════════════════════════════════════ */
+.uap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px; margin-top: 4px;
+  max-height: 220px; overflow-y: auto;
+  padding: 2px;
+}
+.uap-card {
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 10px;
+  cursor: pointer; background: var(--surface);
+  transition: all .12s;
+  border-left: 3px solid var(--border);
+}
+.uap-card:hover { border-color: #009999; background: rgba(0,153,153,.03); }
+.uap-card--selected {
+  border-color: #009999 !important;
+  border-left-color: #009999 !important;
+  background: rgba(0,153,153,.06) !important;
+  box-shadow: 0 0 0 2px rgba(0,153,153,.15);
+}
+.uap-card--full { opacity: .65; border-left-color: #e24b4a; }
+.uap-card--full:hover { border-color: #e24b4a; }
+.uap-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; margin-bottom: 5px; }
+.uap-name { font-size: 11.5px; font-weight: 500; color: var(--text-1); line-height: 1.3; word-break: break-word; }
+.uap-cap { font-size: 12px; font-weight: 700; font-family: monospace; flex-shrink: 0; }
+.uap-bar { height: 4px; background: var(--surface-3, #e9e7e2); border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
+.uap-bar-fill { height: 100%; border-radius: 2px; transition: width .3s; }
+.uap-meta { font-size: 10px; font-family: monospace; }
+
+.uap-card--overlap { border-left-color: #ef9f27; }
