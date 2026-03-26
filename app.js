@@ -772,12 +772,13 @@ document.addEventListener('DOMContentLoaded', () => {
       async updateOnCall(id, d) { this.invalidate('/api/oncall'); return this.request(`/api/oncall/${id}`, { method: 'PUT', body: d }) }
       async deleteOnCall(id) { this.invalidate('/api/oncall'); return this.request(`/api/oncall/${id}`, { method: 'DELETE' }) }
 
-      async getAbsences() {
-        try {
-          const r = await this.request('/api/absence-records')
-          return (r?.success && Array.isArray(r.data)) ? r.data : Utils.ensureArray(r)
-        } catch { return [] }
-      }
+ async getAbsences() {
+  try {
+    const r = await this.request('/api/absence-records')
+    // Currently returns r?.data if success, otherwise Utils.ensureArray(r)
+    return (r?.success && Array.isArray(r.data)) ? r.data : Utils.ensureArray(r)
+  } catch { return [] }
+}
       async createAbsence(d) { this.invalidate('/api/absence-records'); return this.request('/api/absence-records', { method: 'POST', body: d }) }
       async updateAbsence(id, d) { this.invalidate('/api/absence-records'); return this.request(`/api/absence-records/${id}`, { method: 'PUT', body: d }) }
       async deleteAbsence(id) { this.invalidate('/api/absence-records'); return this.request(`/api/absence-records/${id}`, { method: 'DELETE' }) }
@@ -4966,10 +4967,11 @@ document.addEventListener('DOMContentLoaded', () => {
           const ca = document.querySelector('.content-area')
           if (ca) { ca.classList.remove('content-view-enter'); void ca.offsetWidth; ca.classList.add('content-view-enter') }
           if (view === 'research_hub') {
-            // Direct navigation — default to lines tab
-            if (!analyticsOps.researchHubTab.value) analyticsOps.researchHubTab.value = 'lines'
-            currentView.value = 'research_hub'
-            return
+  // Set default tab if not already set
+  if (!analyticsOps.researchHubTab.value) analyticsOps.researchHubTab.value = 'lines'
+  currentView.value = 'research_hub'
+  return
+}
           } else if (view === 'research_lines') {
             analyticsOps.researchHubTab.value = 'lines'
             currentView.value = 'research_hub'
@@ -5153,30 +5155,34 @@ document.addEventListener('DOMContentLoaded', () => {
             ])
 
             // Second batch: depends on staff + units being loaded
-            await Promise.all([
-              rotationOps.loadRotations(),
-              onCallOps.loadOnCallSchedule(),
-              absenceOps.loadAbsences()
-            ])
+            // Second batch: depends on staff + units being loaded
+await Promise.all([
+  rotationOps.loadRotations(),
+  onCallOps.loadOnCallSchedule(),
+  absenceOps.loadAbsences()
+])
 
-            updateDashboardStats()
+updateDashboardStats()
 
-            // Third batch: non-critical, fire and forget
-            Promise.all([
-              onCallOps.loadTodaysOnCall(),
-              commsOps.loadAnnouncements(),
-              liveOps.loadClinicalStatus(),
-              liveOps.loadActiveMedicalStaff(),
-              researchOps.loadResearchLines(),
-              loadSystemStats(),
-              loadNews()
-            ]).then(() => updateDashboardStats())
+// CRITICAL: Load research data before rendering
+await Promise.all([
+  researchOps.loadResearchLines(),
+  researchOps.loadClinicalTrials(),
+  researchOps.loadInnovationProjects()
+])
 
-            // Low priority — research analytics
-            Promise.all([
-              researchOps.loadClinicalTrials(),
-              researchOps.loadInnovationProjects(),
-              analyticsOps.loadAnalyticsSummary()
+// Third batch: non-critical, fire and forget
+Promise.all([
+  onCallOps.loadTodaysOnCall(),
+  commsOps.loadAnnouncements(),
+  liveOps.loadClinicalStatus(),
+  liveOps.loadActiveMedicalStaff(),
+  loadSystemStats(),
+  loadNews()
+]).then(() => updateDashboardStats())
+
+// Low priority — research analytics (fire and forget)
+analyticsOps.loadAnalyticsSummary()
             ])
 
           } catch { showToast('Error', 'Failed to load some data', 'error') }
