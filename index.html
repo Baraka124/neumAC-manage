@@ -2638,7 +2638,7 @@
                         </div>
                         <div class="pagination" v-if="trialTotalPages > 1">
                             <button class="btn-pill" @click="goToPage('trials', pagination.trials.page - 1)" :disabled="pagination.trials.page === 1"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-                            <span class="pagination-info">Page {{ pagination.studies.page }} of {{ studyTotalPages }}</span>
+                            <span class="pagination-info">Page {{ pagination.trials.page }} of {{ trialTotalPages }}</span>
                             <button class="btn-pill" @click="goToPage('trials', pagination.trials.page + 1)" :disabled="pagination.trials.page === trialTotalPages"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></button>
                         </div>
                     </div>
@@ -2881,7 +2881,7 @@
                         </div>
                     </div>
 
-                    v><!-- /research-hub -->
+                      </div><!-- /research-hub -->
 
                 <!-- ============ SYSTEM SETTINGS VIEW ============ -->
                 <div v-if="currentView === 'system_settings'" v-cloak>
