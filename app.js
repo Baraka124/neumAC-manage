@@ -1060,13 +1060,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============ 6.3 useStaff ============
-    function useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll }) {
-      const medicalStaff = ref([])
-      const staffView = ref('table') // 'table' | 'compact'
+    function useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll, currentUser }) {
+            const staffView = ref('table') // 'table' | 'compact'
       // allStaffLookup keeps ALL staff (including inactive) for name resolution
       // so deleted staff don't ghost as "Not assigned" in historical records
-      const allStaffLookup = ref([])
-      const hospitalsList = ref([])   // all hospitals from DB
+            const hospitalsList = ref([])   // all hospitals from DB
       const clinicalUnits = ref([])   // clinical units (Pneumology + others)
       const staffFilters = reactive({ search: '', staffType: '', department: '', status: '', residentCategory: '', hospital: '', networkType: '' })
       const clearStaffFilters = () => { staffFilters.search = ''; staffFilters.staffType = ''; staffFilters.department = ''; staffFilters.status = ''; staffFilters.residentCategory = ''; staffFilters.hospital = ''; staffFilters.networkType = '' }
@@ -1483,8 +1481,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ============ 6.4 useOnCall ============
     function useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup, absences }) {
-      const onCallSchedule = ref([])
-      const todaysOnCall = ref([])
+            const todaysOnCall = ref([])
       const loadingSchedule = ref(false)
       const onCallFilters = reactive({ date: '', shiftType: '', physician: '', coverageArea: '', search: '' })
       const onCallModal = reactive({
@@ -2425,8 +2422,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ============ 6.6 useAbsences ============
     function useAbsences({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup, onCallSchedule }) {
-      const absences = ref([])
-      const absenceFilters = reactive({ staff: '', status: '', reason: '', startDate: '', search: '', hideReturned: true })
+            const absenceFilters = reactive({ staff: '', status: '', reason: '', startDate: '', search: '', hideReturned: true })
       const absenceModal = reactive({
         show: false, mode: 'add',
         form: { staff_member_id: '', absence_type: 'planned', absence_reason: 'vacation', start_date: Utils.normalizeDate(new Date()), end_date: Utils.normalizeDate(new Date(Date.now() + 7 * 86400000)), covering_staff_id: '', coverage_notes: '', coverage_arranged: false, hod_notes: '' }
@@ -2762,8 +2758,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ============ 6.7 useDepartments ============
     function useDepartments({ showToast, showConfirmation, medicalStaff, trainingUnits, rotations }) {
-      const departments = ref([])
-      const allDepartmentsLookup = ref([])  // includes inactive — for name resolution only
+            const allDepartmentsLookup = ref([])  // includes inactive — for name resolution only
       const departmentFilters = reactive({ search: '', status: '' })
       const departmentModal = reactive({ show: false, mode: 'add', form: { name: '', code: '', status: 'active', head_of_department_id: '', hospital_id: '', description: '', contact_email: '', contact_phone: '' } })
 
@@ -3646,10 +3641,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ============ 6.11 useResearch ============
     function useResearch({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, clearAll, medicalStaff, loadAnalyticsSummary, loadResearchLinesPerformance, loadPartnerCollaborations }) {
-      const researchLines = ref([])
-      const clinicalTrials = ref([])
-      const innovationProjects = ref([])
-      const researchLineFilters = reactive({ search: '', active: '' })
+                        const researchLineFilters = reactive({ search: '', active: '' })
       const trialFilters = reactive({ line: '', phase: '', status: '', search: '' })
       const projectFilters = reactive({ research_line_id: '', category: '', stage: '', funding_status: '', search: '' })
 
@@ -4473,11 +4465,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // Hoisting the refs here breaks the circular dependency cleanly:
         // both composables receive the same reactive container,
         // so when either load function fills it all consumers see it immediately.
-        const trainingUnits = ref([])
-        const rotations     = ref([])
+        // ── Shared refs — hoisted so all composables access them as closures ──────
+        const trainingUnits      = ref([])
+        const rotations          = ref([])
+        const medicalStaff       = ref([])
+        const allStaffLookup     = ref([])
+        const onCallSchedule     = ref([])
+        const absences           = ref([])
+        const departments        = ref([])
+        const researchLines      = ref([])
+        const clinicalTrials     = ref([])
+        const innovationProjects = ref([])
 
-        const staffOps = useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll })
-        const { medicalStaff, allStaffLookup, hospitalsList } = staffOps
+        const staffOps = useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll, currentUser })
+        const { hospitalsList } = staffOps
 
         const { trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal,
           filteredTrainingUnits, getUnitActiveRotationCount, getUnitRotations, getUnitScheduledCount, getUnitOverlapWarning, getResidentShortName,
@@ -4493,7 +4494,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const rotationOps = useRotations({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup, trainingUnits, rotations, currentUser })
 
-        const { departments, allDepartmentsLookup, departmentFilters, departmentModal, deptReassignModal,
+        const { allDepartmentsLookup, departmentFilters, departmentModal, deptReassignModal,
           filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount, getDeptResidentStats, getDeptHomeResidents,
           loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment,
           deleteDepartment, confirmDeptReassignAndDeactivate, viewDepartmentStaff,
@@ -4520,10 +4521,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const onCallOps = useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup, absences: ref([]) })
-        const { onCallSchedule } = onCallOps
+        const {} = onCallOps
 
         const absenceOps = useAbsences({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup, onCallSchedule })
-        const { absences } = absenceOps
+        const {} = absenceOps
 
         // ============ STAFF DEACTIVATION WORKFLOW ============
         // Professional reassignment flow: scan future records before deactivating
