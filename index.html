@@ -164,6 +164,31 @@
       .tuc:hover { box-shadow:0 4px 20px rgba(0,0,0,.10); transform:translateY(-2px); }
       .tuc:hover .tuc-name { color:#009999; }
 
+    
+      /* ── KPI strip ── */
+      .tu-kpi-strip{display:flex;align-items:stretch;gap:0;border-top:1px solid #e3dfd6;background:#f5f4f0;padding:0;}
+      .tu-kpi{display:flex;flex-direction:column;gap:2px;padding:12px 20px;min-width:100px;}
+      .tu-kpi-num{font-family:'Fraunces',Georgia,serif;font-size:28px;font-weight:400;font-style:italic;line-height:1;letter-spacing:-.03em;}
+      .tu-kpi--ok .tu-kpi-num{color:#009999;} .tu-kpi--warn .tu-kpi-num{color:#ef9f27;} .tu-kpi--full .tu-kpi-num{color:#e24b4a;} .tu-kpi--danger .tu-kpi-num{color:#ba7517;}
+      .tu-kpi-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#909399;}
+      .tu-kpi-sub{font-size:10px;color:#b4b2a9;}
+      .tu-kpi-div{width:1px;background:#e3dfd6;margin:10px 0;flex-shrink:0;}
+      /* ── Supervisor missing badge ── */
+      .tuc-overlap-strip{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:600;color:#854f0b;background:#faeeda;border-top:1px solid #f6c05c;padding:5px 14px;}
+      /* ── Unit availability picker ── */
+      .uap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;margin-top:4px;max-height:220px;overflow-y:auto;padding:2px;}
+      .uap-card{border:1px solid #e3dfd6;border-radius:8px;padding:9px 10px;cursor:pointer;background:#fff;transition:all .12s;border-left:3px solid #e3dfd6;}
+      .uap-card:hover{border-color:#009999;background:rgba(0,153,153,.03);}
+      .uap-card--selected{border-color:#009999!important;border-left-color:#009999!important;background:rgba(0,153,153,.06)!important;box-shadow:0 0 0 2px rgba(0,153,153,.15);}
+      .uap-card--full{opacity:.65;border-left-color:#e24b4a;}
+      .uap-card--no-sup{border-left-color:#ef9f27;}
+      .uap-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:5px;}
+      .uap-name{font-size:11.5px;font-weight:500;color:#07111f;line-height:1.3;word-break:break-word;}
+      .uap-cap{font-size:12px;font-weight:700;font-family:monospace;flex-shrink:0;}
+      .uap-bar{height:4px;background:#edebe5;border-radius:2px;overflow:hidden;margin-bottom:5px;}
+      .uap-bar-fill{height:100%;border-radius:2px;transition:width .3s;}
+      .uap-meta{font-size:10px;font-family:monospace;}
+
     </style>
 </head>
 <body>
@@ -1825,10 +1850,38 @@
                         <div class="card-header">
                             <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21M12 8V11M10.5 9.5H13.5"/></svg> Clinical Units</div>
                             <div style="display:flex;gap:8px;align-items:center">
-                                <button class="btn btn-ghost uop-trigger-btn" @click="occupancyPanel.show = true" title="View units availability at a glance">
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7L12 12L22 7L12 2Z"/><path d="M2 17L12 22L22 17"/><path d="M2 12L12 17L22 12"/></svg> Units Occupancy
-                                </button>
                                 <button class="btn btn-primary" @click="showAddTrainingUnitModal" v-if="hasPermission('training_units', 'create')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add Unit</button>
+                            </div>
+                        </div>
+                        <!-- ── Always-visible KPI strip ── -->
+                        <div class="tu-kpi-strip">
+                            <div class="tu-kpi tu-kpi--ok">
+                                <div class="tu-kpi-num">{{ filteredTrainingUnits.filter(u => getUnitActiveRotationCount(u.id) < u.maximum_residents).length }}</div>
+                                <div class="tu-kpi-label">Available</div>
+                                <div class="tu-kpi-sub">slots open now</div>
+                            </div>
+                            <div class="tu-kpi-div"></div>
+                            <div class="tu-kpi tu-kpi--warn">
+                                <div class="tu-kpi-num">{{ filteredTrainingUnits.filter(u => { const c=getUnitActiveRotationCount(u.id); return c>0 && c<u.maximum_residents && c/u.maximum_residents>0.5 }).length }}</div>
+                                <div class="tu-kpi-label">Filling up</div>
+                                <div class="tu-kpi-sub">&gt;50% occupied</div>
+                            </div>
+                            <div class="tu-kpi-div"></div>
+                            <div class="tu-kpi tu-kpi--full">
+                                <div class="tu-kpi-num">{{ filteredTrainingUnits.filter(u => getUnitActiveRotationCount(u.id) >= u.maximum_residents).length }}</div>
+                                <div class="tu-kpi-label">Full</div>
+                                <div class="tu-kpi-sub">no slots now</div>
+                            </div>
+                            <div class="tu-kpi-div"></div>
+                            <div class="tu-kpi tu-kpi--danger">
+                                <div class="tu-kpi-num">{{ filteredTrainingUnits.filter(u => !!getUnitOverlapWarning(u.id)).length }}</div>
+                                <div class="tu-kpi-label">Overlap alert</div>
+                                <div class="tu-kpi-sub">scheduled conflict</div>
+                            </div>
+                            <div style="margin-left:auto;align-self:center">
+                                <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" @click="occupancyPanel.show = true">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2L2 7L12 12L22 7L12 2Z"/><path d="M2 17L12 22L22 17"/><path d="M2 12L12 17L22 12"/></svg> Full overview
+                                </button>
                             </div>
                         </div>
                         <div class="filter-bar">
@@ -1900,7 +1953,12 @@
                                  style="cursor:pointer">
 
                                 <!-- ── HEADER (both modes) ── -->
-                                <div class="tuc-head">
+                               
+                                <!-- Overlap warning strip -->
+                                <div v-if="getUnitOverlapWarning(unit.id)" class="tuc-overlap-strip">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+                                    Scheduling overlap · {{ formatDateShort(getUnitOverlapWarning(unit.id).date) }}
+                                </div> <div class="tuc-head">
                                     <div class="tuc-name-row">
                                         <svg class="tuc-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21M12 8V11M10.5 9.5H13.5"/></svg>
                                         <div>
@@ -1912,6 +1970,7 @@
                                                 <span class="tuc-sub-sep">·</span>
                                                 <span class="tuc-supervisor">{{ (allStaffLookup.find(s=>s.id===(unit.supervisor_id||unit.supervising_attending_id))?.full_name||'').split(' ').slice(-1)[0] }}</span>
                                             </template>
+
                                         </div>
                                             <!-- Unit type badge -->
                                             <span class="tuc-type-badge" :class="'tuc-type--' + (unit.unit_type || 'training_unit')">
@@ -5032,10 +5091,40 @@
                         <div class="sm-row">
                             <div class="sm-field" style="grid-column:1/-1">
                                 <div class="sm-label">Clinical Unit <span class="req">·</span></div>
-                                <select class="sm-select" v-model="rotationModal.form.training_unit_id" :class="{'is-invalid': fieldErrors.rotation?.training_unit_id}" @change="clearFieldError('rotation','training_unit_id')">
-                                    <option value="">Select unit…</option>
-                                    <option v-for="u in trainingUnits" :key="u.id" :value="u.id">{{ u.unit_name }}</option>
-                                </select>
+                                <!-- Unit availability picker -->
+                                <div class="uap-grid">
+                                    <div v-for="u in trainingUnits" :key="u.id"
+                                         class="uap-card"
+                                         :class="{
+                                           'uap-card--selected': rotationModal.form.training_unit_id === u.id,
+                                           'uap-card--full': getUnitActiveRotationCount(u.id) >= u.maximum_residents,
+                                           'uap-card--overlap': !!getUnitOverlapWarning(u.id)
+                                         }"
+                                         @click="rotationModal.form.training_unit_id = u.id; clearFieldError('rotation','training_unit_id')">
+                                        <div class="uap-card-top">
+                                            <div class="uap-name">{{ u.unit_name }}</div>
+                                            <div class="uap-cap"
+                                                 :style="getUnitActiveRotationCount(u.id) >= u.maximum_residents ? 'color:#e24b4a' : getUnitActiveRotationCount(u.id)/u.maximum_residents > 0.5 ? 'color:#ef9f27' : 'color:#009999'">
+                                                {{ getUnitActiveRotationCount(u.id) }}/{{ u.maximum_residents }}
+                                            </div>
+                                        </div>
+                                        <div class="uap-bar">
+                                            <div class="uap-bar-fill"
+                                                 :style="{
+                                                   width: u.maximum_residents ? Math.round((getUnitActiveRotationCount(u.id)/u.maximum_residents)*100)+'%' : '0%',
+                                                   background: getUnitActiveRotationCount(u.id) >= u.maximum_residents ? '#e24b4a' : getUnitActiveRotationCount(u.id)/u.maximum_residents > 0.5 ? '#ef9f27' : '#009999'
+                                                 }">
+                                            </div>
+                                        </div>
+                                        <div class="uap-meta">
+                                            <span v-if="getUnitActiveRotationCount(u.id) < u.maximum_residents" style="color:#009999">
+                                                {{ u.maximum_residents - getUnitActiveRotationCount(u.id) }} slot{{ u.maximum_residents - getUnitActiveRotationCount(u.id) !== 1 ? 's' : '' }} free
+                                            </span>
+                                            <span v-else style="color:#e24b4a">Full</span>
+
+                                        </div>
+                                    </div>
+                                </div>
                                 <small v-if="fieldErrors.rotation?.training_unit_id" class="error-text">{{ fieldErrors.rotation.training_unit_id }}</small>
                             </div>
                         </div>
