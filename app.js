@@ -4710,6 +4710,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const calculateAbsenceDuration = (s, e) => Utils.dateDiff(s, e)
         const getDaysRemaining = (d) => Utils.daysUntil(d)
 
+        // isToday(dateStr) — true if the given YYYY-MM-DD string is today's date
+        const isToday = (dateStr) => {
+          if (!dateStr) return false
+          const today = new Date(); today.setHours(0,0,0,0)
+          const d = new Date(dateStr); d.setHours(0,0,0,0)
+          return d.getTime() === today.getTime()
+        }
+
         const getRotationProgress = (rotation) => {
           if (!rotation) return { pct: 0, label: '', urgent: false, done: false }
           const start = new Date(Utils.normalizeDate(rotation.start_date || rotation.rotation_start_date) + 'T00:00:00')
@@ -5225,7 +5233,7 @@ document.addEventListener('DOMContentLoaded', () => {
           getResidentCategoryInfo: Utils.getResidentCategoryInfo, formatResidentCategorySimple: Utils.formatResidentCategorySimple,
           formatResidentCategoryDetailed: Utils.formatResidentCategoryDetailed, getResidentCategoryIcon: Utils.getResidentCategoryIcon,
           getResidentCategoryTooltip: Utils.getResidentCategoryTooltip, getRoleInfo: Utils.getRoleInfo, getStaffRoles: Utils.getStaffRoles,
-          getDaysRemainingColor: Utils.getDaysRemainingColor,
+          getDaysRemainingColor: Utils.getDaysRemainingColor, isToday,
           departments, allDepartmentsLookup, departmentFilters, departmentModal, deptReassignModal,
           filteredDepartments, getDepartmentName, getDepartmentUnits, getDepartmentStaffCount, getDeptResidentStats, getDeptHomeResidents,
           loadDepartments, showAddDepartmentModal, editDepartment, saveDepartment,
