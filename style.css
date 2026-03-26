@@ -8158,9 +8158,10 @@ tr:not(:hover) .btn-pill-purge {
 /* Grid */
 .mv-grid {
   display: grid;
-  grid-template-columns: 200px repeat(var(--mv-cols, 6), 1fr);
+  /* grid-template-columns set inline via Vue :style binding */
   border-left: 1px solid var(--border);
   overflow-x: auto;
+  width: 100%;
 }
 
 /* Year label row */
@@ -8233,12 +8234,12 @@ tr:not(:hover) .btn-pill-purge {
 
 /* Month area — bg cols + overlaid bars */
 .mv-months-area {
-  grid-column: span var(--mv-cols, 6);
+  grid-column: 2 / -1;
   position: relative;
   display: grid;
-  grid-template-columns: repeat(var(--mv-cols, 6), 1fr);
+  /* grid-template-columns set inline via Vue :style binding */
   border-bottom: 1px solid var(--border);
-  min-height: 42px;
+  min-height: 48px;
 }
 .mv-month-bg {
   border-right: 1px solid var(--border);
@@ -8301,7 +8302,7 @@ tr:not(:hover) .btn-pill-purge {
 
 /* Responsive */
 @media (max-width: 768px) {
-  .mv-grid { grid-template-columns: 140px repeat(var(--mv-cols, 6), minmax(52px, 1fr)); }
+  .mv-grid { /* responsive: inline style handles columns */ min-width: 0; }
   .mv-resident-name { font-size: 11px; }
   .mv-nav-horizon { display: none; }
   .mv-rot-label { font-size: 9px; }
@@ -11321,16 +11322,15 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
 
 /* Let the mv-view bleed to card edges */
 .card .mv-view {
-  margin: -22px -22px -22px -22px;
+  margin: -22px;
   border-radius: var(--r-xl);
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* mv-grid must clip properly inside the card */
 .mv-grid {
-  overflow-x: auto !important;
-  max-width: 100%;
-  min-width: 0;
+  overflow-x: auto;
+  width: 100%; min-width: 0;
 }
 
 /* mv-view must have enough height to show content */
