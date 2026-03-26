@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>neuMAC | Pulmonology Management System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <link rel="stylesheet" href="style.css?v=5">
 
-    <style id="neumac-layout"> 
+    <style id="neumac-layout">
       /* ── Monthly rotation view ── */
       .mv-view { display:flex; flex-direction:column; gap:0; width:100%; }
       .mv-nav  { display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid #e3dfd6; background:#f5f4f0; flex-shrink:0; flex-wrap:wrap; }
@@ -207,6 +207,14 @@
       .tuc-free-chip{font-size:9.5px;padding:1px 6px;border-radius:4px;background:rgba(239,159,39,.1);color:#854f0b;font-family:monospace;font-weight:600;flex-shrink:0;border:.5px solid rgba(239,159,39,.3);}
       .tuc-card-footer{display:flex;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid #e3dfd6;background:#f5f4f0;}
       .tuc-cap-label{font-size:11px;font-weight:700;font-family:monospace;color:#909399;flex-shrink:0;}
+
+    
+      /* ── Rotation rows compact ── */
+      .rot-row{padding:8px 18px;min-height:44px;}
+      .rot-track{flex-wrap:nowrap;overflow:hidden;gap:5px;}
+      .rot-orb{min-width:36px;height:24px;padding:0 8px;border-radius:12px;font-size:11px;white-space:nowrap;}
+      .rot-orb--active{min-width:44px;height:28px;font-size:11.5px;font-weight:600;}
+      .rot-who-avatar{width:30px;height:30px;}
 
     </style>
 </head>
@@ -1584,11 +1592,11 @@
                                 <!-- Orb track -->
                                 <div class="rot-track">
 
-                                    <!-- Completed orbs -->
-                                    <div v-for="(rot, idx) in resident.pastRotations" :key="rot.id"
+                                    <!-- Completed orbs (last 3 only) -->
+                                    <div v-for="(rot, idx) in (resident.pastRotations||[]).slice(-3)" :key="rot.id"
                                          class="rot-orb rot-orb--done"
                                          @click.stop="viewRotationDetails(rot)">
-                                        <span class="rot-orb-label">{{ formatClinicalDuration(rot.start_date, rot.end_date) }}</span>
+                                        <span class="rot-orb-label">{{ rot.unitName ? rot.unitName.split(' ').slice(0,2).join(' ') : formatClinicalDuration(rot.start_date, rot.end_date) }}</span>
                                         <div class="rot-orb-tooltip">
                                             <div class="rot-tt-unit">{{ rot.unitName }}</div>
                                             <div class="rot-tt-dates">{{ formatDate(rot.start_date) }} → {{ formatDate(rot.end_date) }}</div>
@@ -1603,7 +1611,7 @@
                                     <div v-if="resident.currentRotation"
                                          class="rot-orb rot-orb--active"
                                          @click.stop="viewRotationDetails(resident.currentRotation)">
-                                        <span class="rot-orb-label">{{ formatClinicalDuration(resident.currentRotation.start_date, resident.currentRotation.end_date) }}</span>
+                                        <span class="rot-orb-label">{{ resident.currentRotation.unitName ? resident.currentRotation.unitName.split(' ').slice(0,2).join(' ') : formatClinicalDuration(resident.currentRotation.start_date, resident.currentRotation.end_date) }}</span>
                                         <div class="rot-orb-tooltip">
                                             <div class="rot-tt-unit">{{ resident.currentRotation.unitName }}</div>
                                             <div class="rot-tt-dates">{{ formatDate(resident.currentRotation.start_date) }} → {{ formatDate(resident.currentRotation.end_date) }}</div>
@@ -1619,7 +1627,7 @@
                                     <div v-for="(rot, idx) in resident.upcomingRotations" :key="rot.id"
                                          class="rot-orb rot-orb--scheduled"
                                          @click.stop="viewRotationDetails(rot)">
-                                        <span class="rot-orb-label">{{ formatClinicalDuration(rot.start_date, rot.end_date) }}</span>
+                                        <span class="rot-orb-label">{{ rot.unitName ? rot.unitName.split(' ').slice(0,2).join(' ') : formatClinicalDuration(rot.start_date, rot.end_date) }}</span>
                                         <div class="rot-orb-tooltip">
                                             <div class="rot-tt-unit">{{ rot.unitName }}</div>
                                             <div class="rot-tt-dates">{{ formatDate(rot.start_date) }} → {{ formatDate(rot.end_date) }}</div>
@@ -2078,6 +2086,7 @@
                         </div><!-- end v-else -->
                     </div>
                 </div>
+            </div><!-- /training_units -->
                 <!-- ============ STAFF ABSENCE VIEW ============ -->
                 <div v-if="currentView === 'staff_absence'">
                     <div class="card mb-6">
@@ -2638,7 +2647,7 @@
                         </div>
                         <div class="pagination" v-if="trialTotalPages > 1">
                             <button class="btn-pill" @click="goToPage('trials', pagination.trials.page - 1)" :disabled="pagination.trials.page === 1"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-                            <span class="pagination-info">Page {{ pagination.trials.page }} of {{ trialTotalPages }}</span>
+                            <span class="pagination-info">Page {{ pagination.studies.page }} of {{ studyTotalPages }}</span>
                             <button class="btn-pill" @click="goToPage('trials', pagination.trials.page + 1)" :disabled="pagination.trials.page === trialTotalPages"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></button>
                         </div>
                     </div>
@@ -2881,7 +2890,7 @@
                         </div>
                     </div>
 
-                      </div><!-- /research-hub -->
+                    v><!-- /research-hub -->
 
                 <!-- ============ SYSTEM SETTINGS VIEW ============ -->
                 <div v-if="currentView === 'system_settings'" v-cloak>
@@ -7524,7 +7533,7 @@
         </nav>
 
     </div><!-- end app-layout -->
-    <script src="app.js?v=5"></script>
+    <script src="app.js?v=6"></script>
 
     <script>
     /* ── Login page — anatomical bronchial tree ── */
