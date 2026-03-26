@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>neuMAC | Pulmonology Management System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -202,7 +202,7 @@
             </div>
 
             <!-- Form -->
-            <div class="lc-form">
+            <form class="lc-form" @submit.prevent="handleLogin" autocomplete="on">
                 <div class="lc-field" :class="{ 'lc-field--error': loginFieldErrors.email }">
                     <label class="lc-label">Email</label>
                     <div class="lc-input-wrap">
@@ -244,7 +244,7 @@
                     <span>{{ loginLoading ? 'Authenticating…' : 'Sign in' }}</span>
                     <i v-if="!loginLoading" class="fas fa-arrow-right lc-submit-arrow"></i>
                 </button>
-            </div>
+            </form>
 
 
 
@@ -2263,13 +2263,13 @@
                         <!-- Context pill when a line filter is active -->
                         <div v-if="trialFilters.line" class="rhub-context-pill" style="margin-left:8px;align-self:center">
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg>
-                            <span>{{ getResearchLineName(studyFilters.line) }}</span>
+                            <span>{{ getResearchLineName(trialFilters.line) }}</span>
                             <button @click="trialFilters.line = ''; projectFilters.research_line_id = ''" class="rhub-ctx-clear"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg></button>
                         </div>
                         <!-- Action button — right-aligned -->
                         <div style="margin-left:auto;display:flex;align-items:center;padding-bottom:1px">
                             <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'lines' && hasPermission('research_lines','create')" @click="showAddResearchLineModal"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add Line</button>
-                            <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'trials' && hasPermission('research_lines','create')" @click="showAddTrialModal(trialFilters.line ? researchLines.find(l => l.id === studyFilters.line) : null)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add Study</button>
+                            <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'trials' && hasPermission('research_lines','create')" @click="showAddTrialModal(trialFilters.line ? researchLines.find(l => l.id === trialFilters.line) : null)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add Study</button>
                             <button class="btn btn-primary btn-sm" v-if="researchHubTab === 'projects' && hasPermission('research_lines','create')" @click="showAddProjectModal(projectFilters.research_line_id ? researchLines.find(l => l.id === projectFilters.research_line_id) : null)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add Project</button>
                             <button class="btn btn-outline btn-sm" v-if="researchHubTab === 'analytics' && hasPermission('analytics','export')" @click="showExportModal"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 5v14M5 19H19M8 14l4 5 4-5"/></svg> Export</button>
                         </div>
@@ -2325,7 +2325,7 @@
                                        'rp-nav-item--active':   activeMissionLine && activeMissionLine.id === line.id,
                                        'rp-nav-item--inactive': !line.active
                                      }"
-                                     @click="activeMissionLine = line"
+                                     @click="openLineDetail(line)"
                                      :style="activeMissionLine && activeMissionLine.id === line.id ? { borderLeftColor: getLineAccent(line.line_number).color } : {}">
                                     <div class="rp-nav-badge"
                                          :style="activeMissionLine && activeMissionLine.id === line.id
