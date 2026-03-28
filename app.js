@@ -4960,42 +4960,67 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // switchView(view, filters) — supports cross-navigation with pre-applied filters
         // filters example: { department: deptId, category: 'external_resident' }
-        const switchView = async (view, filters = {}) => {
-          currentView.value = view; ui.mobileMenuOpen.value = false
-          // Apply pre-filters if provided (cross-view navigation)
-          if (filters.department) {
-            if (staffFilters && staffFilters.department !== undefined) staffFilters.department = filters.department
-            if (trainingUnitFilters && trainingUnitFilters.department !== undefined) trainingUnitFilters.department = filters.department
-          }
-          if (filters.residentCategory && staffFilters) { staffFilters.staffType = 'medical_resident'; staffFilters.residentCategory = filters.residentCategory }
-          if (filters.rotationStatus && rotationFilters) rotationFilters.status = filters.rotationStatus
-          if (filters.trainingUnit && rotationFilters) rotationFilters.trainingUnit = filters.trainingUnit
-          ui.searchResultsOpen.value = false
-          if (pagination[view]) pagination[view].page = 1
-          // Trigger entrance animation on content area
-          const ca = document.querySelector('.content-area')
-          if (ca) { ca.classList.remove('content-view-enter'); void ca.offsetWidth; ca.classList.add('content-view-enter') }
-          if (view === 'research_hub') {
-            // Direct navigation — default to lines tab
-            if (!analyticsOps.researchHubTab.value) analyticsOps.researchHubTab.value = 'lines'
-            currentView.value = 'research_hub'
-            return
-          } else if (view === 'research_lines') {
-            analyticsOps.researchHubTab.value = 'lines'
-            currentView.value = 'research_hub'
-            if (filters.line) researchOps.trialFilters.line = filters.line
-            return
-          } else if (view === 'clinical_trials') {
-            analyticsOps.researchHubTab.value = 'trials'
-            currentView.value = 'research_hub'
-            if (filters.line) researchOps.trialFilters.line = filters.line
-            return
-          } else if (view === 'innovation_projects') {
-            analyticsOps.researchHubTab.value = 'projects'
-            currentView.value = 'research_hub'
-            return
-          }
-        }
+        if (view === 'research_hub') {
+  // Direct navigation — default to lines tab
+  if (!analyticsOps.researchHubTab.value) analyticsOps.researchHubTab.value = 'lines'
+  
+  // 🔥 FIX: Ensure data is loaded before showing the hub
+  if (researchOps.researchLines.value.length === 0) {
+    // Show loading state (optional - we'll add loading indicator next)
+    console.log('Loading research data...')
+    await Promise.all([
+      researchOps.loadResearchLines(),
+      researchOps.loadClinicalTrials(),
+      researchOps.loadInnovationProjects()
+    ])
+  }
+  
+  currentView.value = 'research_hub'
+  return
+} else if (view === 'research_lines') {
+  analyticsOps.researchHubTab.value = 'lines'
+  
+  // Also ensure data loads when going directly to lines tab
+  if (researchOps.researchLines.value.length === 0) {
+    await Promise.all([
+      researchOps.loadResearchLines(),
+      researchOps.loadClinicalTrials(),
+      researchOps.loadInnovationProjects()
+    ])
+  }
+  
+  currentView.value = 'research_hub'
+  if (filters.line) researchOps.trialFilters.line = filters.line
+  return
+} else if (view === 'clinical_trials') {
+  analyticsOps.researchHubTab.value = 'trials'
+  
+  // Also ensure data loads when going directly to trials tab
+  if (researchOps.clinicalTrials.value.length === 0) {
+    await Promise.all([
+      researchOps.loadClinicalTrials(),
+      researchOps.loadResearchLines()
+    ])
+  }
+  
+  currentView.value = 'research_hub'
+  if (filters.line) researchOps.trialFilters.line = filters.line
+  return
+} else if (view === 'innovation_projects') {
+  analyticsOps.researchHubTab.value = 'projects'
+  
+  // Also ensure data loads when going directly to projects tab
+  if (researchOps.innovationProjects.value.length === 0) {
+    await Promise.all([
+      researchOps.loadInnovationProjects(),
+      researchOps.loadResearchLines()
+    ])
+  }
+  
+  currentView.value = 'research_hub'
+  return
+}
+    
 
         const toggleStatsSidebar = () => { ui.statsSidebarOpen.value = !ui.statsSidebarOpen.value }
 
