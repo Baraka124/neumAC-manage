@@ -837,7 +837,7 @@ const App = {
       publishNews, archiveNews, toggleNewsPublic, openNewsDrawer, closeNewsDrawer,
       showExportModal, handleExport, switchView, goToPage,
       handleLogin, handleLogout, loginForm, loginLoading, loginError,
-      filteredMedicalStaff, filteredRotations, filteredOnCallSchedules,
+      filteredMedicalStaff, filteredRotations, Utils, filteredOnCallSchedules,
       filteredAbsences, filteredTrainingUnits, filteredTrials, filteredProjects,
       getCurrentViewTitle, getCurrentViewSubtitle, PROJECT_STAGES
     }
