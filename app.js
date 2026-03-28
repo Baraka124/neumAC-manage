@@ -961,5 +961,9 @@ const App = {
   `
 }
 
+// Create the app instance from the App object
+const app = createApp(App)
+
+// Use Pinia and mount
 app.use(pinia)
 app.mount('#app')
