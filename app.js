@@ -988,8 +988,6 @@ const App = {
     }
   },
   
-  // Template is in your index.html file
-  template: `<div id="app-mount"></div>`
 }
 
 // Create and mount app
