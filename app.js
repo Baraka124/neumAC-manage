@@ -1,4 +1,4 @@
-// app.js - Complete NeumoCare Application
+// app.js - Simplified
 import { createApp, ref, reactive, computed, onMounted } from 'vue'
 import { createPinia } from 'pinia'
 import { 
@@ -18,7 +18,8 @@ import { PROJECT_STAGES } from './config.js'
 
 const pinia = createPinia()
 
-const App = {
+// Create app directly with a setup function (no App object)
+const app = createApp({
   setup() {
     // ============================================================
     // STORES
@@ -166,7 +167,7 @@ const App = {
     const loginError = ref('')
     
     // ============================================================
-    // HELPER FUNCTIONS
+    // HELPER FUNCTIONS (all your existing helpers go here)
     // ============================================================
     const hasPermission = (module, action) => userStore.hasPermission(module, action)
     const formatDate = (d) => Utils.formatDate(d)
@@ -254,7 +255,7 @@ const App = {
     const getUpcomingLeave = (staffId) => absenceStore.absences.filter(a => a.staff_member_id === staffId && Utils.normalizeDate(a.start_date) >= Utils.normalizeDate(new Date()) && a.current_status !== 'cancelled')
     
     // ============================================================
-    // ACTION FUNCTIONS
+    // ACTION FUNCTIONS (all your existing action functions go here)
     // ============================================================
     const goToPage = (view, page) => { if (pagination[view]) pagination[view].page = page }
     const sortBy = (view, field) => { const s = sortState[view]; if (s) { s.dir = (s.field === field && s.dir === 'asc') ? 'desc' : 'asc'; s.field = field } }
@@ -986,9 +987,8 @@ const App = {
       // Title Helpers
       getCurrentViewTitle, getCurrentViewSubtitle
     }
-  },
-  
-}
+  }
+})
 
 // Create and mount app
 const app = createApp(App)
