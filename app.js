@@ -5024,6 +5024,13 @@ document.addEventListener('DOMContentLoaded', () => {
               researchOps.loadAllResearch()
             }
             return
+          } else if (view === 'news') {
+            currentView.value = 'news'
+            // Always refresh news when navigating to the module
+            if (!newsOps.newsLoading.value) {
+              newsOps.loadNews()
+            }
+            return
           }
         }
 
