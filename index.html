@@ -3033,54 +3033,56 @@
                         </div>
                     </div>
 
-                    v><!-- /research-hub -->
+                    </div><!-- /research-hub -->
 
                <!-- ============ SYSTEM SETTINGS VIEW ============ -->
-<div v-if="currentView === 'system_settings'" v-cloak>
-    <div class="card mb-6">
-        <div class="card-header">
-            <div class="card-title">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg>
-                System Settings
-            </div>
-            <button class="btn btn-primary btn-sm" @click="openAddStaffType" v-if="hasPermission('staff_types','create')">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Add Staff Type
-            </button>
-        </div>
+                <!-- FIX Bug1: moved inside content-area; Bug3: permission key fixed; Bug6: uses staffTypesLoading -->
+                <div v-if="currentView === 'system_settings'" v-cloak style="padding:20px;">
+                    <div class="card mb-6">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg>
+                                System Settings
+                            </div>
+                            <!-- FIX Bug3: was 'staff_types' (undefined in PERMISSION_MATRIX) → now 'system_settings' -->
+                            <button class="btn btn-primary btn-sm" @click="openAddStaffType" v-if="hasPermission('system_settings','create')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Add Staff Type
+                            </button>
+                        </div>
 
-        <!-- CARGA -->
-        <div v-if="loading" class="skeleton-view" style="padding: 20px;">
-            <div class="skeleton-row" style="height: 40px; margin-bottom: 8px;"></div>
-            <div class="skeleton-row" style="height: 40px;"></div>
-        </div>
+                        <!-- CARGA — FIX Bug6: use staffTypesLoading instead of global loading -->
+                        <div v-if="staffTypesLoading" class="skeleton-view" style="padding: 20px;">
+                            <div class="skeleton-row" style="height: 40px; margin-bottom: 8px;"></div>
+                            <div class="skeleton-row" style="height: 40px;"></div>
+                        </div>
 
-        <!-- TABLA -->
-        <div v-else class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr><th>Display Name</th><th>Type Key</th><th>Badge</th><th>Resident</th><th>Supervise</th><th>Status</th><th>Order</th><th></th></tr>
-                </thead>
-                <tbody>
-                    <tr v-for="st in staffTypesList" :key="st.id" :class="{ 'opacity-50': !st.is_active }">
-                        <td><strong>{{ st.display_name }}</strong></td>
-                        <td><code>{{ st.type_key }}</code></td>
-                        <td><span :class="['badge', st.badge_class]">{{ st.display_name }}</span></td>
-                        <td class="text-center"><i :class="st.is_resident_type ? 'fas fa-check text-success' : 'fas fa-minus text-muted'"></i></td>
-                        <td class="text-center"><i :class="st.can_supervise ? 'fas fa-check text-success' : 'fas fa-minus text-muted'"></i></td>
-                        <td class="text-center"><span :class="st.is_active ? 'badge badge-success' : 'badge badge-secondary'">{{ st.is_active ? 'Active' : 'Inactive' }}</span></td>
-                        <td class="text-center">{{ st.display_order }}</td>
-                        <td class="text-end">
-                            <button class="btn-icon" @click="openEditStaffType(st)" title="Edit"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg></button>
-                            <button class="btn-icon" @click="toggleStaffTypeActive(st)" :title="st.is_active ? 'Deactivate' : 'Activate'"><i :class="st.is_active ? 'fas fa-eye-slash' : 'fas fa-eye'"></i></button>
-                            <button class="btn-icon btn-icon--danger" @click="deleteStaffType(st)" title="Remove"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
-                        </td>
-                    </tr>
-                    <tr v-if="staffTypesList.length === 0"><td colspan="8" class="empty-state"><div class="empty-state-title">No staff types defined</div><div class="empty-state-description">Click "Add Staff Type" to create your first staff category.</div></td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+                        <!-- TABLA -->
+                        <div v-else class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr><th>Display Name</th><th>Type Key</th><th>Badge</th><th>Resident</th><th>Supervise</th><th>Status</th><th>Order</th><th></th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="st in staffTypesList" :key="st.id" :class="{ 'opacity-50': !st.is_active }">
+                                        <td><strong>{{ st.display_name }}</strong></td>
+                                        <td><code>{{ st.type_key }}</code></td>
+                                        <td><span :class="['badge', st.badge_class]">{{ st.display_name }}</span></td>
+                                        <td class="text-center"><i :class="st.is_resident_type ? 'fas fa-check text-success' : 'fas fa-minus text-muted'"></i></td>
+                                        <td class="text-center"><i :class="st.can_supervise ? 'fas fa-check text-success' : 'fas fa-minus text-muted'"></i></td>
+                                        <td class="text-center"><span :class="st.is_active ? 'badge badge-success' : 'badge badge-secondary'">{{ st.is_active ? 'Active' : 'Inactive' }}</span></td>
+                                        <td class="text-center">{{ st.display_order }}</td>
+                                        <td class="text-end">
+                                            <button class="btn-icon" @click="openEditStaffType(st)" title="Edit"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg></button>
+                                            <button class="btn-icon" @click="toggleStaffTypeActive(st)" :title="st.is_active ? 'Deactivate' : 'Activate'"><i :class="st.is_active ? 'fas fa-eye-slash' : 'fas fa-eye'"></i></button>
+                                            <button class="btn-icon btn-icon--danger" @click="deleteStaffType(st)" title="Remove"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="staffTypesList.length === 0"><td colspan="8" class="empty-state"><div class="empty-state-title">No staff types defined</div><div class="empty-state-description">Click "Add Staff Type" to create your first staff category.</div></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
 
 
