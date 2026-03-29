@@ -2,7 +2,7 @@
 <html lang="en"> 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>neuMAC | Pulmonology Management System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -373,10 +373,15 @@
          ════════════════════════════════════════════════════════════════════ */
       html { height:100%; }
       body { height:100%; min-height:100vh; }
+      /* app-layout: sidebar + main-content side by side, full viewport height */
       .app-layout { display:flex !important; height:100vh !important; max-height:100vh !important; overflow:hidden !important; }
+      /* sidebar: fixed-width column, does not grow */
       .sidebar { flex-shrink:0 !important; height:100vh !important; overflow-y:auto !important; }
-      .content-area { flex:1 !important; min-width:0 !important; height:100vh !important; max-height:100vh !important; overflow-y:auto !important; display:flex !important; flex-direction:column !important; box-sizing:border-box !important; }
-      /* Views that need full-height flex layout (not standard scroll) */
+      /* main-content: takes all remaining width, scrolls internally via content-area */
+      .main-content { flex:1 !important; min-width:0 !important; display:flex !important; flex-direction:column !important; height:100vh !important; overflow:hidden !important; }
+      /* content-area: scrollable body inside main-content — NO margin-left (main-content handles sidebar offset) */
+      .content-area { flex:1 !important; min-width:0 !important; min-height:0 !important; overflow-y:auto !important; display:flex !important; flex-direction:column !important; box-sizing:border-box !important; }
+      /* Views that need full-height internal flex layout (Research Hub, News) */
       .content-area:has(.research-hub) { overflow:hidden !important; padding:0 !important; }
       .content-area:has(.news-view)    { overflow:hidden !important; padding:0 !important; }
 
@@ -2522,9 +2527,9 @@
                             </div>
                             <div class="rp-kpi-div"></div>
                             <div class="rp-kpi">
-                                <div class="rp-kpi-val" :class="{ 'rp-kpi-val--ok': portfolioKPIs?.activeTrials > 0 }">{{ portfolioKPIs?.activeStudies || 0 }}</div>
+                                <div class="rp-kpi-val" :class="{ 'rp-kpi-val--ok': portfolioKPIs?.activeStudies > 0 }">{{ portfolioKPIs?.activeStudies || 0 }}</div>
                                 <div class="rp-kpi-label">Active Studies</div>
-                                <div class="rp-kpi-sub" v-if="portfolioKPIs?.recruitingTrials > 0" style="color:var(--ok)">{{ portfolioKPIs?.recruitingStudies || 0 }} recruiting</div>
+                                <div class="rp-kpi-sub" v-if="portfolioKPIs?.recruitingStudies > 0" style="color:var(--ok)">{{ portfolioKPIs?.recruitingStudies || 0 }} recruiting</div>
                                 <div class="rp-kpi-sub" v-else>of {{ portfolioKPIs?.totalStudies || 0 }} total</div>
                             </div>
                             <div class="rp-kpi-div"></div>
@@ -2645,8 +2650,7 @@
                                         <p class="rp-detail-desc">{{ activeMissionLine.capabilities }}</p>
                                     </div>
 
-                                <!-- Detail scrollable body -->
-                                <div class="rp-detail-body">
+                                <!-- (inner body merged into outer rp-detail-body) -->
 
                                     <!-- Coordinator -->
                                     <div class="rp-detail-section">
@@ -2718,23 +2722,7 @@
                                         </div>
                                     </div>
 
-                                </div><!-- end main sections -->
-                                </div><!-- end rp-detail-body -->
-
-                                <!-- Footer actions -->
-                                <div class="rp-detail-footer">
-                                    <button class="btn btn-sm btn-outline" @click="drillToTrials(activeMissionLine.id)">
-                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg> Studies
-                                    </button>
-                                    <button class="btn btn-sm btn-outline" @click="drillToProjects(activeMissionLine.id)">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/><path d="M7.5 16H12"/></svg> Projects
-                                    </button>
-                                    <button class="btn btn-primary btn-sm" @click="showAddTrialModal(activeMissionLine)" v-if="hasPermission('research_lines','create')" style="margin-left:auto">
-                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add Study
-                                    </button>
-                                </div>
-                                
-<!-- Innovation Projects for this line -->
+                                <!-- Innovation Projects for this line — inside scrollable body -->
                                     <div class="rp-detail-section" v-if="(innovationProjects||[]).filter(p=>p.research_line_id===activeMissionLine.id).length > 0 || hasPermission('research_lines','create')">
                                         <div class="rp-detail-section-label" style="display:flex;align-items:center;gap:6px">
                                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/><path d="M7.5 16H12"/></svg>
@@ -2762,6 +2750,21 @@
                                             No projects yet for this line
                                         </div>
                                     </div>
+
+                                </div><!-- /rp-detail-body -->
+
+                                <!-- Footer actions -->
+                                <div class="rp-detail-footer">
+                                    <button class="btn btn-sm btn-outline" @click="drillToTrials(activeMissionLine.id)">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg> Studies
+                                    </button>
+                                    <button class="btn btn-sm btn-outline" @click="drillToProjects(activeMissionLine.id)">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/><path d="M7.5 16H12"/></svg> Projects
+                                    </button>
+                                    <button class="btn btn-primary btn-sm" @click="showAddTrialModal(activeMissionLine)" v-if="hasPermission('research_lines','create')" style="margin-left:auto">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add Study
+                                    </button>
+                                </div>
                             </div>
 
                                     
@@ -2966,7 +2969,7 @@
                                         <div class="chart-bars">
                                             <div v-for="(count, phase) in researchDashboard.clinicalTrials?.byPhase" :key="phase" class="chart-bar-item" v-if="count > 0">
                                                 <span class="bar-label">{{ phase }}</span>
-                                                <div class="bar-container"><div class="bar-fill" :style="{ width: researchDashboard.summary?.totalTrials > 0 ? (count / researchDashboard.summary.totalStudies * 100) + '%' : '0%', background: getPhaseColor(phase) }"></div></div>
+                                                <div class="bar-container"><div class="bar-fill" :style="{ width: researchDashboard.summary?.totalStudies > 0 ? (count / researchDashboard.summary.totalStudies * 100) + '%' : '0%', background: getPhaseColor(phase) }"></div></div>
                                                 <span class="bar-value">{{ count }}</span>
                                             </div>
                                             <div v-if="!researchDashboard.clinicalTrials?.byPhase || Object.values(researchDashboard.clinicalTrials.byPhase).every(v => v === 0)" class="empty-chart">No data</div>
@@ -3037,7 +3040,7 @@
                                         <div class="rha-ps rha-ps--purple"><div class="rha-ps-val">{{ line.stats?.commercialized || 0 }}</div><div class="rha-ps-label">Commerc.</div></div>
                                     </div>
                                     <div class="rha-perf-bar">
-                                        <div class="rha-perf-bar-fill" :style="{ width: line.stats?.totalTrials > 0 ? Math.min(100, (line.stats.activeStudys / line.stats.totalStudies) * 100) + '%' : '0%' }"></div>
+                                        <div class="rha-perf-bar-fill" :style="{ width: line.stats?.totalStudies > 0 ? Math.min(100, (line.stats.activeStudies / line.stats.totalStudies) * 100) + '%' : '0%' }"></div>
                                     </div>
                                 </div>
                             </div>
