@@ -1,5 +1,5 @@
 <!DOCTYPE html>       
-<html lang="en">  
+<html lang="en"> 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
@@ -917,7 +917,7 @@
             </header>
 
             <!-- Content Area -->
-            <div class="content-area" style="display:flex;flex-direction:column;overflow:hidden;flex:1;min-height:0;">
+            <div class="content-area" style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;">
 
                 <!-- System Alert Banner -->
                 <div v-if="systemAlerts.length > 0" style="margin-bottom:24px;">
@@ -3124,6 +3124,7 @@
                             <option value="update">Update</option>
                             <option value="article">Article</option>
                             <option value="publication">Publication</option>
+                            <option value="photo_story">Photo Story</option>
                         </select>
                         <select class="form-select" v-model="newsFilters.scope" style="max-width:150px">
                             <option value="">All Visibility</option>
@@ -3166,9 +3167,14 @@
                                     <a v-if="post.doi" :href="'https://doi.org/' + post.doi" target="_blank" class="news-doi">
                                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg> DOI {{ post.doi }}
                                     </a>
+                                    <!-- Fallback: show body as excerpt if no publication metadata is filled -->
+                                    <span v-if="!post.journal_name && !post.authors_text && !post.doi && post.body"
+                                          class="news-card-excerpt" style="margin:0">{{ post.body }}</span>
+                                    <span v-if="!post.journal_name && !post.authors_text && !post.doi && !post.body"
+                                          style="font-size:11px;color:var(--text-4);font-style:italic;">No publication details added yet</span>
                                 </div>
 
-                                <!-- Body preview -->
+                                <!-- Body preview (non-publications) -->
                                 <div v-if="post.body && post.post_type !== 'publication'" class="news-card-excerpt">{{ post.body }}</div>
 
                                 <!-- Meta row -->
