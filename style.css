@@ -773,7 +773,7 @@ a { color: var(--blue); text-decoration: none; }
 }
 
 .sidebar-collapsed { width: var(--sidebar-sm); }
-.sidebar-collapsed ~ .content-area { margin-left: var(--sidebar-sm); }
+/* sidebar-collapsed handled by .main-content-expanded */
 
 /* ── Header ─────────────────────────────────────────────────── */
 .sidebar-header {
@@ -1080,9 +1080,8 @@ a { color: var(--blue); text-decoration: none; }
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
-  /* sidebar is position:fixed — content must offset + claim full height */
-  margin-left: var(--sidebar-w);
-  height: 100vh;
+  /* .main-content already handles margin-left and height — 
+     content-area just needs flex:1 + overflow-y:auto to scroll */
   box-sizing: border-box;
 }
 
@@ -11557,10 +11556,11 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
 
 
 /* ════════════════════════════════════════════════════════════════
-   LAYOUT FIX — Research Hub & News & Posts full-height rendering
-   These views use a flex panel layout that requires height to
-   propagate from content-area → view wrapper → scrollable body.
-   ════════════════════════════════════════════════════════════════ */  
+   LAYOUT — Research Hub & News full-height panel views
+   content-area is flex:1 child of main-content (height:100vh)
+   For panel views: disable content-area's own padding/scroll so
+   the inner panel controls its own layout.
+   ════════════════════════════════════════════════════════════════ */
 .content-area:has(.research-hub),
 .content-area:has(.news-view) {
   overflow: hidden !important;
@@ -11568,12 +11568,12 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
 }
 .research-hub,
 .news-view {
-  height: 100% !important;
+  /* flex:1 fills the content-area which fills main-content */
+  flex: 1 !important;
+  min-height: 0 !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
-  flex: 1 !important;
-  min-height: 0 !important;
 }
 .news-list {
   flex: 1;
