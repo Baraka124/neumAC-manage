@@ -175,7 +175,8 @@ document.addEventListener('DOMContentLoaded', () => {
       innovation_projects: 'Research Hub', 
       analytics_dashboard: 'Research Hub',
       analytics_performance: 'Research Hub', 
-      analytics_partners: 'Research Hub'
+      analytics_partners: 'Research Hub',
+      news: 'News & Posts'
     }
     
     const VIEW_SUBTITLES = {
@@ -192,7 +193,8 @@ document.addEventListener('DOMContentLoaded', () => {
       innovation_projects: 'Research lines, studies, projects and analytics',
       analytics_dashboard: 'Research lines, studies, projects and analytics',
       analytics_performance: 'Research lines, studies, projects and analytics',
-      analytics_partners: 'Research lines, studies, projects and analytics'
+      analytics_partners: 'Research lines, studies, projects and analytics',
+      news: 'Departmental updates, articles and publications'
     }
 
     // ============ 3. ENHANCED UTILS CLASS ============
@@ -4709,17 +4711,17 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           return chunks
         })
-        const newsDrawerInitials = computed(() => {
-          const name = newsDrawerAuthorFull.value || ''
-          const parts = name.trim().split(/\s+/).filter(w => w.replace('.','').length > 1)
-          if (parts.length >= 2) return (parts[0][0] + parts[parts.length-1][0]).toUpperCase()
-          return name[0]?.toUpperCase() || '?'
-        })
         const newsDrawerAuthorFull = computed(() => {
           const id = newsDrawer.post?.author_id
           if (!id) return ''
           const s = (medicalStaff.value || []).find(m => m.id === id)
           return s?.full_name || ''
+        })
+        const newsDrawerInitials = computed(() => {
+          const name = newsDrawerAuthorFull.value || ''
+          const parts = name.trim().split(/\s+/).filter(w => w.replace('.','').length > 1)
+          if (parts.length >= 2) return (parts[0][0] + parts[parts.length-1][0]).toUpperCase()
+          return name[0]?.toUpperCase() || '?'
         })
         const newsDrawerReadMins = computed(() => {
           const wc = newsDrawer.post?.word_count
@@ -5027,8 +5029,8 @@ document.addEventListener('DOMContentLoaded', () => {
           } else if (view === 'news') {
             currentView.value = 'news'
             // Always refresh news when navigating to the module
-            if (!newsOps.newsLoading.value) {
-              newsOps.loadNews()
+            if (!newsLoading.value) {
+              loadNews()
             }
             return
           }
