@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const CONFIG = {
       API_BASE_URL: window.location.hostname.includes('localhost') 
         ? 'http://localhost:3000' 
-        : 'https://neumac-manage-back-end-production.up.railway.app',
+        : 'https://neumac-manage-back-end-production.up.railway.app',   
       TOKEN_KEY: 'neumocare_token',
       USER_KEY: 'neumocare_user',
       CACHE_TTL: 300000
