@@ -4161,10 +4161,8 @@ document.addEventListener('DOMContentLoaded', () => {
           const lateStageProjects = (innovationProjects.value || []).filter(p => ['Piloto','Validación','Escalado','Mercado'].includes(p.current_stage)).length
           const totalEnrolled = (clinicalTrials.value || []).reduce((s, t) => s + (t.actual_enrollment || 0), 0)
           const totalTarget   = (clinicalTrials.value || []).reduce((s, t) => s + (t.enrollment_target || 0), 0)
-          return { totalLines, activeLines, totalTrials, activeTrials, recruitingTrials, totalProjects, lateStageProjects, totalEnrolled, totalTarget,
-                   totalStudies: totalTrials, activeStudies: activeTrials, recruitingStudies: recruitingTrials }
-        } catch { return { totalLines: 0, activeLines: 0, totalTrials: 0, activeTrials: 0, recruitingTrials: 0, totalProjects: 0, lateStageProjects: 0, totalEnrolled: 0, totalTarget: 0,
-                            totalStudies: 0, activeStudies: 0, recruitingStudies: 0 } }
+          return { totalLines, activeLines, totalTrials, activeTrials, recruitingTrials, totalProjects, lateStageProjects, totalEnrolled, totalTarget }
+        } catch { return { totalLines: 0, activeLines: 0, totalTrials: 0, activeTrials: 0, recruitingTrials: 0, totalProjects: 0, lateStageProjects: 0, totalEnrolled: 0, totalTarget: 0 } }
       })
 
       // Line accent colours — cycles through 6 department colours
