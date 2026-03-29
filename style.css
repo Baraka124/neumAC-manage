@@ -11560,7 +11560,7 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
    LAYOUT FIX — Research Hub & News & Posts full-height rendering
    These views use a flex panel layout that requires height to
    propagate from content-area → view wrapper → scrollable body.
-   ════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════════════════════════════════ */  
 .content-area:has(.research-hub),
 .content-area:has(.news-view) {
   overflow: hidden !important;
