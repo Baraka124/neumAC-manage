@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   try {
     if (typeof Vue === 'undefined') throw new Error('Vue.js not loaded')
 
-    const { createApp, ref, reactive, computed, onMounted, watch, onUnmounted } = Vue    
+    const { createApp, ref, reactive, computed, onMounted, watch, onUnmounted } = Vue 
 
     // ============ 1. CONFIGURATION ====----===--====-=
     const CONFIG = {
@@ -526,6 +526,35 @@ document.addEventListener('DOMContentLoaded', () => {
       static getInitials(name) {
         if (!name || typeof name !== 'string') return '??'
         return name.split(' ').map(w => w[0]).join('').toUpperCase().substring(0, 2)
+      }
+
+      // Format a clinician name for compact display in the dashboard.
+      // Respects whatever title the user stored (Dr., Dra., Prof., etc.)
+      // Shortens to: <title> <LastName>  e.g. "Dr. Pedro J. Marcos" → "Dr. Marcos"
+      //                                       "Dra. María García"   → "Dra. García"
+      //                                       "Pedro Marcos"        → "Pedro Marcos" (no title detected)
+      static formatDrName(fullName) {
+        if (!fullName || typeof fullName !== 'string') return '—'
+        const parts = fullName.trim().split(/\s+/).filter(Boolean)
+        if (parts.length === 0) return '—'
+        if (parts.length === 1) return parts[0]
+
+        // Check if the first word looks like a title (Dr., Dra., Prof., etc.)
+        const titlePattern = /^(Dr\.?|Dra\.?|Prof\.?|Mr\.?|Ms\.?|Mrs\.?)$/i
+        const hasTitle = titlePattern.test(parts[0])
+
+        if (hasTitle) {
+          // "Dr. Pedro J. Marcos" → ["Dr.", "Pedro", "J.", "Marcos"] → "Dr. Marcos"
+          const title    = parts[0]
+          const lastName = parts[parts.length - 1]
+          return `${title} ${lastName}`
+        } else {
+          // No title stored — just show first + last, skip middle initials
+          // "Pedro Juan Marcos" → "Pedro Marcos"
+          return parts.length > 2
+            ? `${parts[0]} ${parts[parts.length - 1]}`
+            : fullName.trim()
+        }
       }
     }
 
@@ -4382,7 +4411,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (endingThisWeek.length > 0) {
           const names = endingThisWeek.slice(0,2).map(r => {
             const s = medicalStaff.value.find(x => x.id === r.resident_id)
-            return s ? s.full_name : 'Unknown'
+            return s ? Utils.formatDrName(s.full_name) : 'Unknown'
           }).join(', ')
           const more = endingThisWeek.length > 2 ? ` +${endingThisWeek.length-2}` : ''
           items.push({ icon: 'fa-clock', type: 'warn', text: `${endingThisWeek.length} rotation${endingThisWeek.length>1?'s':''} ending this week — ${names}${more}`, action: 'resident_rotations', actionFilter: { rotationStatus: 'active' } })
@@ -4427,7 +4456,7 @@ document.addEventListener('DOMContentLoaded', () => {
           )
         })
         if (unassigned.length > 0) {
-          const names = unassigned.slice(0,2).map(s => s.full_name || '').join(', ')
+          const names = unassigned.slice(0,2).map(s => Utils.formatDrName(s.full_name) || '').join(', ')
           const more  = unassigned.length > 2 ? ` +${unassigned.length - 2}` : ''
           items.push({ icon: 'fa-user-clock', type: 'warn', text: `${unassigned.length} resident${unassigned.length>1?'s':''} unassigned next month — ${names}${more}`, action: 'resident_rotations', urgent: unassigned.length > 2 })
         }
@@ -4474,7 +4503,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const m = gapSlotMatches[0]
           items.push({
             icon: 'fa-link', type: 'info',
-            text: `${m.residentName} finishing rotation — ${m.unitName} has a free slot`,
+            text: `${Utils.formatDrName(m.residentName)} finishing rotation — ${m.unitName} has a free slot`,
             action: 'resident_rotations',
             actionFilter: { resident: m.residentId }
           })
@@ -5415,6 +5444,7 @@ document.addEventListener('DOMContentLoaded', () => {
           showPassword, loginError, loginFieldErrors, clearLoginError, handleForgotPassword,
           normalizeDate: (d) => Utils.normalizeDate(d),
           formatDate: (d) => Utils.formatDate(d),
+          formatDrName: (n) => Utils.formatDrName(n),
           formatNewsDate: (d) => Utils.formatNewsDate(d),
           formatDateShort: (d) => Utils.formatDateShort(d),
           formatDatePlusDays: (d, n) => Utils.formatDatePlusDays(d, n),
