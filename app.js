@@ -4715,7 +4715,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const staffOps = useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll, currentUser })
         const { medicalStaff, allStaffLookup, hospitalsList } = staffOps
 
-        const { trainingUnitFilters, trainingUnitModal, unitResidentsModal, unitCliniciansModal,
+        const { trainingUnitFilters, trainingUnitModal, unitsByDepartment, unitResidentsModal, unitCliniciansModal,
           filteredTrainingUnits, getUnitActiveRotationCount, getUnitRotations, getUnitScheduledCount, getUnitOverlapWarning, getResidentShortName,
           loadTrainingUnits, showAddTrainingUnitModal,
           editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians,
@@ -5134,8 +5134,10 @@ document.addEventListener('DOMContentLoaded', () => {
           saving.value = true
           try {
             // Update display name in app_users
-            currentUser.value.full_name = userProfileModal.form.full_name
-            currentUser.value.department_id = userProfileModal.form.department_id
+            if (currentUser.value) {
+              currentUser.value.full_name = userProfileModal.form.full_name
+              currentUser.value.department_id = userProfileModal.form.department_id
+            }
             localStorage.setItem(CONFIG.USER_KEY, JSON.stringify(currentUser.value))
             // If this user has a linked staff record, open it for full profile editing
             if (userProfileModal.form.linked_staff_id) {
