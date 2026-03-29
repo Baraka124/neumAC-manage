@@ -1080,15 +1080,14 @@ a { color: var(--blue); text-decoration: none; }
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
-  /* margin-left intentionally removed — was double-offsetting sidebar width.
-     main-content carries margin-left:sidebar-w; content-area inherits that offset. */
+  /* sidebar is position:fixed — content must offset + claim full height */
+  margin-left: var(--sidebar-w);
+  height: 100vh;
   box-sizing: border-box;
 }
 
 .content-area > * {
   max-width: 1440px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 /* ----------------------------------------------------------------
@@ -3466,7 +3465,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   }
   .sidebar-backdrop.active { display: block; }
   .main-content { margin-left: 0 !important; }
-  .content-area { overflow-y: auto; overflow-x: hidden; }
+  .content-area { overflow-y: auto; }
   .mobile-menu-toggle { display: flex; align-items: center; justify-content: center; }
 
   .stats-toggle-btn {
@@ -6881,7 +6880,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   .sidebar-section-title { font-size: 10.5px; padding: 16px 17px 7px; }
 
   /* Expand content max-width */
-  .content-area > * { max-width: 1680px; margin-left: auto; margin-right: auto; }
+  .content-area > * { max-width: 1680px; }
 
   /* Wider stats grid — 5 cols on very wide screens */
   .stats-grid:not(.mini) { grid-template-columns: repeat(5, 1fr); }
@@ -6924,7 +6923,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   .sidebar-section-title { font-size: 11px; letter-spacing: .16em; padding: 17px 18px 8px; }
   .sidebar-logo .logo-text-main { font-size: 15px; }
 
-  .content-area > * { max-width: 1920px; margin-left: auto; margin-right: auto; }
+  .content-area > * { max-width: 1920px; }
 
   /* Typography scale up for reading distance */
   body, .table tbody td { font-size: 14px; }
@@ -6948,7 +6947,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   :root { --sidebar-w: 380px; }
   .sidebar-menu-link { font-size: 16px; padding: 12px 20px; min-height: 48px; }
   .sidebar-section-title { font-size: 11.5px; }
-  .content-area > * { max-width: 2400px; margin-left: auto; margin-right: auto; }
+  .content-area > * { max-width: 2400px; }
 }
 
 /* ── Orb track overflow fix on narrow laptops (1100–1280px) ─── */
@@ -7591,14 +7590,7 @@ tr:not(:hover) .btn-pill-purge {
 .rhub-tab--active { color: #009999; border-bottom-color: #009999; }
 
 /* ── Panel (tab content area) ───────────────────────────────── */
-.rhub-panel { 
-  padding: 16px 0; 
-  flex: 1; 
-  overflow-y: auto; 
-  min-height: 0; 
-  display: flex; 
-  flex-direction: column;
-}
+.rhub-panel { padding: 16px 0; }
 
 /* ── Filter bar ─────────────────────────────────────────────── */
 .rhub-filter-bar {
@@ -8365,7 +8357,7 @@ tr:not(:hover) .btn-pill-purge {
 /* Mission Control layout */
 .rp-mc {
   display: grid; grid-template-columns: 260px 1fr;
-  flex: 1;
+  flex: 1; min-height: 480px;
   border-top: none;
   min-height: 0;
   height: 100%;
@@ -8505,8 +8497,7 @@ tr:not(:hover) .btn-pill-purge {
   font-family: var(--font-display, Georgia, serif);
   font-size: 32px; font-weight: 400; font-style: italic;; font-style: italic;
   color: var(--text-1); line-height: 1; letter-spacing: -.02em;
-}
-.rp-ds-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); margin-top: 4px; }
+}0px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); margin-top: 4px; }
 .rp-ds-sub   { font-size: 10px; color: var(--text-4); margin-top: 2px; font-weight: 600; }
 
 .rp-detail-section { display: flex; flex-direction: column; gap: 8px; }
@@ -8545,7 +8536,7 @@ tr:not(:hover) .btn-pill-purge {
 }
 .rp-trial-row:hover { border-color: var(--blue-mid); }
 .rp-trial-info { flex: 1; min-width: 0; }
-.rp-trial-title { font-size: 12.5px; font-weight: 500; color: var(--text-1); white-space: normal; word-break: break-word; line-height: 1.4; word-break: break-word; overflow: hidden; text-overflow: ellipsis; }
+.rp-trial-title { font-size: 12.5px; font-weight: 500; color: var(--text-1); white-space: normal; word-break: break-word; line-height: 1.4; word-break: break-word; verflow: ellipsis; }
 .rp-trial-meta  { font-size: 10px; color: var(--text-4); margin-top: 1px; font-family: var(--font-data); }
 .rp-trial-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; min-width: 80px; }
 .rp-trial-status { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
@@ -11588,141 +11579,4 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-}
-
-/* ════════════════════════════════════════════════════════════════
-   RESPONSIVE FIXES — Elite multi-device support
-   Phone (≤640px) · Tablet (641–1024px) · Desktop (1025–1599px)
-   Research-lab wide (1600px+) · 2K/4K (1920px+)
-   ════════════════════════════════════════════════════════════════ */
-
-/* ── Research Hub Mission Control: 260px+detail grid → stacked on tablet/phone ── */
-@media (max-width: 900px) {
-  .rp-mc {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-    overflow-y: auto;
-  }
-  .rp-nav {
-    max-height: 260px;
-    overflow-y: auto;
-    border-right: none;
-    border-bottom: 1px solid rgba(255,255,255,.08);
-  }
-  .rp-detail,
-  .rp-detail--empty {
-    min-height: 420px;
-  }
-}
-
-@media (max-width: 640px) {
-  .rp-mc {
-    grid-template-rows: 200px 1fr;
-  }
-  .rp-nav {
-    max-height: 200px;
-    padding: 6px 6px;
-  }
-  .rp-nav-item { padding: 8px 8px; }
-  .rp-kpi-strip {
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 10px 14px;
-  }
-  .rp-kpi { min-width: 70px; }
-  .rp-kpi-search { width: 100%; min-width: 0; margin-left: 0; }
-  .rp-detail-head { padding: 14px 16px 16px; }
-  .rp-detail-num { font-size: 44px !important; }
-  .rp-detail-body { padding: 14px 16px; gap: 14px; }
-  .rp-detail-footer { padding: 10px 16px; }
-  .rp-ds-block { padding: 10px 12px; }
-  .rp-ds-val { font-size: 24px !important; }
-
-  /* Research hub Analytics: charts stack vertically */
-  .rha-charts-row { flex-direction: column !important; }
-  .rha-chart-card { width: 100% !important; }
-  .rha-lines-table { overflow-x: auto; }
-  .rha-lt-header,
-  .rha-lt-row { min-width: 480px; }
-
-  /* Research hub filter bars */
-  .rhub-filter-bar {
-    flex-direction: column;
-    gap: 8px;
-    padding: 10px 12px;
-  }
-  .rhub-filter-bar .form-control,
-  .rhub-filter-bar .form-select { max-width: 100% !important; width: 100% !important; }
-
-  /* Research hub tabs — scrollable on narrow screens */
-  .rhub-tabs { overflow-x: auto; flex-wrap: nowrap; }
-  .rhub-tab  { flex-shrink: 0; }
-
-  /* Innovation projects — single column */
-  .inno-projects-grid { grid-template-columns: 1fr !important; }
-
-  /* News filter bar */
-  .news-filter-bar { flex-direction: column; gap: 8px; padding: 10px 12px; }
-  .news-filter-bar .form-control,
-  .news-filter-bar .form-select { max-width: 100% !important; width: 100% !important; }
-
-  /* News card — compact on phone */
-  .news-card { flex-wrap: wrap; }
-  .news-card-right { width: 100%; border-top: 1px solid var(--border); padding: 8px 14px; }
-  .news-card-body  { padding-bottom: 6px; }
-
-  /* Performance grid — single column */
-  .rha-perf-grid { grid-template-columns: 1fr !important; }
-}
-
-/* ── Mobile bottom-nav clearance for full-height panels ── */
-@media (max-width: 1100px) {
-  /* These panels scroll internally — they need bottom padding equal to nav height */
-  .rhub-panel,
-  .rhub-panel--mc,
-  .news-list,
-  .rp-nav,
-  .rp-detail-body {
-    padding-bottom: calc(72px + env(safe-area-inset-bottom, 16px));
-  }
-  /* But --mc is flex:column, not scrollable itself — apply to its scrollable children */
-  .rhub-panel--mc { padding-bottom: 0; }
-  .rp-nav         { padding-bottom: calc(72px + env(safe-area-inset-bottom, 16px)); }
-}
-
-/* ── iPad landscape (768–1024px): 2-column research hub ── */
-@media (min-width: 641px) and (max-width: 900px) {
-  .rp-mc { grid-template-columns: 220px 1fr; grid-template-rows: unset; overflow: hidden; }
-  .rp-nav { max-height: unset; border-right: 0.5px solid rgba(255,255,255,.08); border-bottom: none; }
-  .rp-detail { min-height: unset; }
-}
-
-/* ── Research-lab wide (1600px+): expand max-widths ── */
-@media (min-width: 1600px) {
-  .content-area > * { max-width: 1680px; }
-  .rp-mc { grid-template-columns: 300px 1fr; }
-  .rhub-filter-bar .form-control,
-  .rhub-filter-bar .form-select { max-width: 260px; }
-}
-
-@media (min-width: 1920px) {
-  .content-area > * { max-width: 1920px; }
-  .rp-mc { grid-template-columns: 340px 1fr; }
-}
-
-@media (min-width: 2560px) {
-  .content-area > * { max-width: 2400px; }
-  .rp-mc { grid-template-columns: 400px 1fr; }
-}
-
-/* ── System settings — responsive grid ── */
-@media (max-width: 768px) {
-  div[v-if*="system_settings"] .table-responsive-wrap { overflow-x: auto; }
-}
-
-/* ── Ensure rp-detail-footer never gets clipped by bottom nav on mobile ── */
-@media (max-width: 1100px) {
-  .rp-detail-body {
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 16px));
-  }
 }
