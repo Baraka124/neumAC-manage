@@ -175,7 +175,10 @@ document.addEventListener('DOMContentLoaded', () => {
       innovation_projects: 'Research Hub', 
       analytics_dashboard: 'Research Hub',
       analytics_performance: 'Research Hub', 
-      analytics_partners: 'Research Hub'
+      analytics_partners: 'Research Hub',
+      // FIX Bug5: missing view titles for news and system_settings
+      news: 'News & Posts',
+      system_settings: 'System Settings'
     }
     
     const VIEW_SUBTITLES = {
@@ -192,7 +195,10 @@ document.addEventListener('DOMContentLoaded', () => {
       innovation_projects: 'Research lines, studies, projects and analytics',
       analytics_dashboard: 'Research lines, studies, projects and analytics',
       analytics_performance: 'Research lines, studies, projects and analytics',
-      analytics_partners: 'Research lines, studies, projects and analytics'
+      analytics_partners: 'Research lines, studies, projects and analytics',
+      // FIX Bug5: missing subtitles for news and system_settings
+      news: 'Departmental news, announcements and publications',
+      system_settings: 'Configure staff types and system-wide settings'
     }
 
     // ============ 3. ENHANCED UTILS CLASS ============
@@ -4064,6 +4070,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function useNews({ showToast, showConfirmation, medicalStaff, researchLines }) {
       const newsPosts      = ref([])
       const newsLoading    = ref(false)
+      const newsLoaded     = ref(false) // FIX Bug4: tracks whether fetch has been attempted, not just if results exist
       const newsModal      = reactive({
         show: false, mode: 'add', _tab: 'meta',
         form: {
@@ -4135,7 +4142,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const data = await API.getList('/api/news')
           newsPosts.value = data || []
         } catch { newsPosts.value = [] }
-        finally { newsLoading.value = false }
+        finally { newsLoading.value = false; newsLoaded.value = true } // FIX Bug4: mark as loaded regardless of result
       }
 
       const showAddNewsModal = () => {
@@ -4265,7 +4272,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       return {
-        newsPosts, newsLoading, newsModal, newsFilters, filteredNews,
+        newsPosts, newsLoading, newsLoaded, newsModal, newsFilters, filteredNews,
         newsWordCount, newsWordLimit,
         loadNews, showAddNewsModal, editNews, saveNews,
         publishNews, archiveNews, deleteNews, togglePublic,
@@ -4732,7 +4739,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         // ── END NEWS READER DRAWER ────────────────────────────────────
 
-        const { newsPosts, newsLoading, newsModal, newsFilters, filteredNews,
+        const { newsPosts, newsLoading, newsLoaded, newsModal, newsFilters, filteredNews,
                 newsWordCount, newsWordLimit,
                 loadNews, showAddNewsModal, editNews, saveNews,
                 publishNews, archiveNews, deleteNews, togglePublic: toggleNewsPublic,
@@ -4994,7 +5001,8 @@ document.addEventListener('DOMContentLoaded', () => {
           if (ca) { ca.classList.remove('content-view-enter'); void ca.offsetWidth; ca.classList.add('content-view-enter') }
           if (view === 'news') {
             currentView.value = 'news'
-            if (!newsPosts.value.length && !newsLoading.value) loadNews()
+            // FIX Bug4: use newsLoaded flag, not length — empty result shouldn't trigger refetch
+            if (!newsLoaded.value && !newsLoading.value) loadNews()
             return
           }
           if (view === 'system_settings') {
@@ -5090,7 +5098,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // ── Staff Types Management ─────────────────────────────────────────────
         // Loads dynamic staff types from DB and builds the reactive lookup map
+        const staffTypesLoading = ref(false) // FIX Bug6: dedicated loading flag for Settings skeleton
         const loadStaffTypes = async (includeInactive = false) => {
+          staffTypesLoading.value = true
           try {
             const raw = await API.getStaffTypes(includeInactive)
             staffTypesList.value = raw
@@ -5099,6 +5109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             raw.forEach(t => { map[t.type_key] = t })
             staffTypeMap.value = map
           } catch { console.error('Failed to load staff types') }
+          finally { staffTypesLoading.value = false }
         }
 
         // ── Academic Degrees ────────────────────────────────────────────────
@@ -5219,7 +5230,7 @@ document.addEventListener('DOMContentLoaded', () => {
               liveOps.loadActiveMedicalStaff(),
               researchOps.loadResearchLines(),
               loadSystemStats(),
-              loadNews()
+              loadNews() // FIX Bug7: kept here but newsLoaded flag prevents duplicate call if user already navigated to news
             ]).then(() => updateDashboardStats())
 
             // Low priority — research analytics
@@ -5340,7 +5351,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ...dashOps,
           handleLogin, handleLogout,
           switchView, situationItems, dailyBriefing, toggleStatsSidebar, handleGlobalSearch, globalSearchResults, clearSearch,
-          newsPosts, newsLoading, newsModal, newsFilters, filteredNews,
+          newsPosts, newsLoading, newsLoaded, newsModal, newsFilters, filteredNews,
           newsWordCount, newsWordLimit,
           loadNews, showAddNewsModal, editNews, saveNews,
           publishNews, archiveNews, deleteNews, toggleNewsPublic,
@@ -5353,7 +5364,7 @@ document.addEventListener('DOMContentLoaded', () => {
           getLineAccent:     getLineAccentGlobal,
 
           staffTypesList, staffTypeMap, academicDegrees, loadAcademicDegrees, formatStaffTypeGlobal, getStaffTypeClassGlobal, isResidentType,
-          staffTypeModal, openAddStaffType, openEditStaffType, saveStaffType, deleteStaffType, toggleStaffTypeActive, loadStaffTypes,
+          staffTypesLoading, staffTypeModal, openAddStaffType, openEditStaffType, saveStaffType, deleteStaffType, toggleStaffTypeActive, loadStaffTypes,
           searchResultsOpen: ui.searchResultsOpen,
           sortState, sortBy, sortIcon, pagination,
           goToPage: (view, page) => {
