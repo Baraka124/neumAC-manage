@@ -164,6 +164,11 @@
       .udd-assign-cta:hover { background:rgba(0,153,153,.16); }
       .udd-footer { padding:12px 28px; border-top:1px solid #e3dfd6; display:flex; gap:8px; align-items:center; flex-shrink:0; background:#f5f4f0; }
       /* Card clickable hover */
+      /* ── Training units — department section header ── */
+      .tu-dept-header { display:flex; align-items:center; justify-content:space-between; padding:10px 16px 6px; border-bottom:1.5px solid var(--border,#e3dfd6); margin-bottom:8px; }
+      .tu-dept-header-name { font-size:11px; font-weight:700; color:var(--text-2,#3a3a3a); text-transform:uppercase; letter-spacing:.09em; }
+      .tu-dept-header-count { font-size:10px; color:var(--text-4,#b5b0a8); font-family:monospace; }
+
       .tuc { cursor:pointer; transition:box-shadow .15s, transform .15s; }
       .tuc:hover { box-shadow:0 4px 20px rgba(0,0,0,.10); transform:translateY(-2px); }
       .tuc:hover .tuc-name { color:#009999; }
@@ -1791,6 +1796,13 @@
                                     <button class="rot-action-btn" @click.stop="viewStaffDetails(resident)" title="View profile">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                     </button>
+                                    <!-- Terminate button in compact view -->
+                                    <button v-if="resident.currentRotation && hasPermission('resident_rotations','delete')"
+                                            class="rot-action-btn rot-action-btn--danger"
+                                            @click.stop="deleteRotation(resident.currentRotation)"
+                                            title="Terminate current rotation">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
+                                    </button>
                                 </div>
 
                             </div>
@@ -1965,7 +1977,7 @@
                                         <td>
                                             <div class="table-actions">
                                                 <button class="btn-pill btn-pill-edit" @click="editRotation(rotation)" v-if="hasPermission('resident_rotations', 'update')" title="Edit rotation"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg></button>
-                                                <button class="btn-pill btn-pill-danger" @click.stop="deleteRotation(rotation)" v-if="hasPermission('resident_rotations', 'delete') && !['active','scheduled'].includes(rotation.rotation_status)" title="Delete record"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
+                                                <button class="btn-pill btn-pill-danger" @click.stop="deleteRotation(rotation)" v-if="hasPermission('resident_rotations', 'delete') && ['active','scheduled'].includes(rotation.rotation_status)" title="Terminate rotation"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -2089,9 +2101,9 @@
                         <div v-if="loading" class="skeleton-grid" style="padding:16px">
                             <div v-for="i in 4" :key="i" class="skeleton-card"></div>
                         </div>
-                        <div v-else class="training-units-grid">
-                            <!-- Shared legend — shown once above all cards, only in timeline mode -->
-                            <div v-if="trainingUnitView === 'timeline'" class="tuc-shared-legend">
+                        <div v-else>
+                            <!-- Shared legend -->
+                            <div v-if="trainingUnitView === 'timeline'" class="tuc-shared-legend" style="margin:0 16px 4px;">
                                 <span class="tuc-tl-leg-item"><span class="tuc-tl-leg-dot tuc-tl-leg-dot--occupied"></span>Occupied</span>
                                 <span class="tuc-tl-leg-item"><span class="tuc-tl-leg-dot tuc-tl-leg-dot--partial"></span>Partial</span>
                                 <span class="tuc-tl-leg-item"><span class="tuc-tl-leg-dot tuc-tl-leg-dot--free"></span>Available</span>
@@ -2104,7 +2116,14 @@
                                     </div>
                                 </div>
                             </div>
-                            <div v-for="unit in filteredTrainingUnits" :key="unit.id"
+                            <!-- Group by department — section header + cards -->
+                            <template v-for="deptGroup in (()=>{ const depts={}; filteredTrainingUnits.forEach(u=>{ const key=u.department_id||'__none__'; if(!depts[key]) depts[key]={deptId:u.department_id,deptName:u.department?.name||u.department_name||'Unassigned',units:[]}; depts[key].units.push(u) }); return Object.values(depts) })()" :key="deptGroup.deptId">
+                                <div class="tu-dept-header">
+                                    <span class="tu-dept-header-name">{{ deptGroup.deptName }}</span>
+                                    <span class="tu-dept-header-count">{{ deptGroup.units.length }} unit{{ deptGroup.units.length !== 1 ? 's' : '' }}</span>
+                                </div>
+                                <div class="training-units-grid" style="margin-bottom:8px">
+                            <div v-for="unit in deptGroup.units" :key="unit.id"
                                  class="tuc"
                                  :class="{
                                    'tuc--full':   getUnitActiveRotationCount(unit.id) >= unit.maximum_residents,
@@ -2128,8 +2147,7 @@
                                             <div>
                                                 <div class="tuc-name">{{ unit.unit_name }}</div>
                                                 <div class="tuc-sub">
-                                                    <span v-if="unit.specialty" class="tuc-specialty">{{ unit.specialty }}</span>
-                                                    <span v-else-if="unit.unit_type" class="tuc-specialty">{{ {'clinical_unit':'Ward','icu':'Critical Care','outpatient':'Outpatient','surgical':'Surgical','research':'Research Block','training_unit':'Training'}[unit.unit_type] || 'Clinical Unit' }}</span>
+                                                    <span class="tuc-specialty">{{ unit.department?.name || unit.department_name || unit.specialty || '—' }}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -2173,15 +2191,15 @@
                                         <div class="tuc-card-title-row">
                                             <div class="tuc-name">{{ unit.unit_name }}</div>
                                             <span class="tuc-type-badge" :class="'tuc-type--' + (unit.unit_type || 'training_unit')">
-                                                {{ {'clinical_unit':'Ward','icu':'ICU','outpatient':'OPD','surgical':'Surgery','research':'Research','training_unit':'Training'}[unit.unit_type] || 'Unit' }}
+                                                {{ {'clinical_unit':'Sala','icu':'UCI','outpatient':'Consultas','surgical':'Procedimientos','research':'Investigación','training_unit':'Unidad'}[unit.unit_type] || 'Unidad' }}
                                             </span>
                                         </div>
 
                                         <!-- Specialty + supervisor -->
                                         <div class="tuc-card-meta">
-                                            <span v-if="unit.specialty" style="color:var(--text-3);font-size:11px">{{ unit.specialty }}</span>
+                                            <span style="color:var(--text-4);font-size:10px;font-family:monospace">{{ unit.department?.name || unit.department_name || '—' }}</span>
                                             <span v-if="unit.supervisor_id || unit.supervising_attending_id" style="color:var(--text-3);font-size:11px">
-                                                · {{ (allStaffLookup.find(s=>s.id===(unit.supervisor_id||unit.supervising_attending_id))?.full_name||'').split(' ').slice(-1)[0] }}
+                                                · {{ formatDrName(allStaffLookup.find(s=>s.id===(unit.supervisor_id||unit.supervising_attending_id))?.full_name || '') }}
                                             </span>
                                         </div>
 
@@ -2220,7 +2238,18 @@
                                 <div class="empty-state-description">Training units are the clinical areas where residents rotate</div>
                                 <button class="btn btn-primary btn-sm" @click="showAddTrainingUnitModal" v-if="hasPermission('training_units', 'create')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add First Unit</button>
                             </div>
-                        </div><!-- end v-else -->
+                                </div><!-- /training-units-grid for dept -->
+                            </template><!-- /dept group -->
+                            <!-- Empty state when no units at all -->
+                            <div v-if="filteredTrainingUnits.length === 0" class="empty-state" style="padding:40px">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21"/></svg>
+                                <div class="empty-state-title">No clinical units found</div>
+                                <div class="empty-state-description">Add your first clinical rotation unit to get started</div>
+                                <button class="btn btn-primary btn-sm" @click="showAddTrainingUnitModal" v-if="hasPermission('training_units','create')">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add Unit
+                                </button>
+                            </div>
+                        </div><!-- end grouped view -->
                     </div>
                 </div>
             </div><!-- /training_units -->
@@ -3082,6 +3111,49 @@
                             </table>
                         </div>
                     </div>
+
+                    <!-- ROTATION SERVICES ══════════════════════════════════ -->
+                    <div class="card mb-6" style="margin-top:16px">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                Rotation Services
+                            </div>
+                            <button class="btn btn-primary btn-sm" @click="openAddRotationService" v-if="hasPermission('system_settings','create')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Add Service
+                            </button>
+                        </div>
+                        <div v-if="rotationServicesLoading" class="skeleton-view" style="padding:20px">
+                            <div class="skeleton-row" style="height:40px;margin-bottom:8px"></div>
+                        </div>
+                        <div v-else class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr><th>Service / Department</th><th>Type</th><th>Contact Person</th><th>Email</th><th>Phone</th><th></th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="svc in rotationServices" :key="svc.id">
+                                        <td><strong>{{ svc.name }}</strong></td>
+                                        <td><span class="badge badge-secondary" style="font-size:9px;text-transform:uppercase">{{ svc.service_type === 'external_institution' ? 'External Institution' : 'Internal Service' }}</span></td>
+                                        <td>{{ svc.contact_name || '—' }}</td>
+                                        <td><a v-if="svc.contact_email" :href="'mailto:'+svc.contact_email" style="color:var(--blue);font-size:12px">{{ svc.contact_email }}</a><span v-else style="color:var(--text-4)">—</span></td>
+                                        <td style="font-size:12px;font-family:monospace">{{ svc.contact_phone || '—' }}</td>
+                                        <td class="text-end">
+                                            <button class="btn-icon" @click="openEditRotationService(svc)" title="Edit" v-if="hasPermission('system_settings','update')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg></button>
+                                            <button class="btn-icon btn-icon--danger" @click="deleteRotationService(svc)" title="Remove" v-if="hasPermission('system_settings','delete')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="rotationServices.length === 0">
+                                        <td colspan="6" class="empty-state">
+                                            <div class="empty-state-title">No rotation services defined</div>
+                                            <div class="empty-state-description">Add the external services and departments your residents rotate through.</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
 
 
@@ -3133,8 +3205,8 @@
                         </select>
                     </div>
 
-                    <!-- Posts list -->
-                    <div class="news-list" v-if="!newsLoading">
+                    <!-- Posts list — v-show keeps DOM stable during background refresh -->
+                    <div class="news-list" v-show="!newsLoading">
                         <div v-if="filteredNews.length === 0" class="news-empty">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22H20a1 1 0 001-1V5a1 1 0 00-1-1H8l-5 5v12a1 1 0 001 1z"/><path d="M8 4V9H3M12 13H16M12 17H16M8 13H9M8 17H9"/></svg>
                             <p>No posts yet. Create your first post to get started.</p>
@@ -3238,9 +3310,13 @@
                         </div>
                     </div>
 
-                    <!-- Loading state -->
-                    <div v-if="newsLoading" class="news-loading">
+                    <!-- Loading state — inline top bar, doesn't wipe card list -->
+                    <div v-if="newsLoading && !newsLoaded" class="news-loading">
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" class="fa-spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Loading posts…
+                    </div>
+                    <!-- Subtle refresh indicator when already loaded (background sync) -->
+                    <div v-if="newsLoading && newsLoaded" style="padding:6px 20px;font-size:10px;color:var(--text-4);display:flex;align-items:center;gap:5px;">
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" class="fa-spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Syncing…
                     </div>
                 </div>
 
@@ -3472,6 +3548,53 @@
             </div><!-- /content-area -->
         </main>
 
+        <!-- ============ ROTATION SERVICE ADD/EDIT MODAL ============ -->
+        <div class="modal-overlay" v-if="rotationServiceModal.show" @click.self="rotationServiceModal.show = false">
+            <div class="modal-container" style="max-width:480px">
+                <div class="modal-header">
+                    <div class="modal-title">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        {{ rotationServiceModal.mode === 'add' ? 'Add Rotation Service' : 'Edit Rotation Service' }}
+                    </div>
+                    <button class="modal-close" @click="rotationServiceModal.show = false"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group mb-3">
+                        <label class="form-label">Service / Department Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" v-model="rotationServiceModal.form.name" placeholder="e.g. Cardiología CHUAC">
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label">Type</label>
+                        <select class="form-select" v-model="rotationServiceModal.form.service_type">
+                            <option value="rotation_service">Internal Hospital Service</option>
+                            <option value="external_institution">External Institution</option>
+                        </select>
+                        <small class="form-text text-muted">Internal = another service within CHUAC. External = another hospital or institution.</small>
+                    </div>
+                    <hr style="margin:16px 0;border-color:var(--border)">
+                    <div class="form-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:12px">Contact Details</div>
+                    <div class="form-group mb-3">
+                        <label class="form-label">Contact Person</label>
+                        <input type="text" class="form-control" v-model="rotationServiceModal.form.contact_name" placeholder="Coordinator / tutor name">
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label">Contact Email</label>
+                        <input type="email" class="form-control" v-model="rotationServiceModal.form.contact_email" placeholder="coordinator@hospital.es">
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label">Contact Phone</label>
+                        <input type="tel" class="form-control" v-model="rotationServiceModal.form.contact_phone" placeholder="+34 …">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @click="rotationServiceModal.show = false">Cancel</button>
+                    <button class="btn btn-primary" @click="saveRotationService">
+                        {{ rotationServiceModal.mode === 'add' ? 'Add Service' : 'Save Changes' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- ============ STAFF TYPE ADD/EDIT MODAL ============ -->
         <div class="modal-overlay" v-if="staffTypeModal.show" @click.self="staffTypeModal.show = false">
             <div class="modal-container" style="max-width:480px">
@@ -3672,7 +3795,7 @@
                                 <div v-if="staffProfileModal.staff.resident_category === 'rotating_other_dept'" class="pd-origin-block" style="margin-top:6px;">
                                     <div class="pd-origin-name">
                                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="1.5" stroke-linecap="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21"/></svg>
-                                        {{ getDepartmentName(staffProfileModal.staff.home_department_id) || staffProfileModal.staff.home_department || '—' }}
+                                        {{ getRotationServiceName(staffProfileModal.staff.home_department_id) || staffProfileModal.staff.home_department || '—' }}
                                     </div>
                                     <div class="pd-origin-contact" v-if="staffProfileModal.staff.external_contact_name">{{ staffProfileModal.staff.external_contact_name }}<template v-if="staffProfileModal.staff.external_contact_phone"> · {{ staffProfileModal.staff.external_contact_phone }}</template></div>
                                 </div>
@@ -4473,24 +4596,33 @@
                                 </div>
                                 <!-- Rotating: origin dept -->
                                 <div v-if="medicalStaffModal.form.resident_category === 'rotating_other_dept'" class="sm-origin-block">
-                                    <div class="sm-field">
-                                        <div class="sm-label">Origin Department <span class="req">·</span></div>
-                                        <select class="sm-select" v-model="medicalStaffModal.form.home_department_id" :class="{'is-invalid': fieldErrors.staff?.home_department_id}">
-                                            <option value="">Select department…</option>
-                                            <option v-for="d in departments" :key="d.id" :value="d.id">{{ d.name }}</option>
+                                    <div class="sm-field" :class="{'has-error': fieldErrors.staff?.home_department_id}">
+                                        <div class="sm-label">Origin Service / Department <span class="req">·</span></div>
+                                        <select class="sm-select" v-model="medicalStaffModal.form.home_department_id"
+                                                @change="const svc=rotationServices.find(s=>s.id===medicalStaffModal.form.home_department_id); if(svc){ if(!medicalStaffModal.form.external_contact_name && svc.contact_name) medicalStaffModal.form.external_contact_name=svc.contact_name; if(!medicalStaffModal.form.external_contact_email && svc.contact_email) medicalStaffModal.form.external_contact_email=svc.contact_email; if(!medicalStaffModal.form.external_contact_phone && svc.contact_phone) medicalStaffModal.form.external_contact_phone=svc.contact_phone }">
+                                            <option value="">Select service…</option>
+                                            <option v-for="svc in rotationServices" :key="svc.id" :value="svc.id">{{ svc.name }}</option>
                                         </select>
                                         <small v-if="fieldErrors.staff?.home_department_id" class="error-text">{{ fieldErrors.staff.home_department_id }}</small>
+                                        <small style="font-size:10px;color:var(--text-4);margin-top:2px;display:block">Contact details auto-fill from the selected service — edit below if needed</small>
                                     </div>
                                     <div class="sm-row">
                                         <div class="sm-field"><div class="sm-label">Contact Person</div><input type="text" class="sm-input" v-model="medicalStaffModal.form.external_contact_name" placeholder="Tutor / coordinator"></div>
-                                        <div class="sm-field"><div class="sm-label">Contact Phone</div><input type="tel" class="sm-input" v-model="medicalStaffModal.form.external_contact_phone" placeholder="+34 …"></div>
+                                        <div class="sm-field"><div class="sm-label">Contact Email</div><input type="email" class="sm-input" v-model="medicalStaffModal.form.external_contact_email" placeholder="tutor@hospital.es"></div>
                                     </div>
+                                    <div class="sm-field"><div class="sm-label">Contact Phone</div><input type="tel" class="sm-input" v-model="medicalStaffModal.form.external_contact_phone" placeholder="+34 …"></div>
                                 </div>
                                 <!-- External: institution + contacts -->
                                 <div v-if="medicalStaffModal.form.resident_category === 'external_resident'" class="sm-origin-block">
                                     <div class="sm-field" :class="{'has-error': fieldErrors.staff?.external_institution}">
-                                        <div class="sm-label">Institution <span class="req">·</span></div>
-                                        <input type="text" class="sm-input" v-model="medicalStaffModal.form.external_institution" placeholder="e.g. Hospital El Tajo, Madrid" :class="{'is-invalid': fieldErrors.staff?.external_institution}">
+                                        <div class="sm-label">Home Institution <span class="req">·</span></div>
+                                        <input type="text" class="sm-input" v-model="medicalStaffModal.form.external_institution"
+                                               list="rotation-services-list"
+                                               placeholder="e.g. Hospital El Tajo, Madrid"
+                                               :class="{'is-invalid': fieldErrors.staff?.external_institution}">
+                                        <datalist id="rotation-services-list">
+                                            <option v-for="svc in rotationServices" :key="svc.id" :value="svc.name"></option>
+                                        </datalist>
                                         <small v-if="fieldErrors.staff?.external_institution" class="error-text">{{ fieldErrors.staff.external_institution }}</small>
                                     </div>
                                     <div class="sm-row">
@@ -5310,7 +5442,7 @@
                         </div>
                         <div class="sm-preview-chips">
                             <span v-if="trainingUnitModal.form.unit_type" class="sm-preview-chip">
-                                {{ {'training_unit':'Training','clinical_unit':'Clinical','icu':'ICU','outpatient':'Outpatient','surgical':'Surgical','research':'Research'}[trainingUnitModal.form.unit_type] || trainingUnitModal.form.unit_type }}
+                                {{ {'training_unit':'Unidad','clinical_unit':'Sala','icu':'UCI','outpatient':'Consultas','surgical':'Procedimientos','research':'Investigación'}[trainingUnitModal.form.unit_type] || trainingUnitModal.form.unit_type }}
                             </span>
                             <span v-if="trainingUnitModal.form.unit_status && trainingUnitModal.form.unit_status !== 'active'" class="sm-preview-chip" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.2);color:#f59e0b;">
                                 {{ trainingUnitModal.form.unit_status === 'under_renovation' ? 'Renovation' : 'Inactive' }}
@@ -5340,9 +5472,9 @@
                             </div>
                         </div>
 
-                        <div v-if="trainingUnitModal.form.specialty">
-                            <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:4px;">Specialty</div>
-                            <div style="font-size:.72rem;color:rgba(255,255,255,.73);">{{ trainingUnitModal.form.specialty }}</div>
+                        <div v-if="trainingUnitModal.form.department_id">
+                            <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:4px;">Departamento</div>
+                            <div style="font-size:.72rem;color:rgba(255,255,255,.73);">{{ departments.find(d=>d.id===trainingUnitModal.form.department_id)?.name || '—' }}</div>
                         </div>
                     </div>
 
@@ -5372,27 +5504,43 @@
                     </div>
                     <div class="sm-form-body">
 
+                        <!-- Unit Name + auto-generated Code -->
                         <div class="sm-row">
                             <div class="sm-field" :class="{'has-error': fieldErrors.trainingUnit?.unit_name}">
                                 <div class="sm-label">Unit Name <span class="req">·</span></div>
-                                <input type="text" class="sm-input" :class="{filled: trainingUnitModal.form.unit_name}" v-model="trainingUnitModal.form.unit_name" placeholder="e.g. UCRI – Critical Care" required>
+                                <input type="text" class="sm-input" :class="{filled: trainingUnitModal.form.unit_name}"
+                                       v-model="trainingUnitModal.form.unit_name"
+                                       @input="if(trainingUnitModal.mode==='add'){ trainingUnitModal.form.unit_code = trainingUnitModal.form.unit_name.split(/\s+/).map(w=>w[0]||'').join('').toUpperCase().slice(0,6) }"
+                                       placeholder="e.g. UCI Respiratoria" required>
                             </div>
                             <div class="sm-field">
-                                <div class="sm-label">Unit Code <span class="req">·</span></div>
-                                <input type="text" class="sm-input" :class="{filled: trainingUnitModal.form.unit_code}" v-model="trainingUnitModal.form.unit_code" placeholder="e.g. UCRI" required>
+                                <div class="sm-label">Unit Code <span class="req">·</span> <span style="font-size:9.5px;color:var(--text-4);font-weight:400">auto-generated</span></div>
+                                <input type="text" class="sm-input" :class="{filled: trainingUnitModal.form.unit_code}"
+                                       v-model="trainingUnitModal.form.unit_code"
+                                       placeholder="UCIR" style="font-family:monospace;letter-spacing:.05em;text-transform:uppercase" required>
                             </div>
                         </div>
 
+                        <!-- Department (replaces Specialty) -->
+                        <div class="sm-field">
+                            <div class="sm-label">Department / Service <span class="req">·</span></div>
+                            <select class="sm-select" v-model="trainingUnitModal.form.department_id" required>
+                                <option value="">Select department…</option>
+                                <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+                            </select>
+                        </div>
+
+                        <!-- Unit Type + Status -->
                         <div class="sm-row">
                             <div class="sm-field">
                                 <div class="sm-label">Unit Type <span class="req">·</span></div>
                                 <select class="sm-select" v-model="trainingUnitModal.form.unit_type" required>
-                                    <option value="training_unit">Training Unit</option>
-                                    <option value="clinical_unit">Clinical Unit (ward)</option>
-                                    <option value="icu">ICU / Critical Care</option>
-                                    <option value="outpatient">Outpatient / Clinic</option>
-                                    <option value="surgical">Surgical</option>
-                                    <option value="research">Research Block</option>
+                                    <option value="clinical_unit">Sala de Hospitalización</option>
+                                    <option value="icu">UCI / Críticos</option>
+                                    <option value="outpatient">Consultas Externas</option>
+                                    <option value="surgical">Procedimientos / Cirugía</option>
+                                    <option value="research">Bloque de Investigación</option>
+                                    <option value="training_unit">Rotación Externa</option>
                                 </select>
                             </div>
                             <div class="sm-field">
@@ -5405,31 +5553,22 @@
                             </div>
                         </div>
 
+                        <!-- Max Residents + Supervising Attending -->
                         <div class="sm-row">
                             <div class="sm-field">
                                 <div class="sm-label">Max Residents <span class="req">·</span></div>
-                                <input type="number" class="sm-input" :class="{filled: trainingUnitModal.form.maximum_residents}" v-model="trainingUnitModal.form.maximum_residents" min="1" max="50" required>
+                                <input type="number" class="sm-input" :class="{filled: trainingUnitModal.form.maximum_residents}"
+                                       v-model="trainingUnitModal.form.maximum_residents" min="1" max="50" required>
                             </div>
                             <div class="sm-field">
-                                <div class="sm-label">Specialty</div>
-                                <input type="text" class="sm-input" :class="{filled: trainingUnitModal.form.specialty}" v-model="trainingUnitModal.form.specialty" placeholder="e.g. Respiratory Medicine">
+                                <div class="sm-label">Supervising Attending</div>
+                                <select class="sm-select" v-model="trainingUnitModal.form.supervising_attending_id">
+                                    <option value="">None assigned</option>
+                                    <option v-for="a in availableAttendings" :key="a.id" :value="a.id">{{ a.full_name }}</option>
+                                </select>
                             </div>
                         </div>
-
-                        <div class="sm-field">
-                            <div class="sm-label">Supervising Attending</div>
-                            <select class="sm-select" v-model="trainingUnitModal.form.supervising_attending_id">
-                                <option value="">None assigned</option>
-                                <option v-for="a in availableAttendings" :key="a.id" :value="a.id">{{ a.full_name }}</option>
-                            </select>
-                        </div>
-
-                        <div class="sm-field">
-                            <div class="sm-label">Description</div>
-                            <textarea class="sm-input" v-model="trainingUnitModal.form.unit_description"
-                                      rows="2" style="height:auto;resize:none;padding-top:8px;padding-bottom:8px;"
-                                      placeholder="Brief description of this unit's scope…"></textarea>
-                        </div>
+                        <!-- Description removed — not needed -->
 
                     </div>
                     <div class="sm-form-footer">
