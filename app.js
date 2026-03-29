@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {   
+document.addEventListener('DOMContentLoaded', () => {
   try {
     if (typeof Vue === 'undefined') throw new Error('Vue.js not loaded')
 
