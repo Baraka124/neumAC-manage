@@ -11635,7 +11635,7 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
 .db-oc-badge { font-size: 11px !important; }
 
 /* ════════════════════════════════════════════════════════════════
-   COMPACT VIEW ACTION BUTTONS — rot-action-btn
+   COMPACT VIEW ACTION BUTTONS — rot-action-btn  
    Make them always visible with good contrast
    ════════════════════════════════════════════════════════════════ */
 .rot-action-btn {
