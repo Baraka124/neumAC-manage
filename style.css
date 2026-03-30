@@ -12076,3 +12076,115 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
 /* db-main-grid and db-gap-panel contribute to scroll height naturally */
 .view-dashboard .db-main-grid { flex-shrink: 0; }
 .view-dashboard .db-gap-panel { flex-shrink: 0; }
+
+
+/* ════════════════════════════════════════════════════════════════
+   DASHBOARD — Unit Occupancy Grid (replaces 14-day coverage bar)
+   ════════════════════════════════════════════════════════════════ */
+
+.db-unit-panel { }
+
+.db-unit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 12px 14px 10px;
+}
+
+/* ── Individual unit cell ─────────────────────────────────────── */
+.db-unit-cell {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: border-color .15s, transform .1s;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+.db-unit-cell:hover {
+  border-color: #009999;
+  transform: translateY(-1px);
+}
+.db-unit-cell:active { transform: translateY(0); }
+
+/* States */
+.db-unit-cell--ok    { background: rgba(13,158,110,.06); border-color: rgba(13,158,110,.2); }
+.db-unit-cell--warn  { background: rgba(239,159,39,.08); border-color: rgba(239,159,39,.3); }
+.db-unit-cell--full  { background: rgba(220,38,38,.06);  border-color: rgba(220,38,38,.25); }
+.db-unit-cell--empty {
+  background: var(--surface-2);
+  border-color: var(--border);
+  border-style: dashed;
+}
+
+.db-unit-cell--ok:hover    { border-color: #0d9e6e; }
+.db-unit-cell--warn:hover  { border-color: #d97706; }
+.db-unit-cell--full:hover  { border-color: #dc2626; }
+.db-unit-cell--empty:hover { border-color: #009999; border-style: solid; }
+
+/* ── Unit name ────────────────────────────────────────────────── */
+.db-unit-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 5px;
+  letter-spacing: -.01em;
+}
+.db-unit-cell--empty .db-unit-name { color: var(--text-3); }
+
+/* ── Fill bar ─────────────────────────────────────────────────── */
+.db-unit-bar-wrap {
+  height: 4px;
+  background: rgba(0,0,0,.07);
+  border-radius: 2px;
+  margin-bottom: 5px;
+  overflow: hidden;
+}
+.db-unit-bar {
+  height: 4px;
+  border-radius: 2px;
+  transition: width .4s ease;
+}
+.db-unit-cell--ok   .db-unit-bar { background: #0d9e6e; }
+.db-unit-cell--warn .db-unit-bar { background: #d97706; }
+.db-unit-cell--full .db-unit-bar { background: #dc2626; }
+.db-unit-cell--empty .db-unit-bar { background: var(--border); width: 0 !important; }
+
+/* ── Meta line ────────────────────────────────────────────────── */
+.db-unit-meta {
+  font-size: 10px;
+  color: var(--text-4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.db-unit-cell--empty .db-unit-meta { color: var(--text-4); font-style: italic; }
+
+/* ── Legend ───────────────────────────────────────────────────── */
+.db-unit-legend {
+  display: flex;
+  gap: 12px;
+  padding: 0 14px 12px;
+  flex-wrap: wrap;
+}
+.db-unit-leg-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--text-3);
+}
+.db-unit-leg-sw {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.db-unit-leg-sw--ok    { background: rgba(13,158,110,.25); border: 1px solid rgba(13,158,110,.4); }
+.db-unit-leg-sw--warn  { background: rgba(239,159,39,.25); border: 1px solid rgba(239,159,39,.4); }
+.db-unit-leg-sw--full  { background: rgba(220,38,38,.2);   border: 1px solid rgba(220,38,38,.35); }
+.db-unit-leg-sw--empty { background: var(--surface-2); border: 1px dashed var(--border-2, #ccc); }
