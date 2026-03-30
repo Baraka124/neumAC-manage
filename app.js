@@ -5783,8 +5783,8 @@ document.addEventListener('DOMContentLoaded', () => {
           isRotationActive: rotationOps.isRotationActive,
           isShiftActive: onCallOps.isShiftActive,
           viewRotationDetails: rotationOps.viewRotationDetails,
-          residentGapWarnings: rotationOps.residentGapWarnings,    
-        }
+          residentGapWarnings: rotationOps.residentGapWarnings,
+        }    
       }
     })
 
