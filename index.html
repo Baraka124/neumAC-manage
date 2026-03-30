@@ -965,217 +965,264 @@
                 </nav>
 
                 <!-- ============ DASHBOARD VIEW ============ -->
-                <div v-if="currentView === 'dashboard'">
+                <div v-if="currentView === 'dashboard'" class="view-dashboard">
+                    <!-- ═══════════════════════════════════════════════════
+                         DASHBOARD — Elite redesign
+                         Structure:
+                           1. dbh-frame  — dark navy hero (greeting + alerts)
+                           2. dbsr       — stat rail (4 KPI tiles)
+                           3. db-main-grid — 2-col content + full-width gap
+                    ════════════════════════════════════════════════════════ -->
 
-                    <!-- Greeting -->
-                    <div class="db-greeting">
-                        <div class="db-greeting-left">
-                            <div class="db-greeting-time">{{ new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}</div>
-                            <div class="db-greeting-title">
-                                {{ new Date().getHours() < 12 ? 'Good morning,' : new Date().getHours() < 19 ? 'Good afternoon,' : 'Good evening,' }}
-                                <span>{{ currentUser && currentUser.full_name ? formatDrName(currentUser.full_name) : 'Doctor' }}</span>
-                            </div>
-                        </div>
-                        <div class="db-quick-actions">
-                            <button class="db-qa-btn" @click="showAddMedicalStaffModal" v-if="hasPermission('medical_staff', 'create')">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
-                                Add Staff
-                            </button>
-                            <div class="db-qa-divider"></div>
-                            <button class="db-qa-btn" @click="showAddOnCallModal" v-if="hasPermission('oncall_schedule', 'create')">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3C11.2 3 9 7.5 12 11C15 14.5 21 12.8 21 12.8Z"/></svg>
-                                On-call
-                            </button>
-                            <div class="db-qa-divider"></div>
-                            <button class="db-qa-btn" @click="showAddRotationModal" v-if="hasPermission('resident_rotations', 'create')">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 12C4 16.4 7.6 20 12 20S20 16.4 20 12 16.4 4 12 4"/><path d="M8 4H12V8"/></svg>
-                                Rotation
-                            </button>
-                            <div class="db-qa-divider"></div>
-                            <button class="db-qa-btn" @click="showAddAbsenceModal" v-if="hasPermission('staff_absence', 'create')">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10H21M8 3V7M16 3V7"/></svg>
-                                Absence
-                            </button>
-                            <div class="db-qa-divider"></div>
-                            <button class="db-qa-btn db-qa-btn--primary" @click="showCommunicationsModal" v-if="hasPermission('communications', 'create')">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                                Announce
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Briefing strip -->
-                    <div v-if="dailyBriefing.length > 0" class="dbr-strip">
-                        <div class="dbr-label"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M13 2L3 14H12L11 22L21 10H12L13 2Z"/></svg> Today</div>
-                        <div class="dbr-items">
-                            <div v-for="item in dailyBriefing" :key="item.text"
-                                 class="dbr-item" :class="'dbr-item--' + item.type"
-                                 @click="switchView(item.action, item.actionFilter || {})">
-                                <i class="fas dbr-icon" :class="item.icon"></i>
-                                <span class="dbr-text" v-html="item.text"></span>
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div v-else class="dbr-strip dbr-strip--clear">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
-                        <span>All clear — no urgent items today</span>
-                    </div>
-
-                    <!-- Compact KPI bar -->
-                    <div class="db-kpi-bar">
-                        <div class="db-kpi db-kpi--teal" @click="switchView('medical_staff')">
-                            <div class="db-kpi-icon db-kpi-icon--teal"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#009999" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-                            <div class="db-kpi-body" style="min-width:0;flex:1">
-                                <div class="db-kpi-val">{{ systemStats.totalStaff || 0 }}</div>
-                                <div class="db-kpi-label">Medical Staff</div>
-                                <div class="db-kpi-sub">
-                                    <span class="db-kpi-dot db-kpi-dot--ok"></span>{{ systemStats.activeAttending || 0 }} attending
-                                    <span class="db-kpi-dot db-kpi-dot--blue" style="margin-left:8px"></span>{{ systemStats.activeResidents || 0 }} residents
-                                    <span v-if="systemStats.onLeaveStaff > 0" style="margin-left:8px;color:var(--warn)"><span class="db-kpi-dot db-kpi-dot--warn"></span> {{ systemStats.onLeaveStaff }} on leave</span>
+                    <!-- 1. HERO FRAME -->
+                    <div class="dbh-frame">
+                        <div class="dbh-top">
+                            <div class="dbh-greeting-block">
+                                <div class="dbh-date">{{ new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}</div>
+                                <div class="dbh-greeting">
+                                    {{ new Date().getHours() < 12 ? 'Good morning,' : new Date().getHours() < 19 ? 'Good afternoon,' : 'Good evening,' }}
+                                    <em class="dbh-name">{{ currentUser && currentUser.full_name ? formatDrName(currentUser.full_name) : 'Doctor' }}</em>
                                 </div>
                             </div>
-                        </div>
-                        <div class="db-kpi db-kpi--navy" @click="switchView('resident_rotations')">
-                            <div class="db-kpi-icon db-kpi-icon--navy"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0f2d54" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12C4 16.4 7.6 20 12 20S20 16.4 20 12 16.4 4 12 4"/><path d="M8 4H12V8"/></svg></div>
-                            <div class="db-kpi-body" style="min-width:0;flex:1">
-                                <div class="db-kpi-val">{{ systemStats.activeRotations || 0 }}</div>
-                                <div class="db-kpi-label">Active Rotations</div>
-                                <div class="db-kpi-sub">
-                                    <span class="db-kpi-dot" :class="systemStats.endingThisWeek > 0 ? 'db-kpi-dot--warn' : 'db-kpi-dot--ok'"></span>{{ systemStats.endingThisWeek || 0 }} ending this week
-                                    <span class="db-kpi-dot db-kpi-dot--ok" style="margin-left:8px"></span>{{ systemStats.startingNextWeek || 0 }} starting
-                                </div>
+                            <div class="dbh-actions">
+                                <button class="dbh-btn" @click="showAddMedicalStaffModal" v-if="hasPermission('medical_staff','create')">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
+                                    Add Staff
+                                </button>
+                                <button class="dbh-btn" @click="showAddOnCallModal" v-if="hasPermission('oncall_schedule','create')">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3C11.2 3 9 7.5 12 11C15 14.5 21 12.8 21 12.8Z"/></svg>
+                                    On-call
+                                </button>
+                                <button class="dbh-btn" @click="showAddRotationModal" v-if="hasPermission('resident_rotations','create')">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 12C4 16.4 7.6 20 12 20S20 16.4 20 12 16.4 4 12 4"/><path d="M8 4H12V8"/></svg>
+                                    Rotation
+                                </button>
+                                <button class="dbh-btn" @click="showAddAbsenceModal" v-if="hasPermission('staff_absence','create')">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10H21M8 3V7M16 3V7"/></svg>
+                                    Absence
+                                </button>
+                                <button class="dbh-btn dbh-btn--teal" @click="showCommunicationsModal" v-if="hasPermission('communications','create')">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                                    Announce
+                                </button>
                             </div>
                         </div>
-                        <div class="db-kpi db-kpi--amber" @click="switchView('oncall_schedule')">
-                            <div class="db-kpi-icon db-kpi-icon--amber"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ba7517" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3C11.2 3 9 7.5 12 11C15 14.5 21 12.8 21 12.8Z"/></svg></div>
-                            <div class="db-kpi-body" style="min-width:0;flex:1">
-                                <div class="db-kpi-val">{{ todaysOnCallCount || 0 }}</div>
-                                <div class="db-kpi-label">On-call Today</div>
-                                <div class="db-kpi-sub" v-if="todaysOnCall.length > 0">
-                                    <span class="db-kpi-dot db-kpi-dot--ok"></span>
-                                    {{ formatDrName(todaysOnCall[0].physicianName) }} · {{ todaysOnCall[0].startTime }}–{{ todaysOnCall[0].endTime }}
-                                </div>
-                                <div class="db-kpi-sub" v-else style="color:var(--danger)">
-                                    <span class="db-kpi-dot" style="background:var(--danger)"></span> No coverage today
-                                </div>
-                            </div>
-                        </div>
-                        <div class="db-kpi db-kpi--indigo" @click="switchView('research_lines')">
-                            <div class="db-kpi-icon db-kpi-icon--indigo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#534ab7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg></div>
-                            <div class="db-kpi-body" style="min-width:0;flex:1">
-                                <div class="db-kpi-val">{{ analyticsSummary?.researchLines || researchLines.length || 0 }}</div>
-                                <div class="db-kpi-label">Research Lines</div>
-                                <div class="db-kpi-sub">
-                                    <span class="db-kpi-dot db-kpi-dot--blue"></span>{{ analyticsSummary?.clinicalTrials?.total || clinicalTrials.length || 0 }} studies
-                                    <span class="db-kpi-dot db-kpi-dot--purple" style="margin-left:8px"></span>{{ analyticsSummary?.innovationProjects?.total || innovationProjects.length || 0 }} projects
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Content grid -->
-                    <div class="db-content-grid">
-
-                        <!-- On-call next 3 days -->
-                        <div class="card db-content-card">
-                            <div class="db-cc-head">
-                                <span class="db-cc-title"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.8A9 9 0 1111.2 3C11.2 3 9 7.5 12 11C15 14.5 21 12.8 21 12.8Z"/></svg> On-call — Next 3 Days</span>
-                                <button class="db-cc-link" @click="switchView('oncall_schedule')">Full schedule <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
-                            </div>
-                            <div v-if="loadingSchedule" class="db-cc-loading"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" class="fa-spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></div>
+                        <!-- Alert rail -->
+                        <div class="dbh-alerts">
+                            <template v-if="dailyBriefing.length > 0">
+                                <div v-for="item in dailyBriefing.slice(0,4)" :key="item.text"
+                                     class="dbh-alert" :class="'dbh-alert--' + item.type"
+                                     @click="switchView(item.action, item.actionFilter || {})">
+                                    <span class="dbh-alert-dot"></span>
+                                    <span class="dbh-alert-text" v-html="item.text"></span>
+                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;opacity:.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                </div>
+                            </template>
                             <template v-else>
-                                <div v-for="day in upcomingOnCallDays.slice(0,3)" :key="day.date" class="db-oc-row">
-                                    <div class="db-oc-date" :class="{ 'db-oc-date--today': day.isToday }">
-                                        {{ day.label }}
-                                    </div>
-                                    <div class="db-oc-slot" :class="day.primary ? 'db-oc-slot--ok' : 'db-oc-slot--gap'"
-                                         @click="!day.primary && hasPermission('oncall_schedule','create') ? showAddOnCallModal() : null">
-                                        <template v-if="day.primary">
-                                            <div class="db-oc-avatar">{{ (getPhysicianName(day.primary.primary_physician_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
-                                            <div class="db-oc-info">
-                                                <span class="db-oc-name">{{ formatDrName(getPhysicianName(day.primary.primary_physician_id)) }}</span>
-                                                <span class="db-oc-time">{{ (day.primary.start_time||'').slice(0,5) }}–{{ (day.primary.end_time||'').slice(0,5) }}</span>
-                                            </div>
-                                            <span class="db-oc-badge db-oc-badge--primary">Primary</span>
-                                        </template>
-                                        <template v-else>
-                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg>
-                                            <span class="db-oc-gap">No primary assigned</span>
-                                            <span v-if="hasPermission('oncall_schedule','create')" class="db-oc-assign" @click.stop="showAddOnCallModal()">＋ Assign</span>
-                                        </template>
-                                    </div>
-                                    <div class="db-oc-slot db-oc-slot--backup" :class="day.backup ? 'db-oc-slot--soft' : ''">
-                                        <template v-if="day.backup">
-                                            <div class="db-oc-avatar db-oc-avatar--backup">{{ (getPhysicianName(day.backup.primary_physician_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
-                                            <span class="db-oc-name">{{ formatDrName(getPhysicianName(day.backup.primary_physician_id)) }}</span>
-                                            <span class="db-oc-badge db-oc-badge--backup">Backup</span>
-                                        </template>
-                                        <template v-else>
-                                            <span class="db-oc-gap db-oc-gap--warn">⚠ No backup</span>
-                                        </template>
-                                    </div>
-                                </div>
-                                <div v-if="upcomingOnCallDays.length === 0" class="db-cc-empty">
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3"/><line x1="1" y1="1" x2="23" y2="23"/></svg> No shifts scheduled
-                                    <button v-if="hasPermission('oncall_schedule','create')" class="btn btn-sm btn-primary" style="margin-left:10px" @click="showAddOnCallModal()">Schedule</button>
+                                <div class="dbh-alert dbh-alert--ok">
+                                    <span class="dbh-alert-dot"></span>
+                                    <span class="dbh-alert-text">All clear — no urgent items today</span>
                                 </div>
                             </template>
                         </div>
-
-                        <!-- Rotations attention -->
-                        <div class="card db-content-card">
-                            <div class="db-cc-head">
-                                <span class="db-cc-title"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12C4 16.4 7.6 20 12 20C16.4 20 20 16.4 20 12C20 7.6 16.4 4 12 4"/><path d="M8 4H12V8"/></svg> Rotations — This Week</span>
-                                <button class="db-cc-link" @click="switchView('resident_rotations')">All rotations <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
-                            </div>
-                            <template v-if="rotations.filter(r => (r.rotation_status==='active'||r.rotation_status==='scheduled') && new Date(r.end_date||r.start_date) >= new Date() && new Date(r.end_date||r.start_date) <= new Date(Date.now()+7*86400000)).length > 0">
-                                <div v-for="rot in rotations.filter(r => r.rotation_status==='active' && new Date(r.end_date) >= new Date() && new Date(r.end_date) <= new Date(Date.now()+7*86400000)).slice(0,2)" :key="'end-'+rot.id" class="db-rot-row">
-                                    <div class="db-rot-avatar">{{ (getResidentName(rot.resident_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
-                                    <div class="db-rot-info">
-                                        <span class="db-rot-name">{{ formatDrName(getResidentName(rot.resident_id)) }}</span>
-                                        <span class="db-rot-unit">{{ getTrainingUnitName(rot.training_unit_id) }}</span>
-                                    </div>
-                                    <span class="db-rot-chip db-rot-chip--ending">ends {{ formatDateShort(rot.end_date) }}</span>
-                                </div>
-                                <div v-for="rot in rotations.filter(r => r.rotation_status==='scheduled' && new Date(r.start_date) >= new Date() && new Date(r.start_date) <= new Date(Date.now()+7*86400000)).slice(0,2)" :key="'start-'+rot.id" class="db-rot-row">
-                                    <div class="db-rot-avatar db-rot-avatar--start">{{ (getResidentName(rot.resident_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
-                                    <div class="db-rot-info">
-                                        <span class="db-rot-name">{{ formatDrName(getResidentName(rot.resident_id)) }}</span>
-                                        <span class="db-rot-unit">{{ getTrainingUnitName(rot.training_unit_id) }}</span>
-                                    </div>
-                                    <span class="db-rot-chip db-rot-chip--starting">starts {{ formatDateShort(rot.start_date) }}</span>
-                                </div>
-                            </template>
-                            <div v-else class="db-cc-empty" style="padding:20px 0">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg> No urgent rotations this week
-                            </div>
-                        </div>
-
-                        <!-- Resident gaps — full width -->
-                        <div class="card db-content-card db-content-card--full" v-if="residentGapWarnings && residentGapWarnings.length > 0">
-                            <div class="db-cc-head">
-                                <span class="db-cc-title" style="color:var(--warn)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Residents Unassigned — Next 3 Months</span>
-                                <button class="db-cc-link" @click="switchView('resident_rotations')">Assign <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
-                            </div>
-                            <div class="db-gap-grid">
-                                <div v-for="w in residentGapWarnings" :key="w.id" class="db-gap-item"
-                                     @click="showAddRotationModal({ id: w.id, full_name: w.name })">
-                                    <div class="db-gap-avatar">{{ (w.name||'??').split(' ').map(p=>p[0]||'').join('').slice(0,2).toUpperCase() }}</div>
-                                    <div class="db-gap-info">
-                                        <span class="db-gap-name">{{ w.name || '—' }}</span>
-                                        <span class="db-gap-year" v-if="w.year">PGY-{{ w.year }}</span>
-                                    </div>
-                                    <div class="db-gap-pills">
-                                        <span v-for="g in w.gaps" :key="g" class="db-gap-pill">{{ g }}</span>
-                                    </div>
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg>
-                                </div>
-                            </div>
-                        </div>
-
                     </div>
-                </div>
+
+                    <!-- 2. STAT RAIL -->
+                    <div class="dbsr">
+                        <div class="dbsr-stat" @click="switchView('medical_staff')">
+                            <div class="dbsr-num">{{ systemStats.totalStaff || 0 }}</div>
+                            <div class="dbsr-lbl">Medical Staff</div>
+                            <div class="dbsr-pills">
+                                <span class="dbsr-pill dbsr-pill--ok">{{ systemStats.activeAttending || 0 }} attending</span>
+                                <span class="dbsr-pill dbsr-pill--blue">{{ systemStats.activeResidents || 0 }} residents</span>
+                                <span v-if="systemStats.onLeaveStaff > 0" class="dbsr-pill dbsr-pill--warn">{{ systemStats.onLeaveStaff }} on leave</span>
+                            </div>
+                            <div class="dbsr-accent dbsr-accent--teal"></div>
+                        </div>
+                        <div class="dbsr-stat" @click="switchView('resident_rotations')">
+                            <div class="dbsr-num">{{ systemStats.activeRotations || 0 }}</div>
+                            <div class="dbsr-lbl">Active Rotations</div>
+                            <div class="dbsr-pills">
+                                <span class="dbsr-pill" :class="systemStats.endingThisWeek > 0 ? 'dbsr-pill--warn' : 'dbsr-pill--ok'">{{ systemStats.endingThisWeek || 0 }} ending</span>
+                                <span class="dbsr-pill dbsr-pill--ok">{{ systemStats.startingNextWeek || 0 }} starting</span>
+                            </div>
+                            <div class="dbsr-accent dbsr-accent--navy"></div>
+                        </div>
+                        <div class="dbsr-stat" @click="switchView('oncall_schedule')">
+                            <div class="dbsr-num">{{ todaysOnCallCount || 0 }}</div>
+                            <div class="dbsr-lbl">On-call Today</div>
+                            <div class="dbsr-pills" v-if="todaysOnCall.length > 0">
+                                <span class="dbsr-pill dbsr-pill--ok">{{ formatDrName(todaysOnCall[0].physicianName) }}</span>
+                                <span class="dbsr-pill dbsr-pill--muted">{{ todaysOnCall[0].startTime }}–{{ todaysOnCall[0].endTime }}</span>
+                            </div>
+                            <div class="dbsr-pills" v-else>
+                                <span class="dbsr-pill dbsr-pill--danger">No coverage today</span>
+                            </div>
+                            <div class="dbsr-accent dbsr-accent--amber"></div>
+                        </div>
+                        <div class="dbsr-stat" @click="switchView('research_lines')">
+                            <div class="dbsr-num">{{ analyticsSummary?.researchLines || researchLines.length || 0 }}</div>
+                            <div class="dbsr-lbl">Research Lines</div>
+                            <div class="dbsr-pills">
+                                <span class="dbsr-pill dbsr-pill--blue">{{ analyticsSummary?.clinicalTrials?.total || clinicalTrials.length || 0 }} studies</span>
+                                <span class="dbsr-pill dbsr-pill--purple">{{ analyticsSummary?.innovationProjects?.total || innovationProjects.length || 0 }} projects</span>
+                            </div>
+                            <div class="dbsr-accent dbsr-accent--indigo"></div>
+                        </div>
+                    </div>
+
+                    <!-- 3. MAIN CONTENT GRID -->
+                    <div class="db-main-grid">
+
+                        <!-- On-call panel -->
+                        <div class="db-panel">
+                            <div class="db-panel-head">
+                                <span class="db-panel-title">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3C11.2 3 9 7.5 12 11C15 14.5 21 12.8 21 12.8Z"/></svg>
+                                    On-call · Next 3 Days
+                                </span>
+                                <button class="db-panel-link" @click="switchView('oncall_schedule')">Full schedule <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+                            </div>
+                            <div v-if="loadingSchedule" class="db-panel-loading">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" class="fa-spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                                Loading…
+                            </div>
+                            <template v-else>
+                                <div v-for="day in upcomingOnCallDays.slice(0,3)" :key="day.date" class="db-oc-dayrow">
+                                    <div class="db-oc-datecol" :class="{'db-oc-datecol--today': day.isToday}">
+                                        <div class="db-oc-weekday">{{ new Date(day.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short'}) }}</div>
+                                        <div class="db-oc-daynum">{{ new Date(day.date+'T12:00:00').getDate() }}</div>
+                                    </div>
+                                    <div class="db-oc-slots">
+                                        <div class="db-oc-slot-row" :class="day.primary ? 'db-oc-slot-row--ok' : 'db-oc-slot-row--gap'"
+                                             @click="!day.primary && hasPermission('oncall_schedule','create') ? showAddOnCallModal() : null">
+                                            <template v-if="day.primary">
+                                                <div class="db-oc-av db-oc-av--primary">{{ (getPhysicianName(day.primary.primary_physician_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
+                                                <div class="db-oc-slot-info">
+                                                    <span class="db-oc-name">{{ formatDrName(getPhysicianName(day.primary.primary_physician_id)) }}</span>
+                                                    <span class="db-oc-time">{{ (day.primary.start_time||'').slice(0,5) }}–{{ (day.primary.end_time||'').slice(0,5) }}</span>
+                                                </div>
+                                                <span class="db-oc-badge db-oc-badge--primary">Primary</span>
+                                            </template>
+                                            <template v-else>
+                                                <div class="db-oc-av db-oc-av--empty"></div>
+                                                <span class="db-oc-gap-label">No primary assigned</span>
+                                                <span v-if="hasPermission('oncall_schedule','create')" class="db-oc-assign-btn" @click.stop="showAddOnCallModal()">＋ Assign</span>
+                                            </template>
+                                        </div>
+                                        <div class="db-oc-slot-row db-oc-slot-row--backup" v-if="day.backup">
+                                            <div class="db-oc-av db-oc-av--backup">{{ (getPhysicianName(day.backup.primary_physician_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
+                                            <span class="db-oc-name" style="color:var(--text-2)">{{ formatDrName(getPhysicianName(day.backup.primary_physician_id)) }}</span>
+                                            <span class="db-oc-badge db-oc-badge--backup">Backup</span>
+                                        </div>
+                                        <div class="db-oc-slot-row db-oc-slot-row--warn" v-else-if="!day.backup && day.primary">
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                                            <span class="db-oc-gap-label" style="color:var(--warn)">No backup assigned</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="upcomingOnCallDays.length === 0" class="db-panel-empty">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                                    No shifts scheduled
+                                    <button v-if="hasPermission('oncall_schedule','create')" class="btn btn-sm btn-primary" style="margin-left:8px" @click="showAddOnCallModal()">Schedule now</button>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Right column: rotations + coverage bar -->
+                        <div class="db-right-col">
+
+                            <!-- Rotations panel -->
+                            <div class="db-panel">
+                                <div class="db-panel-head">
+                                    <span class="db-panel-title">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12C4 16.4 7.6 20 12 20C16.4 20 20 16.4 20 12C20 7.6 16.4 4 12 4"/><path d="M8 4H12V8"/></svg>
+                                        Rotations · This Week
+                                    </span>
+                                    <button class="db-panel-link" @click="switchView('resident_rotations')">All rotations <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+                                </div>
+                                <template v-if="rotations.filter(r => (r.rotation_status==='active'||r.rotation_status==='scheduled') && new Date(r.end_date||r.start_date) >= new Date() && new Date(r.end_date||r.start_date) <= new Date(Date.now()+7*86400000)).length > 0">
+                                    <div v-for="rot in rotations.filter(r => r.rotation_status==='active' && new Date(r.end_date) >= new Date() && new Date(r.end_date) <= new Date(Date.now()+7*86400000)).slice(0,2)" :key="'end-'+rot.id" class="db-rot-row">
+                                        <div class="db-rot-av db-rot-av--end">{{ (getResidentName(rot.resident_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
+                                        <div class="db-rot-info">
+                                            <span class="db-rot-name">{{ formatDrName(getResidentName(rot.resident_id)) }}</span>
+                                            <span class="db-rot-unit">{{ getTrainingUnitName(rot.training_unit_id) }}</span>
+                                        </div>
+                                        <span class="db-rot-chip db-rot-chip--ending">ends {{ formatDateShort(rot.end_date) }}</span>
+                                    </div>
+                                    <div v-for="rot in rotations.filter(r => r.rotation_status==='scheduled' && new Date(r.start_date) >= new Date() && new Date(r.start_date) <= new Date(Date.now()+7*86400000)).slice(0,2)" :key="'start-'+rot.id" class="db-rot-row">
+                                        <div class="db-rot-av db-rot-av--start">{{ (getResidentName(rot.resident_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
+                                        <div class="db-rot-info">
+                                            <span class="db-rot-name">{{ formatDrName(getResidentName(rot.resident_id)) }}</span>
+                                            <span class="db-rot-unit">{{ getTrainingUnitName(rot.training_unit_id) }}</span>
+                                        </div>
+                                        <span class="db-rot-chip db-rot-chip--starting">starts {{ formatDateShort(rot.start_date) }}</span>
+                                    </div>
+                                </template>
+                                <div v-else class="db-panel-empty">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
+                                    All clear — no changes this week
+                                </div>
+                            </div>
+
+                            <!-- 14-day on-call coverage bar -->
+                            <div class="db-panel db-cov-panel">
+                                <div class="db-panel-head">
+                                    <span class="db-panel-title">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                                        Coverage · Next 14 Days
+                                    </span>
+                                </div>
+                                <div class="db-cov-body">
+                                    <div class="db-cov-bar">
+                                        <div v-for="day in (()=>{ const days=[]; for(let i=0;i<14;i++){ const d=new Date(); d.setDate(d.getDate()+i); const ds=d.toISOString().slice(0,10); const covered=onCallSchedule.some(s=>s.duty_date===ds && s.shift_type==='primary_call'); const isWeekend=d.getDay()===0||d.getDay()===6; days.push({ds,covered,isWeekend,dayNum:d.getDate(),dayName:d.toLocaleDateString('en-GB',{weekday:'narrow'})}); } return days; })()"
+                                             :key="day.ds" class="db-cov-day"
+                                             :class="{'db-cov-day--covered': day.covered, 'db-cov-day--gap': !day.covered && !day.isWeekend, 'db-cov-day--weekend': day.isWeekend}"
+                                             :title="day.ds + (day.covered ? ' — Covered' : day.isWeekend ? ' — Weekend' : ' — Gap')">
+                                            <span class="db-cov-dayname">{{ day.dayName }}</span>
+                                            <span class="db-cov-daynum">{{ day.dayNum }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="db-cov-legend">
+                                        <span class="db-cov-leg-item"><span class="db-cov-leg-swatch db-cov-leg-swatch--covered"></span>Covered</span>
+                                        <span class="db-cov-leg-item"><span class="db-cov-leg-swatch db-cov-leg-swatch--gap"></span>Gap</span>
+                                        <span class="db-cov-leg-item"><span class="db-cov-leg-swatch db-cov-leg-swatch--weekend"></span>Weekend</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div><!-- /db-right-col -->
+
+                    </div><!-- /db-main-grid -->
+
+                    <!-- Residents unassigned — full width -->
+                    <div class="db-gap-panel" v-if="residentGapWarnings && residentGapWarnings.length > 0">
+                        <div class="db-gap-head">
+                            <span class="db-gap-title">
+                                <span class="db-gap-dot"></span>
+                                Residents Unassigned — Next 3 Months
+                            </span>
+                            <button class="db-panel-link" @click="switchView('resident_rotations')">Assign <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+                        </div>
+                        <div class="db-gap-grid">
+                            <div v-for="w in residentGapWarnings" :key="w.id" class="db-gap-item"
+                                 @click="showAddRotationModal({ id: w.id, full_name: w.name })">
+                                <div class="db-gap-av">{{ (w.name||'??').split(' ').map(p=>p[0]||'').join('').slice(0,2).toUpperCase() }}</div>
+                                <div class="db-gap-info">
+                                    <span class="db-gap-name">{{ w.name || '—' }}</span>
+                                    <span class="db-gap-year" v-if="w.year">PGY-{{ w.year }}</span>
+                                </div>
+                                <div class="db-gap-pills">
+                                    <span v-for="g in w.gaps" :key="g" class="db-gap-pill">{{ g }}</span>
+                                </div>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color:var(--text-4);flex-shrink:0"><circle cx="12" cy="12" r="10"/></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                
+</div>
 
 
                 <!-- ============ MEDICAL STAFF VIEW ============ -->
