@@ -941,7 +941,7 @@
             </header>
 
             <!-- Content Area -->
-            <div class="content-area" v-show="!['research_hub','news'].includes(currentView)" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+            <div class="content-area" v-if="!['research_hub','news'].includes(currentView)" style="display:flex;flex-direction:column;flex:1;min-height:0;">
 
                 <!-- System Alert Banner -->
                 <div v-if="systemAlerts.length > 0" style="margin-bottom:24px;">
@@ -2476,6 +2476,138 @@
                     </div>
                 </div>
 
+            
+
+                <!-- ============ SYSTEM SETTINGS VIEW ============ -->
+                <!-- FIX Bug1: moved inside content-area; Bug3: permission key fixed; Bug6: uses staffTypesLoading -->
+                <div v-if="currentView === 'system_settings'" v-cloak style="padding:20px;">
+                    <div class="card mb-6">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg>
+                                System Settings
+                            </div>
+                            <!-- FIX Bug3: was 'staff_types' (undefined in PERMISSION_MATRIX) → now 'system_settings' -->
+                            <button class="btn btn-primary btn-sm" @click="openAddStaffType" v-if="hasPermission('system_settings','create')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Add Staff Type
+                            </button>
+                        </div>
+
+                        <!-- CARGA — FIX Bug6: use staffTypesLoading instead of global loading -->
+                        <div v-if="staffTypesLoading" class="skeleton-view" style="padding: 20px;">
+                            <div class="skeleton-row" style="height: 40px; margin-bottom: 8px;"></div>
+                            <div class="skeleton-row" style="height: 40px;"></div>
+                        </div>
+
+                        <!-- TABLA -->
+                        <div v-else class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr><th>Display Name</th><th>Type Key</th><th>Badge</th><th>Resident</th><th>Supervise</th><th>Status</th><th>Order</th><th></th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="st in staffTypesList" :key="st.id" :class="{ 'opacity-50': !st.is_active }">
+                                        <td><strong>{{ st.display_name }}</strong></td>
+                                        <td><code>{{ st.type_key }}</code></td>
+                                        <td><span :class="['badge', st.badge_class]">{{ st.display_name }}</span></td>
+                                        <td class="text-center"><i :class="st.is_resident_type ? 'fas fa-check text-success' : 'fas fa-minus text-muted'"></i></td>
+                                        <td class="text-center"><i :class="st.can_supervise ? 'fas fa-check text-success' : 'fas fa-minus text-muted'"></i></td>
+                                        <td class="text-center"><span :class="st.is_active ? 'badge badge-success' : 'badge badge-secondary'">{{ st.is_active ? 'Active' : 'Inactive' }}</span></td>
+                                        <td class="text-center">{{ st.display_order }}</td>
+                                        <td class="text-end">
+                                            <button class="btn-icon" @click="openEditStaffType(st)" title="Edit"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg></button>
+                                            <button class="btn-icon" @click="toggleStaffTypeActive(st)" :title="st.is_active ? 'Deactivate' : 'Activate'"><i :class="st.is_active ? 'fas fa-eye-slash' : 'fas fa-eye'"></i></button>
+                                            <button class="btn-icon btn-icon--danger" @click="deleteStaffType(st)" title="Remove"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="staffTypesList.length === 0"><td colspan="8" class="empty-state"><div class="empty-state-title">No staff types defined</div><div class="empty-state-description">Click "Add Staff Type" to create your first staff category.</div></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- ACADEMIC DEGREES ══════════════════════════════════ -->
+                    <div class="card mb-6" style="margin-top:16px">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                                Academic Degrees
+                            </div>
+                            <button class="btn btn-primary btn-sm" @click="openAddAcademicDegree" v-if="hasPermission('system_settings','create')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Add Degree
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr><th>Degree Name</th><th>Abbreviation</th><th>Order</th><th>Status</th><th></th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="deg in academicDegrees" :key="deg.id" :class="{'opacity-50': !deg.is_active}">
+                                        <td><strong>{{ deg.name }}</strong></td>
+                                        <td><span class="badge badge-secondary" style="font-family:monospace;font-size:10px">{{ deg.abbreviation || '—' }}</span></td>
+                                        <td style="font-size:12px;color:var(--text-3)">{{ deg.display_order }}</td>
+                                        <td><span class="badge" :class="deg.is_active ? 'badge-success' : 'badge-secondary'">{{ deg.is_active ? 'ACTIVE' : 'INACTIVE' }}</span></td>
+                                        <td class="text-end" style="display:flex;gap:4px;justify-content:flex-end">
+                                            <button class="btn-icon" @click="openEditAcademicDegree(deg)" title="Edit" v-if="hasPermission('system_settings','update')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg></button>
+                                            <button class="btn-icon btn-icon--danger" @click="deleteAcademicDegree(deg)" title="Remove" v-if="hasPermission('system_settings','delete')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="!academicDegrees.length">
+                                        <td colspan="5" class="empty-state">
+                                            <div class="empty-state-title">No academic degrees defined</div>
+                                            <div class="empty-state-description">Add degree titles like MD, PhD, etc.</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- ROTATION SERVICES ══════════════════════════════════ -->
+                    <div class="card mb-6" style="margin-top:16px">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                Rotation Services
+                            </div>
+                            <button class="btn btn-primary btn-sm" @click="openAddRotationService" v-if="hasPermission('system_settings','create')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Add Service
+                            </button>
+                        </div>
+                        <div v-if="rotationServicesLoading" class="skeleton-view" style="padding:20px">
+                            <div class="skeleton-row" style="height:40px;margin-bottom:8px"></div>
+                        </div>
+                        <div v-else class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr><th>Service / Department</th><th>Type</th><th>Contact Person</th><th>Email</th><th>Phone</th><th></th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="svc in rotationServices" :key="svc.id">
+                                        <td><strong>{{ svc.name }}</strong></td>
+                                        <td><span class="badge badge-secondary" style="font-size:9px;text-transform:uppercase">{{ svc.service_type === 'external_institution' ? 'External Institution' : 'Internal Service' }}</span></td>
+                                        <td>{{ svc.contact_name || '—' }}</td>
+                                        <td><a v-if="svc.contact_email" :href="'mailto:'+svc.contact_email" style="color:var(--blue);font-size:12px">{{ svc.contact_email }}</a><span v-else style="color:var(--text-4)">—</span></td>
+                                        <td style="font-size:12px;font-family:monospace">{{ svc.contact_phone || '—' }}</td>
+                                        <td class="text-end">
+                                            <button class="btn-icon" @click="openEditRotationService(svc)" title="Edit" v-if="hasPermission('system_settings','update')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg></button>
+                                            <button class="btn-icon btn-icon--danger" @click="deleteRotationService(svc)" title="Remove" v-if="hasPermission('system_settings','delete')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="rotationServices.length === 0">
+                                        <td colspan="6" class="empty-state">
+                                            <div class="empty-state-title">No rotation services defined</div>
+                                            <div class="empty-state-description">Add the external services and departments your residents rotate through.</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+
             </div><!-- /content-area -->
 
                 <!-- ============ RESEARCH HUB (unified) ============ -->
@@ -3091,138 +3223,6 @@
                     </div>
 
                     </div><!-- /research-hub -->
-
-               <!-- ============ SYSTEM SETTINGS VIEW ============ -->
-                <!-- FIX Bug1: moved inside content-area; Bug3: permission key fixed; Bug6: uses staffTypesLoading -->
-                <div v-if="currentView === 'system_settings'" v-cloak style="padding:20px;">
-                    <div class="card mb-6">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg>
-                                System Settings
-                            </div>
-                            <!-- FIX Bug3: was 'staff_types' (undefined in PERMISSION_MATRIX) → now 'system_settings' -->
-                            <button class="btn btn-primary btn-sm" @click="openAddStaffType" v-if="hasPermission('system_settings','create')">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Add Staff Type
-                            </button>
-                        </div>
-
-                        <!-- CARGA — FIX Bug6: use staffTypesLoading instead of global loading -->
-                        <div v-if="staffTypesLoading" class="skeleton-view" style="padding: 20px;">
-                            <div class="skeleton-row" style="height: 40px; margin-bottom: 8px;"></div>
-                            <div class="skeleton-row" style="height: 40px;"></div>
-                        </div>
-
-                        <!-- TABLA -->
-                        <div v-else class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr><th>Display Name</th><th>Type Key</th><th>Badge</th><th>Resident</th><th>Supervise</th><th>Status</th><th>Order</th><th></th></tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="st in staffTypesList" :key="st.id" :class="{ 'opacity-50': !st.is_active }">
-                                        <td><strong>{{ st.display_name }}</strong></td>
-                                        <td><code>{{ st.type_key }}</code></td>
-                                        <td><span :class="['badge', st.badge_class]">{{ st.display_name }}</span></td>
-                                        <td class="text-center"><i :class="st.is_resident_type ? 'fas fa-check text-success' : 'fas fa-minus text-muted'"></i></td>
-                                        <td class="text-center"><i :class="st.can_supervise ? 'fas fa-check text-success' : 'fas fa-minus text-muted'"></i></td>
-                                        <td class="text-center"><span :class="st.is_active ? 'badge badge-success' : 'badge badge-secondary'">{{ st.is_active ? 'Active' : 'Inactive' }}</span></td>
-                                        <td class="text-center">{{ st.display_order }}</td>
-                                        <td class="text-end">
-                                            <button class="btn-icon" @click="openEditStaffType(st)" title="Edit"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg></button>
-                                            <button class="btn-icon" @click="toggleStaffTypeActive(st)" :title="st.is_active ? 'Deactivate' : 'Activate'"><i :class="st.is_active ? 'fas fa-eye-slash' : 'fas fa-eye'"></i></button>
-                                            <button class="btn-icon btn-icon--danger" @click="deleteStaffType(st)" title="Remove"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="staffTypesList.length === 0"><td colspan="8" class="empty-state"><div class="empty-state-title">No staff types defined</div><div class="empty-state-description">Click "Add Staff Type" to create your first staff category.</div></td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- ACADEMIC DEGREES ══════════════════════════════════ -->
-                    <div class="card mb-6" style="margin-top:16px">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-                                Academic Degrees
-                            </div>
-                            <button class="btn btn-primary btn-sm" @click="openAddAcademicDegree" v-if="hasPermission('system_settings','create')">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Add Degree
-                            </button>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr><th>Degree Name</th><th>Abbreviation</th><th>Order</th><th>Status</th><th></th></tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="deg in academicDegrees" :key="deg.id" :class="{'opacity-50': !deg.is_active}">
-                                        <td><strong>{{ deg.name }}</strong></td>
-                                        <td><span class="badge badge-secondary" style="font-family:monospace;font-size:10px">{{ deg.abbreviation || '—' }}</span></td>
-                                        <td style="font-size:12px;color:var(--text-3)">{{ deg.display_order }}</td>
-                                        <td><span class="badge" :class="deg.is_active ? 'badge-success' : 'badge-secondary'">{{ deg.is_active ? 'ACTIVE' : 'INACTIVE' }}</span></td>
-                                        <td class="text-end" style="display:flex;gap:4px;justify-content:flex-end">
-                                            <button class="btn-icon" @click="openEditAcademicDegree(deg)" title="Edit" v-if="hasPermission('system_settings','update')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg></button>
-                                            <button class="btn-icon btn-icon--danger" @click="deleteAcademicDegree(deg)" title="Remove" v-if="hasPermission('system_settings','delete')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="!academicDegrees.length">
-                                        <td colspan="5" class="empty-state">
-                                            <div class="empty-state-title">No academic degrees defined</div>
-                                            <div class="empty-state-description">Add degree titles like MD, PhD, etc.</div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- ROTATION SERVICES ══════════════════════════════════ -->
-                    <div class="card mb-6" style="margin-top:16px">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                Rotation Services
-                            </div>
-                            <button class="btn btn-primary btn-sm" @click="openAddRotationService" v-if="hasPermission('system_settings','create')">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Add Service
-                            </button>
-                        </div>
-                        <div v-if="rotationServicesLoading" class="skeleton-view" style="padding:20px">
-                            <div class="skeleton-row" style="height:40px;margin-bottom:8px"></div>
-                        </div>
-                        <div v-else class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr><th>Service / Department</th><th>Type</th><th>Contact Person</th><th>Email</th><th>Phone</th><th></th></tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="svc in rotationServices" :key="svc.id">
-                                        <td><strong>{{ svc.name }}</strong></td>
-                                        <td><span class="badge badge-secondary" style="font-size:9px;text-transform:uppercase">{{ svc.service_type === 'external_institution' ? 'External Institution' : 'Internal Service' }}</span></td>
-                                        <td>{{ svc.contact_name || '—' }}</td>
-                                        <td><a v-if="svc.contact_email" :href="'mailto:'+svc.contact_email" style="color:var(--blue);font-size:12px">{{ svc.contact_email }}</a><span v-else style="color:var(--text-4)">—</span></td>
-                                        <td style="font-size:12px;font-family:monospace">{{ svc.contact_phone || '—' }}</td>
-                                        <td class="text-end">
-                                            <button class="btn-icon" @click="openEditRotationService(svc)" title="Edit" v-if="hasPermission('system_settings','update')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg></button>
-                                            <button class="btn-icon btn-icon--danger" @click="deleteRotationService(svc)" title="Remove" v-if="hasPermission('system_settings','delete')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="rotationServices.length === 0">
-                                        <td colspan="6" class="empty-state">
-                                            <div class="empty-state-title">No rotation services defined</div>
-                                            <div class="empty-state-description">Add the external services and departments your residents rotate through.</div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                </div>
-
-
 
                 <!-- ============================================================
                      NEWS & POSTS VIEW
