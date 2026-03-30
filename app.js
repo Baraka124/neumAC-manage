@@ -5782,8 +5782,8 @@ document.addEventListener('DOMContentLoaded', () => {
           rotationEndsInHorizon:         rotationOps.rotationEndsInHorizon,
           isRotationActive: rotationOps.isRotationActive,
           isShiftActive: onCallOps.isShiftActive,
-          viewRotationDetails: rotationOps.viewRotationDetails,  
-          residentGapWarnings: rotationOps.residentGapWarnings,
+          viewRotationDetails: rotationOps.viewRotationDetails,
+          residentGapWarnings: rotationOps.residentGapWarnings,    
         }
       }
     })
