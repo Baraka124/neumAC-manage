@@ -12002,3 +12002,77 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
   position: relative;
   z-index: 100;
 }
+
+
+/* ════════════════════════════════════════════════════════════════
+   LAYOUT FINAL FIX — no :has() selector (unreliable for layout)
+   Uses Vue-bound class content-area--dash instead
+   ════════════════════════════════════════════════════════════════ */
+
+/* Dashboard: remove content-area padding — hero goes edge-to-edge */
+.content-area--dash {
+  padding: 0 !important;
+  overflow: visible !important;
+  /* Do NOT set overflow:hidden here — it clips view-dashboard's scrollbar */
+}
+/* view-dashboard IS the scroll container for dashboard */
+.content-area--dash .view-dashboard {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* ALL regular views inside content-area: normal block flow, no extra space */
+.content-area > div {
+  /* v-if hides these from DOM — when shown they take natural height */
+  width: 100%;
+}
+
+/* ── Research Hub + News: correct sizing as main-content children ── */
+/* These bypass content-area entirely — they are siblings of it */
+.research-hub,
+.news-view {
+  flex: 1 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  /* They ARE inside main-content which has margin-left:sidebar-w */
+  /* So no extra offset needed */
+}
+
+/* ── Ensure top-navbar never moves ─────────────────────────────── */
+.main-content > .top-navbar {
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+
+/* ── content-area scrolls normally for all non-dashboard views ─── */
+.content-area:not(.content-area--dash) {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   DASHBOARD SCROLL — final authoritative rule (overrides all above)
+   ═══════════════════════════════════════════════════════════════ */
+.view-dashboard {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* dbh-frame and dbsr are fixed headers — don't shrink */
+.view-dashboard .dbh-frame { flex-shrink: 0; }
+.view-dashboard .dbsr      { flex-shrink: 0; }
+
+/* db-main-grid and db-gap-panel contribute to scroll height naturally */
+.view-dashboard .db-main-grid { flex-shrink: 0; }
+.view-dashboard .db-gap-panel { flex-shrink: 0; }
