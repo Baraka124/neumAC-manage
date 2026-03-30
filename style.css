@@ -2354,7 +2354,7 @@ a { color: var(--blue); text-decoration: none; }
   max-height: 92vh;
   display: flex; flex-direction: column; box-shadow: var(--shadow-xl);
   animation: slideUp .22s cubic-bezier(.22,1,.36,1);
-  overflow: visible;
+  overflow: hidden;
   margin: auto;
 }
 .modal-wide    { max-width: min(820px, calc(100vw - 32px)); }
@@ -9677,7 +9677,7 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
 /* Shell */
 .sm-modal {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   max-width: min(820px, calc(100vw - 32px));
   width: 100%;
   max-height: 90vh;
@@ -12188,3 +12188,235 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
 .db-unit-leg-sw--warn  { background: rgba(239,159,39,.25); border: 1px solid rgba(239,159,39,.4); }
 .db-unit-leg-sw--full  { background: rgba(220,38,38,.2);   border: 1px solid rgba(220,38,38,.35); }
 .db-unit-leg-sw--empty { background: var(--surface-2); border: 1px dashed var(--border-2, #ccc); }
+
+
+/* ════════════════════════════════════════════════════════════════
+   FINAL LAYOUT AUTHORITY — applied after all accumulated overrides
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── <main class="main-content"> — the root layout shell ──────── */
+.main-content {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  margin-left: var(--sidebar-w) !important;
+}
+.main-content-expanded { margin-left: var(--sidebar-sm) !important; }
+
+/* ── content-area: fills remaining height, scrolls ────────────── */
+.content-area {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: var(--content-pad-y) var(--content-pad-x) !important;
+}
+/* Dashboard: no padding, no scroll on content-area itself */
+.content-area--dash {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+.content-area--dash .view-dashboard {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* ── research-hub + news-view: direct children of <main> ──────── */
+/* sidebar is position:fixed; <main> has margin-left:sidebar-w    */
+/* so these children are correctly offset — no extra margin needed */
+.research-hub {
+  flex: 1 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  width: 100% !important;
+}
+.news-view {
+  flex: 1 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  width: 100% !important;
+}
+
+/* ── top-navbar: never grows, never shrinks ────────────────────── */
+.top-navbar {
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+}
+
+/* ── Dashboard hero: fixed, stat rail fixed, rest scrolls ─────── */
+.view-dashboard .dbh-frame { flex-shrink: 0 !important; }
+.view-dashboard .dbsr      { flex-shrink: 0 !important; }
+.view-dashboard .db-main-grid { flex-shrink: 0; }
+.view-dashboard .db-gap-panel { flex-shrink: 0; }
+
+/* ── Modal forms: sm-modal is flex-ROW (left panel + right form) ─ */
+/* This is the authoritative override */
+.sm-modal {
+  flex-direction: row !important;
+}
+.sm-left { flex-shrink: 0; }
+.sm-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sm-form-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* ── rhub-tabs: dark navy matching dashboard ───────────────────── */
+.rhub-tabs {
+  background: #0f2d54 !important;
+  border-bottom: none !important;
+  padding: 0 16px !important;
+  flex-shrink: 0 !important;
+}
+.rhub-tab {
+  color: rgba(255,255,255,.45) !important;
+  border-bottom: 2px solid transparent !important;
+  padding: 11px 14px !important;
+}
+.rhub-tab:hover { color: rgba(255,255,255,.8) !important; }
+.rhub-tab--active { color: #fff !important; border-bottom-color: #4db8b8 !important; }
+.rhub-tab-count { background: rgba(255,255,255,.12) !important; color: rgba(255,255,255,.6) !important; border: none !important; }
+.rhub-tabs .btn-primary { background: rgba(0,153,153,.35) !important; border-color: rgba(0,179,179,.5) !important; color: #7eeaea !important; }
+.rhub-tabs .btn-outline  { border-color: rgba(255,255,255,.2) !important; color: rgba(255,255,255,.7) !important; background: rgba(255,255,255,.06) !important; }
+
+/* ── KPI strip: stat-rail style ───────────────────────────────── */
+.rp-kpi-strip {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) minmax(160px, auto) !important;
+  padding: 0 !important;
+  flex-shrink: 0 !important;
+}
+.rp-kpi {
+  padding: 13px 18px 11px !important;
+  border-right: 0.5px solid var(--border) !important;
+}
+.rp-kpi-val {
+  font-family: var(--font-data) !important;
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  font-style: normal !important;
+  letter-spacing: -.04em !important;
+}
+.rp-kpi-label { font-size: 12px !important; font-weight: 600 !important; color: var(--text-2) !important; }
+.rp-kpi-div { display: none !important; }
+.rp-kpi-search { padding: 8px 14px !important; }
+
+
+/* ════════════════════════════════════════════════════════════════
+   MODAL FORMS — FINAL AUTHORITATIVE FIXES
+   Covers all 27 modal types across the app
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── modal-overlay: fixed full-screen backdrop ─────────────────── */
+.modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9000 !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  overflow-y: auto !important;
+  padding: 20px 16px !important;
+}
+
+/* ── modal-container: generic single-column modal ──────────────── */
+.modal-container {
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 92vh !important;
+  overflow: hidden !important;
+  margin: auto !important;
+  flex-shrink: 0 !important;
+}
+.modal-wide {
+  max-width: min(860px, calc(100vw - 32px)) !important;
+}
+.modal-header {
+  flex-shrink: 0 !important;
+}
+.modal-body {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+.modal-footer {
+  flex-shrink: 0 !important;
+}
+
+/* ── sm-modal: two-panel (dark preview left + form right) ──────── */
+.sm-modal {
+  display: flex !important;
+  flex-direction: row !important;
+  max-height: 90vh !important;
+  overflow: hidden !important;
+}
+.sm-left {
+  flex-shrink: 0 !important;
+  overflow-y: auto !important;
+}
+.sm-right {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+.sm-form-header { flex-shrink: 0 !important; }
+.sm-form-body {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+.sm-footer {
+  flex-shrink: 0 !important;
+}
+
+/* ── nm-modal: news compose modal ──────────────────────────────── */
+.nm-modal {
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: calc(100vh - 48px) !important;
+  overflow: hidden !important;
+}
+.nm-header { flex-shrink: 0 !important; }
+.nm-body {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+.nm-footer { flex-shrink: 0 !important; }
+
+/* ── Rotation detail view (rds) ─────────────────────────────────── */
+.rds-body {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
+/* ── Profile modal / drawer ─────────────────────────────────────── */
+.pd-body {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
+/* ── Research line/trial modals ─────────────────────────────────── */
+.rldp, .rldp-body {
+  overflow-y: auto !important;
+}
