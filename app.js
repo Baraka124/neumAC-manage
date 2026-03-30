@@ -5779,7 +5779,7 @@ document.addEventListener('DOMContentLoaded', () => {
           getResidentRotationsInHorizon: rotationOps.getResidentRotationsInHorizon,
           getRotationBarStyle:           rotationOps.getRotationBarStyle,
           rotationStartsInHorizon:       rotationOps.rotationStartsInHorizon,
-          rotationEndsInHorizon:         rotationOps.rotationEndsInHorizon,
+          rotationEndsInHorizon:         rotationOps.rotationEndsInHorizon,   
           isRotationActive: rotationOps.isRotationActive,
           isShiftActive: onCallOps.isShiftActive,
           viewRotationDetails: rotationOps.viewRotationDetails,
