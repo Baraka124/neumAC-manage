@@ -1,4 +1,4 @@
-<!DOCTYPE html>         
+<!DOCTYPE html>       
 <html lang="en"> 
 <head>
     <meta charset="UTF-8">
@@ -372,7 +372,8 @@
       body { height:100%; min-height:100vh; }
       .app-layout { display:flex !important; height:100vh !important; max-height:100vh !important; overflow:hidden !important; }
       .sidebar { flex-shrink:0 !important; height:100vh !important; overflow-y:auto !important; }
-      .content-area { flex:1 !important; min-width:0 !important; min-height:0 !important; overflow-y:auto !important; display:flex !important; flex-direction:column !important; box-sizing:border-box !important; }
+      .main-content { display:flex !important; flex-direction:column !important; height:100vh !important; overflow:hidden !important; }
+      .content-area { flex:1 !important; min-width:0 !important; height:100vh !important; max-height:100vh !important; overflow-y:auto !important; display:flex !important; flex-direction:column !important; box-sizing:border-box !important; }
       /* Views that need full-height flex layout (not standard scroll) */
       .content-area--panel { overflow:hidden !important; padding:0 !important; }
 
@@ -876,7 +877,7 @@
         </div>
 
         <!-- Main Content Area -->
-        <main class="main-content" :class="{ 'main-content-expanded': sidebarCollapsed }">
+        <main class="main-content" :class="{ 'main-content-expanded': sidebarCollapsed, 'main-content--panel': ['research_hub','news'].includes(currentView) }">
 
             <!-- Top Navigation Bar -->
             <header class="top-navbar">
@@ -940,7 +941,7 @@
             </header>
 
             <!-- Content Area -->
-            <div class="content-area" :class="{'content-area--panel': ['research_hub','news'].includes(currentView)}" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+            <div class="content-area" :class="['research_hub','news'].includes(currentView) ? 'content-area--panel' : ''" style="display:flex;flex-direction:column;flex:1;min-height:0;">
 
                 <!-- System Alert Banner -->
                 <div v-if="systemAlerts.length > 0" style="margin-bottom:24px;">
@@ -2475,6 +2476,8 @@
                     </div>
                 </div>
 
+            </div><!-- /content-area -->
+
                 <!-- ============ RESEARCH HUB (unified) ============ -->
                 <div v-if="currentView === 'research_hub'" class="research-hub" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;">
 
@@ -3613,7 +3616,6 @@
 
                     </div>
                 </div>
-            </div><!-- /content-area -->
         </main>
 
         <!-- ============ ACADEMIC DEGREE ADD/EDIT MODAL ============ -->
