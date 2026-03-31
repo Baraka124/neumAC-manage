@@ -8492,7 +8492,8 @@ tr:not(:hover) .btn-pill-purge {
   font-family: var(--font-display, Georgia, serif);
   font-size: 32px; font-weight: 400; font-style: italic;; font-style: italic;
   color: var(--text-1); line-height: 1; letter-spacing: -.02em;
-}0px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); margin-top: 4px; }
+}
+.rp-ds-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); margin-top: 4px; }
 .rp-ds-sub   { font-size: 10px; color: var(--text-4); margin-top: 2px; font-weight: 600; }
 
 .rp-detail-section { display: flex; flex-direction: column; gap: 8px; }
@@ -9677,7 +9678,7 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
 /* Shell */
 .sm-modal {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   max-width: min(820px, calc(100vw - 32px));
   width: 100%;
   max-height: 90vh;
