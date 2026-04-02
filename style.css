@@ -12164,7 +12164,7 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
 .db-unit-cell--empty .db-unit-meta { color: var(--text-4); font-style: italic; }
 
 /* ── Legend ───────────────────────────────────────────────────── */
-.db-unit-legend {   
+.db-unit-legend {
   display: flex;
   gap: 12px;
   padding: 0 14px 12px;
@@ -12187,3 +12187,88 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
 .db-unit-leg-sw--warn  { background: rgba(239,159,39,.25); border: 1px solid rgba(239,159,39,.4); }
 .db-unit-leg-sw--full  { background: rgba(220,38,38,.2);   border: 1px solid rgba(220,38,38,.35); }
 .db-unit-leg-sw--empty { background: var(--surface-2); border: 1px dashed var(--border-2, #ccc); }
+
+
+/* ════════════════════════════════════════════════════════════════
+   LAYOUT FINAL AUTHORITY — fixes all view rendering issues
+   Applied last so it overrides everything above
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Research Hub: full-height flex child of main-content ──── */
+/* main-content is flex-column height:100vh                        */
+/* When active: header(60px) + research-hub(flex:1) = 100vh       */
+.main-content > .research-hub {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  max-height: calc(100vh - var(--topbar-h)) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  background: var(--surface, #fdfcfb) !important;
+}
+
+/* ── 2. News view: same as research hub ──────────────────────── */
+.main-content > .news-view {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  max-height: calc(100vh - var(--topbar-h)) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  background: var(--surface, #fdfcfb) !important;
+}
+
+/* ── 3. Research Hub tab bar — always dark navy ─────────────── */
+.research-hub > .rhub-tabs,
+.news-view > .rhub-tabs {
+  background: #0f2d54 !important;
+  border-bottom: none !important;
+  padding: 0 16px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  min-height: 48px !important;
+}
+
+/* ── 4. Research Hub panel content fills remaining space ──────── */
+.research-hub > .rhub-panel,
+.research-hub [class*="rhub-panel"] {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* ── 5. View wrapper divs inside content-area: no extra padding ── */
+/* content-area already has padding; individual view divs should   */
+/* not add their own top/bottom padding                            */
+.content-area > div {
+  min-height: 0;
+  width: 100%;
+}
+
+/* ── 6. System settings: explicit reset (inline style removed) ─── */
+
+/* ── 7. Content area: consistent layout for all regular views ─── */
+.content-area:not(.content-area--dash) {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: var(--content-pad-y) var(--content-pad-x) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+
+/* ── 8. News list fills the space below tab bar ─────────────── */
+.news-view .news-list {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  min-height: 0 !important;
+}
+
+/* ── 9. System settings: make the outer wrapper scrollable ────── */
+/* content-area handles scrolling; system_settings div just flows */
+.content-area > div {
+  min-height: 0;
+  width: 100%;
+}
