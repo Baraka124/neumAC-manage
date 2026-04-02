@@ -1142,7 +1142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============ 6.3 useStaff ============
-    function useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll, currentUser }) {
+    function useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll, currentUser, researchLines, loadResearchLines }) {
       const medicalStaff    = ref([])
       const allStaffLookup  = ref([])   // ALL staff including inactive, for name resolution
       const staffView = ref('table') // 'table' | 'compact'
@@ -1466,6 +1466,8 @@ document.addEventListener('DOMContentLoaded', () => {
             external_contact_email: f.external_contact_email || null,
             external_contact_phone: f.external_contact_phone || null,
             is_research_coordinator: f.is_research_coordinator || false,
+            is_resident_manager: f.is_resident_manager || false,
+            is_oncall_manager:   f.is_oncall_manager   || false,
             can_be_pi: f.can_be_pi || false,
             can_be_coi: f.can_be_coi || false,
             has_phd: f.has_phd || false,
@@ -1513,10 +1515,11 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) { console.warn('Could not update research line coordinator:', e) }
           } else if (!f.is_research_coordinator && savedStaff?.id) {
             // If coordinator toggled OFF, clear coordinator_id from any line that had this person
-            const coordinated = [] // cross-composable update handled by research composable
+            const coordinated = researchLines.value.filter(l => l.coordinator_id === savedStaff.id)
             for (const line of coordinated) {
               try { await API.assignCoordinator(line.id, null) } catch {}
             }
+            if (coordinated.length) await loadResearchLines()
           }
           medicalStaffModal.show = false; clearAll('staff')
         } catch (e) { showToast('Error', e.message || 'Failed to save', 'error') }
@@ -3114,7 +3117,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function useTrainingUnits({ showToast, showConfirmation, rotations, trainingUnits, allStaffLookup }) {
       // trainingUnits is a shared ref hoisted in main setup — do not redeclare
       const trainingUnitFilters = reactive({ search: '', department: '', status: '' })
-      const trainingUnitModal = reactive({ show: false, mode: 'add', form: { unit_name: '', unit_code: '', department_id: '', maximum_residents: 2, unit_status: 'active', unit_type: 'clinical_unit', supervising_attending_id: '' } })
+      const trainingUnitModal = reactive({ show: false, mode: 'add', form: { unit_name: '', unit_code: '', department_id: '', maximum_residents: 2, unit_status: 'active', unit_type: 'clinical_unit', supervising_attending_id: '', unit_description: '', specialty: '', location_building: '', location_floor: '' } })
       const unitResidentsModal = reactive({ show: false, unit: null, rotations: [] })
       const unitCliniciansModal = reactive({ show: false, unit: null, clinicians: [], supervisorId: '', allStaff: [] })
 
@@ -3513,7 +3516,8 @@ document.addEventListener('DOMContentLoaded', () => {
           unit_name: '', unit_code: '',
           department_id: opts.department_id || '',
           maximum_residents: 2, unit_status: 'active',
-          unit_type: 'clinical_unit', supervising_attending_id: ''
+          unit_type: 'clinical_unit', supervising_attending_id: '',
+          unit_description: '', specialty: '', location_building: '', location_floor: ''
         })
         trainingUnitModal.show = true
       }
@@ -4711,8 +4715,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // so when either load function fills it all consumers see it immediately.
         const trainingUnits = ref([])
         const rotations     = ref([])
+        // researchLines hoisted so useStaff can clear coordinator assignments on role revoke
+        const researchLinesShared = ref([])
 
-        const staffOps = useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll, currentUser })
+        const staffOps = useStaff({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, fieldErrors, setErr, clearAll, currentUser, researchLines: researchLinesShared, loadResearchLines: async () => { try { researchLinesShared.value = await API.getResearchLines() } catch {} } })
         const { medicalStaff, allStaffLookup, hospitalsList } = staffOps
 
         const { trainingUnitFilters, trainingUnitModal, unitsByDepartment, unitResidentsModal, unitCliniciansModal,
@@ -4876,6 +4882,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const { loadAnalyticsSummary, loadResearchLinesPerformance, loadPartnerCollaborations } = analyticsOps
 
         const researchOps = useResearch({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, clearAll, medicalStaff, loadAnalyticsSummary, loadResearchLinesPerformance, loadPartnerCollaborations })
+        // Keep the hoisted ref in sync so useStaff coordinator-clear logic sees live data
+        watch(researchOps.researchLines, (v) => { researchLinesShared.value = v }, { immediate: true })
         const dashOps = useDashboard({ medicalStaff, rotations, absences, onCallSchedule, trainingUnits })
 
         const newsOps = useNews({ showToast, showConfirmation, medicalStaff, researchLines: researchOps.researchLines })
@@ -4909,17 +4917,18 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           return chunks
         })
-        const newsDrawerInitials = computed(() => {
-          const name = newsDrawerAuthorFull.value || ''
-          const parts = name.trim().split(/\s+/).filter(w => w.replace('.','').length > 1)
-          if (parts.length >= 2) return (parts[0][0] + parts[parts.length-1][0]).toUpperCase()
-          return name[0]?.toUpperCase() || '?'
-        })
+        // FIX: newsDrawerAuthorFull must be declared BEFORE newsDrawerInitials uses it
         const newsDrawerAuthorFull = computed(() => {
           const id = newsDrawer.post?.author_id
           if (!id) return ''
           const s = (medicalStaff.value || []).find(m => m.id === id)
           return s?.full_name || ''
+        })
+        const newsDrawerInitials = computed(() => {
+          const name = newsDrawerAuthorFull.value || ''
+          const parts = name.trim().split(/\s+/).filter(w => w.replace('.','').length > 1)
+          if (parts.length >= 2) return (parts[0][0] + parts[parts.length-1][0]).toUpperCase()
+          return name[0]?.toUpperCase() || '?'
         })
         const newsDrawerReadMins = computed(() => {
           const wc = newsDrawer.post?.word_count
@@ -5281,10 +5290,10 @@ document.addEventListener('DOMContentLoaded', () => {
           })
           // Research lines
           const lines = (researchOps.researchLines.value || []).filter(l =>
-            (l.name || '').toLowerCase().includes(q) ||
+            (l.research_line_name || l.name || '').toLowerCase().includes(q) ||
             (l.description || '').toLowerCase().includes(q)
           ).slice(0, 3)
-          if (lines.length) results.research = lines.map(l => ({ id: l.id, name: l.name, meta: `Research Line`, icon: 'fa-flask', action: () => { switchView('research_lines'); ui.searchResultsOpen.value = false; globalSearchQuery.value = '' } }))
+          if (lines.length) results.research = lines.map(l => ({ id: l.id, name: l.research_line_name || l.name, meta: `Research Line`, icon: 'fa-flask', action: () => { switchView('research_lines'); ui.searchResultsOpen.value = false; globalSearchQuery.value = '' } }))
           return results
         })
 
