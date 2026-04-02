@@ -2055,8 +2055,8 @@
                                         </td>
                                         <td>
                                             <div class="table-actions">
-                                                <button class="btn-icon" title="Edit rotation" @click="editRotation(rotation)" v-if="hasPermission('resident_rotations', 'update')" title="Edit rotation"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg></button>
-                                                <button class="btn-icon btn-icon--danger" title="Terminate rotation" @click.stop="deleteRotation(rotation)" v-if="hasPermission('resident_rotations', 'delete') && ['active','scheduled'].includes(rotation.rotation_status)" title="Terminate rotation"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
+                                                <button class="btn-icon" @click="editRotation(rotation)" v-if="hasPermission('resident_rotations', 'update')" title="Edit rotation"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg></button>
+                                                <button class="btn-icon btn-icon--danger" @click.stop="deleteRotation(rotation)" v-if="hasPermission('resident_rotations', 'delete') && ['active','scheduled'].includes(rotation.rotation_status)" title="Terminate rotation"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -2387,7 +2387,7 @@
                                             'row-currently_absent': absence.current_status === 'currently_absent',
                                             'row-planned_leave':    absence.current_status === 'planned_leave',
                                             'row-returned':         absence.current_status === 'returned_to_duty',
-                                            'row-completed':        absence.current_status === 'completed',
+                                            'row-cancelled':        absence.current_status === 'cancelled',
                                         }"
                                         @click="hasPermission('staff_absence', 'update') && editAbsence(absence)">
                                         <td>
@@ -2414,13 +2414,11 @@
                                                 'status-active':    absence.current_status === 'currently_absent',
                                                 'status-scheduled': absence.current_status === 'planned_leave',
                                                 'status-completed': absence.current_status === 'returned_to_duty',
-                                                'status-warning':   absence.current_status === 'completed',
                                                 'status-inactive':  absence.current_status === 'cancelled'
                                             }">
                                                 <span v-if="absence.current_status === 'currently_absent'">Absent Now</span>
                                                 <span v-else-if="absence.current_status === 'planned_leave'">Planned</span>
                                                 <span v-else-if="absence.current_status === 'returned_to_duty'">Returned</span>
-                                                <span v-else-if="absence.current_status === 'completed'">Needs Review</span>
                                                 <span v-else-if="absence.current_status === 'cancelled'">Cancelled</span>
                                                 <span v-else>{{ absence.current_status }}</span>
                                             </span>
@@ -2438,14 +2436,15 @@
                                         </td>
                                         <td>
                                             <div class="table-actions">
-                                                <button v-if="absence.current_status === 'completed'"
+                                                <!-- Resolve button shown for returned staff — absence ended, pending confirmation -->
+                                                <button v-if="absence.current_status === 'returned_to_duty'"
                                                         class="btn-pill btn-pill-resolve"
                                                         @click.stop="openResolutionModal(absence)"
                                                         title="This absence has ended — click to resolve">
                                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 12l2 2 4-4"/></svg> Resolve
                                                 </button>
-                                                <button class="btn-pill btn-pill-edit" @click.stop="editAbsence(absence)" v-if="hasPermission('staff_absence', 'update') && absence.current_status !== 'completed'"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg> Edit</button>
-                                                <button class="btn-icon btn-icon--danger" title="Cancel absence" @click.stop="deleteAbsence(absence)" v-if="hasPermission('staff_absence', 'delete') && absence.current_status !== 'completed'" title="Cancel — keeps record for audit"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></button>
+                                                <button class="btn-pill btn-pill-edit" @click.stop="editAbsence(absence)" v-if="hasPermission('staff_absence', 'update') && absence.current_status !== 'returned_to_duty' && absence.current_status !== 'cancelled'"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg> Edit</button>
+                                                <button class="btn-icon btn-icon--danger" @click.stop="deleteAbsence(absence)" v-if="hasPermission('staff_absence', 'delete') && absence.current_status !== 'returned_to_duty' && absence.current_status !== 'cancelled'" title="Cancel — keeps record for audit"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></button>
                                                 <button class="btn-pill btn-pill-purge" @click.stop="purgeAbsence(absence)" v-if="currentUser && ['system_admin','department_head'].includes(currentUser.user_role)" title="Permanently delete this record"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
                                             </div>
                                         </td>
@@ -3155,22 +3154,26 @@
                                     <div class="rha-chart-card">
                                         <div class="rha-chart-title"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg> Studies by Phase</div>
                                         <div class="chart-bars">
-                                            <div v-for="(count, phase) in researchDashboard.clinicalTrials?.byPhase" :key="phase" class="chart-bar-item" v-if="count > 0">
-                                                <span class="bar-label">{{ phase }}</span>
-                                                <div class="bar-container"><div class="bar-fill" :style="{ width: researchDashboard.summary?.totalTrials > 0 ? (count / researchDashboard.summary.totalStudies * 100) + '%' : '0%', background: getPhaseColor(phase) }"></div></div>
-                                                <span class="bar-value">{{ count }}</span>
-                                            </div>
+                                            <template v-for="(count, phase) in researchDashboard.clinicalTrials?.byPhase" :key="phase">
+                                                <div v-if="count > 0" class="chart-bar-item">
+                                                    <span class="bar-label">{{ phase }}</span>
+                                                    <div class="bar-container"><div class="bar-fill" :style="{ width: researchDashboard.summary?.totalStudies > 0 ? (count / researchDashboard.summary.totalStudies * 100) + '%' : '0%', background: getPhaseColor(phase) }"></div></div>
+                                                    <span class="bar-value">{{ count }}</span>
+                                                </div>
+                                            </template>
                                             <div v-if="!researchDashboard.clinicalTrials?.byPhase || Object.values(researchDashboard.clinicalTrials.byPhase).every(v => v === 0)" class="empty-chart">No data</div>
                                         </div>
                                     </div>
                                     <div class="rha-chart-card">
                                         <div class="rha-chart-title"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg> Projects by Stage</div>
                                         <div class="chart-bars">
-                                            <div v-for="(count, stage) in researchDashboard.innovationProjects?.byStage" :key="stage" class="chart-bar-item" v-if="count > 0">
-                                                <span class="bar-label">{{ stage }}</span>
-                                                <div class="bar-container"><div class="bar-fill" :style="{ width: researchDashboard.summary?.totalProjects > 0 ? (count / researchDashboard.summary.totalProjects * 100) + '%' : '0%', background: getStageColor(stage) }"></div></div>
-                                                <span class="bar-value">{{ count }}</span>
-                                            </div>
+                                            <template v-for="(count, stage) in researchDashboard.innovationProjects?.byStage" :key="stage">
+                                                <div v-if="count > 0" class="chart-bar-item">
+                                                    <span class="bar-label">{{ stage }}</span>
+                                                    <div class="bar-container"><div class="bar-fill" :style="{ width: researchDashboard.summary?.totalProjects > 0 ? (count / researchDashboard.summary.totalProjects * 100) + '%' : '0%', background: getStageColor(stage) }"></div></div>
+                                                    <span class="bar-value">{{ count }}</span>
+                                                </div>
+                                            </template>
                                             <div v-if="!researchDashboard.innovationProjects?.byStage || Object.values(researchDashboard.innovationProjects.byStage || {}).every(v => v === 0)" class="empty-chart">No data</div>
                                         </div>
                                     </div>
@@ -3199,7 +3202,7 @@
                                             <span class="rline-number-pill" style="font-size:12px">L{{ line.line_number }}</span>
                                             <span class="rha-lt-name">{{ line.name }}</span>
                                             <span class="rha-lt-coord">{{ line.coordinator_name || '—' }}</span>
-                                            <span><span class="badge badge-info">{{ line.studiesCount || 0 }}</span></span>
+                                            <span><span class="badge badge-info">{{ line.trialsCount || 0 }}</span></span>
                                             <span><span class="badge badge-success">{{ line.projectsCount || 0 }}</span></span>
                                             <span><span class="status-indicator" :class="line.active ? 'status-active' : 'status-inactive'">{{ line.active ? 'Active' : 'Inactive' }}</span></span>
                                         </div>
@@ -3228,7 +3231,7 @@
                                         <div class="rha-ps rha-ps--purple"><div class="rha-ps-val">{{ line.stats?.commercialized || 0 }}</div><div class="rha-ps-label">Commerc.</div></div>
                                     </div>
                                     <div class="rha-perf-bar">
-                                        <div class="rha-perf-bar-fill" :style="{ width: line.stats?.totalTrials > 0 ? Math.min(100, (line.stats.activeStudys / line.stats.totalStudies) * 100) + '%' : '0%' }"></div>
+                                        <div class="rha-perf-bar-fill" :style="{ width: line.stats?.totalStudies > 0 ? Math.min(100, (line.stats.activeStudies / line.stats.totalStudies) * 100) + '%' : '0%' }"></div>
                                     </div>
                                 </div>
                             </div>
@@ -3282,7 +3285,7 @@
                     <div class="rhub-tabs">
                         <button class="rhub-tab" :class="{ 'rhub-tab--active': newsFilters.status === '' }" @click="newsFilters.status = ''">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7L12 12L22 7L12 2Z"/><path d="M2 17L12 22L22 17"/><path d="M2 12L12 17L22 12"/></svg> All
-                            <span class="rhub-tab-count">{{ filteredNews.length }}</span>
+                            <span class="rhub-tab-count">{{ newsPosts.length }}</span>
                         </button>
                         <button class="rhub-tab" :class="{ 'rhub-tab--active': newsFilters.status === 'published' }" @click="newsFilters.status = 'published'">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg> Published
@@ -4261,7 +4264,7 @@
                                     <div class="pd-line-num">L{{ line.line_number }}</div>
                                     <div class="pd-line-info">
                                         <span class="pd-line-name">{{ line.name }}</span>
-                                        <span class="pd-line-meta">{{ line.studysCount }} studies · {{ line.projectsCount }} projects</span>
+                                        <span class="pd-line-meta">{{ line.trialsCount }} studies · {{ line.projectsCount }} projects</span>
                                     </div>
                                     <!-- FIX 2: Show all roles if staff holds multiple -->
                                     <div class="pd-line-roles">
@@ -4376,7 +4379,9 @@
         ============================================================ -->
         <template v-if="newsDrawer.show && newsDrawer.post">
           <div class="nrd-backdrop" @click="closeNewsDrawer()"></div>
-          <div class="nrd-drawer" :class="'nrd--' + newsDrawer.post.post_type" @keydown.esc="closeNewsDrawer()" tabindex="-1">
+          <div class="nrd-drawer" :class="'nrd--' + newsDrawer.post.post_type"
+               @keydown.esc="closeNewsDrawer()" tabindex="-1"
+               :ref="el => { if (el) $nextTick(() => el.focus()) }">
 
             <!-- Progress bar -->
             <div class="nrd-progress">
@@ -4495,17 +4500,17 @@
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Back
               </button>
               <div class="nrd-footer-spacer"></div>
-              <button class="btn btn-secondary btn-sm" @click="editNews(newsDrawer.post); closeNewsDrawer()" v-if="hasPermission('research_lines','update')" title="Edit post">
+              <button class="btn btn-secondary btn-sm" @click="editNews(newsDrawer.post); closeNewsDrawer()" v-if="hasPermission('news_posts','update')" title="Edit post">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg> Edit
               </button>
-              <button class="btn btn-success btn-sm" @click="publishNews(newsDrawer.post); closeNewsDrawer()" v-if="newsDrawer.post.status === 'draft' && hasPermission('research_lines','update')" title="Publish now">
+              <button class="btn btn-success btn-sm" @click="publishNews(newsDrawer.post); closeNewsDrawer()" v-if="newsDrawer.post.status === 'draft' && hasPermission('news_posts','update')" title="Publish now">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Publish
               </button>
-              <button class="btn btn-secondary btn-sm" @click="toggleNewsPublic(newsDrawer.post)" v-if="newsDrawer.post.status === 'published' && hasPermission('research_lines','update')">
+              <button class="btn btn-secondary btn-sm" @click="toggleNewsPublic(newsDrawer.post)" v-if="newsDrawer.post.status === 'published' && hasPermission('news_posts','update')">
                 <i class="fas" :class="newsDrawer.post.is_public ? 'fa-lock' : 'fa-globe'"></i>
                 {{ newsDrawer.post.is_public ? 'Make Internal' : 'Make Public' }}
               </button>
-              <button class="btn btn-secondary btn-sm" @click="archiveNews(newsDrawer.post); closeNewsDrawer()" v-if="newsDrawer.post.status === 'published' && hasPermission('research_lines','update')">
+              <button class="btn btn-secondary btn-sm" @click="archiveNews(newsDrawer.post); closeNewsDrawer()" v-if="newsDrawer.post.status === 'published' && hasPermission('news_posts','update')">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg> Archive
               </button>
             </div>
@@ -4703,7 +4708,7 @@
 
                             <div class="sm-row">
                                 <div class="sm-field" :class="{ 'has-error': fieldErrors.staff?.professional_email }">
-                                    <div class="sm-label">Email <span class="req">·</span></div>
+                                    <div class="sm-label">Email <span v-if="!isResidentType(medicalStaffModal.form.staff_type)" class="req">·</span><span v-else class="hint"> — optional for residents</span></div>
                                     <input class="sm-input" :class="{ filled: medicalStaffModal.form.professional_email, 'is-invalid': fieldErrors.staff?.professional_email }"
                                            type="email" v-model="medicalStaffModal.form.professional_email" placeholder="name@sergas.es"
                                            @input="clearFieldError('staff','professional_email')">
@@ -4728,6 +4733,15 @@
                                         <option value="inactive">Inactive</option>
                                     </select>
                                 </div>
+                            </div>
+
+                            <!-- Department -->
+                            <div class="sm-field">
+                                <div class="sm-label">Department</div>
+                                <select class="sm-select" v-model="medicalStaffModal.form.department_id">
+                                    <option value="">Select department…</option>
+                                    <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+                                </select>
                             </div>
 
                             <!-- Resident category — appears when resident type selected -->
@@ -4907,6 +4921,22 @@
                                 </div>
                             </div>
 
+                            <!-- Training year — legacy field for non-residents (fellows, NPs, etc.) -->
+                            <div class="sm-field" v-if="!isResidentType(medicalStaffModal.form.staff_type) && (medicalStaffModal.form.staff_type === 'fellow' || medicalStaffModal.form.training_year)">
+                                <div class="sm-label">Training Year <span class="hint">— PGY level if applicable</span></div>
+                                <input type="text" class="sm-input" :class="{ filled: medicalStaffModal.form.training_year }"
+                                       v-model="medicalStaffModal.form.training_year"
+                                       placeholder="e.g. PGY-1, R2, Fellow-1">
+                            </div>
+
+                            <!-- Special notes -->
+                            <div class="sm-field">
+                                <div class="sm-label">Special Notes <span class="hint">— internal only</span></div>
+                                <textarea class="sm-input" v-model="medicalStaffModal.form.special_notes"
+                                          rows="2" style="height:auto;resize:none;padding-top:8px;padding-bottom:8px;"
+                                          placeholder="Allergies, accessibility needs, special considerations…"></textarea>
+                            </div>
+
                             <!-- Resident: residency period -->
                             <template v-if="isResidentType(medicalStaffModal.form.staff_type)">
                                 <div class="sm-divider">Residency period</div>
@@ -4924,7 +4954,7 @@
                                         </div>
                                         <div v-if="medicalStaffModal.form.residency_start_date && !medicalStaffModal.form.residency_year_override" class="ryear-auto-row">
                                             <span class="sm-ryear-chip">{{ effectiveResidentYear(medicalStaffModal.form) || '—' }}</span>
-                                            <button type="button" class="ryear-override-btn" @click="medicalStaffModal.form.residency_year_override = Utils.effectiveResidentYear(medicalStaffModal.form) || 'R1'">
+                                            <button type="button" class="ryear-override-btn" @click="medicalStaffModal.form.residency_year_override = effectiveResidentYear(medicalStaffModal.form) || 'R1'">
                                                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg> Override
                                             </button>
                                         </div>
@@ -5251,6 +5281,8 @@
                                 <select class="sm-select" v-model="onCallModal.form.shift_type">
                                     <option value="primary_call">Primary Call</option>
                                     <option value="backup_call">Backup Call</option>
+                                    <option value="float_physician">Float Physician</option>
+                                    <option value="weekend_coverage">Weekend Coverage</option>
                                 </select>
                             </div>
                         </div>
@@ -5557,7 +5589,9 @@
                                         :class="{'is-invalid': fieldErrors.rotation?.supervising_attending_id}"
                                         @change="clearFieldError('rotation','supervising_attending_id')">
                                     <option value="">Select attending…</option>
-                                    <option v-for="s in medicalStaff.filter(s=>s.staff_type==='attending_physician')" :key="s.id" :value="s.id">{{ s.full_name }}</option>
+                                    <option v-for="s in availableAttendings" :key="s.id" :value="s.id">
+                                        {{ s.full_name }}
+                                    </option>
                                 </select>
                                 <small v-if="fieldErrors.rotation?.supervising_attending_id" class="error-text">{{ fieldErrors.rotation.supervising_attending_id }}</small>
                             </div>
@@ -5724,7 +5758,38 @@
                                 </select>
                             </div>
                         </div>
-                        <!-- Description removed — not needed -->
+
+                        <!-- Specialty -->
+                        <div class="sm-field">
+                            <div class="sm-label">Specialty <span class="hint">— optional</span></div>
+                            <input type="text" class="sm-input" :class="{filled: trainingUnitModal.form.specialty}"
+                                   v-model="trainingUnitModal.form.specialty"
+                                   placeholder="e.g. Pulmonología, Críticos…">
+                        </div>
+
+                        <!-- Location -->
+                        <div class="sm-row">
+                            <div class="sm-field">
+                                <div class="sm-label">Building <span class="hint">— optional</span></div>
+                                <input type="text" class="sm-input" :class="{filled: trainingUnitModal.form.location_building}"
+                                       v-model="trainingUnitModal.form.location_building"
+                                       placeholder="e.g. Bloque C">
+                            </div>
+                            <div class="sm-field">
+                                <div class="sm-label">Floor <span class="hint">— optional</span></div>
+                                <input type="text" class="sm-input" :class="{filled: trainingUnitModal.form.location_floor}"
+                                       v-model="trainingUnitModal.form.location_floor"
+                                       placeholder="e.g. Planta 3">
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="sm-field">
+                            <div class="sm-label">Description <span class="hint">— optional</span></div>
+                            <textarea class="sm-input" v-model="trainingUnitModal.form.unit_description"
+                                      rows="2" style="height:auto;resize:none;padding-top:8px;padding-bottom:8px;"
+                                      placeholder="Brief description of this unit's scope…"></textarea>
+                        </div>
 
                     </div>
                     <div class="sm-form-footer">
