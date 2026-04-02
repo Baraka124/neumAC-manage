@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const CONFIG = {
       API_BASE_URL: window.location.hostname.includes('localhost')
         ? 'http://localhost:3000' 
-        : 'https://neumac-manage-back-end-production.up.railway.app',     
+        : 'https://neumac-manage-back-end-production.up.railway.app',   
       TOKEN_KEY: 'neumocare_token',
       USER_KEY: 'neumocare_user',
       CACHE_TTL: 300000
@@ -3866,7 +3866,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const researchLineModal = reactive({ show: false, mode: 'add', form: { line_number: null, name: '', description: '', capabilities: 'Alcance y capacidades', sort_order: 0, active: true } })
       const clinicalTrialModal = reactive({ show: false, mode: 'add', form: { protocol_id: '', title: '', research_line_id: '', phase: 'Phase III', status: 'Reclutando', description: '', inclusion_criteria: '', exclusion_criteria: '', principal_investigator_id: '', co_investigators: [], sub_investigators: [], contact_email: '', featured_in_website: true, display_order: 0, start_date: '', end_date: '' } })
-      const trialDetailModal = reactive({ show: false, trial: null })
+      const trialDetailModal = reactive({ show: false, trial: null, study: null })
       const innovationProjectModal = reactive({ show: false, mode: 'add', form: { title: '', category: 'Dispositivo', current_stage: 'Idea', description: '', clinical_rationale: '', research_line_id: '', lead_investigator_id: '', co_investigators: [], partner_needs: [], partner_found: false, partner_name: '', funding_status: 'not_applicable', keywords: [], keywordsInput: '', featured_in_website: true, display_order: 0 } })
       const assignCoordinatorModal = reactive({ show: false, lineId: null, lineName: '', selectedCoordinatorId: '' })
 
