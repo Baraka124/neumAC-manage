@@ -5331,10 +5331,7 @@
 
         <!-- ============ ADD/EDIT ROTATION MODAL ============ -->
         <!-- ============ ROTATION DETAIL VIEW SHEET ============ -->
-        <transition name="drawer-backdrop">
-            <div v-if="rotationViewModal.show" class="modal-overlay" @click.self="rotationViewModal.show = false"></div>
-        </transition>
-        <transition name="drawer-slide">
+        <div v-if="rotationViewModal.show" class="modal-overlay" @click.self="rotationViewModal.show = false"></div>
         <div v-if="rotationViewModal.show && rotationViewModal.rotation" class="rot-detail-sheet">
             <div class="rds-header">
                 <div class="rds-status-bar" :class="'rds-bar--' + rotationViewModal.rotation.rotation_status"></div>
@@ -5453,7 +5450,6 @@
                 </div>
             </div>
         </div>
-        </transition>
 
         <!-- ============ ROTATION EDIT MODAL ============ -->
         <div v-if="rotationModal.show" class="modal-overlay">
@@ -8036,7 +8032,7 @@
 
     </div><!-- end app-layout -->
 </div><!-- end #app -->
-    <script src="app.js?v=8"></script>
+    <script src="app.js?v=9"></script>
 
     <script>
     /* ── Login page — anatomical bronchial tree ── */
