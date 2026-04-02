@@ -6,7 +6,7 @@
     <title>neuMAC | Pulmonology Management System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
     <link rel="stylesheet" href="style.css?v=5">
 
     <style id="neumac-layout">
@@ -2529,7 +2529,7 @@
 
                 <!-- ============ SYSTEM SETTINGS VIEW ============ -->
                 <!-- FIX Bug1: moved inside content-area; Bug3: permission key fixed; Bug6: uses staffTypesLoading -->
-                <div v-if="currentView === 'system_settings'" v-cloak>
+                <div v-if="currentView === 'system_settings'">
                     <div class="card mb-6">
                         <div class="card-header">
                             <div class="card-title">
@@ -5229,7 +5229,7 @@
                             {{ onCallModal.form.start_time }} — {{ onCallModal.form.end_time }}
                         </div>
                         <div class="sm-preview-chips" v-if="onCallModal.form.shift_type">
-                            <span class="sm-preview-chip">{{ onCallModal.form.shift_type === 'primary_call' ? 'Primary Call' : 'Backup Call' }}</span>
+                            <span class="sm-preview-chip">{{ {'primary_call':'Primary Call','backup_call':'Backup Call','float_physician':'Float Physician','weekend_coverage':'Weekend Coverage'}[onCallModal.form.shift_type] || onCallModal.form.shift_type }}</span>
                         </div>
                     </div>
 
@@ -7440,7 +7440,7 @@
                     <div class="tdm-hero-top">
                         <div class="tdm-badges">
                             <span class="tdm-protocol"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg> {{ trialDetailModal.study?.protocol_id }}</span>
-                            <span class="tdm-phase-badge" :class="'tdm-phase--' + (trialDetailModal.trial?.phase||''). toLowerCase().replace(/ /g,'-')">{{ trialDetailModal.study?.phase }}</span>
+                            <span class="tdm-phase-badge" :class="'tdm-phase--' + (trialDetailModal.trial?.phase||'').toLowerCase().replace(/ /g,'-')">{{ trialDetailModal.study?.phase }}</span>
                             <span v-if="trialDetailModal.trial?.study_type" class="tdm-study-type-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg> {{ trialDetailModal.trial.study_type }}</span>
                         </div>
                         <button class="modal-close tdm-close" @click="trialDetailModal.show = false"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg></button>
