@@ -2393,6 +2393,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }) || []
       }
 
+
+      // ============ [NEW] Rotation detail sheet modal ============
+      const rotationViewModal = reactive({ show: false, rotation: null })
+
       const viewRotationDetails = (rotation) => {
         if (!rotation) return
         // Enrich rotation with display-friendly fields expected by the detail sheet
@@ -2415,8 +2419,6 @@ document.addEventListener('DOMContentLoaded', () => {
         rotationViewModal.show = true
       }
 
-      // ============ [NEW] Rotation detail sheet modal ============
-      const rotationViewModal = reactive({ show: false, rotation: null })
 
       // ============ Month Horizon view ============
       const monthHorizon = ref(6)
@@ -3963,7 +3965,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clinicalTrialModal.show = true
       }
       const editProject = (p) => { innovationProjectModal.mode = 'edit'; const coI = Array.isArray(p.co_investigators) && p.co_investigators.length ? p.co_investigators : (Array.isArray(p.co_leads) ? p.co_leads : []); const kws = Array.isArray(p.keywords) && p.keywords.length ? p.keywords : (Array.isArray(p.tags) ? p.tags : []); innovationProjectModal.form = { ...p, current_stage: p.current_stage || p.development_stage || 'Idea', partner_needs: Array.isArray(p.partner_needs) ? [...p.partner_needs] : [], co_investigators: [...coI], keywords: [...kws], keywordsInput: kws.length ? kws.join(', ') : '', partner_found: p.partner_found || false, partner_name: p.partner_name || '', funding_status: p.funding_status || 'not_applicable', clinical_rationale: p.clinical_rationale || '' }; innovationProjectModal.show = true }
-      const viewTrial = (t) => { trialDetailModal.trial = t; trialDetailModal.show = true }
+      const viewTrial = (t) => { trialDetailModal.trial = t; trialDetailModal.study = t; trialDetailModal.show = true }
 
       const saveResearchLine = async (saving) => {
         // Normalise: HTML form uses research_line_name, JS defaults use name — backend DB stores 'name'
