@@ -12173,7 +12173,7 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
 }
 .db-unit-leg-item {
   display: flex;
-  align-items: center;
+  align-items: center;   
   gap: 5px;
   font-size: 10px;
   color: var(--text-3);
