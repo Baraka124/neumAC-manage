@@ -1,5 +1,5 @@
 <!DOCTYPE html>       
-<html lang="en">   
+<html lang="en"> 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
@@ -2017,8 +2017,6 @@
                                                    @click.stop title="Email contact">
                                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg>
                                                 </a>
-                                            </div>
-                                                </div>
                                             </div>
                                         </td>
                                         <td>
@@ -7441,8 +7439,8 @@
                 <div class="tdm-hero">
                     <div class="tdm-hero-top">
                         <div class="tdm-badges">
-                            <span class="tdm-protocol"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg> {{ trialDetailModal.trial?.protocol_id }}</span>
-                            <span class="tdm-phase-badge" :class="'tdm-phase--' + (trialDetailModal.trial?.phase||'').toLowerCase().replace(/ /g,'-')">{{ trialDetailModal.trial?.phase }}</span>
+                            <span class="tdm-protocol"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg> {{ trialDetailModal.study?.protocol_id }}</span>
+                            <span class="tdm-phase-badge" :class="'tdm-phase--' + (trialDetailModal.trial?.phase||'').toLowerCase().replace(/ /g,'-')">{{ trialDetailModal.study?.phase }}</span>
                             <span v-if="trialDetailModal.trial?.study_type" class="tdm-study-type-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg> {{ trialDetailModal.trial.study_type }}</span>
                         </div>
                         <button class="modal-close tdm-close" @click="trialDetailModal.show = false"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg></button>
@@ -8037,6 +8035,7 @@
         </nav>
 
     </div><!-- end app-layout -->
+</div><!-- end #app -->
     <script src="app.js?v=6"></script>
 
     <script>
@@ -8149,5 +8148,6 @@
         if(REDUCED){ drawTree(0.5); } else { raf = requestAnimationFrame(animate); }
     })();
     </script>
+</div><!-- close #app -->
 </body>
 </html>
