@@ -5799,30 +5799,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     })
 
-    // ── DIAGNOSTIC ──
-    app.config.errorHandler = (err, instance, info) => {
-      console.error('[Vue errorHandler]', info, err)
-      const box = document.createElement('div')
-      box.style = 'position:fixed;bottom:0;left:0;right:0;background:#1a0000;color:#ff6b6b;font-family:monospace;font-size:11px;padding:10px;z-index:99999;max-height:200px;overflow:auto;white-space:pre-wrap;border-top:2px solid red;'
-      box.id = 'vue-err-box'
-      box.textContent = '[Vue Error in: ' + info + ']\n' + (err && err.stack ? err.stack : String(err))
-      document.body.appendChild(box)
-    }
-
     app.mount('#app')
-
-    setTimeout(() => {
-      const raw = document.getElementById('app').innerHTML.match(/\{\{[^}]{1,80}\}\}/g)
-      if (raw && raw.length) {
-        console.error('[DIAG] Raw mustaches after mount:', raw.slice(0,8))
-        const box = document.createElement('div')
-        box.style = 'position:fixed;top:0;left:0;right:0;background:#001a1a;color:#00ffff;font-family:monospace;font-size:11px;padding:10px;z-index:99999;max-height:150px;overflow:auto;white-space:pre-wrap;'
-        box.textContent = '[DIAG] Vue mounted but raw {{ }} remain. First 8:\n' + raw.slice(0,8).join('\n')
-        document.body.appendChild(box)
-      } else {
-        console.log('[DIAG] No raw {{ }} — Vue compiled OK')
-      }
-    }, 800)
 
   } catch (error) {
     document.body.innerHTML = `
