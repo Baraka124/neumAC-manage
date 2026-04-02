@@ -11956,8 +11956,7 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
 }
 
 /* ── Settings: ensure all sections visible, proper spacing ────── */
-.content-area [v-cloak],
-.content-area > div[style*="padding:20px"] {
+.content-area > div {
   min-height: 0;
 }
 
