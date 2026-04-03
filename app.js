@@ -5303,6 +5303,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const clearSearch = () => { globalSearchQuery.value = ''; ui.searchResultsOpen.value = false }
 
+        // ── Academic Degrees Management ────────────────────────────────────────
+        const academicDegreeModal = reactive({
+          show: false, mode: 'add',
+          form: { id: null, name: '', abbreviation: '', display_order: 0, is_active: true }
+        })
+        const openAddAcademicDegree = () => {
+          Object.assign(academicDegreeModal.form, { id: null, name: '', abbreviation: '', display_order: (academicDegrees.value.length + 1) * 10, is_active: true })
+          academicDegreeModal.mode = 'add'
+          academicDegreeModal.show = true
+        }
+        const openEditAcademicDegree = (deg) => {
+          Object.assign(academicDegreeModal.form, { id: deg.id, name: deg.name, abbreviation: deg.abbreviation || '', display_order: deg.display_order || 0, is_active: deg.is_active !== false })
+          academicDegreeModal.mode = 'edit'
+          academicDegreeModal.show = true
+        }
+        const saveAcademicDegree = async () => {
+          const f = academicDegreeModal.form
+          if (!f.name?.trim()) { showToast('Validation', 'Degree name is required', 'warn'); return }
+          try {
+            if (academicDegreeModal.mode === 'add') {
+              const created = await API.createAcademicDegree({ name: f.name.trim(), abbreviation: f.abbreviation?.trim() || null, display_order: f.display_order, is_active: f.is_active })
+              academicDegrees.value.push(created)
+              showToast('Success', 'Academic degree added', 'success')
+            } else {
+              const updated = await API.updateAcademicDegree(f.id, { name: f.name.trim(), abbreviation: f.abbreviation?.trim() || null, display_order: f.display_order, is_active: f.is_active })
+              const idx = academicDegrees.value.findIndex(d => d.id === f.id)
+              if (idx !== -1) academicDegrees.value[idx] = updated
+              showToast('Success', 'Academic degree updated', 'success')
+            }
+            academicDegreeModal.show = false
+            await loadAcademicDegrees()
+          } catch (e) { showToast('Error', e?.message || 'Failed to save degree', 'error') }
+        }
+        const deleteAcademicDegree = (deg) => {
+          showConfirmation({
+            title: 'Delete Degree', message: `Delete "${deg.name}"? This cannot be undone.`,
+            confirmText: 'Delete', confirmButtonClass: 'btn-danger',
+            onConfirm: async () => {
+              try {
+                await API.deleteAcademicDegree(deg.id)
+                academicDegrees.value = academicDegrees.value.filter(d => d.id !== deg.id)
+                showToast('Success', 'Degree deleted', 'success')
+              } catch (e) { showToast('Error', e?.message || 'Failed to delete', 'error') }
+            }
+          })
+        }
+
         // ── Staff Types Management ─────────────────────────────────────────────
         // Loads dynamic staff types from DB and builds the reactive lookup map
         // ── Rotation Services ────────────────────────────────────────────
@@ -5633,6 +5680,7 @@ document.addEventListener('DOMContentLoaded', () => {
           staffTypesLoading, staffTypeModal, openAddStaffType, openEditStaffType, saveStaffType, deleteStaffType, toggleStaffTypeActive, loadStaffTypes,
           rotationServices, rotationServicesLoading, rotationServiceModal,
           loadRotationServices, openAddRotationService, openEditRotationService, saveRotationService, deleteRotationService,
+          academicDegreeModal, openAddAcademicDegree, openEditAcademicDegree, saveAcademicDegree, deleteAcademicDegree,
           searchResultsOpen: ui.searchResultsOpen,
           sortState, sortBy, sortIcon, pagination,
           goToPage: (view, page) => {
