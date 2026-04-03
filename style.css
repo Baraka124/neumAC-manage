@@ -8,7 +8,7 @@
 .ryear-auto-row {
   display: flex; align-items: center; gap: 8px;
 }
-.ryear-chip {
+.ryear-chip {  
   display: inline-flex; align-items: center; justify-content: center; 
   min-width: 48px; height: 34px; padding: 0 12px;
   background: rgba(45,122,255,.1); border: 1px solid rgba(45,122,255,.25);
