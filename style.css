@@ -8,7 +8,7 @@
 .ryear-auto-row {
   display: flex; align-items: center; gap: 8px;
 }
-.ryear-chip {  
+.ryear-chip {
   display: inline-flex; align-items: center; justify-content: center; 
   min-width: 48px; height: 34px; padding: 0 12px;
   background: rgba(45,122,255,.1); border: 1px solid rgba(45,122,255,.25);
@@ -12270,4 +12270,55 @@ n-top: 2px; flex-shrink: 0; color: var(--blue); }
 .content-area > div {
   min-height: 0;
   width: 100%;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   FINAL LAYOUT OVERRIDES — research-hub, news-view, content-area
+   Appended last so they win all cascade conflicts.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* 1. research-hub and news-view: fill exact space below navbar.
+      width:100% ensures they don't shrink when sidebar collapses.  */
+.main-content > .research-hub,
+.main-content > .news-view {
+  flex: 1 1 0% !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  max-height: calc(100vh - var(--topbar-h, 60px)) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  /* Undo any rogue margin or padding */
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 2. Tab bar inside research-hub and news-view: always dark navy, never scrolls */
+.main-content > .research-hub > .rhub-tabs,
+.main-content > .news-view > .rhub-tabs {
+  flex-shrink: 0 !important;
+  width: 100% !important;
+  background: #0f2d54 !important;
+  border-bottom: none !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+}
+
+/* 3. Panel content inside research-hub: fills remaining height, scrolls internally */
+.main-content > .research-hub > [class*="rhub-panel"],
+.main-content > .research-hub > .rhub-panel {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* 4. News list area: fills remaining height below tab bar */
+.main-content > .news-view > .news-filter-bar { flex-shrink: 0 !important; }
+.main-content > .news-view > .news-list      { flex: 1 1 0% !important; min-height: 0 !important; overflow-y: auto !important; }
+
+/* 5. content-area: always scrollable for non-dashboard views */
+.content-area {
+  overflow-y: auto !important;
 }
