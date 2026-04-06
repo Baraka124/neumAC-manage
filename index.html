@@ -2434,7 +2434,7 @@
                                             <span v-else-if="absence.coverage_arranged" class="coverage-ok"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg> Covered</span>
                                             <span v-else class="coverage-gap"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg> No coverage</span>
                                         </td>
-                                        <td @click.stop>
+                                        <td>
                                             <div class="table-actions">
                                                 <button v-if="absence.current_status === 'returned_to_duty'"
                                                         class="btn-pill btn-pill-resolve"
@@ -3013,10 +3013,10 @@
                                     <button class="btn btn-primary btn-sm" @click="showAddTrialModal(activeMissionLine)" v-if="hasPermission('research_lines','create')" style="margin-left:auto">
                                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add Study
                                     </button>
-                                </div>
-                            </div>
+                                </div><!-- end rp-detail-footer -->
+                            </div><!-- end outer rp-detail-body -->
+                            </div><!-- end rp-detail v-if -->
 
-                                    
                             <div class="rp-detail rp-detail--empty" v-else>
                                 <div class="rp-detail-empty-inner">
                                     <div class="rp-detail-empty-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg></div>
