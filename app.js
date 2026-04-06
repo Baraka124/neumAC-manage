@@ -150,10 +150,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     const ROTATION_STATUS_LABELS = {
-      scheduled: 'Scheduled', 
-      active: 'Active', 
-      completed: 'Completed', 
-      cancelled: 'Cancelled'
+      scheduled: 'Scheduled',
+      active: 'Active',
+      completed: 'Completed',
+      extended: 'Extended',
+      terminated_early: 'Terminated'
     }
     
     const USER_ROLE_LABELS = {
@@ -656,7 +657,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // B9 FIX: Removed redundant .filter(employment_status !== 'inactive') —
         // the backend already excludes inactive staff by default (neq query).
         // Keeping it here would silently drop inactive staff even when fetched intentionally.
-        const data = await this.getList('/api/medical-staff');
+        const data = await this.getList('/api/medical-staff?limit=500');
         return data
           .map(staff => ({
           ...staff,
@@ -724,16 +725,37 @@ document.addEventListener('DOMContentLoaded', () => {
       
       async getLeaveBalance(staffId) {
         try {
-          const staff = (await this.getMedicalStaff()).find(s => s.id === staffId);
-          const isAttending = staff?.staff_type === 'attending_physician';
+          const [allStaff, allAbsences] = await Promise.all([this.getMedicalStaff(), this.getAbsences()])
+          const staff = allStaff.find(s => s.id === staffId)
+          const isAttending = staff?.staff_type === 'attending_physician'
+          const TOTALS = {
+            vacation:   isAttending ? 25 : 20,
+            sick_leave: 12,
+            conference: isAttending ? 15 : 10,
+            personal:   5,
+          }
+          const currentYear = new Date().getFullYear()
+          const myAbsences = allAbsences.filter(a =>
+            a.staff_member_id === staffId &&
+            !['cancelled'].includes(a.current_status) &&
+            new Date(a.start_date).getFullYear() === currentYear
+          )
+          const used = { vacation: 0, sick_leave: 0, conference: 0, personal: 0 }
+          myAbsences.forEach(a => {
+            const reason = a.absence_reason
+            if (used[reason] !== undefined) {
+              const days = Math.ceil(Math.abs(new Date(a.end_date) - new Date(a.start_date)) / 86400000) + 1
+              used[reason] += days
+            }
+          })
           return {
-            vacation: { used: 5, total: isAttending ? 25 : 20, remaining: isAttending ? 20 : 15 },
-            sick: { used: 2, total: 12, remaining: 10 },
-            conference: { used: 3, total: isAttending ? 15 : 10, remaining: isAttending ? 12 : 7 },
-            personal: { used: 1, total: 5, remaining: 4 }
-          };
+            vacation:   { used: used.vacation,   total: TOTALS.vacation,   remaining: Math.max(0, TOTALS.vacation   - used.vacation)   },
+            sick:       { used: used.sick_leave,  total: TOTALS.sick_leave, remaining: Math.max(0, TOTALS.sick_leave - used.sick_leave) },
+            conference: { used: used.conference,  total: TOTALS.conference, remaining: Math.max(0, TOTALS.conference - used.conference) },
+            personal:   { used: used.personal,    total: TOTALS.personal,   remaining: Math.max(0, TOTALS.personal   - used.personal)   },
+          }
         } catch {
-          return { vacation: { used: 5, total: 20, remaining: 15 }, sick: { used: 2, total: 10, remaining: 8 }, conference: { used: 3, total: 10, remaining: 7 }, personal: { used: 1, total: 5, remaining: 4 } };
+          return { vacation:{used:0,total:20,remaining:20}, sick:{used:0,total:12,remaining:12}, conference:{used:0,total:10,remaining:10}, personal:{used:0,total:5,remaining:5} }
         }
       }
 
@@ -829,7 +851,7 @@ document.addEventListener('DOMContentLoaded', () => {
       async deleteTrainingUnit(id) { this.invalidate('/api/training-units'); return this.request(`/api/training-units/${id}`, { method: 'DELETE' }) }
 
       async getRotations() {
-        try { const r = await this.request('/api/rotations'); return Utils.ensureArray(r?.data ?? r) } catch { return [] }
+        try { const r = await this.request('/api/rotations?limit=500'); return Utils.ensureArray(r?.data ?? r) } catch { return [] }
       }
       async createRotation(d) { this.invalidate('/api/rotations'); return this.request('/api/rotations', { method: 'POST', body: d }) }
       async updateRotation(id, d) { this.invalidate('/api/rotations'); return this.request(`/api/rotations/${id}`, { method: 'PUT', body: d }) }
@@ -843,7 +865,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       async getAbsences() {
         try {
-          const r = await this.request('/api/absence-records')
+          const r = await this.request('/api/absence-records?limit=500')
           return (r?.success && Array.isArray(r.data)) ? r.data : Utils.ensureArray(r)
         } catch { return [] }
       }
@@ -1102,9 +1124,10 @@ document.addEventListener('DOMContentLoaded', () => {
         show: false, form: { full_name: '', email: '', department_id: '' }
       })
 
+      let _toastSeq = 0
       const showToast = (title, message, type = 'info', duration = 5000) => {
         const icons = { info: 'fas fa-info-circle', success: 'fas fa-check-circle', error: 'fas fa-exclamation-circle', warning: 'fas fa-exclamation-triangle' }
-        const toast = { id: Date.now(), title, message, type, icon: icons[type], duration }
+        const toast = { id: ++_toastSeq, title, message, type, icon: icons[type] || icons.info, duration }
         toasts.value.push(toast)
         if (duration > 0) setTimeout(() => removeToast(toast.id), duration)
       }
@@ -1123,7 +1146,10 @@ document.addEventListener('DOMContentLoaded', () => {
         confirmationModal.show = false
       }
 
-      const cancelConfirmation = () => { confirmationModal.show = false }
+      const cancelConfirmation = () => {
+        if (confirmationModal.onCancel) confirmationModal.onCancel()
+        confirmationModal.show = false
+      }
 
       const dismissAlert = (id) => {
         const i = systemAlerts.value.findIndex(a => a.id === id)
@@ -1875,6 +1901,17 @@ document.addEventListener('DOMContentLoaded', () => {
         
         onCallSchedule.value.forEach(shift => {
           const date = Utils.normalizeDate(shift.duty_date)
+
+          // Apply filters BEFORE creating the bucket — prevents empty date headers
+          if (onCallFilters.date && date !== onCallFilters.date) return
+          if (onCallFilters.shiftType && shift.shift_type !== onCallFilters.shiftType) return
+          if (onCallFilters.physician && shift.primary_physician_id !== onCallFilters.physician &&
+              shift.backup_physician_id !== onCallFilters.physician) return
+          if (onCallFilters.search) {
+            const physicianName = getPhysicianName(shift.primary_physician_id).toLowerCase()
+            if (!physicianName.includes(onCallFilters.search.toLowerCase())) return
+          }
+
           if (!groups[date]) {
             groups[date] = {
               date,
@@ -1882,17 +1919,7 @@ document.addEventListener('DOMContentLoaded', () => {
               shifts: []
             }
           }
-          
-          // Apply filters
-          if (onCallFilters.date && date !== onCallFilters.date) return
-          if (onCallFilters.shiftType && shift.shift_type !== onCallFilters.shiftType) return
-          if (onCallFilters.physician && shift.primary_physician_id !== onCallFilters.physician && 
-              shift.backup_physician_id !== onCallFilters.physician) return
-          if (onCallFilters.search) {
-            const physicianName = getPhysicianName(shift.primary_physician_id).toLowerCase()
-            if (!physicianName.includes(onCallFilters.search.toLowerCase())) return
-          }
-          
+
           groups[date].shifts.push(shift)
         })
         
@@ -1906,7 +1933,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (shiftDate !== today) return false
         const now = new Date()
         const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-        return currentTime >= shift.start_time && currentTime <= shift.end_time
+        const s = shift.start_time, e = shift.end_time
+        const overnight = s > e  // e.g. "15:00" > "08:00" means it crosses midnight
+        return overnight
+          ? (currentTime >= s || currentTime <= e)
+          : (currentTime >= s && currentTime <= e)
       }
 
       // ── Upcoming on-call: next 14 days grouped by date (for dashboard) ──
@@ -2509,7 +2540,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const warnings = []
         // All active residents
         const residents = medicalStaff.value.filter(s =>
-          isResidentType(s.staff_type) && s.employment_status === 'active'
+          isResidentType(s.staff_type) && s.employment_status === 'active' &&
+          s.resident_category !== 'external_resident' &&
+          s.resident_category !== 'rotating_other_dept'
         )
         for (const resident of residents) {
           const gaps = []
@@ -2631,9 +2664,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const today = Utils.normalizeDate(new Date())
         const start = Utils.normalizeDate(a.start_date)
         const end   = Utils.normalizeDate(a.end_date)
-        if (end < today)    return 'completed'
+        // Use DB-aligned values for all statuses so in-memory filter and
+        // any future server-side filtering stay consistent with the DB CHECK constraint
+        if (end < today)    return 'returned_to_duty'
         if (start <= today) return 'currently_absent'
-        return 'upcoming'
+        return 'planned_leave'
       }
 
       const filteredAbsencesAll = computed(() => {
@@ -2656,7 +2691,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         // Hide past/resolved records by default — toggle via "Show Past" filter
         if (!absenceFilters.status && absenceFilters.hideReturned) {
-          f = f.filter(a => a.current_status !== 'returned_to_duty' && a.current_status !== 'cancelled')
+          f = f.filter(a => !['returned_to_duty', 'cancelled'].includes(a.current_status))
         }
         if (absenceFilters.staff) f = f.filter(a => a.staff_member_id === absenceFilters.staff)
         if (absenceFilters.status) f = f.filter(a => a.current_status === absenceFilters.status)
@@ -3131,13 +3166,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // We identify ours by dept_name matching the home department name pattern
         let f = trainingUnits.value.filter(u => {
           const deptName = (u.department?.name || u.department_name || '').toLowerCase()
-          const specialty = (u.specialty || '').toLowerCase()
-          // Include if linked to our home dept or is a clinical specialty unit we own
+          // Primary check: unit's department_id is in our known departments list.
+          // This covers all newly created units without needing hardcoded names.
+          if (u.department_id && allDepartmentsLookup.value.some(d => d.id === u.department_id)) return true
+          // Fallback: legacy units without a department_id — keep old name matching
           return deptName.includes('neumolog') || deptName.includes('pulmonolog') ||
                  deptName.includes('cirugía torácica') ||
-                 specialty.includes('pulmonolog') || specialty.includes('surgery') ||
-                 specialty.includes('critical') || specialty.includes('radiol') ||
-                 specialty.includes('sleep') || specialty.includes('external') ||
                  u.unit_code === 'UCRI' || u.unit_code === 'PFR' || u.unit_code === 'UTB' ||
                  u.unit_code === 'SUEÑO' || u.unit_code === 'TRANSP'
         })
@@ -4166,7 +4200,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const activeTrials  = (clinicalTrials.value || []).filter(t => ['Activo','Reclutando'].includes(t.status)).length
           const recruitingTrials = (clinicalTrials.value || []).filter(t => t.status === 'Reclutando').length
           const totalProjects = (innovationProjects.value || []).length
-          const lateStageProjects = (innovationProjects.value || []).filter(p => ['Piloto','Validación','Escalado','Mercado'].includes(p.current_stage)).length
+          const lateStageProjects = (innovationProjects.value || []).filter(p => ['Piloto','Validación','Escalamiento','Comercialización'].includes(p.current_stage)).length
           const totalEnrolled = (clinicalTrials.value || []).reduce((s, t) => s + (t.actual_enrollment || 0), 0)
           const totalTarget   = (clinicalTrials.value || []).reduce((s, t) => s + (t.enrollment_target || 0), 0)
           return { totalLines, activeLines, totalTrials, activeTrials, recruitingTrials, totalProjects, lateStageProjects, totalEnrolled, totalTarget }
@@ -4375,15 +4409,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const saveNews = async () => {
         const _t = (v) => (v == null ? '' : String(v)).trim()
-        if (!_t(newsModal.form.title)) { showToast('Validation', 'Title is required', 'warn'); return }
+        if (!_t(newsModal.form.title)) { showToast('Validation', 'Title is required', 'warning'); return }
         if (newsModal.form.post_type === 'photo_story' && !_t(newsModal.form.featured_image_url)) {
-          showToast('Validation', 'Photo Story requires an image URL', 'warn'); return
+          showToast('Validation', 'Photo Story requires an image URL', 'warning'); return
         }
         if (newsModal.form.post_type !== 'publication' && !newsModal.form.author_id) {
-          showToast('Validation', 'Author is required', 'warn'); return
+          showToast('Validation', 'Author is required', 'warning'); return
         }
         if (newsModal.form.post_type !== 'publication' && newsWordCount.value > newsWordLimit.value) {
-          showToast('Validation', `Exceeds ${newsWordLimit.value} word limit`, 'warn'); return
+          showToast('Validation', `Exceeds ${newsWordLimit.value} word limit`, 'warning'); return
         }
         const payload = {
           post_type:          newsModal.form.post_type,
@@ -4888,6 +4922,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const researchOps = useResearch({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, clearAll, medicalStaff, loadAnalyticsSummary, loadResearchLinesPerformance, loadPartnerCollaborations })
         // Keep the hoisted ref in sync so useStaff coordinator-clear logic sees live data
         watch(researchOps.researchLines, (v) => { researchLinesShared.value = v }, { immediate: true })
+        // Wrap loadResearchDashboard so it always receives the live research data refs —
+        // the raw function takes parameters; calling it bare from the template passes nothing.
+        const loadResearchDashboard = () => analyticsOps.loadResearchDashboard(
+          researchOps.researchLines,
+          researchOps.clinicalTrials,
+          researchOps.innovationProjects
+        )
         const dashOps = useDashboard({ medicalStaff, rotations, absences, onCallSchedule, trainingUnits })
 
         const newsOps = useNews({ showToast, showConfirmation, medicalStaff, researchLines: researchOps.researchLines })
@@ -5074,7 +5115,11 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           return a || '—'
         }
-        const formatStudyStatus = (s) => ({ 'Reclutando': 'Recruiting', 'Activo': 'Active', 'Completado': 'Completed', 'Suspendido': 'Suspended', 'Pendiente': 'Pending', 'Cerrado': 'Closed' }[s] || s)
+        // Only the 4 values the DB CHECK constraint allows:
+        const formatStudyStatus = (s) => ({
+          'Reclutando': 'Recruiting', 'Activo': 'Active',
+          'Completado': 'Completed', 'En preparación': 'In preparation'
+        }[s] || s)
         const getCurrentViewTitle = () => VIEW_TITLES[currentView.value] || 'NeumoCare Dashboard'
         const getCurrentViewSubtitle = () => VIEW_SUBTITLES[currentView.value] || 'Hospital Management System'
         const getSearchPlaceholder = () => 'Search...'
@@ -5439,9 +5484,12 @@ document.addEventListener('DOMContentLoaded', () => {
         ]
 
         const loadAcademicDegrees = async () => {
-          // Skip network call — /api/academic-degrees not yet on production backend
-          // Will be re-enabled once backend v5.3 is deployed
-          academicDegrees.value = ACADEMIC_DEGREES_FALLBACK
+          try {
+            const data = await API.getAcademicDegrees()
+            academicDegrees.value = data.length ? data : ACADEMIC_DEGREES_FALLBACK
+          } catch {
+            academicDegrees.value = ACADEMIC_DEGREES_FALLBACK
+          }
         }
 
         // Staff Types manager modal (lives in System Settings)
@@ -5507,6 +5555,29 @@ document.addEventListener('DOMContentLoaded', () => {
           try { fetch(`${CONFIG.API_BASE_URL}/health`).catch(() => {}) } catch {}
         }
 
+        // ── Core system settings ────────────────────────────────────────────
+        const systemSettings = reactive({
+          hospital_name: 'NeumoCare Hospital',
+          max_residents_per_unit: 10,
+          default_rotation_duration: 12,
+          enable_audit_logging: true,
+          notifications_enabled: true,
+          absence_notifications: true,
+          maintenance_mode: false
+        })
+        const loadSystemSettings = async () => {
+          try {
+            const data = await API.request('/api/settings')
+            if (data && typeof data === 'object') Object.assign(systemSettings, data)
+          } catch { /* silently use defaults */ }
+        }
+        const saveSystemSettings = async () => {
+          try {
+            await API.request('/api/settings', { method: 'PUT', body: { ...systemSettings } })
+            showToast('Saved', 'System settings updated', 'success')
+          } catch (e) { showToast('Error', e?.message || 'Failed to save settings', 'error') }
+        }
+
         const loadAllData = async () => {
           loading.value = true
           try {
@@ -5521,6 +5592,7 @@ document.addEventListener('DOMContentLoaded', () => {
               loadStaffTypes(),
               loadAcademicDegrees(),
               loadRotationServices(),
+              loadSystemSettings(),
               staffOps.loadMedicalStaff(),
               loadDepartments(),
               loadTrainingUnits()
@@ -5661,6 +5733,7 @@ document.addEventListener('DOMContentLoaded', () => {
           saveClinicalTrial: () => researchOps.saveClinicalTrial(saving),
           saveInnovationProject: () => researchOps.saveInnovationProject(saving),
           ...analyticsOps,
+          loadResearchDashboard, // override with wired wrapper that passes research data refs
           ...dashOps,
           handleLogin, handleLogout,
           switchView, situationItems, dailyBriefing, toggleStatsSidebar, handleGlobalSearch, globalSearchResults, clearSearch,
@@ -5676,6 +5749,7 @@ document.addEventListener('DOMContentLoaded', () => {
           portfolioKPIs:     researchOps.portfolioKPIs,
           getLineAccent:     getLineAccentGlobal,
 
+          systemSettings, saveSystemSettings, loadSystemSettings,
           staffTypesList, staffTypeMap, academicDegrees, loadAcademicDegrees, formatStaffTypeGlobal, getStaffTypeClassGlobal, isResidentType,
           staffTypesLoading, staffTypeModal, openAddStaffType, openEditStaffType, saveStaffType, deleteStaffType, toggleStaffTypeActive, loadStaffTypes,
           rotationServices, rotationServicesLoading, rotationServiceModal,
