@@ -1,6 +1,6 @@
 <!DOCTYPE html>       
 <html lang="en"> 
-<head>  
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>neuMAC | Pulmonology Management System</title>
@@ -2195,6 +2195,7 @@
                         </div>
                     </div>
                 </div>
+                </div>
                 </div><!-- /resident_rotations -->
                 <!-- ============ TRAINING UNITS VIEW ============ -->
                 <div v-if="currentView === 'training_units'">
@@ -2438,6 +2439,7 @@
                             </div>
                         </div><!-- end grouped view -->
                     </div>
+                </div>
                 </div><!-- /training_units -->
                 <!-- ============ STAFF ABSENCE VIEW ============ -->
                 <div v-if="currentView === 'staff_absence'">
@@ -8312,6 +8314,5 @@
         if(REDUCED){ drawTree(0.5); } else { raf = requestAnimationFrame(animate); }
     })();
     </script>
-</div><!-- close #app -->
 </body>
 </html>
