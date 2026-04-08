@@ -520,12 +520,44 @@
         color:var(--nm-text1) !important; padding:7px 11px !important;
       }
       #app .content-area .form-control:focus, #app .modal-container .form-control:focus,
-      #app .sm-modal .form-control:focus, #app .content-area .form-select:focus {
+      #app .sm-modal .form-control:focus, #app .content-area .form-select:focus,
+      #app .modal-container .form-select:focus, #app .sm-modal .form-select:focus {
         border-color:var(--nm-teal) !important; outline:none !important;
         box-shadow:0 0 0 3px rgba(0,179,179,.12) !important;
       }
       #app .content-area .btn.btn-primary, #app .modal-container .btn.btn-primary,
       #app .sm-modal .btn.btn-primary { background:var(--nm-navy) !important; border-color:var(--nm-navy) !important; color:#fff !important; }
+
+      /* ── FORM LABEL: defeat style.css text-transform:uppercase !important ── */
+      #app .content-area .form-label,
+      #app .modal-container .form-label,
+      #app .modal-body .form-label,
+      #app .sm-modal .form-label {
+        font-size:12px !important;
+        font-weight:500 !important;
+        color:var(--nm-text2) !important;
+        text-transform:none !important;
+        letter-spacing:normal !important;
+        margin-bottom:5px !important;
+        display:block !important;
+        font-family:inherit !important;
+      }
+      /* Helper text inside modals */
+      #app .modal-container .form-text,
+      #app .modal-container small.text-muted,
+      #app .modal-body small { font-size:12px !important; color:var(--nm-text3) !important; margin-top:4px !important; display:block !important; }
+      /* Section dividers inside modals */
+      #app .modal-body hr { border:none !important; border-top:1px solid var(--nm-border) !important; margin:16px 0 !important; }
+      /* Section sub-headers (CONTACT DETAILS style) */
+      #app .modal-body .form-label[style*="uppercase"],
+      #app .modal-body div.form-label { text-transform:none !important; font-size:12px !important; font-weight:600 !important; color:var(--nm-text2) !important; letter-spacing:normal !important; }
+      /* Modal header */
+      #app .modal-container .modal-header { padding:18px 22px 16px !important; border-bottom:1px solid var(--nm-border) !important; }
+      #app .modal-container .modal-title  { font-size:15px !important; font-weight:500 !important; font-style:italic !important; }
+      #app .modal-container .modal-body   { padding:20px 22px !important; }
+      #app .modal-container .modal-footer { padding:14px 22px !important; border-top:1px solid var(--nm-border) !important; background:var(--nm-surface2) !important; }
+      /* Type selector network opts */
+      #app .sm-network-opt { font-size:13px !important; }
 
       /* ── TABLE ── */
       #app .content-area table th { font-size:12px !important; font-weight:500 !important; text-transform:none !important; letter-spacing:.01em !important; color:var(--nm-text3) !important; padding:var(--s8) var(--s24) !important; border-bottom:1px solid var(--nm-border) !important; background:var(--nm-surface2) !important; }
@@ -545,8 +577,13 @@
       #app .absence-kpi-sub.ok     { color:#059669; }
 
       /* ── NEWS ── */
-      #app .news-card-right .news-actions { display:none !important; }
-      #app .news-card:hover .news-actions { display:flex !important; }
+      /* Actions always visible — hover-only is for table rows, not card rows */
+      #app .news-card-right .news-actions { display:flex !important; }
+      #app .news-card { min-height:64px !important; align-items:stretch !important; }
+      #app .news-card-body { display:flex !important; flex-direction:column !important; justify-content:center !important; }
+      #app .news-card-right { justify-content:center !important; }
+      #app .news-pub-meta { min-height:22px; }
+      #app .ntb--publication { background:rgba(99,102,241,.1) !important; color:#4338ca !important; }
       #app .nm-news-primary { font-size:12px; padding:5px 12px; border-radius:6px; font-weight:500; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:4px; border:none; }
       #app .nm-news-primary--edit { background:var(--nm-surface2); color:var(--nm-text1); border:1px solid rgba(0,0,0,.1); }
       #app .nm-news-primary--pub  { background:#E1F5EE; color:#0F6E56; border:1px solid #9FE1CB; }
@@ -761,6 +798,157 @@
 
       /* ── ON-CALL: coverage gap warning prominence ── */
       #app .db-oc-slot-row--gap .db-oc-gap-label { color:#e24b4a !important; font-weight:500 !important; }
+
+
+      /* ══════════════════════════════════════════════════════════════
+         COMPREHENSIVE FORM + MODAL TYPOGRAPHY PASS
+         Kills all sub-11px and rem-fraction fonts in modals/forms
+         ══════════════════════════════════════════════════════════════ */
+
+      /* ── sm-modal form fields: match design system ── */
+      #app .sm-label {
+        font-size:12px !important; font-weight:500 !important;
+        color:var(--nm-text2) !important; letter-spacing:normal !important;
+        text-transform:none !important;
+      }
+      #app .sm-input {
+        height:36px !important; font-size:13px !important;
+        background:var(--nm-surface) !important;
+        border:1px solid rgba(0,0,0,.12) !important;
+        border-radius:var(--r8) !important;
+        color:var(--nm-text1) !important;
+        padding:0 11px !important;
+      }
+      #app .sm-input:focus {
+        border-color:var(--nm-teal) !important;
+        box-shadow:0 0 0 3px rgba(0,179,179,.12) !important;
+        background:var(--nm-surface) !important;
+      }
+      #app .sm-input.filled { background:var(--nm-surface) !important; }
+      #app .sm-select {
+        height:36px !important; font-size:13px !important;
+        background:var(--nm-surface) !important;
+        border:1px solid rgba(0,0,0,.12) !important;
+        border-radius:var(--r8) !important;
+        color:var(--nm-text1) !important; padding:0 11px !important;
+      }
+      #app .sm-select:focus {
+        border-color:var(--nm-teal) !important;
+        box-shadow:0 0 0 3px rgba(0,179,179,.12) !important;
+      }
+      #app .sm-field { gap:5px !important; }
+      #app .sm-label .hint { font-size:11px !important; color:var(--nm-text3) !important; }
+      #app .sm-label .req  { color:var(--nm-teal) !important; }
+
+      /* ── Modal left panel (dark navy preview) — readable sizes ── */
+      /* These are the sm-left preview panels that show live data while you type */
+      #app .sm-left { font-size:13px; }
+      /* Section sub-headers in left panel */
+      #app .sm-left [style*=".56rem"],
+      #app .sm-left [style*=".52rem"],
+      #app .sm-left [style*=".65rem"],
+      #app .sm-left [style*=".7rem"] { font-size:11px !important; }
+
+      /* Force readable sizes on ALL elements in sm-left via cascade */
+      #app .sm-left div, #app .sm-left span { min-font-size:11px; }
+      #app .sm-left { font-size:13px; }
+
+      /* ── sm-modal: header, body, footer ── */
+      #app .sm-modal .sm-form-header {
+        border-bottom:1px solid rgba(255,255,255,.08) !important;
+        padding:14px 20px !important;
+      }
+      #app .sm-modal .sm-form-title { font-size:14px !important; font-weight:500 !important; }
+      #app .sm-modal .sm-right { overflow-y:auto; }
+      #app .sm-modal .sm-form-body { padding:20px !important; }
+      #app .sm-modal .sm-form-footer {
+        border-top:1px solid var(--nm-border) !important;
+        padding:14px 20px !important;
+        background:var(--nm-surface2) !important;
+      }
+      /* sm-edit-tabs inside modal */
+      #app .sm-edit-tab { font-size:13px !important; padding:7px 14px !important; }
+      /* Step nav in add mode */
+      #app .sm-step-label { font-size:13px !important; }
+      #app .sm-step-hint  { font-size:11px !important; }
+
+      /* ── modal-container: universal reset of typography ── */
+      #app .modal-container { font-size:13px; }
+      #app .modal-container .modal-title {
+        font-size:15px !important; font-weight:500 !important;
+        font-style:italic !important; display:flex !important;
+        align-items:center !important; gap:8px !important;
+      }
+      #app .modal-container .modal-header {
+        padding:18px 22px !important;
+        border-bottom:1px solid var(--nm-border) !important;
+        background:var(--nm-surface) !important;
+      }
+      #app .modal-container .modal-body   { padding:20px 22px !important; font-size:13px !important; }
+      #app .modal-container .modal-footer {
+        padding:14px 22px !important;
+        border-top:1px solid var(--nm-border) !important;
+        background:var(--nm-surface2) !important;
+      }
+      #app .modal-container .modal-body small,
+      #app .modal-container .modal-body .form-text,
+      #app .modal-container .modal-body .text-muted { font-size:12px !important; color:var(--nm-text3) !important; }
+      #app .modal-container .modal-body hr { border:none !important; border-top:1px solid var(--nm-border) !important; margin:16px 0 !important; }
+
+      /* ── Global: kill sub-11px fonts everywhere via strong override ── */
+      /* Anything in the app that would render below 11px gets bumped */
+      #app [style*="font-size:.5"],
+      #app [style*="font-size:.6"],
+      #app [style*="font-size:.7"],
+      #app [style*="font-size:.8"] { font-size:11px !important; }
+      /* Target rem fractions specifically */
+      #app [style*=".52rem"] { font-size:11px !important; }
+      #app [style*=".56rem"] { font-size:11px !important; }
+      #app [style*=".65rem"] { font-size:12px !important; }
+      #app [style*=".7rem"]  { font-size:12px !important; }
+      #app [style*=".78rem"] { font-size:12px !important; }
+      #app [style*=".825rem"]{ font-size:13px !important; }
+
+      /* ── Dashboard: readable hero greeting ── */
+      #app .dbh-greeting { font-size:24px !important; line-height:1.2 !important; }
+      #app .dbh-date     { font-size:12px !important; }
+      #app .dbh-btn      { font-size:13px !important; }
+      #app .dbh-alert    { font-size:13px !important; }
+      #app .dbh-alert-text { font-size:13px !important; }
+
+      /* ── On-call view — gap warning as red strip ── */
+      #app .db-oc-slot-row--gap {
+        background:rgba(226,75,74,.06) !important;
+        border:1px dashed rgba(226,75,74,.3) !important;
+        border-radius:8px !important;
+      }
+      #app .db-oc-gap-label { font-size:13px !important; color:#e24b4a !important; font-weight:500 !important; }
+      #app .db-oc-assign-btn { font-size:12px !important; }
+
+      /* ── Rotation modal history section ── */
+      #app .sm-left .sm-hist-row { font-size:12px !important; }
+
+      /* ── Breadcrumb ── */
+      #app .breadcrumb { font-size:13px !important; }
+      #app .breadcrumb-link { font-size:13px !important; }
+      #app .breadcrumb-item { font-size:13px !important; }
+
+      /* ── Pagination ── */
+      #app .pagination-info { font-size:12px !important; }
+      #app .btn-pill        { font-size:12px !important; }
+
+      /* ── Research hub KPI ── */
+      #app .rp-kpi-val  { font-size:28px !important; }
+      #app .rp-kpi-label{ font-size:11px !important; }
+      #app .rp-kpi-sub  { font-size:12px !important; }
+
+      /* ── Toast notifications ── */
+      #app .toast-content .toast-title   { font-size:13px !important; font-weight:500 !important; }
+      #app .toast-content .toast-message { font-size:12px !important; }
+
+      /* ── Confirmation modal ── */
+      #app .modal-confirm .modal-title { font-size:16px !important; }
+      #app .modal-confirm .modal-body  { font-size:14px !important; }
 
 
     </style>
@@ -1349,7 +1537,7 @@
                                    v-model="globalSearchQuery"
                                    @keyup="handleGlobalSearch"
                                    @keyup.escape="clearSearch"
-                                   @blur="setTimeout(() => searchResultsOpen = false, 200)"
+                                   @blur="window.setTimeout(() => { searchResultsOpen = false }, 200)"
                                    aria-label="Search across system">
                         </div>
                         <!-- Live results dropdown -->
@@ -4012,7 +4200,7 @@
                                             {{ {'update':'Update','article':'Article','publication':'Publication','photo_story':'Photo Story'}[newsModal.form.post_type] || 'Post' }}
                                         </span>
                                         <span v-if="newsModal.form.author_id" style="color:rgba(255,255,255,.3);">·</span>
-                                        <span v-if="newsModal.form.author_id" style="font-size:.65rem;color:rgba(255,255,255,.45);">{{ allStaffLookup.find(s=>s.id===newsModal.form.author_id)?.full_name?.split(' ').slice(-1)[0] }}</span>
+                                        <span v-if="newsModal.form.author_id" style="font-size:11px;color:rgba(255,255,255,.45);">{{ allStaffLookup.find(s=>s.id===newsModal.form.author_id)?.full_name?.split(' ').slice(-1)[0] }}</span>
                                         <span v-if="newsModal.form.research_line_id" style="color:rgba(255,255,255,.3);">·</span>
                                         <span v-if="newsModal.form.research_line_id" style="font-size:.62rem;font-family:monospace;color:#00B3B3;">L{{ researchLines.find(l=>l.id===newsModal.form.research_line_id)?.line_number }}</span>
                                     </div>
@@ -4129,7 +4317,7 @@
                                 <div class="sm-field" v-if="newsModal.form.post_type !== 'publication'">
                                     <div class="sm-label" style="display:flex;justify-content:space-between;align-items:center;">
                                         <span>Expiry Date <span class="hint">— auto: {{ newsModal.form.post_type==='update' ? '90 days' : newsModal.form.post_type==='photo_story' ? '12 months' : '18 months' }}</span></span>
-                                        <button type="button" style="font-size:.65rem;color:var(--teal,#009999);background:none;border:none;cursor:pointer;font-family:monospace;"
+                                        <button type="button" style="font-size:11px;color:var(--teal,#009999);background:none;border:none;cursor:pointer;font-family:monospace;"
                                                 @click="newsModal.form.expires_at=autoExpiry(newsModal.form.post_type)">↺ reset</button>
                                     </div>
                                     <input type="date" class="sm-input" v-model="newsModal.form.expires_at" :min="new Date().toISOString().split('T')[0]">
@@ -4186,7 +4374,7 @@
                                     <div class="sm-field">
                                         <div class="sm-label">DOI</div>
                                         <input type="text" class="sm-input" :class="{filled: newsModal.form.doi}"
-                                               v-model="newsModal.form.doi" placeholder="10.1183/13993003.xxxxx" style="font-family:monospace;font-size:.78rem;">
+                                               v-model="newsModal.form.doi" placeholder="10.1183/13993003.xxxxx" style="font-family:monospace;font-size:12px;">
                                     </div>
                                 </div>
                                 <div class="sm-field" v-if="newsModal.form.post_type === 'publication'">
@@ -5188,7 +5376,7 @@
                             <span v-if="medicalStaffModal.mode==='edit' && medicalStaffModal.form.staff_type" class="modal-title-badge" style="background:rgba(0,179,179,.1);color:#00B3B3;">{{ formatStaffType(medicalStaffModal.form.staff_type) }}</span>
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;">
-                            <button v-if="medicalStaffModal.mode==='edit' && hasPermission('medical_staff','delete')" class="btn btn-sm btn-secondary" style="font-size:.72rem;padding:4px 10px;" @click="deleteMedicalStaff(medicalStaffModal.form); medicalStaffModal.show=false">
+                            <button v-if="medicalStaffModal.mode==='edit' && hasPermission('medical_staff','delete')" class="btn btn-sm btn-secondary" style="font-size:12px;padding:4px 10px;" @click="deleteMedicalStaff(medicalStaffModal.form); medicalStaffModal.show=false">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
                                 Delete
                             </button>
@@ -5233,7 +5421,7 @@
                                             <option value="" disabled>Select type…</option>
                                             <option v-for="st in staffTypesList" :key="st.type_key" :value="st.type_key">{{ st.display_name }}</option>
                                         </select>
-                                        <button type="button" class="btn btn-sm btn-outline" style="white-space:nowrap;flex-shrink:0;font-size:.7rem;padding:4px 8px;" @click="medicalStaffModal._addingStaffType = !medicalStaffModal._addingStaffType">
+                                        <button type="button" class="btn btn-sm btn-outline" style="white-space:nowrap;flex-shrink:0;font-size:12px;padding:4px 8px;" @click="medicalStaffModal._addingStaffType = !medicalStaffModal._addingStaffType">
                                             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path :d="medicalStaffModal._addingStaffType ? 'M7 7L17 17M17 7L7 17' : 'M12 5v14M5 12h14'"/></svg>
                                         </button>
                                     </div>
@@ -5241,8 +5429,8 @@
                                     <div v-if="medicalStaffModal._addingStaffType" class="sm-inline-add">
                                         <div class="sm-inline-add-label">New staff type</div>
                                         <div style="display:grid;grid-template-columns:1fr auto auto;gap:7px;align-items:end;">
-                                            <div class="sm-field" style="margin:0;"><div class="sm-label" style="font-size:.65rem;">Display Name *</div><input type="text" class="sm-input" v-model="medicalStaffModal._newStaffTypeName" placeholder="e.g. Biomedical Engineer" @keyup.enter="addStaffTypeInline()"></div>
-                                            <div class="sm-field" style="margin:0;"><div class="sm-label" style="font-size:.65rem;">Trainee?</div><select class="sm-select" v-model="medicalStaffModal._newStaffTypeIsResident" style="min-width:80px;"><option :value="false">No</option><option :value="true">Yes</option></select></div>
+                                            <div class="sm-field" style="margin:0;"><div class="sm-label" style="font-size:11px;">Display Name *</div><input type="text" class="sm-input" v-model="medicalStaffModal._newStaffTypeName" placeholder="e.g. Biomedical Engineer" @keyup.enter="addStaffTypeInline()"></div>
+                                            <div class="sm-field" style="margin:0;"><div class="sm-label" style="font-size:11px;">Trainee?</div><select class="sm-select" v-model="medicalStaffModal._newStaffTypeIsResident" style="min-width:80px;"><option :value="false">No</option><option :value="true">Yes</option></select></div>
                                             <button type="button" class="sm-btn-next" style="height:34px;margin-top:18px;" @click="addStaffTypeInline()" :disabled="medicalStaffModal._savingStaffType || !medicalStaffModal._newStaffTypeName?.trim()">
                                                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add
                                             </button>
@@ -5373,15 +5561,15 @@
                                         <optgroup label="External"><option v-for="h in hospitalsList.filter(x=>x.parent_complex==='external')" :key="h.id" :value="h.id">{{ h.name }}</option></optgroup>
                                     </template>
                                 </select>
-                                <button type="button" class="btn btn-sm btn-outline" style="white-space:nowrap;flex-shrink:0;font-size:.7rem;padding:4px 8px;" @click="medicalStaffModal._addingHospital = !medicalStaffModal._addingHospital">
+                                <button type="button" class="btn btn-sm btn-outline" style="white-space:nowrap;flex-shrink:0;font-size:12px;padding:4px 8px;" @click="medicalStaffModal._addingHospital = !medicalStaffModal._addingHospital">
                                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path :d="medicalStaffModal._addingHospital ? 'M7 7L17 17M17 7L7 17' : 'M12 5v14M5 12h14'"/></svg>
                                 </button>
                             </div>
                             <div v-if="medicalStaffModal._addingHospital" class="sm-inline-add">
                                 <div class="sm-inline-add-label">Register new hospital</div>
                                 <div style="display:grid;grid-template-columns:1fr 120px auto;gap:7px;align-items:end;">
-                                    <div class="sm-field" style="margin:0;"><div class="sm-label" style="font-size:.65rem;">Name *</div><input type="text" class="sm-input" v-model="medicalStaffModal._newHospitalName" placeholder="Hospital name"></div>
-                                    <div class="sm-field" style="margin:0;"><div class="sm-label" style="font-size:.65rem;">Network</div><select class="sm-select" v-model="medicalStaffModal._newHospitalNetwork"><option value="CHUAC">CHUAC</option><option value="SERGAS">SERGAS</option><option value="external">External</option></select></div>
+                                    <div class="sm-field" style="margin:0;"><div class="sm-label" style="font-size:11px;">Name *</div><input type="text" class="sm-input" v-model="medicalStaffModal._newHospitalName" placeholder="Hospital name"></div>
+                                    <div class="sm-field" style="margin:0;"><div class="sm-label" style="font-size:11px;">Network</div><select class="sm-select" v-model="medicalStaffModal._newHospitalNetwork"><option value="CHUAC">CHUAC</option><option value="SERGAS">SERGAS</option><option value="external">External</option></select></div>
                                     <button type="button" class="sm-btn-save" style="height:34px;margin-top:18px;" @click="onAddHospitalInline()">
                                         <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v13a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                                         Save
@@ -5412,7 +5600,7 @@
                                             <span class="sm-degree-badge-phd">PhD</span>
                                             <div>
                                                 <div style="font-size:.75rem;font-weight:500;color:var(--text-1,#111827);">Also holds a Doctorate</div>
-                                                <div style="font-size:.65rem;color:var(--text-3,#6b7280);font-family:monospace;">Doctor en Ciencias / Filosofía u otro</div>
+                                                <div style="font-size:11px;color:var(--text-3,#6b7280);font-family:monospace;">Doctor en Ciencias / Filosofía u otro</div>
                                             </div>
                                         </div>
                                     </label>
@@ -5546,7 +5734,7 @@
                                     </button>
                                 </div>
                             </template>
-                            <div v-else-if="medicalStaffModal.mode === 'add'" class="cert-empty" style="font-style:italic;font-size:.78rem;color:var(--text-3);">Certificates can be added after saving the staff record</div>
+                            <div v-else-if="medicalStaffModal.mode === 'add'" class="cert-empty" style="font-style:italic;font-size:12px;color:var(--text-3);">Certificates can be added after saving the staff record</div>
 
                         </template>
 
@@ -5665,7 +5853,7 @@
                                     </div>
 
                                     <!-- Research lines they participate in — multiselect list -->
-                                    <div class="sm-role-sub-label">Research lines <span style="color:rgba(0,179,179,.5);font-size:.52rem;">— select all that apply</span></div>
+                                    <div class="sm-role-sub-label">Research lines <span style="color:rgba(0,179,179,.5);font-size:10px;">— select all that apply</span></div>
                                     <div v-if="researchLines.length">
                                         <div v-for="line in researchLines" :key="line.id"
                                              class="sm-role-line-item"
@@ -5676,7 +5864,7 @@
                                             <svg v-if="(medicalStaffModal.form._investigadorLines||[]).includes(line.id)" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#00B3B3" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17L4 12"/></svg>
                                         </div>
                                     </div>
-                                    <div v-else style="font-size:.72rem;color:var(--text-3);font-style:italic;padding:4px 0;">No research lines defined yet</div>
+                                    <div v-else style="font-size:12px;color:var(--text-3);font-style:italic;padding:4px 0;">No research lines defined yet</div>
 
                                     <!-- Supervisor toggle -->
                                     <label v-if="!isResidentType(medicalStaffModal.form.staff_type)" class="sm-role-cap-opt" :class="{ active: medicalStaffModal.form.can_supervise_residents }" @click="medicalStaffModal.form.can_supervise_residents = !medicalStaffModal.form.can_supervise_residents" style="margin-top:8px;">
@@ -5705,7 +5893,7 @@
                                     </div>
                                     <!-- Coordinator line picker — which line they coordinate -->
                                     <div v-if="medicalStaffModal.form.is_research_coordinator" style="margin-top:6px;">
-                                        <div class="sm-role-sub-label">Coordinating line <span style="color:rgba(0,179,179,.5);font-size:.52rem;">— one line only</span></div>
+                                        <div class="sm-role-sub-label">Coordinating line <span style="color:rgba(0,179,179,.5);font-size:10px;">— one line only</span></div>
                                         <div v-for="line in researchLines" :key="'coord-'+line.id"
                                              class="sm-role-line-item"
                                              :class="{ selected: medicalStaffModal.form._coordLineId === line.id }"
@@ -5779,13 +5967,13 @@
 
                     <!-- Assigned staff preview -->
                     <div style="padding:12px 14px;flex:1;">
-                        <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:8px;">Assignment</div>
+                        <div style="font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:8px;">Assignment</div>
                         <div v-if="onCallModal.form.primary_physician_id" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
                             <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#00B3B3,#4A9EE8);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:#fff;flex-shrink:0;">
                                 {{ (allStaffLookup.find(s=>s.id===onCallModal.form.primary_physician_id)?.full_name||'').split(' ').slice(0,2).map(n=>n[0]).join('') }}
                             </div>
                             <div>
-                                <div style="font-size:.7rem;color:rgba(255,255,255,.7);font-weight:600;">{{ allStaffLookup.find(s=>s.id===onCallModal.form.primary_physician_id)?.full_name }}</div>
+                                <div style="font-size:12px;color:rgba(255,255,255,.7);font-weight:600;">{{ allStaffLookup.find(s=>s.id===onCallModal.form.primary_physician_id)?.full_name }}</div>
                                 <div style="font-size:.58rem;font-family:monospace;color:#00B3B3;">Primary</div>
                             </div>
                         </div>
@@ -5794,11 +5982,11 @@
                                 {{ (allStaffLookup.find(s=>s.id===onCallModal.form.backup_physician_id)?.full_name||'').split(' ').slice(0,2).map(n=>n[0]).join('') }}
                             </div>
                             <div>
-                                <div style="font-size:.7rem;color:rgba(255,255,255,.73);">{{ allStaffLookup.find(s=>s.id===onCallModal.form.backup_physician_id)?.full_name }}</div>
+                                <div style="font-size:12px;color:rgba(255,255,255,.73);">{{ allStaffLookup.find(s=>s.id===onCallModal.form.backup_physician_id)?.full_name }}</div>
                                 <div style="font-size:.58rem;font-family:monospace;color:rgba(255,255,255,.3);">Backup</div>
                             </div>
                         </div>
-                        <div v-if="!onCallModal.form.primary_physician_id && !onCallModal.form.backup_physician_id" style="font-size:.7rem;color:rgba(255,255,255,.30);font-style:italic;">No staff assigned yet</div>
+                        <div v-if="!onCallModal.form.primary_physician_id && !onCallModal.form.backup_physician_id" style="font-size:12px;color:rgba(255,255,255,.30);font-style:italic;">No staff assigned yet</div>
                     </div>
                     <div class="sm-req-note"><div class="sm-req-dot"></div> Required fields</div>
                 </div>
@@ -6023,19 +6211,19 @@
 
                     <!-- Rotation history preview -->
                     <div style="padding:12px 14px;flex:1;overflow-y:auto;">
-                        <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:8px;">Past rotations</div>
+                        <div style="font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:8px;">Past rotations</div>
                         <template v-if="rotationModal.form.resident_id">
                             <div v-for="rot in getRotationHistory(rotationModal.form.resident_id).slice(0,5)" :key="rot.id"
                                  style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:0.5px solid rgba(255,255,255,.05);">
                                 <div style="width:5px;height:5px;border-radius:50%;background:#10b981;flex-shrink:0;"></div>
                                 <div style="flex:1;min-width:0;">
-                                    <div style="font-size:.7rem;color:rgba(255,255,255,.7);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ getTrainingUnitName(rot.training_unit_id) }}</div>
+                                    <div style="font-size:12px;color:rgba(255,255,255,.7);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ getTrainingUnitName(rot.training_unit_id) }}</div>
                                     <div style="font-size:.58rem;font-family:monospace;color:rgba(255,255,255,.42);">{{ formatDate(rot.start_date) }} → {{ formatDate(rot.end_date) }}</div>
                                 </div>
                             </div>
-                            <div v-if="!getRotationHistory(rotationModal.form.resident_id).length" style="font-size:.7rem;color:rgba(255,255,255,.2);font-style:italic;">No previous rotations</div>
+                            <div v-if="!getRotationHistory(rotationModal.form.resident_id).length" style="font-size:12px;color:rgba(255,255,255,.2);font-style:italic;">No previous rotations</div>
                         </template>
-                        <div v-else style="font-size:.7rem;color:rgba(255,255,255,.30);font-style:italic;">Select a resident to see history</div>
+                        <div v-else style="font-size:12px;color:rgba(255,255,255,.30);font-style:italic;">Select a resident to see history</div>
                     </div>
                     <div class="sm-req-note"><div class="sm-req-dot"></div> Required fields</div>
                 </div>
@@ -6184,34 +6372,34 @@
                     <!-- Unit details preview -->
                     <div style="padding:12px 16px;flex:1;display:flex;flex-direction:column;gap:10px;">
                         <div v-if="trainingUnitModal.form.maximum_residents">
-                            <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:5px;">Capacity</div>
+                            <div style="font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:5px;">Capacity</div>
                             <div style="display:flex;align-items:baseline;gap:4px;">
                                 <span style="font-size:1.5rem;font-weight:700;color:#00B3B3;line-height:1;">{{ trainingUnitModal.form.maximum_residents }}</span>
-                                <span style="font-size:.65rem;font-family:monospace;color:rgba(255,255,255,.3);">max residents</span>
+                                <span style="font-size:11px;font-family:monospace;color:rgba(255,255,255,.3);">max residents</span>
                             </div>
                         </div>
 
                         <div v-if="trainingUnitModal.form.supervising_attending_id">
-                            <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:5px;">Supervisor</div>
+                            <div style="font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:5px;">Supervisor</div>
                             <div style="display:flex;align-items:center;gap:7px;">
                                 <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#00B3B3,#4A9EE8);display:flex;align-items:center;justify-content:center;font-size:.5rem;font-weight:700;color:#fff;flex-shrink:0;">
                                     {{ (availableAttendings.find(a=>a.id===trainingUnitModal.form.supervising_attending_id)?.full_name||'').split(' ').slice(0,2).map(n=>n[0]).join('') }}
                                 </div>
-                                <span style="font-size:.72rem;color:rgba(255,255,255,.83);font-weight:500;">
+                                <span style="font-size:12px;color:rgba(255,255,255,.83);font-weight:500;">
                                     {{ availableAttendings.find(a=>a.id===trainingUnitModal.form.supervising_attending_id)?.full_name }}
                                 </span>
                             </div>
                         </div>
 
                         <div v-if="trainingUnitModal.form.department_id">
-                            <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:4px;">Departamento</div>
-                            <div style="font-size:.72rem;color:rgba(255,255,255,.73);">{{ departments.find(d=>d.id===trainingUnitModal.form.department_id)?.name || '—' }}</div>
+                            <div style="font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:4px;">Departamento</div>
+                            <div style="font-size:12px;color:rgba(255,255,255,.73);">{{ departments.find(d=>d.id===trainingUnitModal.form.department_id)?.name || '—' }}</div>
                         </div>
                     </div>
 
                     <!-- Delete button in edit mode -->
                     <div v-if="trainingUnitModal.mode==='edit'" style="padding:0 12px 8px;">
-                        <button class="btn btn-sm btn-secondary" style="width:100%;font-size:.72rem;justify-content:center;display:flex;align-items:center;gap:6px;"
+                        <button class="btn btn-sm btn-secondary" style="width:100%;font-size:12px;justify-content:center;display:flex;align-items:center;gap:6px;"
                                 v-if="hasPermission('training_units','delete')"
                                 @click="deleteTrainingUnit(trainingUnitModal.form); trainingUnitModal.show=false">
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
@@ -6495,28 +6683,28 @@
 
                         <!-- Date range display -->
                         <div v-if="absenceModal.form.start_date || absenceModal.form.end_date">
-                            <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:8px;">Period</div>
+                            <div style="font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:8px;">Period</div>
                             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
                                 <div style="display:flex;flex-direction:column;gap:1px;">
-                                    <span style="font-size:.52rem;font-family:monospace;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.08em;">From</span>
-                                    <span style="font-size:.825rem;font-weight:700;color:rgba(255,255,255,.93);">
+                                    <span style="font-size:10px;font-family:monospace;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.08em;">From</span>
+                                    <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,.93);">
                                         {{ absenceModal.form.start_date ? new Date(absenceModal.form.start_date+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'}) : '—' }}
                                     </span>
                                 </div>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="1.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                                 <div style="display:flex;flex-direction:column;gap:1px;text-align:right;">
-                                    <span style="font-size:.52rem;font-family:monospace;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.08em;">Until</span>
-                                    <span style="font-size:.825rem;font-weight:700;color:rgba(255,255,255,.93);">
+                                    <span style="font-size:10px;font-family:monospace;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.08em;">Until</span>
+                                    <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,.93);">
                                         {{ absenceModal.form.end_date ? new Date(absenceModal.form.end_date+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'}) : '—' }}
                                     </span>
                                 </div>
                             </div>
                         </div>
-                        <div v-else style="font-size:.7rem;color:rgba(255,255,255,.30);font-style:italic;">No dates selected yet</div>
+                        <div v-else style="font-size:12px;color:rgba(255,255,255,.30);font-style:italic;">No dates selected yet</div>
 
                         <!-- Reason display -->
                         <div v-if="absenceModal.form.absence_reason">
-                            <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:6px;">Reason</div>
+                            <div style="font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:6px;">Reason</div>
                             <div style="display:flex;align-items:center;gap:7px;">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#00B3B3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                     <path v-if="absenceModal.form.absence_reason==='vacation'"          d="M12 2C12 2 8 8 8 13C8 16 10 18 12 18C14 18 16 16 16 13C16 8 12 2 12 2Z"/>
@@ -6526,21 +6714,21 @@
                                     <path v-else-if="absenceModal.form.absence_reason==='personal'"     d="M3 21H21M5 21V8L12 4L19 8V21"/>
                                     <circle v-else cx="12" cy="12" r="9"/>
                                 </svg>
-                                <span style="font-size:.78rem;font-weight:500;color:#00B3B3;">{{ formatAbsenceReason(absenceModal.form.absence_reason) }}</span>
+                                <span style="font-size:12px;font-weight:500;color:#00B3B3;">{{ formatAbsenceReason(absenceModal.form.absence_reason) }}</span>
                             </div>
                         </div>
 
                         <!-- Coverage status -->
                         <div v-if="absenceModal.form.coverage_arranged !== null && absenceModal.form.coverage_arranged !== ''">
-                            <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:6px;">Coverage</div>
+                            <div style="font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:6px;">Coverage</div>
                             <div v-if="absenceModal.form.coverage_arranged" style="display:flex;align-items:center;gap:6px;">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round"><path d="M20 6L9 17L4 12"/></svg>
-                                <span style="font-size:.72rem;color:#10b981;font-family:monospace;">Arranged</span>
-                                <span v-if="absenceModal.form.covering_staff_id" style="font-size:.65rem;color:rgba(255,255,255,.65);">— {{ allStaffLookup.find(s=>s.id===absenceModal.form.covering_staff_id)?.full_name?.split(' ')[0] }}</span>
+                                <span style="font-size:12px;color:#10b981;font-family:monospace;">Arranged</span>
+                                <span v-if="absenceModal.form.covering_staff_id" style="font-size:11px;color:rgba(255,255,255,.65);">— {{ allStaffLookup.find(s=>s.id===absenceModal.form.covering_staff_id)?.full_name?.split(' ')[0] }}</span>
                             </div>
                             <div v-else style="display:flex;align-items:center;gap:6px;">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
-                                <span style="font-size:.72rem;color:#f59e0b;font-family:monospace;">Gap — no cover</span>
+                                <span style="font-size:12px;color:#f59e0b;font-family:monospace;">Gap — no cover</span>
                             </div>
                         </div>
                     </div>
@@ -7261,11 +7449,11 @@
                     <!-- Capabilities preview -->
                     <div style="padding:12px 16px;flex:1;">
                         <div v-if="researchLineModal.form.capabilities">
-                            <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:7px;">Scope</div>
-                            <div style="font-size:.72rem;color:rgba(255,255,255,.5);line-height:1.6;">{{ researchLineModal.form.capabilities }}</div>
+                            <div style="font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:7px;">Scope</div>
+                            <div style="font-size:12px;color:rgba(255,255,255,.5);line-height:1.6;">{{ researchLineModal.form.capabilities }}</div>
                         </div>
                         <div v-if="researchLineModal.form.keywords && researchLineModal.form.keywords.length" style="margin-top:12px;">
-                            <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:7px;">Keywords</div>
+                            <div style="font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:7px;">Keywords</div>
                             <div style="display:flex;flex-wrap:wrap;gap:4px;">
                                 <span v-for="kw in researchLineModal.form.keywords" :key="kw"
                                       style="font-size:.58rem;font-family:monospace;padding:2px 7px;border-radius:99px;background:rgba(0,179,179,.08);border:0.5px solid rgba(0,179,179,.15);color:rgba(0,179,179,.7);">
@@ -7380,7 +7568,7 @@
                 <div class="sm-left">
                     <div class="sm-preview" style="padding-top:28px;">
                         <!-- Protocol number — editorial display -->
-                        <div style="font-size:.52rem;font-family:monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.32);margin-bottom:6px;">Protocol</div>
+                        <div style="font-size:10px;font-family:monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.32);margin-bottom:6px;">Protocol</div>
                         <div style="font-size:1.1rem;font-weight:700;font-family:monospace;color:#00B3B3;letter-spacing:.04em;line-height:1;filter:drop-shadow(0 0 12px rgba(0,179,179,.3));"
                              :style="!clinicalTrialModal.form.protocol_id ? 'color:rgba(255,255,255,.12)' : ''">
                             {{ clinicalTrialModal.form.protocol_id || 'HUAC-——————' }}
@@ -7389,7 +7577,7 @@
                         <!-- Title preview -->
                         <div class="sm-preview-name"
                              :class="{'sm-preview-name--empty': !clinicalTrialModal.form.title}"
-                             style="font-size:.8rem;margin-top:10px;line-height:1.4;text-align:center;padding:0 4px;">
+                             style="font-size:13px;margin-top:10px;line-height:1.4;text-align:center;padding:0 4px;">
                             {{ clinicalTrialModal.form.title || 'Study title…' }}
                         </div>
 
@@ -7413,12 +7601,12 @@
 
                         <!-- PI avatar -->
                         <div v-if="clinicalTrialModal.form.principal_investigator_id">
-                            <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.22);margin-bottom:6px;">Principal Investigator</div>
+                            <div style="font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.22);margin-bottom:6px;">Principal Investigator</div>
                             <div style="display:flex;align-items:center;gap:8px;">
                                 <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#00B3B3,#4A9EE8);display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 0 0 2px rgba(0,179,179,.2);">
                                     {{ (availablePhysicians.find(s=>s.id===clinicalTrialModal.form.principal_investigator_id)?.full_name||'').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
                                 </div>
-                                <span style="font-size:.72rem;font-weight:600;color:rgba(255,255,255,.85);">
+                                <span style="font-size:12px;font-weight:600;color:rgba(255,255,255,.85);">
                                     {{ availablePhysicians.find(s=>s.id===clinicalTrialModal.form.principal_investigator_id)?.full_name }}
                                 </span>
                             </div>
@@ -7426,7 +7614,7 @@
 
                         <!-- Co-investigators count -->
                         <div v-if="clinicalTrialModal.form.co_investigators?.length">
-                            <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.22);margin-bottom:6px;">Co-Investigators</div>
+                            <div style="font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.22);margin-bottom:6px;">Co-Investigators</div>
                             <div style="display:flex;flex-wrap:wrap;gap:4px;">
                                 <div v-for="id in clinicalTrialModal.form.co_investigators.slice(0,4)" :key="id"
                                      style="width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:.48rem;font-weight:700;color:rgba(255,255,255,.6);" :title="allStaffLookup.find(s=>s.id===id)?.full_name">
@@ -7440,17 +7628,17 @@
 
                         <!-- Research line -->
                         <div v-if="clinicalTrialModal.form.research_line_id">
-                            <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.22);margin-bottom:5px;">Research Line</div>
+                            <div style="font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.22);margin-bottom:5px;">Research Line</div>
                             <div style="display:flex;align-items:center;gap:6px;">
-                                <span style="font-size:.65rem;font-family:monospace;color:#00B3B3;font-weight:700;">L{{ researchLines.find(l=>l.id===clinicalTrialModal.form.research_line_id)?.line_number }}</span>
+                                <span style="font-size:11px;font-family:monospace;color:#00B3B3;font-weight:700;">L{{ researchLines.find(l=>l.id===clinicalTrialModal.form.research_line_id)?.line_number }}</span>
                                 <span style="font-size:.68rem;color:rgba(255,255,255,.55);">{{ (researchLines.find(l=>l.id===clinicalTrialModal.form.research_line_id)?.research_line_name || researchLines.find(l=>l.id===clinicalTrialModal.form.research_line_id)?.name || '').slice(0,28) }}</span>
                             </div>
                         </div>
 
                         <!-- Dates -->
                         <div v-if="clinicalTrialModal.form.start_date">
-                            <div style="font-size:.56rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.22);margin-bottom:5px;">Period</div>
-                            <div style="font-size:.7rem;color:rgba(255,255,255,.55);font-family:monospace;">
+                            <div style="font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.22);margin-bottom:5px;">Period</div>
+                            <div style="font-size:12px;color:rgba(255,255,255,.55);font-family:monospace;">
                                 {{ formatDateShort(clinicalTrialModal.form.start_date) }}
                                 <span style="color:rgba(255,255,255,.22);"> → </span>
                                 {{ clinicalTrialModal.form.end_date ? formatDateShort(clinicalTrialModal.form.end_date) : '…' }}
@@ -7460,7 +7648,7 @@
 
                     <!-- Delete in edit mode -->
                     <div v-if="clinicalTrialModal.mode==='edit'" style="padding:0 12px 8px;">
-                        <button class="btn btn-sm btn-secondary" style="width:100%;font-size:.72rem;justify-content:center;display:flex;align-items:center;gap:6px;"
+                        <button class="btn btn-sm btn-secondary" style="width:100%;font-size:12px;justify-content:center;display:flex;align-items:center;gap:6px;"
                                 @click="deleteClinicalTrial(clinicalTrialModal.form); clinicalTrialModal.show=false">
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
                             Delete Study
@@ -8672,7 +8860,7 @@
             ctx.bezierCurveTo(cxL-26*S,150*S,cxL-20*S,134*S,cxL-16*S,14*S);
             ctx.stroke();
 
-            ctx.globalAlpha = 1;   
+            ctx.globalAlpha = 1;
         }
 
         function animate(){
