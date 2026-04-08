@@ -812,6 +812,306 @@
         max-height:calc(100vh - 260px);
       }
 
+      /* ── CLINICAL UNITS: elite redesign ── */
+
+      /* Page-level background — dark navy header strip gives depth */
+      #app .content-area > div:has(.tu-kpi-strip) {
+        background:transparent;
+      }
+
+      /* Dept section header — architectural look */
+      #app .tu-dept-header {
+        display:flex !important;
+        align-items:center !important;
+        gap:12px !important;
+        padding:20px 24px 8px !important;
+        border-bottom:none !important;
+        background:transparent !important;
+      }
+      #app .tu-dept-header-name {
+        font-size:11px !important;
+        font-weight:700 !important;
+        text-transform:uppercase !important;
+        letter-spacing:.1em !important;
+        color:var(--nm-text2,#6b6b67) !important;
+      }
+      #app .tu-dept-header-count {
+        font-size:10px !important;
+        padding:2px 8px !important;
+        border-radius:10px !important;
+        background:var(--nm-surface3,#efeee9) !important;
+        color:var(--nm-text3,#a0a09b) !important;
+        font-weight:500 !important;
+      }
+
+      /* KPI strip — use the absence-kpi style */
+      #app .tu-kpi-strip {
+        display:grid !important;
+        grid-template-columns:repeat(4,1fr) auto !important;
+        gap:0 !important;
+        padding:20px 24px !important;
+        border-bottom:1px solid var(--nm-border,rgba(0,0,0,.07)) !important;
+        background:var(--nm-surface,#fdfcfb) !important;
+        align-items:center !important;
+      }
+      #app .tu-kpi-div { display:none !important; }
+      #app .tu-kpi {
+        padding:4px 20px 4px 0 !important;
+        border-right:1px solid var(--nm-border,rgba(0,0,0,.07)) !important;
+        margin-right:20px !important;
+      }
+      #app .tu-kpi:last-of-type { border-right:none !important; margin-right:0 !important; }
+      #app .tu-kpi-num {
+        font-size:28px !important;
+        font-weight:400 !important;
+        font-style:italic !important;
+        line-height:1 !important;
+        letter-spacing:-.03em !important;
+      }
+      #app .tu-kpi--ok   .tu-kpi-num { color:#10b981 !important; }
+      #app .tu-kpi--warn .tu-kpi-num { color:#ef9f27 !important; }
+      #app .tu-kpi--full .tu-kpi-num { color:#e24b4a !important; }
+      #app .tu-kpi--danger .tu-kpi-num { color:#e24b4a !important; }
+      #app .tu-kpi-label {
+        font-size:11px !important;
+        color:var(--nm-text3,#a0a09b) !important;
+        margin-top:4px !important;
+        text-transform:none !important;
+        letter-spacing:0 !important;
+      }
+      #app .tu-kpi-sub {
+        font-size:10px !important;
+        color:var(--nm-text3,#a0a09b) !important;
+        margin-top:2px !important;
+      }
+
+      /* Unit card — clean, occupancy-state driven */
+      #app .tuc {
+        background:var(--nm-surface,#fdfcfb) !important;
+        border:1px solid var(--nm-border,rgba(0,0,0,.07)) !important;
+        border-radius:var(--r10,10px) !important;
+        overflow:hidden !important;
+        transition:border-color .12s, box-shadow .12s !important;
+        position:relative !important;
+      }
+      #app .tuc:hover {
+        border-color:rgba(0,0,0,.16) !important;
+        box-shadow:0 2px 8px rgba(0,0,0,.06) !important;
+      }
+
+      /* Left accent bar driven by occupancy */
+      #app .tuc::before {
+        content:'' !important;
+        position:absolute !important;
+        left:0 !important; top:0 !important; bottom:0 !important;
+        width:3px !important;
+        background:var(--nm-surface3,#efeee9) !important;
+      }
+      #app .tuc--active::before  { background:#10b981 !important; }
+      #app .tuc--warn::before    { background:#ef9f27 !important; }
+      #app .tuc--full::before    { background:#e24b4a !important; }
+
+      /* Unit name — larger, more confident */
+      #app .tuc-name {
+        font-size:13px !important;
+        font-weight:500 !important;
+        color:var(--nm-text1,#111110) !important;
+        line-height:1.3 !important;
+      }
+      #app .tuc-sub, #app .tuc-specialty {
+        font-size:11px !important;
+        color:var(--nm-text3,#a0a09b) !important;
+      }
+
+      /* Capacity numbers — make them visually significant */
+      #app .tuc-cap-current {
+        font-size:20px !important;
+        font-weight:400 !important;
+        font-style:italic !important;
+        letter-spacing:-.02em !important;
+      }
+      #app .tuc-cap-sep  { color:var(--nm-text3,#a0a09b) !important; font-size:13px !important; }
+      #app .tuc-cap-max  { color:var(--nm-text3,#a0a09b) !important; font-size:13px !important; }
+
+      /* Capacity bar — thicker, more visible */
+      #app .tuc-cap-bar {
+        height:4px !important;
+        border-radius:2px !important;
+        background:var(--nm-surface3,#efeee9) !important;
+        overflow:hidden !important;
+        margin-top:6px !important;
+        min-width:60px !important;
+      }
+      #app .tuc-cap-fill {
+        height:100% !important;
+        border-radius:2px !important;
+        transition:width .3s !important;
+      }
+
+      /* Timeline slot circles — replace with clean coloured fills */
+      #app .tuc-tl-avatar {
+        width:28px !important; height:28px !important;
+        border-radius:50% !important;
+        background:#10b981 !important;
+        color:#fff !important;
+        font-size:10px !important;
+        font-weight:600 !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        flex-shrink:0 !important;
+      }
+      #app .tuc-tl-slot-num {
+        width:28px !important; height:28px !important;
+        border-radius:50% !important;
+        background:var(--nm-surface3,#efeee9) !important;
+        border:1.5px dashed rgba(0,0,0,.15) !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        font-size:10px !important;
+        color:var(--nm-text3,#a0a09b) !important;
+        flex-shrink:0 !important;
+      }
+
+      /* Timeline cells — cleaner colours */
+      #app .tuc-tl-cell {
+        border-radius:3px !important;
+        border:none !important;
+      }
+      #app .tuc-tl-cell-name      { background:#10b981 !important; }
+      #app .tuc-tl-cell-scheduled { background:#3b82f6 !important; opacity:.6 !important; }
+      #app .tuc-tl-cell-free      { background:var(--nm-surface3,#efeee9) !important; }
+      #app .tuc-tl-cell-label {
+        font-size:9px !important;
+        font-weight:600 !important;
+        color:#fff !important;
+      }
+
+      /* Timeline shared month labels */
+      #app .tuc-tl-month-label {
+        font-size:10px !important;
+        font-weight:500 !important;
+        color:var(--nm-text3,#a0a09b) !important;
+        text-transform:uppercase !important;
+        letter-spacing:.05em !important;
+      }
+      #app .tuc-tl-month-label--current {
+        color:var(--nm-teal,#00b3b3) !important;
+        font-weight:700 !important;
+      }
+
+      /* Legend pills — match new colour scheme */
+      #app .tuc-tl-leg-dot--occupied  { background:#10b981 !important; }
+      #app .tuc-tl-leg-dot--partial   { background:#3b82f6 !important; }
+      #app .tuc-tl-leg-dot--free      { background:var(--nm-surface3,#efeee9) !important; border:1px solid rgba(0,0,0,.12) !important; }
+
+      /* Overlap warning strip */
+      #app .tuc-overlap-strip {
+        background:#fef3c7 !important;
+        color:#92400e !important;
+        border-bottom:1px solid #fde68a !important;
+        font-size:10px !important;
+        padding:4px 12px !important;
+        font-weight:500 !important;
+      }
+
+      /* Detail view card body */
+      #app .tuc-card-title-row { padding:12px 14px 4px !important; }
+      #app .tuc-card-meta      { padding:0 14px 8px !important; }
+      #app .tuc-card-footer    { padding:8px 14px !important; border-top:1px solid var(--nm-border,rgba(0,0,0,.07)) !important; background:var(--nm-surface2,#f5f4f0) !important; }
+
+      /* Detail view resident rows */
+      #app .tuc-resident-row {
+        display:flex !important;
+        align-items:center !important;
+        gap:8px !important;
+        padding:5px 14px !important;
+        font-size:12px !important;
+        border-bottom:1px solid rgba(0,0,0,.04) !important;
+      }
+      #app .tuc-resident-row:last-child { border-bottom:none !important; }
+      #app .tuc-resident-row--free {
+        color:var(--nm-text3,#a0a09b) !important;
+        font-style:italic !important;
+      }
+
+      /* Grid spacing */
+      #app .training-units-grid {
+        gap:10px !important;
+        padding:8px 24px 16px !important;
+      }
+      /* Active = green (currently happening), Scheduled = blue (future), Completed = grey (past) */
+      #app .rot-legend-dot--active    { background:#10b981 !important; box-shadow:0 0 6px rgba(16,185,129,.4) !important; border:none !important; }
+      #app .rot-legend-dot--scheduled { background:#3b82f6 !important; border:none !important; box-shadow:none !important; }
+      #app .rot-legend-dot--done      { background:var(--nm-text3,#a0a09b) !important; border:none !important; box-shadow:none !important; }
+      /* Row colour coding in compact view */
+      #app .rot-compact .rot-orb--active    { background:#10b981 !important; box-shadow:0 0 8px rgba(16,185,129,.5) !important; }
+      #app .rot-compact .rot-orb--scheduled { background:#3b82f6 !important; box-shadow:0 0 6px rgba(59,130,246,.4) !important; }
+      #app .rot-compact .rot-orb--completed { background:var(--nm-text3,#a0a09b) !important; box-shadow:none !important; }
+      /* Table row left border colour coding */
+      #app .row-active    > td:first-child,
+      #app .staff-table-row.row-active > td:first-child    { border-left:3px solid #10b981 !important; }
+      #app .row-scheduled > td:first-child,
+      #app .staff-table-row.row-scheduled > td:first-child { border-left:3px solid #3b82f6 !important; }
+      #app .row-completed > td:first-child,
+      #app .staff-table-row.row-completed > td:first-child { border-left:3px solid var(--nm-text3,#a0a09b) !important; }
+      #app .content-area .filter-bar {
+        display:flex !important;
+        flex-wrap:wrap !important;
+        align-items:center !important;
+        gap:8px !important;
+        padding:0 var(--s24,24px) var(--s16,16px) !important;
+        background:transparent !important;
+      }
+      #app .content-area .filter-bar .form-select,
+      #app .content-area .filter-bar .form-control {
+        min-width:0 !important;
+        flex-shrink:1 !important;
+      }
+      #app .content-area .filter-bar select { max-width:180px; }
+
+      /* ── FORM CONSISTENCY: unified token across all views ── */
+      #app .content-area .form-control,
+      #app .content-area .form-select,
+      #app .modal-container .form-control,
+      #app .modal-container .form-select,
+      #app .sm-modal .form-control,
+      #app .sm-modal .form-select {
+        background:var(--nm-surface,#fdfcfb) !important;
+        border:1px solid rgba(0,0,0,.12) !important;
+        border-radius:var(--r8,8px) !important;
+        font-size:13px !important;
+        color:var(--nm-text1,#111110) !important;
+        padding:6px 10px !important;
+      }
+      #app .content-area .form-control:focus,
+      #app .content-area .form-select:focus,
+      #app .modal-container .form-control:focus,
+      #app .sm-modal .form-control:focus {
+        border-color:var(--nm-teal,#00b3b3) !important;
+        outline:none !important;
+        box-shadow:0 0 0 3px rgba(0,179,179,.12) !important;
+      }
+      #app .content-area .form-label,
+      #app .modal-container .form-label,
+      #app .sm-modal .form-label {
+        font-size:11px !important;
+        font-weight:500 !important;
+        color:var(--nm-text2,#6b6b67) !important;
+        text-transform:uppercase !important;
+        letter-spacing:.05em !important;
+        margin-bottom:5px !important;
+        display:block !important;
+      }
+      #app .content-area .btn.btn-primary,
+      #app .modal-container .btn.btn-primary,
+      #app .sm-modal .btn.btn-primary {
+        background:var(--nm-navy,#07111f) !important;
+        border-color:var(--nm-navy,#07111f) !important;
+        color:#fff !important;
+      }
+
     </style>
 </head>
 <body>
@@ -2851,8 +3151,8 @@
                                 <option value="personal">Personal</option>
                                 <option value="other">Other</option>
                             </select>
-                            <input type="date" class="form-control" v-model="absenceFilters.startDate">
-                            <input type="text" class="form-control" v-model="absenceFilters.search" placeholder="Search...">
+                            <input type="date" class="form-control" v-model="absenceFilters.startDate" style="max-width:160px;min-width:130px">
+                            <input type="text" class="form-control" v-model="absenceFilters.search" placeholder="Search..." style="flex:1;max-width:220px;min-width:120px">
                         </div>
                         <div class="table-responsive">
                             <table class="table table-striped table-absence">
