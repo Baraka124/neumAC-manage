@@ -134,36 +134,78 @@
       .rp-view-all{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:500;color:#009999;background:none;border:none;cursor:pointer;padding:8px 0 0;font-family:monospace;}
 
     
-      /* ── Unit Detail Modal (centered popup) ── */
-      .udd-backdrop { position:fixed; inset:0; background:rgba(7,17,31,.55); backdrop-filter:blur(4px); z-index:210; }
-      .udd { position:fixed; top:50%; left:50%; z-index:211; width:min(860px,95vw); max-height:88vh; background:#fdfcfb; border-radius:16px; box-shadow:0 24px 80px rgba(0,0,0,.22); display:flex; flex-direction:column; overflow:hidden; transform:translate(-50%,-48%) scale(.97); opacity:0; pointer-events:none; transition:transform .24s cubic-bezier(.22,.61,.36,1),opacity .2s ease; }
+      /* ── Unit Detail Drawer (centered popup) ── */
+      .udd-backdrop { position:fixed; inset:0; background:rgba(7,17,31,.55); z-index:210; }
+      .udd { position:fixed; top:50%; left:50%; z-index:211; width:min(500px,95vw); max-height:90vh; background:#fdfcfb; border-radius:16px; display:flex; flex-direction:column; overflow:hidden; transform:translate(-50%,-48%) scale(.97); opacity:0; pointer-events:none; transition:transform .22s cubic-bezier(.22,.61,.36,1),opacity .18s ease; }
       .udd--open { transform:translate(-50%,-50%) scale(1) !important; opacity:1 !important; pointer-events:all !important; }
-      .udd-header { padding:22px 28px 18px; flex-shrink:0; background:#0f2d54; }
-      .udd-header-top { display:flex; align-items:flex-start; gap:12px; }
-      .udd-icon { width:40px; height:40px; border-radius:10px; flex-shrink:0; background:rgba(0,179,179,.2); display:flex; align-items:center; justify-content:center; color:#00B3B3; }
-      .udd-unit-name { font-size:20px; font-weight:400; font-style:italic; font-family:'Fraunces',Georgia,serif; color:#fff; letter-spacing:-.02em; }
-      .udd-unit-meta { font-size:12px; color:rgba(255,255,255,.55); margin-top:3px; }
-      .udd-close { width:30px; height:30px; border-radius:7px; border:none; background:rgba(255,255,255,.12); color:rgba(255,255,255,.7); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-      .udd-status-strip { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,.1); }
-      .udd-cap-chip { background:rgba(255,255,255,.12); color:rgba(255,255,255,.8); border-radius:6px; padding:3px 10px; font-size:12px; font-family:monospace; font-weight:600; }
-      .udd-sched-chip { background:rgba(0,179,179,.15); color:#00B3B3; border-radius:6px; padding:3px 10px; font-size:11px; font-family:monospace; }
-      .udd-overlap-chip { background:rgba(239,159,39,.12); color:#ef9f27; border-radius:6px; padding:3px 10px; font-size:11px; display:flex; align-items:center; gap:4px; }
-      .udd-cap-bar { flex:1; max-width:120px; height:5px; border-radius:3px; background:rgba(255,255,255,.15); overflow:hidden; }
-      .udd-cap-fill { height:100%; border-radius:3px; background:#00B3B3; }
-      .udd-body { flex:1; overflow-y:auto; padding:24px 28px; display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-      .udd-callout { grid-column:1/-1; display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:10px; }
-      .udd-callout--free { background:#f0fdf4; border:1px solid #bbf7d0; }
-      .udd-callout--warn { background:#fffbeb; border:1px solid #fcd34d; }
+      /* Header */
+      .udd-header { padding:20px 22px 16px; flex-shrink:0; background:#0f2d54; }
+      .udd-header-top { display:flex; align-items:flex-start; gap:12px; margin-bottom:14px; }
+      .udd-icon { width:38px; height:38px; border-radius:9px; flex-shrink:0; background:rgba(0,179,179,.2); display:flex; align-items:center; justify-content:center; color:#00B3B3; }
+      .udd-unit-name { font-size:18px; font-weight:400; font-style:italic; color:#fff; letter-spacing:-.02em; line-height:1.2; }
+      .udd-unit-meta { font-size:11px; color:rgba(255,255,255,.45); margin-top:3px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+      .udd-unit-type-badge { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; padding:2px 7px; border-radius:4px; background:rgba(0,179,179,.15); color:#7eeaea; }
+      .udd-close { width:28px; height:28px; border-radius:6px; border:none; background:rgba(255,255,255,.08); color:rgba(255,255,255,.5); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+      .udd-status-strip { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+      .udd-cap-chip { background:rgba(255,255,255,.1); color:rgba(255,255,255,.75); border-radius:5px; padding:3px 9px; font-size:11px; font-family:monospace; font-weight:600; }
+      .udd-sched-chip { background:rgba(59,130,246,.15); color:#93c5fd; border-radius:5px; padding:3px 9px; font-size:11px; font-family:monospace; }
+      .udd-overlap-chip { background:rgba(239,159,39,.12); color:#ef9f27; border-radius:5px; padding:3px 9px; font-size:11px; display:flex; align-items:center; gap:4px; }
+      .udd-cap-bar { flex:1; max-width:100px; height:4px; border-radius:2px; background:rgba(255,255,255,.12); overflow:hidden; }
+      .udd-cap-fill { height:100%; border-radius:2px; background:#10b981; transition:width .3s; }
+      /* Body */
+      .udd-body { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
+      /* Callout banner */
+      .udd-callout { display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:0.5px solid rgba(0,0,0,.07); }
+      .udd-callout--free { background:#f0fdf4; }
+      .udd-callout--warn { background:#fffbeb; }
       .udd-callout-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.04); flex-shrink:0; }
       .udd-callout-content { flex:1; }
-      .udd-callout-title { font-size:13px; font-weight:600; color:#07111f; }
-      .udd-callout-sub { font-size:11.5px; color:#5a6472; margin-top:2px; }
-      .udd-section { display:flex; flex-direction:column; }
-      .udd-section-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:#909399; display:flex; align-items:center; gap:6px; margin-bottom:10px; }
-      .udd-assign-cta { background:rgba(0,153,153,.08); color:#009999; border:.5px solid rgba(0,153,153,.25); border-radius:8px; padding:8px 14px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; transition:background .15s; }
-      .udd-assign-cta:hover { background:rgba(0,153,153,.16); }
-      .udd-footer { padding:12px 28px; border-top:1px solid #e3dfd6; display:flex; gap:8px; align-items:center; flex-shrink:0; background:#f5f4f0; }
-      /* Card clickable hover */
+      .udd-callout-title { font-size:13px; font-weight:500; color:#14532d; }
+      .udd-callout--warn .udd-callout-title { color:#78350f; }
+      .udd-callout-sub { font-size:11px; color:#16a34a; margin-top:2px; }
+      .udd-callout--warn .udd-callout-sub { color:#92400e; }
+      .udd-assign-cta { background:#0f2d54; color:#fff; border:none; border-radius:7px; padding:6px 14px; font-size:11px; font-weight:500; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:5px; flex-shrink:0; }
+      /* Mini 6-month timeline */
+      .udd-mini-timeline { display:flex; gap:4px; padding:14px 18px 12px; border-bottom:0.5px solid rgba(0,0,0,.07); }
+      .udd-mt-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+      .udd-mt-cell { width:100%; height:34px; border-radius:5px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:600; color:rgba(0,0,0,.45); }
+      .udd-mt-cell--free     { background:#f0fdf4; color:#16a34a; }
+      .udd-mt-cell--partial  { background:#dcfce7; color:#15803d; }
+      .udd-mt-cell--closing  { background:#fef9c3; color:#854d0e; }
+      .udd-mt-cell--occupied { background:#10b981; color:#fff; }
+      .udd-mt-cell--current  { outline:2px solid #00b3b3; outline-offset:2px; border-radius:5px; }
+      .udd-mt-label { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:rgba(0,0,0,.3); }
+      .udd-mt-label--current { color:#00b3b3; }
+      /* Sections */
+      .udd-section { padding:14px 18px 12px; border-bottom:0.5px solid rgba(0,0,0,.07); display:flex; flex-direction:column; }
+      .udd-section:last-child { border-bottom:none; }
+      .udd-section-label { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:rgba(0,0,0,.35); display:flex; align-items:center; gap:6px; margin-bottom:10px; }
+      /* Resident slot rows */
+      .udd-rot-list { display:flex; flex-direction:column; gap:4px; }
+      .udd-rot-row { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; background:#f5f4f0; cursor:pointer; transition:background .1s; }
+      .udd-rot-row:hover { background:#fff; outline:0.5px solid rgba(0,0,0,.12); }
+      .udd-rot-row--vacant { opacity:.45; cursor:default; }
+      .udd-rot-row--vacant:hover { background:#f5f4f0; outline:none; }
+      .udd-rot-avatar { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:600; color:#fff; flex-shrink:0; background:#10b981; }
+      .udd-rot-avatar--vacant { background:transparent; border:1.5px dashed rgba(0,0,0,.15); color:rgba(0,0,0,.25); }
+      .udd-rot-info { flex:1; min-width:0; }
+      .udd-rot-name { font-size:12px; font-weight:500; color:#111110; }
+      .udd-rot-name--vacant { font-size:12px; color:rgba(0,0,0,.3); font-style:italic; }
+      .udd-rot-dates { font-size:10px; color:rgba(0,0,0,.35); font-family:monospace; margin-top:1px; }
+      .udd-rot-status { font-size:9px; padding:2px 7px; border-radius:4px; font-weight:600; font-family:monospace; flex-shrink:0; }
+      .udd-rot-status--active    { background:#dcfce7; color:#14532d; }
+      .udd-rot-status--scheduled { background:#dbeafe; color:#1e40af; }
+      /* Scheduled section */
+      .udd-sched-row { display:flex; align-items:center; gap:10px; padding:6px 10px; border-radius:7px; margin-bottom:3px; background:rgba(59,130,246,.04); border:0.5px solid rgba(59,130,246,.12); }
+      .udd-sched-avatar { width:24px; height:24px; border-radius:50%; background:#3b82f6; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:700; color:#fff; flex-shrink:0; opacity:.8; }
+      .udd-sched-name { flex:1; font-size:11px; color:#111110; }
+      .udd-sched-date { font-size:10px; color:#3b82f6; font-family:monospace; flex-shrink:0; }
+      /* Quick assign */
+      .udd-quick-assign { margin:12px 18px 14px; padding:9px 14px; border-radius:8px; background:rgba(0,153,153,.05); border:1px dashed rgba(0,153,153,.2); color:#009999; font-size:12px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:6px; width:calc(100% - 36px); justify-content:center; }
+      /* Footer */
+      .udd-footer { padding:12px 18px; border-top:0.5px solid rgba(0,0,0,.07); display:flex; gap:8px; align-items:center; flex-shrink:0; background:#f5f4f0; }
+      /* Empty state */
+      .udd-empty { padding:14px; text-align:center; color:rgba(0,0,0,.3); font-size:12px; font-style:italic; background:#f5f4f0; border-radius:8px; border:1px dashed rgba(0,0,0,.1); }
       /* ── Training units — department section header ── */
       .tu-dept-header { display:flex; align-items:center; justify-content:space-between; padding:10px 16px 6px; border-bottom:1.5px solid var(--border,#e3dfd6); margin-bottom:8px; }
       .tu-dept-header-name { font-size:11px; font-weight:700; color:var(--text-2,#3a3a3a); text-transform:uppercase; letter-spacing:.09em; }
@@ -8697,39 +8739,40 @@
                     <div class="udd-header-info" style="flex:1;min-width:0">
                         <div class="udd-unit-name">{{ unitDetailDrawer.unit.unit_name }}</div>
                         <div class="udd-unit-meta">
-                            <span v-if="unitDetailDrawer.unit.specialty">{{ unitDetailDrawer.unit.specialty }}</span>
-                            <span v-else-if="unitDetailDrawer.unit.unit_type">
-                                {{ {'clinical_unit':'Ward','icu':'Critical Care','outpatient':'Outpatient','surgical':'Surgical','research':'Research','training_unit':'Training'}[unitDetailDrawer.unit.unit_type] || 'Clinical Unit' }}
+                            <span v-if="unitDetailDrawer.unit.unit_type" class="udd-unit-type-badge">
+                                {{ {'clinical_unit':'Ward','icu':'Critical Care','outpatient':'Outpatient','surgical':'Surgical','research':'Research','training_unit':'Training'}[unitDetailDrawer.unit.unit_type] || 'Unit' }}
                             </span>
-                            <span v-if="unitDetailDrawer.unit.department_name"> · {{ unitDetailDrawer.unit.department_name }}</span>
+                            <span v-if="unitDetailDrawer.unit.specialty" style="color:rgba(255,255,255,.4)">{{ unitDetailDrawer.unit.specialty }}</span>
+                            <span v-if="unitDetailDrawer.unit.department_name" style="color:rgba(255,255,255,.3)">· {{ unitDetailDrawer.unit.department_name }}</span>
                         </div>
                     </div>
-                    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+                    <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+                        <button v-if="hasPermission('training_units','update')"
+                                @click.stop="editTrainingUnit(unitDetailDrawer.unit); unitDetailDrawer.show=false"
+                                style="background:rgba(255,255,255,.08);border:none;border-radius:6px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6)"
+                                title="Edit unit">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg>
+                        </button>
                         <button v-if="hasPermission('training_units','delete')"
-                                        @click.stop="deleteTrainingUnit(unitDetailDrawer.unit); unitDetailDrawer.show=false"
-                                        style="background:rgba(239,68,68,.15);border:none;border-radius:7px;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(239,100,100,.9)"
-                                        title="Delete unit">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
-                                    </button>
-                                    <button v-if="hasPermission('training_units','update')" @click.stop="editTrainingUnit(unitDetailDrawer.unit); unitDetailDrawer.show=false" style="background:rgba(255,255,255,.1);border:none;border-radius:7px;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7)" title="Edit unit">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg>
+                                @click.stop="deleteTrainingUnit(unitDetailDrawer.unit); unitDetailDrawer.show=false"
+                                style="background:rgba(239,68,68,.12);border:none;border-radius:6px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(239,100,100,.8)"
+                                title="Delete unit">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
                         </button>
                         <button class="udd-close" @click="unitDetailDrawer.show = false">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg>
                         </button>
                     </div>
                 </div>
-                <div class="udd-status-strip">
+                <div class="udd-status-strip" style="border-top:1px solid rgba(255,255,255,.1);padding-top:14px;margin-top:2px;">
                     <span class="uop-status-pill" :class="'uop-status-pill--' + unitDetailDrawer.unit.occ.status">
-                        <span v-if="unitDetailDrawer.unit.occ.status === 'free'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg> Available</span>
+                        <span v-if="unitDetailDrawer.unit.occ.status === 'free'"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg> Available</span>
                         <span v-else-if="unitDetailDrawer.unit.occ.status === 'closing'"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg> Closing Soon</span>
                         <span v-else-if="unitDetailDrawer.unit.occ.status === 'partial'"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg> Partial</span>
-                        <span v-else><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> Full now</span>
+                        <span v-else><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> Full</span>
                     </span>
                     <span class="udd-cap-chip">{{ unitDetailDrawer.unit.occ.occupied }}/{{ unitDetailDrawer.unit.occ.total }} active</span>
-                    <span v-if="getUnitScheduledCount(unitDetailDrawer.unit.id) > 0" class="udd-sched-chip">
-                        +{{ getUnitScheduledCount(unitDetailDrawer.unit.id) }} scheduled
-                    </span>
+                    <span v-if="getUnitScheduledCount(unitDetailDrawer.unit.id) > 0" class="udd-sched-chip">+{{ getUnitScheduledCount(unitDetailDrawer.unit.id) }} scheduled</span>
                     <span v-if="getUnitOverlapWarning(unitDetailDrawer.unit.id)" class="udd-overlap-chip">
                         <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
                         Overlap {{ formatDateShort(getUnitOverlapWarning(unitDetailDrawer.unit.id).date) }}
@@ -8738,107 +8781,105 @@
                 </div>
             </div>
             <div class="udd-body">
+
+                <!-- ── Next available callout ── -->
                 <div class="udd-callout udd-callout--free" v-if="unitDetailDrawer.unit.nextFree">
-                    <div class="udd-callout-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 15l2 2 4-4"/></svg></div>
+                    <div class="udd-callout-icon">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 15l2 2 4-4"/></svg>
+                    </div>
                     <div class="udd-callout-content">
                         <div class="udd-callout-title">Next available: {{ unitDetailDrawer.unit.nextFree.label }}</div>
-                        <div class="udd-callout-sub">{{ unitDetailDrawer.unit.nextFree.freeSlots }} slot{{ unitDetailDrawer.unit.nextFree.freeSlots !== 1 ? 's' : '' }} opening{{ unitDetailDrawer.unit.nextFree.monthsAway === 0 ? ' this month' : unitDetailDrawer.unit.nextFree.monthsAway === 1 ? ' next month' : ` in ${unitDetailDrawer.unit.nextFree.monthsAway} months` }}</div>
+                        <div class="udd-callout-sub">{{ unitDetailDrawer.unit.nextFree.freeSlots }} slot{{ unitDetailDrawer.unit.nextFree.freeSlots !== 1 ? 's' : '' }} opening soon</div>
                     </div>
-                    <button class="udd-assign-cta" @click="openAssignRotationFromUnit(unitDetailDrawer.unit, unitDetailDrawer.unit.nextFree.date)" v-if="hasPermission('resident_rotations','create')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg> Assign</button>
+                    <button class="udd-assign-cta" @click="openAssignRotationFromUnit(unitDetailDrawer.unit, unitDetailDrawer.unit.nextFree.date)" v-if="hasPermission('resident_rotations','create')">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg> Assign
+                    </button>
                 </div>
                 <div class="udd-callout udd-callout--warn" v-else>
-                    <div class="udd-callout-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg></div>
+                    <div class="udd-callout-icon">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                    </div>
                     <div class="udd-callout-content">
                         <div class="udd-callout-title">No openings in next 24 months</div>
                         <div class="udd-callout-sub">All slots fully scheduled</div>
                     </div>
                 </div>
-                <div class="udd-section">
-                    <div class="udd-section-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6H20M4 12H20M4 18H14"/></svg> Monthly Occupancy (6 months)</div>
-                    <div class="udd-mini-timeline">
-                        <div v-for="m in getTimelineMonths(6)" :key="m.key" class="udd-mt-col">
-                            <div class="udd-mt-cell"
-                                 :class="{
-                                   'udd-mt-cell--free':     getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).status === 'free',
-                                   'udd-mt-cell--closing':  getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).status === 'closing',
-                                   'udd-mt-cell--partial':  getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).status === 'partial',
-                                   'udd-mt-cell--occupied': getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).status === 'occupied',
-                                   'udd-mt-cell--current':  m.isCurrent
-                                 }">
-                                <span class="udd-mt-occ">{{ getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).occupied }}/{{ getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).total }}</span>
-                            </div>
-                            <div class="udd-mt-label" :class="{ 'udd-mt-label--current': m.isCurrent }">{{ m.label }}</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="udd-section">
-                    <div class="udd-section-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg> Active &amp; Scheduled Rotations</div>
-                    <div class="udd-rot-list">
-                        <div v-for="rot in getUnitRotations(unitDetailDrawer.unit.id)" :key="rot.id" class="udd-rot-row">
-                            <div class="udd-rot-avatar">{{ getResidentShortName(rot.resident_id).split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase() }}</div>
-                            <div class="udd-rot-info">
-                                <div class="udd-rot-name">{{ getResidentShortName(rot.resident_id) }}</div>
-                                <div class="udd-rot-dates">{{ new Date(rot.start_date).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'2-digit'}) }} → {{ new Date(rot.end_date).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'2-digit'}) }}</div>
-                            </div>
-                            <span class="udd-rot-status" :class="'udd-rot-status--' + rot.rotation_status">{{ rot.rotation_status }}</span>
-                        </div>
-                        <div v-if="getUnitRotations(unitDetailDrawer.unit.id).length === 0" class="udd-empty">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg> No active rotations — unit fully available
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- ── Residents currently in this unit ── -->
-            <div class="udd-section" style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:18px;margin-top:4px">
-                <div class="udd-section-label">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    Current residents
-                    <span style="margin-left:auto;font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">
-                        {{ getUnitActiveRotationCount(unitDetailDrawer.unit.id) }}/{{ unitDetailDrawer.unit.maximum_residents }} slots
-                    </span>
-                </div>
-                <div v-if="getUnitRotations(unitDetailDrawer.unit.id).filter(r=>r.rotation_status==='active').length > 0"
-                     style="display:flex;flex-direction:column;gap:6px">
-                    <div v-for="rot in getUnitRotations(unitDetailDrawer.unit.id).filter(r=>r.rotation_status==='active')"
-                         :key="rot.id"
-                         style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface-2);border-radius:8px;border:1px solid var(--border)">
-                        <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1e40af,#0e7490);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                            {{ (getResidentShortName(rot.resident_id)||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }}
+                <!-- ── 6-month mini timeline heatmap ── -->
+                <div class="udd-mini-timeline">
+                    <div v-for="m in getTimelineMonths(6)" :key="m.key" class="udd-mt-col">
+                        <div class="udd-mt-cell"
+                             :class="{
+                               'udd-mt-cell--free':     getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).status === 'free',
+                               'udd-mt-cell--partial':  getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).status === 'partial',
+                               'udd-mt-cell--closing':  getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).status === 'closing',
+                               'udd-mt-cell--occupied': getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).status === 'occupied',
+                               'udd-mt-cell--current':  m.isCurrent
+                             }">
+                            {{ getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).occupied }}/{{ getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).total }}
                         </div>
-                        <div style="flex:1;min-width:0">
-                            <div style="font-size:12.5px;font-weight:500;color:var(--text-1)">{{ getResidentShortName(rot.resident_id) || '—' }}</div>
-                            <div style="font-size:10.5px;color:var(--text-3);font-family:monospace">
-                                {{ formatDate(rot.start_date) }} → {{ formatDate(rot.end_date) }}
+                        <div class="udd-mt-label" :class="{ 'udd-mt-label--current': m.isCurrent }">{{ m.label }}</div>
+                    </div>
+                </div>
+
+                <!-- ── Current residents — slot by slot ── -->
+                <div class="udd-section">
+                    <div class="udd-section-label">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg>
+                        Current residents
+                        <span style="margin-left:auto;font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:rgba(0,0,0,.3)">
+                            {{ getUnitActiveRotationCount(unitDetailDrawer.unit.id) }}/{{ unitDetailDrawer.unit.maximum_residents }} slots
+                        </span>
+                    </div>
+                    <div class="udd-rot-list">
+                        <!-- Occupied slots -->
+                        <div v-for="rot in getUnitRotations(unitDetailDrawer.unit.id).filter(r => r.rotation_status === 'active')" :key="rot.id" class="udd-rot-row">
+                            <div class="udd-rot-avatar">
+                                {{ (getResidentShortName(rot.resident_id)||'??').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                            </div>
+                            <div class="udd-rot-info">
+                                <div class="udd-rot-name">{{ getResidentShortName(rot.resident_id) || '—' }}</div>
+                                <div class="udd-rot-dates">{{ formatDate(rot.start_date) }} → {{ formatDate(rot.end_date) }}</div>
+                            </div>
+                            <span class="udd-rot-status udd-rot-status--active">Active</span>
+                        </div>
+                        <!-- Vacant slots — one per empty slot -->
+                        <div v-for="i in Math.max(0, unitDetailDrawer.unit.maximum_residents - getUnitActiveRotationCount(unitDetailDrawer.unit.id))"
+                             :key="'vacant-'+i" class="udd-rot-row udd-rot-row--vacant">
+                            <div class="udd-rot-avatar udd-rot-avatar--vacant">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </div>
+                            <div class="udd-rot-info">
+                                <div class="udd-rot-name--vacant">Slot {{ getUnitActiveRotationCount(unitDetailDrawer.unit.id) + i }} — vacant</div>
                             </div>
                         </div>
-                        <span style="font-size:9.5px;padding:2px 8px;border-radius:4px;background:rgba(0,153,153,.08);color:#009999;font-weight:600;font-family:monospace">Active</span>
-                    </div>
-                </div>
-                <div v-else style="padding:14px;text-align:center;color:var(--text-4);font-size:12px;background:var(--surface-2);border-radius:8px;border:1px dashed var(--border)">
-                    No active residents — unit is available
-                </div>
-                <!-- Upcoming -->
-                <div v-if="getUnitRotations(unitDetailDrawer.unit.id).filter(r=>r.rotation_status==='scheduled').length > 0"
-                     style="margin-top:10px">
-                    <div style="font-size:10px;font-weight:600;color:var(--text-4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Scheduled incoming</div>
-                    <div v-for="rot in getUnitRotations(unitDetailDrawer.unit.id).filter(r=>r.rotation_status==='scheduled').slice(0,3)"
-                         :key="rot.id"
-                         style="display:flex;align-items:center;gap:10px;padding:7px 12px;background:var(--surface-2);border-radius:8px;border:1px solid var(--border);margin-bottom:4px;opacity:.8">
-                        <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#534ab7,#7c3aed);color:#fff;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                            {{ (getResidentShortName(rot.resident_id)||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }}
+                        <div v-if="getUnitActiveRotationCount(unitDetailDrawer.unit.id) === 0 && unitDetailDrawer.unit.maximum_residents === 0" class="udd-empty">
+                            No slots configured for this unit
                         </div>
-                        <div style="flex:1;min-width:0;font-size:12px;color:var(--text-2)">{{ getResidentShortName(rot.resident_id) }}</div>
-                        <span style="font-size:10px;color:var(--text-3);font-family:monospace">{{ formatDate(rot.start_date) }}</span>
                     </div>
                 </div>
-                <!-- Quick assign -->
-                <button v-if="hasPermission('resident_rotations','create')"
-                        @click="openAssignRotationFromUnit(unitDetailDrawer.unit, null)"
-                        style="margin-top:10px;padding:8px 14px;border-radius:8px;background:rgba(0,153,153,.06);border:1px dashed rgba(0,153,153,.3);color:#009999;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;width:100%;justify-content:center">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
+
+                <!-- ── Scheduled incoming ── -->
+                <div class="udd-section" v-if="getUnitRotations(unitDetailDrawer.unit.id).filter(r => r.rotation_status === 'scheduled').length > 0">
+                    <div class="udd-section-label">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                        Scheduled incoming
+                    </div>
+                    <div v-for="rot in getUnitRotations(unitDetailDrawer.unit.id).filter(r => r.rotation_status === 'scheduled')" :key="rot.id" class="udd-sched-row">
+                        <div class="udd-sched-avatar">
+                            {{ (getResidentShortName(rot.resident_id)||'??').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                        </div>
+                        <div class="udd-sched-name">{{ getResidentShortName(rot.resident_id) }}</div>
+                        <div class="udd-sched-date">{{ formatDate(rot.start_date) }}</div>
+                    </div>
+                </div>
+
+                <!-- ── Quick assign CTA ── -->
+                <button class="udd-quick-assign" @click="openAssignRotationFromUnit(unitDetailDrawer.unit, null)" v-if="hasPermission('resident_rotations','create')">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
                     Assign a resident to this unit
                 </button>
+
             </div>
 
             <div class="udd-footer">
