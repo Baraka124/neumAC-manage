@@ -1158,12 +1158,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const activeAlertsCount = computed(() => systemAlerts.value.filter(a => !a.status || a.status === 'active').length)
 
+      const sidebarLiveStatus = computed(() => {
+        try {
+          const absentNow  = absences.value
+            .map(a => ({...a, ...deriveAbsenceStatus(a)}))
+            .filter(a => a.current_status === 'currently_absent').length
+          const activeRots = rotations.value.filter(r => r.rotation_status === 'active').length
+          const parts = []
+          if (activeRots > 0) parts.push(`${activeRots} resident${activeRots!==1?'s':''} on rotation`)
+          if (absentNow  > 0) parts.push(`${absentNow} absent`)
+          return parts.length ? parts.join(' · ') : 'System operational'
+        } catch { return 'System operational' }
+      })
+
       return {
         toasts, removeToast, showToast,
         confirmationModal, showConfirmation, confirmAction, cancelConfirmation,
         userProfileModal, systemAlerts, activeAlertsCount, dismissAlert,
         sidebarCollapsed, mobileMenuOpen, userMenuOpen, statsSidebarOpen, searchResultsOpen,
-        globalSearchQuery, currentView
+        globalSearchQuery, currentView, sidebarLiveStatus
       }
     }
 
@@ -2708,6 +2721,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
       watch(absenceFilters, () => resetPage('absences'), { deep: true })
 
+      const absenceKPIs = computed(() => {
+        const today = Utils.normalizeDate(new Date())
+        const all   = absences.value.map(a => ({ ...a, ...deriveAbsenceStatus(a) }))
+        const absentNow  = all.filter(a => a.current_status === 'currently_absent')
+        const upcoming   = all.filter(a => a.current_status === 'planned_leave')
+        const now        = new Date()
+        const thisMonth  = all.filter(a => {
+          const s = new Date(a.start_date)
+          return s.getMonth() === now.getMonth() && s.getFullYear() === now.getFullYear()
+        })
+        const noCoverage = [...absentNow, ...upcoming].filter(a => !a.coverage_arranged)
+        const nextAbs    = upcoming.sort((a,b) => new Date(a.start_date)-new Date(b.start_date))[0]
+        return {
+          absentNow:    absentNow.length,
+          absentName:   absentNow[0] ? (allStaffLookup.value[absentNow[0].staff_member_id]?.full_name || '') : '',
+          absentDay:    absentNow[0] ? (()=>{const s=Utils.normalizeDate(new Date(absentNow[0].start_date));const t=Utils.normalizeDate(new Date());return s&&t?Math.floor((t-s)/(864e5))+1:0})() : 0,
+          upcoming:     upcoming.length,
+          nextDate:     nextAbs ? Utils.formatDate(nextAbs.start_date) : '',
+          nextName:     nextAbs ? (allStaffLookup.value[nextAbs.staff_member_id]?.full_name||'') : '',
+          thisMonth:    thisMonth.length,
+          coveredCount: thisMonth.filter(a=>a.coverage_arranged).length,
+          noCoverage:   noCoverage.length,
+        }
+      })
+
 
       const loadAbsences = async () => {
         try {
@@ -2936,7 +2974,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       return {
         absences, absenceFilters, absenceModal, absenceOverlapWarning,
-        filteredAbsences, filteredAbsencesAll, absenceTotalPages,
+        filteredAbsences, filteredAbsencesAll, absenceTotalPages, absenceKPIs,
         loadAbsences, showAddAbsenceModal, editAbsence, saveAbsence, deleteAbsence, purgeAbsence,
         absenceResolutionModal, openResolutionModal, resolveAbsence,
         getStaffName
@@ -4301,6 +4339,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function useNews({ showToast, showConfirmation, medicalStaff, researchLines }) {
       const newsPosts      = ref([])
       const newsLoading    = ref(false)
+      const activeNewsMenu = ref(null)
       const newsLoaded     = ref(false) // FIX Bug4: tracks whether fetch has been attempted, not just if results exist
       const newsModal      = reactive({
         show: false, mode: 'add', _tab: 'meta',
@@ -4507,7 +4546,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       return {
         newsPosts, newsLoading, newsLoaded, newsModal, newsFilters, filteredNews,
-        newsWordCount, newsWordLimit,
+        newsWordCount, newsWordLimit, activeNewsMenu,
         loadNews, showAddNewsModal, editNews, saveNews,
         publishNews, archiveNews, deleteNews, togglePublic,
         formatAuthorName, getLineName, autoExpiry
@@ -5561,6 +5600,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // ── Core system settings ────────────────────────────────────────────
+        const activeSvcId = ref(null)
         const systemSettings = reactive({
           hospital_name: 'NeumoCare Hospital',
           max_residents_per_unit: 10,
@@ -5754,7 +5794,7 @@ document.addEventListener('DOMContentLoaded', () => {
           portfolioKPIs:     researchOps.portfolioKPIs,
           getLineAccent:     getLineAccentGlobal,
 
-          systemSettings, saveSystemSettings, loadSystemSettings,
+          systemSettings, saveSystemSettings, loadSystemSettings, activeSvcId,
           staffTypesList, staffTypeMap, academicDegrees, loadAcademicDegrees, formatStaffTypeGlobal, getStaffTypeClassGlobal, isResidentType,
           staffTypesLoading, staffTypeModal, openAddStaffType, openEditStaffType, saveStaffType, deleteStaffType, toggleStaffTypeActive, loadStaffTypes,
           rotationServices, rotationServicesLoading, rotationServiceModal,
