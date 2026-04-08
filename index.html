@@ -363,128 +363,452 @@
 
 
       /* ════════════════════════════════════════════════════════════════════
-         LAYOUT OVERRIDES — These rules use #app prefix for specificity
-         high enough to beat the !important rules in style.css that force
-         display:flex on .content-area (see style.css ~L12252).
+         NEUMAC ELITE — Design system + layout overrides
+         All rules use #app prefix (specificity 1,x,x) to beat style.css
          ════════════════════════════════════════════════════════════════════ */
 
-      /* ── 1. Root height chain ── */
+      /* ── DESIGN TOKENS ── */
+      :root {
+        --nm-navy:   #07111f;
+        --nm-navy2:  #0f2d54;
+        --nm-teal:   #00b3b3;
+        --nm-surface:#fdfcfb;
+        --nm-surface2:#f5f4f0;
+        --nm-surface3:#efeee9;
+        --nm-border: rgba(0,0,0,.07);
+        --nm-text1:  #111110;
+        --nm-text2:  #6b6b67;
+        --nm-text3:  #a0a09b;
+        --s4:4px; --s8:8px; --s12:12px; --s16:16px;
+        --s20:20px; --s24:24px; --s32:32px;
+        --r8:8px; --r10:10px; --r12:12px;
+      }
+
+      /* ── ROOT HEIGHT CHAIN ── */
       html, body { height:100%; }
 
-      /* ── 2. App shell ── */
+      /* ── APP SHELL ── */
       #app .app-layout {
         display:flex !important;
-        height:100vh !important;
-        max-height:100vh !important;
+        height:100vh !important; max-height:100vh !important;
         overflow:hidden !important;
       }
 
-      /* ── 3. Sidebar ── */
+      /* ── SIDEBAR ELITE REBUILD ── */
       #app .sidebar {
+        width:260px !important;
+        background:var(--nm-navy) !important;
+        display:flex !important; flex-direction:column !important;
+        height:100vh !important; flex-shrink:0 !important;
+        overflow:hidden !important;
+        border-right:1px solid rgba(255,255,255,.06) !important;
+        transition:width var(--t-md,.2s) !important;
+      }
+      #app .sidebar.sidebar-collapsed { width:64px !important; }
+
+      /* Sidebar header */
+      #app .sidebar .sidebar-header {
+        padding:14px 14px 12px !important;
+        border-bottom:1px solid rgba(255,255,255,.06) !important;
         flex-shrink:0 !important;
-        height:100vh !important;
-        overflow-y:auto !important;
+      }
+      #app .sidebar .sidebar-logo { display:flex; align-items:center; gap:10px; }
+      #app .sidebar .sidebar-toggle {
+        margin-left:auto; width:24px; height:24px;
+        background:rgba(255,255,255,.06) !important;
+        border:none !important; border-radius:6px !important;
+        color:rgba(255,255,255,.35) !important; cursor:pointer;
+        display:flex; align-items:center; justify-content:center;
       }
 
-      /* ── 4. Main content column ── */
+      /* Sidebar live status bar */
+      #app .sb-live-status {
+        margin:8px 10px;
+        padding:7px 10px;
+        background:rgba(0,179,179,.07);
+        border:1px solid rgba(0,179,179,.14);
+        border-radius:8px;
+        display:flex; align-items:center; gap:8px;
+        cursor:pointer; flex-shrink:0;
+      }
+      #app .sidebar.sidebar-collapsed .sb-live-status {
+        margin:8px 12px; padding:8px; justify-content:center;
+      }
+      #app .sb-status-dot { width:8px; height:8px; border-radius:50%; background:#10b981; flex-shrink:0; }
+      #app .sb-status-ring {
+        width:14px; height:14px; border-radius:50%;
+        border:1.5px solid rgba(16,185,129,.3);
+        position:absolute; animation:nm-pulse 2s infinite;
+        pointer-events:none;
+      }
+      @keyframes nm-pulse {
+        0%,100% { opacity:.6; transform:scale(1); }
+        50%      { opacity:0;  transform:scale(1.5); }
+      }
+      #app .sb-status-wrap { position:relative; display:flex; align-items:center; justify-content:center; width:14px; height:14px; flex-shrink:0; }
+      #app .sb-status-txt  { flex:1; min-width:0; }
+      #app .sb-status-label{ font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:rgba(255,255,255,.4); }
+      #app .sb-status-val  { font-size:11px; color:var(--nm-teal); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      #app .sidebar.sidebar-collapsed .sb-status-txt  { display:none; }
+      #app .sidebar.sidebar-collapsed .sb-status-ring { display:none; }
+
+      /* Sidebar nav body */
+      #app .sidebar .sidebar-nav {
+        flex:1 !important; overflow-y:auto !important; overflow-x:hidden !important;
+        padding:4px 0 !important; scrollbar-width:none !important;
+      }
+      #app .sidebar .sidebar-nav::-webkit-scrollbar { display:none; }
+
+      /* Section numbering — replaces all-caps text headers */
+      #app .sidebar .sidebar-section { margin-bottom:2px; }
+      #app .sidebar .sidebar-section-title {
+        display:flex !important; align-items:center; gap:8px;
+        padding:10px 16px 4px !important;
+        font-size:9px !important; font-weight:700 !important;
+        text-transform:none !important; letter-spacing:normal !important;
+        color:transparent !important;
+      }
+      #app .sidebar .sidebar-section-title::before {
+        content:attr(data-num);
+        font-size:9px; font-weight:700; color:rgba(255,255,255,.18);
+        font-family:monospace; letter-spacing:.1em; min-width:16px;
+      }
+      #app .sidebar .sidebar-section-title::after {
+        content:''; flex:1; height:1px; background:rgba(255,255,255,.06);
+      }
+
+      /* Nav items */
+      #app .sidebar .sidebar-menu { list-style:none; padding:0 !important; margin:0 !important; }
+      #app .sidebar .sidebar-menu-item { margin:1px 6px !important; }
+      #app .sidebar .sidebar-menu-link {
+        display:flex !important; align-items:center !important;
+        gap:0 !important; padding:0 !important;
+        border-radius:8px !important;
+        text-decoration:none !important;
+        position:relative !important;
+        transition:background .12s !important;
+        min-height:36px !important;
+      }
+      #app .sidebar .sidebar-menu-link:hover { background:rgba(255,255,255,.05) !important; }
+      #app .sidebar .sidebar-menu-link.active { background:rgba(0,179,179,.12) !important; }
+      #app .sidebar .sidebar-menu-link.active::before {
+        content:''; position:absolute; left:0; top:6px; bottom:6px;
+        width:2.5px; background:var(--nm-teal); border-radius:0 2px 2px 0;
+      }
+
+      /* Nav item icon container */
+      #app .sidebar .sidebar-menu-link svg:first-child {
+        width:36px; height:36px; padding:11px; flex-shrink:0;
+        opacity:.38 !important;
+      }
+      #app .sidebar .sidebar-menu-link.active svg:first-child { opacity:1 !important; }
+      #app .sidebar .sidebar-menu-link:hover svg:first-child { opacity:.65 !important; }
+
+      /* Nav item text */
+      #app .sidebar .sidebar-menu-link span {
+        flex:1; font-size:13px !important; color:rgba(255,255,255,.55) !important;
+        letter-spacing:-.01em !important; font-weight:400 !important;
+      }
+      #app .sidebar .sidebar-menu-link.active span { color:rgba(255,255,255,.92) !important; font-weight:500 !important; }
+      #app .sidebar .sidebar-menu-link:hover span { color:rgba(255,255,255,.72) !important; }
+
+      /* Nav live sub-label */
+      #app .sb-nav-sub {
+        font-size:10px !important; color:rgba(255,255,255,.22) !important;
+        display:block; margin-top:1px; font-weight:400 !important;
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+        max-width:140px;
+      }
+      #app .sidebar.sidebar-collapsed .sb-nav-sub { display:none; }
+      #app .sidebar .sidebar-menu-link.active .sb-nav-sub { color:rgba(0,179,179,.6) !important; }
+      #app .sidebar.sidebar-collapsed .sidebar-menu-link span.has-sub { display:none !important; }
+
+      /* Nav badges */
+      #app .sb-badge {
+        flex-shrink:0; margin-right:8px;
+        padding:2px 6px; border-radius:5px;
+        font-size:10px; font-weight:600;
+      }
+      #app .sb-badge--alert  { background:rgba(226,75,74,.2); color:#f09595; }
+      #app .sb-badge--count  { background:rgba(255,255,255,.08); color:rgba(255,255,255,.4); }
+      #app .sb-badge--live   { background:rgba(0,179,179,.2); color:#7eeaea; }
+
+      /* Sidebar footer */
+      #app .sidebar .sidebar-footer {
+        border-top:1px solid rgba(255,255,255,.06) !important;
+        padding:10px !important; flex-shrink:0 !important;
+      }
+      /* ⌘K search */
+      #app .sb-search {
+        display:flex; align-items:center; gap:8px;
+        height:28px; background:rgba(255,255,255,.05);
+        border:1px solid rgba(255,255,255,.08); border-radius:6px;
+        padding:0 9px; cursor:pointer; margin-bottom:6px;
+      }
+      #app .sb-search span { font-size:11px; color:rgba(255,255,255,.25); flex:1; }
+      #app .sb-search kbd {
+        font-size:9px; color:rgba(255,255,255,.18); font-family:monospace;
+        background:rgba(255,255,255,.06); padding:2px 5px; border-radius:3px;
+      }
+      #app .sidebar.sidebar-collapsed .sb-search { display:none; }
+      #app .sidebar .sidebar-user {
+        display:flex !important; align-items:center !important;
+        gap:10px !important; padding:7px 6px !important;
+        border-radius:8px !important; cursor:pointer;
+        background:transparent !important; border:none !important;
+      }
+      #app .sidebar .sidebar-user:hover { background:rgba(255,255,255,.05) !important; }
+      #app .sidebar .sidebar-user-avatar {
+        width:32px !important; height:32px !important;
+        border-radius:50% !important;
+        background:#1e3a6e !important;
+        border:1.5px solid rgba(0,179,179,.3) !important;
+        font-size:11px !important; color:#7eeaea !important;
+        flex-shrink:0 !important;
+        display:flex !important; align-items:center !important; justify-content:center !important;
+      }
+      #app .sidebar .user-name { font-size:12px !important; font-weight:500 !important; color:rgba(255,255,255,.8) !important; }
+      #app .sidebar .user-role { font-size:10px !important; text-transform:uppercase !important; letter-spacing:.07em !important; color:rgba(255,255,255,.25) !important; }
+
+      /* Dept context block → hide (info now in status bar) */
+      #app .sidebar .sidebar-dept-ctx { display:none !important; }
+
+      /* ── MAIN CONTENT COLUMN ── */
       #app .main-content {
-        display:flex !important;
-        flex-direction:column !important;
-        flex:1 !important;
-        min-width:0 !important;
-        height:100vh !important;
-        overflow:hidden !important;
+        display:flex !important; flex-direction:column !important;
+        flex:1 !important; min-width:0 !important;
+        height:100vh !important; overflow:hidden !important;
       }
 
-      /* ── 5. CONTENT-AREA: normal block-layout scrollable container.
-              The key fix: display:block so children (view divs) stack
-              from the TOP naturally, not stretched in a flex column.
-              #app prefix beats the display:flex !important in style.css. ── */
+      /* ── TOP NAVBAR ELEVATION ── */
+      #app .top-navbar {
+        background:var(--nm-surface) !important;
+        border-bottom:1px solid var(--nm-border) !important;
+        height:56px !important; flex-shrink:0 !important;
+      }
+
+      /* ── CONTENT-AREA: block layout so cards stack from top ── */
       #app .main-content > .content-area {
-        display:block !important;          /* ← THE FIX: not flex */
-        flex:1 !important;
-        min-height:0 !important;
-        min-width:0 !important;
-        width:100% !important;
-        overflow-y:auto !important;
-        overflow-x:hidden !important;
-        box-sizing:border-box !important;
-      }
-
-      /* ── 6. View divs inside content-area: natural height, no stretching ── */
-      #app .main-content > .content-area > div {
         display:block !important;
+        flex:1 !important; min-height:0 !important; min-width:0 !important;
         width:100% !important;
+        overflow-y:auto !important; overflow-x:hidden !important;
         box-sizing:border-box !important;
-        /* Do NOT set flex:1 here — that would make one div fill all space */
+        background:var(--nm-surface2) !important;
+      }
+      #app .main-content > .content-area > div {
+        display:block !important; width:100% !important; box-sizing:border-box !important;
       }
 
-      /* ── 7. Research Hub: full-height flex column beside content-area ── */
+      /* ── CARD ELEVATION: tighter, whiter, less border ── */
+      #app .content-area .card {
+        background:var(--nm-surface) !important;
+        border:1px solid var(--nm-border) !important;
+        border-radius:var(--r12) !important;
+        box-shadow:none !important;
+      }
+      #app .content-area .card-header {
+        padding:var(--s20) var(--s24) !important;
+        border-bottom:1px solid var(--nm-border) !important;
+        background:transparent !important;
+      }
+      #app .content-area .card-title {
+        font-size:13px !important; font-weight:500 !important;
+        font-style:italic !important; color:var(--nm-text1) !important;
+        display:flex !important; align-items:center !important; gap:8px !important;
+      }
+      #app .content-area .filter-bar {
+        padding:0 var(--s24) var(--s16) !important;
+        gap:var(--s8) !important;
+        background:transparent !important;
+        border-bottom:none !important;
+      }
+
+      /* ── TYPOGRAPHY: 3-tier scale ── */
+      #app .content-area table th {
+        font-size:11px !important; font-weight:500 !important;
+        text-transform:none !important; letter-spacing:.01em !important;
+        color:var(--nm-text3) !important;
+        padding:var(--s8) var(--s24) !important;
+        border-bottom:1px solid var(--nm-border) !important;
+        background:var(--nm-surface2) !important;
+      }
+      #app .content-area table td {
+        font-size:13px !important; padding:var(--s12) var(--s24) !important;
+        color:var(--nm-text1) !important;
+        border-bottom:1px solid rgba(0,0,0,.04) !important;
+      }
+      #app .content-area table thead tr {
+        border-top:1px solid var(--nm-border) !important;
+      }
+
+      /* ── ROW ACTIONS: visible only on hover ── */
+      #app .content-area .table-actions {
+        opacity:0 !important; transition:opacity .1s !important;
+      }
+      #app .content-area tr:hover .table-actions { opacity:1 !important; }
+
+      /* ── ABSENCE KPI STRIP ── */
+      #app .absence-kpi-strip {
+        display:grid;
+        grid-template-columns:repeat(4,1fr);
+        gap:var(--s12);
+        padding:var(--s24) var(--s24) 0;
+        margin-bottom:var(--s24);
+      }
+      #app .absence-kpi {
+        background:var(--nm-surface);
+        border:1px solid var(--nm-border);
+        border-radius:var(--r10);
+        padding:var(--s16) var(--s20);
+      }
+      #app .absence-kpi-num {
+        font-size:22px; font-weight:400; font-style:italic;
+        line-height:1; letter-spacing:-.03em; color:var(--nm-text1);
+      }
+      #app .absence-kpi-label {
+        font-size:11px; color:var(--nm-text3); margin-top:var(--s4);
+      }
+      #app .absence-kpi-sub {
+        font-size:11px; color:var(--nm-text2); margin-top:var(--s4);
+      }
+      #app .absence-kpi-sub.danger { color:#e24b4a; }
+      #app .absence-kpi-sub.warn   { color:#ef9f27; }
+      #app .absence-kpi-sub.ok     { color:#059669; }
+
+      /* ── NEWS CARD: overflow menu pattern ── */
+      #app .news-card-right .news-actions { display:none !important; }
+      #app .news-card:hover .news-actions { display:flex !important; }
+      #app .nm-news-primary {
+        font-size:11px; padding:4px 12px; border-radius:6px;
+        font-weight:500; cursor:pointer; white-space:nowrap;
+        display:flex; align-items:center; gap:4px; border:none;
+      }
+      #app .nm-news-primary--edit   { background:var(--nm-surface2); color:var(--nm-text1); border:1px solid rgba(0,0,0,.1); }
+      #app .nm-news-primary--pub    { background:#E1F5EE; color:#0F6E56; border:1px solid #9FE1CB; }
+      #app .nm-more-btn {
+        width:28px; height:28px; border-radius:6px;
+        border:1px solid rgba(0,0,0,.08); background:none;
+        cursor:pointer; display:flex; align-items:center;
+        justify-content:center; color:var(--nm-text2);
+        position:relative;
+      }
+      #app .nm-more-btn:hover { background:var(--nm-surface2); }
+      #app .nm-dropdown {
+        position:absolute; top:32px; right:0;
+        background:var(--nm-surface); border:1px solid rgba(0,0,0,.1);
+        border-radius:8px; padding:4px; min-width:140px; z-index:100;
+        box-shadow:0 4px 16px rgba(0,0,0,.08);
+      }
+      #app .nm-dropdown-item {
+        display:flex; align-items:center; gap:8px;
+        padding:7px 10px; border-radius:6px; cursor:pointer;
+        font-size:12px; color:var(--nm-text1);
+      }
+      #app .nm-dropdown-item:hover { background:var(--nm-surface2); }
+      #app .nm-dropdown-item.danger { color:#A32D2D; }
+      #app .nm-dropdown-item.danger:hover { background:#FCEBEB; }
+      #app .nm-dropdown-sep { height:1px; background:var(--nm-border); margin:3px 0; }
+
+      /* ── ROTATION SERVICES: card grid ── */
+      #app .nm-svc-grid {
+        display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr));
+        gap:var(--s12); padding:var(--s16) var(--s24) var(--s24);
+      }
+      #app .nm-svc-card {
+        border:1px solid var(--nm-border);
+        border-radius:var(--r10);
+        background:var(--nm-surface);
+        cursor:pointer; transition:border-color .12s;
+        overflow:hidden;
+      }
+      #app .nm-svc-card:hover { border-color:rgba(0,0,0,.15); }
+      #app .nm-svc-card.nm-open { border-color:var(--nm-navy2); }
+      #app .nm-svc-top { display:flex; align-items:center; gap:10px; padding:12px 14px; }
+      #app .nm-svc-ico {
+        width:36px; height:36px; border-radius:8px;
+        display:flex; align-items:center; justify-content:center; flex-shrink:0;
+      }
+      #app .nm-svc-ico--int { background:#E1F5EE; }
+      #app .nm-svc-ico--ext { background:#FAEEDA; }
+      #app .nm-svc-info { flex:1; min-width:0; }
+      #app .nm-svc-name { font-size:13px; font-weight:500; color:var(--nm-text1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      #app .nm-svc-inst { font-size:11px; color:var(--nm-text2); margin-top:1px; }
+      #app .nm-svc-type { font-size:10px; padding:2px 7px; border-radius:4px; font-weight:500; flex-shrink:0; }
+      #app .nm-svc-type--int { background:#E1F5EE; color:#0F6E56; }
+      #app .nm-svc-type--ext { background:#FAEEDA; color:#633806; }
+      #app .nm-svc-chev { color:var(--nm-text3); transition:transform .15s; flex-shrink:0; }
+      #app .nm-svc-card.nm-open .nm-svc-chev { transform:rotate(180deg); }
+      #app .nm-svc-meta { display:flex; flex-wrap:wrap; gap:8px; padding:0 14px 10px; }
+      #app .nm-svc-meta-item { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--nm-text2); }
+      #app .nm-svc-detail {
+        border-top:1px solid var(--nm-border);
+        padding:12px 14px; display:none; flex-direction:column; gap:8px;
+      }
+      #app .nm-svc-card.nm-open .nm-svc-detail { display:flex; }
+      #app .nm-svc-detail-row { display:flex; justify-content:space-between; align-items:center; font-size:12px; }
+      #app .nm-svc-detail-label { color:var(--nm-text2); }
+      #app .nm-svc-detail-val { color:var(--nm-text1); font-weight:500; }
+      #app .nm-svc-detail-link { color:#185FA5; text-decoration:none; font-size:11px; }
+      #app .nm-svc-actions { display:flex; gap:6px; padding-top:8px; border-top:1px solid var(--nm-border); }
+      #app .nm-svc-btn { font-size:11px; padding:4px 10px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:4px; }
+      #app .nm-svc-btn--edit { background:var(--nm-surface); color:var(--nm-text1); border:1px solid rgba(0,0,0,.1); }
+      #app .nm-svc-btn--del  { background:#FCEBEB; color:#A32D2D; border:1px solid #F7C1C1; margin-left:auto; }
+      #app .nm-svc-empty {
+        background:var(--nm-surface2); border:1px dashed rgba(0,0,0,.12);
+        border-radius:var(--r10); min-height:88px;
+        display:flex; flex-direction:column; align-items:center;
+        justify-content:center; gap:6px; cursor:pointer;
+        transition:background .12s;
+      }
+      #app .nm-svc-empty:hover { background:var(--nm-surface); }
+      #app .nm-svc-empty span { font-size:12px; color:var(--nm-text3); }
+
+      /* ── RESEARCH HUB (unchanged layout, refined surfaces) ── */
       #app .main-content > .research-hub {
-        display:flex !important;
-        flex-direction:column !important;
-        flex:1 1 0% !important;
-        min-height:0 !important;
-        width:100% !important;
+        display:flex !important; flex-direction:column !important;
+        flex:1 1 0% !important; min-height:0 !important; width:100% !important;
         max-height:calc(100vh - var(--topbar-h, 60px)) !important;
-        overflow:hidden !important;
-        margin:0 !important;
-        padding:0 !important;
+        overflow:hidden !important; margin:0 !important; padding:0 !important;
         box-sizing:border-box !important;
       }
 
-      /* ── 8. News view: same as research hub ── */
+      /* ── NEWS VIEW ── */
       #app .main-content > .news-view {
-        display:flex !important;
-        flex-direction:column !important;
-        flex:1 1 0% !important;
-        min-height:0 !important;
-        width:100% !important;
+        display:flex !important; flex-direction:column !important;
+        flex:1 1 0% !important; min-height:0 !important; width:100% !important;
         max-height:calc(100vh - var(--topbar-h, 60px)) !important;
-        overflow:hidden !important;
-        margin:0 !important;
-        padding:0 !important;
+        overflow:hidden !important; margin:0 !important; padding:0 !important;
         box-sizing:border-box !important;
       }
 
-      /* ── 9. Research Hub tab bar ── */
+      /* ── SHARED: tab bars dark navy ── */
       #app .main-content > .research-hub > .rhub-tabs,
       #app .main-content > .news-view   > .rhub-tabs {
-        flex-shrink:0 !important;
-        width:100% !important;
-        background:#0f2d54 !important;
+        flex-shrink:0 !important; width:100% !important;
+        background:var(--nm-navy2) !important;
         border-bottom:none !important;
-        overflow-x:auto !important;
-        overflow-y:hidden !important;
+        overflow-x:auto !important; overflow-y:hidden !important;
       }
 
-      /* ── 10. Research Hub panel content: fills space, scrolls ── */
+      /* ── RESEARCH HUB panel scrolls ── */
       #app .main-content > .research-hub > [class*="rhub-panel"] {
-        flex:1 1 0% !important;
-        min-height:0 !important;
-        overflow-y:auto !important;
-        overflow-x:hidden !important;
+        flex:1 1 0% !important; min-height:0 !important;
+        overflow-y:auto !important; overflow-x:hidden !important;
       }
       #app .main-content > .research-hub > .rhub-panel--mc {
-        overflow:hidden !important;
-        display:flex !important;
-        flex-direction:column !important;
+        overflow:hidden !important; display:flex !important; flex-direction:column !important;
       }
 
-      /* ── 11. News list: fills remaining height, scrolls ── */
-      #app .main-content > .news-view > .news-filter-bar {
-        flex-shrink:0 !important;
-      }
+      /* ── NEWS LIST ── */
+      #app .main-content > .news-view > .news-filter-bar { flex-shrink:0 !important; }
       #app .main-content > .news-view > .news-list {
-        flex:1 1 0% !important;
-        min-height:0 !important;
-        overflow-y:auto !important;
+        flex:1 1 0% !important; min-height:0 !important; overflow-y:auto !important;
       }
 
-      /* ── 12. Tables inside content-area views: max-height cap ── */
+      /* ── TABLE RESPONSIVE CAP ── */
       #app .main-content > .content-area .table-responsive {
-        overflow-x:auto !important;
-        overflow-y:auto !important;
+        overflow-x:auto !important; overflow-y:auto !important;
         max-height:calc(100vh - 260px);
       }
 
@@ -645,30 +969,13 @@
             <div class="sidebar-header">
                 <div class="sidebar-logo">
                     <svg v-if="!sidebarCollapsed" viewBox="0 0 108 30" fill="none" xmlns="http://www.w3.org/2000/svg" class="sb-neumax-svg" aria-label="neumAC">
-                        <defs>
-                            <linearGradient id="sbng" x1="0" y1="0" x2="108" y2="0" gradientUnits="userSpaceOnUse">
-                                <stop offset="0%" stop-color="#48cae4"/>
-                                <stop offset="45%" stop-color="#4d9aff"/>
-                                <stop offset="100%" stop-color="#a5b4fc"/>
-                            </linearGradient>
-                        </defs>
-                        <!-- "neum" — regular weight -->
-                        <text x="1" y="23" font-family="'DM Sans', sans-serif" font-weight="600"
-                              font-size="24" fill="url(#sbng)" letter-spacing="-0.5">neum</text>
-                        <!-- "AC" — heavy weight, tight, no gap -->
-                        <text x="62" y="23" font-family="'DM Sans', sans-serif" font-weight="800"
-                              font-size="24" fill="url(#sbng)" letter-spacing="-1">AC</text>
+                        <defs><linearGradient id="sbng" x1="0" y1="0" x2="108" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#48cae4"/><stop offset="45%" stop-color="#4d9aff"/><stop offset="100%" stop-color="#a5b4fc"/></linearGradient></defs>
+                        <text x="1" y="23" font-family="'DM Sans', sans-serif" font-weight="600" font-size="24" fill="url(#sbng)" letter-spacing="-0.5">neum</text>
+                        <text x="62" y="23" font-family="'DM Sans', sans-serif" font-weight="800" font-size="24" fill="url(#sbng)" letter-spacing="-1">AC</text>
                     </svg>
-                    <!-- Collapsed: just the "n" monogram -->
                     <svg v-if="sidebarCollapsed" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" class="sb-neumax-mono" aria-label="n">
-                        <defs>
-                            <linearGradient id="sbmono" x1="0" y1="0" x2="30" y2="0" gradientUnits="userSpaceOnUse">
-                                <stop offset="0%" stop-color="#48cae4"/>
-                                <stop offset="100%" stop-color="#4d9aff"/>
-                            </linearGradient>
-                        </defs>
-                        <text x="3" y="23" font-family="'DM Sans', sans-serif" font-weight="800"
-                              font-size="24" fill="url(#sbmono)">n</text>
+                        <defs><linearGradient id="sbmono" x1="0" y1="0" x2="30" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#48cae4"/><stop offset="100%" stop-color="#4d9aff"/></linearGradient></defs>
+                        <text x="3" y="23" font-family="'DM Sans', sans-serif" font-weight="800" font-size="24" fill="url(#sbmono)">n</text>
                     </svg>
                 </div>
                 <button class="sidebar-toggle" @click="sidebarCollapsed = !sidebarCollapsed"
@@ -676,126 +983,163 @@
                     <i class="fas" :class="sidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
                 </button>
             </div>
-            <nav class="sidebar-nav" aria-label="Primary navigation">
-            <!-- Department context -->
-            <div class="sidebar-dept-ctx" v-if="!sidebarCollapsed">
-                <div class="sidebar-dept-dot"></div>
-                <div>
-                    <div class="sidebar-dept-name">Pulmonology</div>
-                    <div class="sidebar-dept-sub">HUAC · Área Sanitaria A Coruña</div>
+
+            <!-- Live status bar -->
+            <div class="sb-live-status" @click="switchView('staff_absence')">
+                <div class="sb-status-wrap">
+                    <div class="sb-status-dot"></div>
+                    <div class="sb-status-ring"></div>
+                </div>
+                <div class="sb-status-txt" v-if="!sidebarCollapsed">
+                    <div class="sb-status-label">Live status</div>
+                    <div class="sb-status-val">{{ sidebarLiveStatus }}</div>
                 </div>
             </div>
 
+            <nav class="sidebar-nav" aria-label="Primary navigation">
+
                 <div class="sidebar-section">
-                    <div class="sidebar-section-title" v-if="!sidebarCollapsed">Dashboard</div>
+                    <div class="sidebar-section-title" data-num="01" v-if="!sidebarCollapsed">Dashboard</div>
                     <ul class="sidebar-menu">
                         <li class="sidebar-menu-item">
                             <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'dashboard' }"
                                @click.prevent="switchView('dashboard'); mobileMenuOpen = false"
                                :aria-current="currentView === 'dashboard' ? 'page' : null">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-                                <span v-if="!sidebarCollapsed">Overview</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                                <span v-if="!sidebarCollapsed" class="has-sub">
+                                    Overview
+                                    <em class="sb-nav-sub">Today · {{ systemStats.totalStaff || 0 }} staff</em>
+                                </span>
                             </a>
                         </li>
                     </ul>
                 </div>
+
                 <div class="sidebar-section">
-                    <div class="sidebar-section-title" v-if="!sidebarCollapsed">Clinical Operations</div>
+                    <div class="sidebar-section-title" data-num="02" v-if="!sidebarCollapsed">Clinical</div>
                     <ul class="sidebar-menu">
-                        <li class="sidebar-menu-item">
+                        <li class="sidebar-menu-item" v-if="hasPermission('medical_staff', 'read')">
                             <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'medical_staff' }"
                                @click.prevent="switchView('medical_staff'); mobileMenuOpen = false"
-                               v-if="hasPermission('medical_staff', 'read')"
                                :aria-current="currentView === 'medical_staff' ? 'page' : null">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 4C7 4 5 4 5 7V13C5 17 9 19 12 19C15 19 19 17 19 13"/><circle cx="19" cy="11" r="2"/><path d="M5 9H9"/></svg>
-                                <span v-if="!sidebarCollapsed">Medical Staff</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(52,211,153,1)" stroke-width="1.6" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                <span v-if="!sidebarCollapsed" class="has-sub">
+                                    Medical Staff
+                                    <em class="sb-nav-sub">{{ medicalStaff.length }} members</em>
+                                </span>
                             </a>
                         </li>
-                        <li class="sidebar-menu-item">
+                        <li class="sidebar-menu-item" v-if="hasPermission('oncall_schedule', 'read')">
                             <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'oncall_schedule' }"
                                @click.prevent="switchView('oncall_schedule'); mobileMenuOpen = false"
-                               v-if="hasPermission('oncall_schedule', 'read')"
                                :aria-current="currentView === 'oncall_schedule' ? 'page' : null">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M21 12.8A9 9 0 1111.2 3C11.2 3 9 7.5 12 11C15 14.5 21 12.8 21 12.8Z"/></svg>
-                                <span v-if="!sidebarCollapsed">On-call</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(52,211,153,1)" stroke-width="1.6" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3"/><circle cx="18" cy="6" r="3"/></svg>
+                                <span v-if="!sidebarCollapsed" class="has-sub">
+                                    On-call
+                                    <em class="sb-nav-sub">Schedule · this week</em>
+                                </span>
+                                <span v-if="!sidebarCollapsed" class="sb-badge sb-badge--live">Live</span>
                             </a>
                         </li>
                     </ul>
                 </div>
+
                 <div class="sidebar-section">
-                    <div class="sidebar-section-title" v-if="!sidebarCollapsed">Structure</div>
+                    <div class="sidebar-section-title" data-num="03" v-if="!sidebarCollapsed">Structure</div>
                     <ul class="sidebar-menu">
-                        <li class="sidebar-menu-item">
+                        <li class="sidebar-menu-item" v-if="hasPermission('training_units', 'read')">
                             <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'training_units' }"
                                @click.prevent="switchView('training_units'); mobileMenuOpen = false"
-                               v-if="hasPermission('training_units', 'read')"
                                :aria-current="currentView === 'training_units' ? 'page' : null">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21M12 8V11M10.5 9.5H13.5"/></svg>
-                                <span v-if="!sidebarCollapsed">Clinical Units</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(34,211,238,1)" stroke-width="1.6" stroke-linecap="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21"/></svg>
+                                <span v-if="!sidebarCollapsed" class="has-sub">
+                                    Clinical Units
+                                    <em class="sb-nav-sub">{{ trainingUnits.length }} units</em>
+                                </span>
                             </a>
                         </li>
-                        <li class="sidebar-menu-item">
+                        <li class="sidebar-menu-item" v-if="hasPermission('resident_rotations', 'read')">
                             <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'resident_rotations' }"
                                @click.prevent="switchView('resident_rotations'); mobileMenuOpen = false"
-                               v-if="hasPermission('resident_rotations', 'read')"
                                :aria-current="currentView === 'resident_rotations' ? 'page' : null">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12C4 16.4 7.6 20 12 20C16.4 20 20 16.4 20 12C20 7.6 16.4 4 12 4"/><path d="M8 4H12V8"/></svg>
-                                <span v-if="!sidebarCollapsed">Rotations</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(34,211,238,1)" stroke-width="1.6" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/><path d="M12 8v4l3 3"/></svg>
+                                <span v-if="!sidebarCollapsed" class="has-sub">
+                                    Rotations
+                                    <em class="sb-nav-sub">{{ rotations.filter(r=>r.rotation_status==='active').length }} active</em>
+                                </span>
                             </a>
                         </li>
                     </ul>
                 </div>
+
                 <div class="sidebar-section">
-                    <div class="sidebar-section-title" v-if="!sidebarCollapsed">Administration</div>
+                    <div class="sidebar-section-title" data-num="04" v-if="!sidebarCollapsed">Admin</div>
                     <ul class="sidebar-menu">
-                        <li class="sidebar-menu-item">
+                        <li class="sidebar-menu-item" v-if="hasPermission('staff_absence', 'read')">
                             <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'staff_absence' }"
                                @click.prevent="switchView('staff_absence'); mobileMenuOpen = false"
-                               v-if="hasPermission('staff_absence', 'read')"
                                :aria-current="currentView === 'staff_absence' ? 'page' : null">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10H21M8 3V7M16 3V7M10 14L14 18M14 14L10 18"/></svg>
-                                <span v-if="!sidebarCollapsed">Absence</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(251,191,36,1)" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10H21M8 3V7M16 3V7M10 14L14 18M14 14L10 18"/></svg>
+                                <span v-if="!sidebarCollapsed" class="has-sub">
+                                    Absence
+                                    <em class="sb-nav-sub">{{ absenceKPIs.absentNow > 0 ? absenceKPIs.absentNow + ' absent now' : absenceKPIs.upcoming + ' upcoming' }}</em>
+                                </span>
+                                <span v-if="absenceKPIs.absentNow > 0" class="sb-badge sb-badge--alert">{{ absenceKPIs.absentNow }}</span>
                             </a>
                         </li>
-                        <li class="sidebar-menu-item">
+                        <li class="sidebar-menu-item" v-if="currentUser && ['system_admin','department_head'].includes(currentUser.user_role)">
                             <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'system_settings' }"
                                @click.prevent="switchView('system_settings'); mobileMenuOpen = false"
-                               v-if="currentUser && ['system_admin','department_head'].includes(currentUser.user_role)"
-                               :aria-current="currentView === 'system_settings' ? 'page' : null"
-                               data-tooltip="Settings">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
-                                <span v-if="!sidebarCollapsed">System Settings</span>
+                               :aria-current="currentView === 'system_settings' ? 'page' : null">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(251,191,36,1)" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
+                                <span v-if="!sidebarCollapsed" class="has-sub">
+                                    Settings
+                                    <em class="sb-nav-sub">Staff types · services</em>
+                                </span>
                             </a>
                         </li>
                     </ul>
                 </div>
+
                 <div class="sidebar-section" v-if="hasPermission('research_lines', 'read')">
-                    <div class="sidebar-section-title" v-if="!sidebarCollapsed">Research</div>
+                    <div class="sidebar-section-title" data-num="05" v-if="!sidebarCollapsed">Research</div>
                     <ul class="sidebar-menu">
                         <li class="sidebar-menu-item">
-                            <a href="#" class="sidebar-menu-link"
-                               :class="{ active: currentView === 'research_hub' }"
+                            <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'research_hub' }"
                                @click.prevent="switchView('research_hub'); mobileMenuOpen = false"
                                :aria-current="currentView === 'research_hub' ? 'page' : null">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/><path d="M7.5 16H12"/></svg>
-                                <span v-if="!sidebarCollapsed">Research Hub</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,1)" stroke-width="1.6" stroke-linecap="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg>
+                                <span v-if="!sidebarCollapsed" class="has-sub">
+                                    Research Hub
+                                    <em class="sb-nav-sub">{{ researchLines.length }} lines · {{ clinicalTrials.length }} studies</em>
+                                </span>
                             </a>
                         </li>
                         <li class="sidebar-menu-item">
-                            <a href="#" class="sidebar-menu-link"
-                               :class="{ active: currentView === 'news' }"
+                            <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'news' }"
                                @click.prevent="switchView('news'); mobileMenuOpen = false"
                                :aria-current="currentView === 'news' ? 'page' : null">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22H20a1 1 0 001-1V5a1 1 0 00-1-1H8l-5 5v12a1 1 0 001 1z"/><path d="M8 4V9H3M12 13H16M12 17H16M8 13H9M8 17H9"/></svg>
-                                <span v-if="!sidebarCollapsed">News & Posts</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,1)" stroke-width="1.6" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                                <span v-if="!sidebarCollapsed" class="has-sub">
+                                    News &amp; Posts
+                                    <em class="sb-nav-sub">{{ newsPosts.filter(p=>p.status==='draft').length }} drafts</em>
+                                </span>
+                                <span v-if="!sidebarCollapsed && newsPosts.filter(p=>p.status==='draft').length > 0" class="sb-badge sb-badge--count">{{ newsPosts.filter(p=>p.status==='draft').length }}</span>
                             </a>
                         </li>
                     </ul>
                 </div>
+
             </nav>
+
             <div class="sidebar-footer">
+                <div class="sb-search" v-if="!sidebarCollapsed">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <span>Search or jump to…</span>
+                    <kbd>⌘K</kbd>
+                </div>
                 <div class="sidebar-user">
-                    <div class="sidebar-user-avatar" aria-hidden="true">
+                    <div class="sidebar-user-avatar">
                         {{ currentUser && currentUser.full_name ? getInitials(currentUser.full_name) : '' }}
                     </div>
                     <div class="user-info" v-if="!sidebarCollapsed">
@@ -2443,6 +2787,38 @@
                 </div><!-- /training_units -->
                 <!-- ============ STAFF ABSENCE VIEW ============ -->
                 <div v-if="currentView === 'staff_absence'">
+                    <!-- KPI strip -->
+                    <div class="absence-kpi-strip">
+                        <div class="absence-kpi">
+                            <div class="absence-kpi-num" :style="absenceKPIs.absentNow > 0 ? 'color:#e24b4a' : ''">{{ absenceKPIs.absentNow }}</div>
+                            <div class="absence-kpi-label">Absent today</div>
+                            <div class="absence-kpi-sub" :class="absenceKPIs.absentNow > 0 ? 'danger' : ''">
+                                <span v-if="absenceKPIs.absentNow > 0">{{ absenceKPIs.absentName }} · day {{ absenceKPIs.absentDay }}</span>
+                                <span v-else>No current absences</span>
+                            </div>
+                        </div>
+                        <div class="absence-kpi">
+                            <div class="absence-kpi-num" style="color:var(--nm-teal,#00b3b3)">{{ absenceKPIs.upcoming }}</div>
+                            <div class="absence-kpi-label">Upcoming planned</div>
+                            <div class="absence-kpi-sub">
+                                <span v-if="absenceKPIs.upcoming > 0">Next: {{ absenceKPIs.nextDate }}</span>
+                                <span v-else>None scheduled</span>
+                            </div>
+                        </div>
+                        <div class="absence-kpi">
+                            <div class="absence-kpi-num">{{ absenceKPIs.thisMonth }}</div>
+                            <div class="absence-kpi-label">This month</div>
+                            <div class="absence-kpi-sub ok">{{ absenceKPIs.coveredCount }} covered</div>
+                        </div>
+                        <div class="absence-kpi">
+                            <div class="absence-kpi-num" :style="absenceKPIs.noCoverage > 0 ? 'color:#e24b4a' : ''">{{ absenceKPIs.noCoverage }}</div>
+                            <div class="absence-kpi-label">No coverage</div>
+                            <div class="absence-kpi-sub" :class="absenceKPIs.noCoverage > 0 ? 'danger' : ''">
+                                <span v-if="absenceKPIs.noCoverage > 0">Needs attention</span>
+                                <span v-else>All covered</span>
+                            </div>
+                        </div>
+                    </div>
                     <div class="card mb-6">
                         <div class="card-header">
                             <div class="card-title"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2v-2a4 4 0 0 1 4-4h3"/><circle cx="9" cy="7" r="4"/><circle cx="17" cy="17" r="4"/><path d="M17 15v2l1 1"/></svg> Staff Absence</div>
@@ -2462,7 +2838,6 @@
                             </select>
                             <button class="btn btn-sm" :class="absenceFilters.hideReturned ? 'btn-ghost' : 'btn-primary'"
                                     @click="absenceFilters.hideReturned = !absenceFilters.hideReturned"
-                                    :title="absenceFilters.hideReturned ? 'Currently hiding returned/past absences' : 'Showing all including past'"
                                     style="white-space:nowrap;font-size:12px">
                                 <i class="fas" :class="absenceFilters.hideReturned ? 'fa-eye' : 'fa-eye-slash'"></i>
                                 {{ absenceFilters.hideReturned ? 'Show Past' : 'Hide Past' }}
@@ -2483,14 +2858,14 @@
                             <table class="table table-striped table-absence">
                                 <thead>
                                     <tr>
-                                        <th @click="sortBy('absences', 'staff_member_id')" style="width:24%">Staff Member</th>
+                                        <th @click="sortBy('absences', 'staff_member_id')" style="width:24%">Staff member</th>
                                         <th style="width:12%">Reason</th>
-                                        <th style="width:10%">Type</th>
+                                        <th style="width:10%">Status</th>
                                         <th @click="sortBy('absences', 'start_date')" style="width:12%">From</th>
                                         <th @click="sortBy('absences', 'end_date')" style="width:12%">Until</th>
                                         <th style="width:9%">Duration</th>
                                         <th style="width:11%">Coverage</th>
-                                        <th style="width:10%">Actions</th>
+                                        <th style="width:10%"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -2512,52 +2887,22 @@
                                                 <div class="staff-name-primary">{{ getStaffName(absence.staff_member_id) }}</div>
                                             </div>
                                         </td>
-                                        <td>
-                                            <span class="badge" :class="{
-                                                'badge-primary': absence.absence_reason === 'vacation',
-                                                'badge-green': absence.absence_reason === 'conference',
-                                                'badge-red': absence.absence_reason === 'sick_leave',
-                                                'badge-purple': absence.absence_reason === 'training',
-                                                'badge-yellow': absence.absence_reason === 'personal',
-                                                'badge-gray': absence.absence_reason === 'other'
-                                            }">{{ formatAbsenceReason(absence.absence_reason) }}</span>
-                                        </td>
-                                        <td>
-                                            <span class="status-indicator" :class="{
-                                                'status-active':    absence.current_status === 'currently_absent',
-                                                'status-scheduled': absence.current_status === 'planned_leave',
-                                                'status-completed': absence.current_status === 'returned_to_duty',
-                                                'status-inactive':  absence.current_status === 'cancelled'
-                                            }">
-                                                <span v-if="absence.current_status === 'currently_absent'">Absent Now</span>
-                                                <span v-else-if="absence.current_status === 'planned_leave'">Planned</span>
-                                                <span v-else-if="absence.current_status === 'returned_to_duty'">Returned</span>
-                                                <span v-else-if="absence.current_status === 'cancelled'">Cancelled</span>
-                                                <span v-else>{{ absence.current_status }}</span>
-                                            </span>
-                                        </td>
+                                        <td><span class="badge" :class="{'badge-primary': absence.absence_reason==='vacation','badge-green': absence.absence_reason==='conference','badge-red': absence.absence_reason==='sick_leave','badge-purple': absence.absence_reason==='training','badge-secondary': !['vacation','conference','sick_leave','training'].includes(absence.absence_reason)}">{{ absence.absence_reason ? absence.absence_reason.replace('_',' ') : '—' }}</span></td>
+                                        <td><span class="status-indicator" :class="{'status-active': absence.current_status==='currently_absent','status-scheduled': absence.current_status==='planned_leave','status-completed': absence.current_status==='returned_to_duty','status-inactive': absence.current_status==='cancelled'}"><span v-if="absence.current_status==='currently_absent'">Absent now</span><span v-else-if="absence.current_status==='planned_leave'">Planned</span><span v-else-if="absence.current_status==='returned_to_duty'">Returned</span><span v-else-if="absence.current_status==='cancelled'">Cancelled</span><span v-else>{{ absence.current_status }}</span></span></td>
                                         <td class="date-cell">{{ formatDate(absence.start_date) }}</td>
                                         <td class="date-cell">{{ formatDate(absence.end_date) }}</td>
-                                        <td>
-                                            <span class="absence-duration">{{ calculateAbsenceDuration(absence.start_date, absence.end_date) }}</span>
-                                            <span class="absence-duration-label">days</span>
-                                        </td>
+                                        <td><span class="absence-duration">{{ calculateAbsenceDuration(absence.start_date, absence.end_date) }}</span><span class="absence-duration-label"> days</span></td>
                                         <td>
                                             <span v-if="absence.coverage_arranged && absence.covering_staff_id" class="coverage-ok"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg> {{ getStaffName(absence.covering_staff_id) }}</span>
                                             <span v-else-if="absence.coverage_arranged" class="coverage-ok"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg> Covered</span>
-                                            <span v-else class="coverage-gap"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg> No coverage</span>
+                                            <span v-else class="coverage-gap"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg> No coverage</span>
                                         </td>
                                         <td>
                                             <div class="table-actions">
-                                                <button v-if="absence.current_status === 'returned_to_duty'"
-                                                        class="btn-pill btn-pill-resolve"
-                                                        @click.stop="openResolutionModal(absence)"
-                                                        title="This absence has ended — click to resolve">
-                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 12l2 2 4-4"/></svg> Resolve
-                                                </button>
-                                                <button class="btn-pill btn-pill-edit" @click.stop="editAbsence(absence)" v-if="hasPermission('staff_absence', 'update') && absence.current_status !== 'returned_to_duty' && absence.current_status !== 'cancelled'"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg> Edit</button>
-                                                <button class="btn-icon btn-icon--danger" @click.stop="deleteAbsence(absence)" v-if="hasPermission('staff_absence', 'delete') && absence.current_status !== 'returned_to_duty' && absence.current_status !== 'cancelled'" title="Cancel — keeps record for audit"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></button>
-                                                <button class="btn-pill btn-pill-purge" @click.stop="purgeAbsence(absence)" v-if="currentUser && ['system_admin','department_head'].includes(currentUser.user_role)" title="Permanently delete this record"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+                                                <button v-if="absence.current_status==='returned_to_duty'" class="btn-pill btn-pill-resolve" @click.stop="openResolutionModal(absence)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg> Resolve</button>
+                                                <button class="btn-pill btn-pill-edit" @click.stop="editAbsence(absence)" v-if="hasPermission('staff_absence','update') && absence.current_status!=='returned_to_duty' && absence.current_status!=='cancelled'"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg> Edit</button>
+                                                <button class="btn-icon btn-icon--danger" @click.stop="deleteAbsence(absence)" v-if="hasPermission('staff_absence','delete') && absence.current_status!=='returned_to_duty' && absence.current_status!=='cancelled'" title="Cancel"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></button>
+                                                <button class="btn-pill btn-pill-purge" @click.stop="purgeAbsence(absence)" v-if="currentUser && ['system_admin','department_head'].includes(currentUser.user_role)" title="Permanently delete"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -2565,14 +2910,8 @@
                                         <td colspan="8" class="empty-state">
                                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg>
                                             <div class="empty-state-title">No absences found</div>
-                                            <div class="empty-state-description">
-                                                <span v-if="absenceFilters.staff || absenceFilters.reason || absenceFilters.startDate || absenceFilters.status">No results match your filters</span>
-                                                <span v-else>No absence records have been logged</span>
-                                            </div>
-                                            <button v-if="!absenceFilters.staff && !absenceFilters.reason && !absenceFilters.startDate && !absenceFilters.status && hasPermission('staff_absence', 'create')"
-                                                    class="btn btn-primary btn-sm" @click="showAddAbsenceModal">
-                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Record First Absence
-                                            </button>
+                                            <div class="empty-state-description"><span v-if="absenceFilters.staff || absenceFilters.reason || absenceFilters.startDate || absenceFilters.status">No results match your filters</span><span v-else>No absence records have been logged yet</span></div>
+                                            <button v-if="!absenceFilters.staff && !absenceFilters.reason && !absenceFilters.startDate && !absenceFilters.status && hasPermission('staff_absence','create')" class="btn btn-primary btn-sm" @click="showAddAbsenceModal"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Record First Absence</button>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -2738,31 +3077,56 @@
                         <div v-if="rotationServicesLoading" class="skeleton-view" style="padding:20px">
                             <div class="skeleton-row" style="height:40px;margin-bottom:8px"></div>
                         </div>
-                        <div v-else class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr><th>Service / Department</th><th>Type</th><th>Contact Person</th><th>Email</th><th>Phone</th><th></th></tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="svc in rotationServices" :key="svc.id">
-                                        <td><strong>{{ svc.name }}</strong></td>
-                                        <td><span class="badge badge-secondary" style="font-size:9px;text-transform:uppercase">{{ svc.service_type === 'external_institution' ? 'External Institution' : 'Internal Service' }}</span></td>
-                                        <td>{{ svc.contact_name || '—' }}</td>
-                                        <td><a v-if="svc.contact_email" :href="'mailto:'+svc.contact_email" style="color:var(--blue);font-size:12px">{{ svc.contact_email }}</a><span v-else style="color:var(--text-4)">—</span></td>
-                                        <td style="font-size:12px;font-family:monospace">{{ svc.contact_phone || '—' }}</td>
-                                        <td class="text-end">
-                                            <button class="btn-icon" @click="openEditRotationService(svc)" title="Edit" v-if="hasPermission('system_settings','update')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg></button>
-                                            <button class="btn-icon btn-icon--danger" @click="deleteRotationService(svc)" title="Remove" v-if="hasPermission('system_settings','delete')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="rotationServices.length === 0">
-                                        <td colspan="6" class="empty-state">
-                                            <div class="empty-state-title">No rotation services defined</div>
-                                            <div class="empty-state-description">Add the external services and departments your residents rotate through.</div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div v-else class="nm-svc-grid">
+                            <div v-for="svc in rotationServices" :key="svc.id"
+                                 class="nm-svc-card"
+                                 :class="{ 'nm-open': activeSvcId === svc.id }"
+                                 @click="activeSvcId = activeSvcId === svc.id ? null : svc.id">
+                                <div class="nm-svc-top">
+                                    <div class="nm-svc-ico" :class="svc.service_type === 'external_institution' ? 'nm-svc-ico--ext' : 'nm-svc-ico--int'">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="svc.service_type==='external_institution' ? '#854F0B' : '#0F6E56'" stroke-width="1.5"><path d="M3 21H21M5 21V8L12 4L19 8V21"/></svg>
+                                    </div>
+                                    <div class="nm-svc-info">
+                                        <div class="nm-svc-name">{{ svc.name }}</div>
+                                        <div class="nm-svc-inst" v-if="svc.institution_name || svc.city">{{ svc.institution_name }}{{ svc.institution_name && svc.city ? ' · ' : '' }}{{ svc.city }}</div>
+                                    </div>
+                                    <span class="nm-svc-type" :class="svc.service_type==='external_institution' ? 'nm-svc-type--ext' : 'nm-svc-type--int'">{{ svc.service_type==='external_institution' ? 'External' : 'Internal' }}</span>
+                                    <svg class="nm-svc-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 9l6 6 6-6"/></svg>
+                                </div>
+                                <div class="nm-svc-meta" v-if="svc.contact_name || svc.contact_email">
+                                    <div class="nm-svc-meta-item" v-if="svc.contact_name">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        {{ svc.contact_name }}
+                                    </div>
+                                    <div class="nm-svc-meta-item" v-if="svc.contact_email">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                                        {{ svc.contact_email }}
+                                    </div>
+                                </div>
+                                <div class="nm-svc-detail">
+                                    <div class="nm-svc-detail-row" v-if="svc.contact_email">
+                                        <span class="nm-svc-detail-label">Email</span>
+                                        <a :href="'mailto:'+svc.contact_email" class="nm-svc-detail-link">{{ svc.contact_email }}</a>
+                                    </div>
+                                    <div class="nm-svc-detail-row" v-if="svc.contact_phone">
+                                        <span class="nm-svc-detail-label">Phone</span>
+                                        <span class="nm-svc-detail-val">{{ svc.contact_phone }}</span>
+                                    </div>
+                                    <div class="nm-svc-actions">
+                                        <button class="nm-svc-btn nm-svc-btn--edit" @click.stop="openEditRotationService(svc)" v-if="hasPermission('system_settings','update')">
+                                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg> Edit
+                                        </button>
+                                        <button class="nm-svc-btn nm-svc-btn--del" @click.stop="deleteRotationService(svc)" v-if="hasPermission('system_settings','delete')">
+                                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg> Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="nm-svc-empty" @click="openAddRotationService" v-if="hasPermission('system_settings','create')">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3"><path d="M12 5v14M5 12h14"/></svg>
+                                <span>Add a service</span>
+                            </div>
+                            <div v-if="rotationServices.length === 0 && !hasPermission('system_settings','create')" style="grid-column:1/-1;text-align:center;padding:32px;color:var(--nm-text3,#a0a09b);font-size:13px">No rotation services defined yet.</div>
                         </div>
                     </div>
 
@@ -3565,39 +3929,43 @@
                                 </div>
                             </div>
 
-                            <!-- Right: status + visibility + actions -->
+                            <!-- Right: status + primary action + overflow -->
                             <div class="news-card-right" @click.stop="() => {}">
-                                <!-- Status badge -->
                                 <span v-if="post.status !== 'published'" class="news-status-badge" :class="'nsb--' + post.status">
                                     {{ post.status === 'draft' ? 'Draft' : 'Archived' }}
                                 </span>
-                                <span v-else class="news-status-dot" title="Published"></span>
-
-                                <!-- Visibility toggle -->
+                                <span v-else class="news-status-dot" :style="post.is_public ? 'background:#10b981' : 'background:#888'" title="Published"></span>
                                 <button class="news-vis-btn" @click="toggleNewsPublic(post)"
-                                        :title="post.is_public ? 'Public on website — click to make internal' : 'Internal only — click to make public'"
+                                        :title="post.is_public ? 'Public — click to make internal' : 'Internal — click to make public'"
                                         v-if="post.status === 'published' && hasPermission('news_posts','update')">
                                     <i class="fas" :class="post.is_public ? 'fa-globe' : 'fa-lock'"></i>
                                     <span>{{ post.is_public ? 'Public' : 'Internal' }}</span>
                                 </button>
-
-                                <!-- Actions -->
-                                <div class="news-actions">
-                                    <button class="btn-icon" @click="editNews(post)" title="Edit" v-if="hasPermission('news_posts','update')">
-                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg>
+                                <div class="news-actions" style="display:flex;align-items:center;gap:6px;">
+                                    <button v-if="post.status === 'draft' && hasPermission('news_posts','update')"
+                                            class="nm-news-primary nm-news-primary--pub"
+                                            @click.stop="publishNews(post)">
+                                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Publish
                                     </button>
-                                    <button class="btn-icon btn-icon--ok" @click="publishNews(post)" title="Publish"
-                                            v-if="post.status === 'draft' && hasPermission('news_posts','update')">
-                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                                    <button v-if="hasPermission('news_posts','update')"
+                                            class="nm-news-primary nm-news-primary--edit"
+                                            @click.stop="editNews(post)">
+                                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg> Edit
                                     </button>
-                                    <button class="btn-icon" @click="archiveNews(post)" title="Archive"
-                                            v-if="post.status === 'published' && hasPermission('news_posts','update')">
-                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>
-                                    </button>
-                                    <button class="btn-icon btn-icon--danger" @click="deleteNews(post)" title="Delete"
-                                            v-if="hasPermission('news_posts','delete')">
-                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
-                                    </button>
+                                    <div class="nm-more-btn" @click.stop="activeNewsMenu = activeNewsMenu === post.id ? null : post.id">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                                        <div class="nm-dropdown" v-if="activeNewsMenu === post.id" @click.stop="() => {}">
+                                            <div class="nm-dropdown-item" @click="archiveNews(post); activeNewsMenu=null"
+                                                 v-if="post.status === 'published' && hasPermission('news_posts','update')">
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg> Archive
+                                            </div>
+                                            <div class="nm-dropdown-sep" v-if="hasPermission('news_posts','delete')"></div>
+                                            <div class="nm-dropdown-item danger" @click="deleteNews(post); activeNewsMenu=null"
+                                                 v-if="hasPermission('news_posts','delete')">
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg> Delete
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
