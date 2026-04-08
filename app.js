@@ -2736,7 +2736,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
           absentNow:    absentNow.length,
           absentName:   absentNow[0] ? (allStaffLookup.value[absentNow[0].staff_member_id]?.full_name || '') : '',
-          absentDay:    absentNow[0] ? (()=>{const s=Utils.normalizeDate(new Date(absentNow[0].start_date));const t=Utils.normalizeDate(new Date());return s&&t?Math.floor((t-s)/(864e5))+1:0})() : 0,
+          absentDay:    absentNow[0] ? (()=>{
+            try {
+              const s = new Date(absentNow[0].start_date)
+              const t = new Date()
+              s.setHours(0,0,0,0); t.setHours(0,0,0,0)
+              const d = Math.floor((t-s)/(864e5))+1
+              return isNaN(d)||d<1 ? 1 : d
+            } catch { return 1 }
+          })() : 0,
           upcoming:     upcoming.length,
           nextDate:     nextAbs ? Utils.formatDate(nextAbs.start_date) : '',
           nextName:     nextAbs ? (allStaffLookup.value[nextAbs.staff_member_id]?.full_name||'') : '',
