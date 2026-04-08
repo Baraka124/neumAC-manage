@@ -5382,12 +5382,12 @@ document.addEventListener('DOMContentLoaded', () => {
           currentView.value = 'research_hub'
         }
         const handleGlobalSearch = () => {
-          if (!globalSearchQuery.value.trim()) { ui.searchResultsOpen.value = false; return }
+          if (!ui.globalSearchQuery.value.trim()) { ui.searchResultsOpen.value = false; return }
           ui.searchResultsOpen.value = true
         }
 
         const globalSearchResults = Vue.computed(() => {
-          const q = (globalSearchQuery.value || '').toLowerCase().trim()
+          const q = (ui.globalSearchQuery.value || '').toLowerCase().trim()
           if (!q || q.length < 2) return {}
           const results = {}
           // Staff
@@ -5396,7 +5396,7 @@ document.addEventListener('DOMContentLoaded', () => {
             (s.professional_email || '').toLowerCase().includes(q) ||
             (s.staff_id || '').toLowerCase().includes(q)
           ).slice(0, 4)
-          if (staff.length) results.staff = staff.map(s => ({ id: s.id, name: s.full_name, meta: rotationOps.formatStaffType ? rotationOps.formatStaffType(s.staff_type) : s.staff_type, icon: 'fa-user-md', action: () => { staffOps.viewStaffDetails(s); ui.searchResultsOpen.value = false; globalSearchQuery.value = '' } }))
+          if (staff.length) results.staff = staff.map(s => ({ id: s.id, name: s.full_name, meta: rotationOps.formatStaffType ? rotationOps.formatStaffType(s.staff_type) : s.staff_type, icon: 'fa-user-md', action: () => { staffOps.viewStaffDetails(s); ui.searchResultsOpen.value = false; ui.globalSearchQuery.value = '' } }))
           // Rotations
           const rots = (rotationOps.rotations.value || []).filter(r => {
             const rn = (staffOps.medicalStaff.value || []).find(s => s.id === r.resident_id)
@@ -5404,18 +5404,18 @@ document.addEventListener('DOMContentLoaded', () => {
           }).slice(0, 3)
           if (rots.length) results.rotations = rots.map(r => {
             const rn = (staffOps.medicalStaff.value || []).find(s => s.id === r.resident_id)
-            return { id: r.id, name: rn ? rn.full_name : 'Resident', meta: `Rotation · ${r.rotation_status}`, icon: 'fa-calendar-check', action: () => { switchView('resident_rotations'); ui.searchResultsOpen.value = false; globalSearchQuery.value = '' } }
+            return { id: r.id, name: rn ? rn.full_name : 'Resident', meta: `Rotation · ${r.rotation_status}`, icon: 'fa-calendar-check', action: () => { switchView('resident_rotations'); ui.searchResultsOpen.value = false; ui.globalSearchQuery.value = '' } }
           })
           // Research lines
           const lines = (researchOps.researchLines.value || []).filter(l =>
             (l.research_line_name || l.name || '').toLowerCase().includes(q) ||
             (l.description || '').toLowerCase().includes(q)
           ).slice(0, 3)
-          if (lines.length) results.research = lines.map(l => ({ id: l.id, name: l.research_line_name || l.name, meta: `Research Line`, icon: 'fa-flask', action: () => { switchView('research_lines'); ui.searchResultsOpen.value = false; globalSearchQuery.value = '' } }))
+          if (lines.length) results.research = lines.map(l => ({ id: l.id, name: l.research_line_name || l.name, meta: `Research Line`, icon: 'fa-flask', action: () => { switchView('research_lines'); ui.searchResultsOpen.value = false; ui.globalSearchQuery.value = '' } }))
           return results
         })
 
-        const clearSearch = () => { globalSearchQuery.value = ''; ui.searchResultsOpen.value = false }
+        const clearSearch = () => { ui.globalSearchQuery.value = ''; ui.searchResultsOpen.value = false }
 
         // ── Academic Degrees Management ────────────────────────────────────────
         const academicDegreeModal = reactive({
