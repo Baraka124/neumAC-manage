@@ -2755,11 +2755,10 @@ document.addEventListener('DOMContentLoaded', () => {
           absentName:   absentNow[0] ? (allStaffLookup.value[absentNow[0].staff_member_id]?.full_name || '') : '',
           absentDay:    absentNow[0] ? (()=>{
             try {
-              const s = new Date(absentNow[0].start_date)
-              const t = new Date()
-              s.setHours(0,0,0,0); t.setHours(0,0,0,0)
-              const d = Math.floor((t-s)/(864e5))+1
-              return isNaN(d)||d<1 ? 1 : d
+              const s = new Date(absentNow[0].start_date + 'T00:00:00')
+              const t = new Date(); t.setHours(0,0,0,0)
+              const d = Math.floor((t - s)/(864e5)) + 1
+              return isNaN(d) || d < 1 ? 1 : d
             } catch { return 1 }
           })() : 0,
           upcoming:     upcoming.length,
@@ -5022,12 +5021,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const calloutTimeTypes = { night:'Night', weekend:'Weekend', daytime:'Daytime', holiday:'Holiday' }
 
-        const loadCallouts = async () => {
+        let _calloutsLoadedKey = ''
+        const loadCallouts = async (force = false) => {
+          const key = `${calloutPeriod.year}-${calloutPeriod.month}`
+          if (!force && _calloutsLoadedKey === key && callouts.value.length > 0) return
           calloutsLoading.value = true
           try {
             const p = new URLSearchParams({ year: calloutPeriod.year, month: calloutPeriod.month, limit: 200 })
             const res = await API.request(`/api/emergency-callouts?${p}`)
             callouts.value = res.data || []
+            _calloutsLoadedKey = key
           } catch(e) { showToast('Error', 'Failed to load duty log', 'error') }
           finally { calloutsLoading.value = false }
         }
@@ -5090,6 +5093,16 @@ document.addEventListener('DOMContentLoaded', () => {
             holiday:   thisMonth.filter(x => x.time_type === 'holiday').length,
             ytd:       ytd.length,
           }
+        })
+
+        const calloutFairnessAlert = computed(() => {
+          if (!availablePhysicians || !availablePhysicians.value) return false
+          const totals = availablePhysicians.value.map(p =>
+            (filteredOnCallSchedules.value || []).filter(s => s.primary_physician_id === p.id || s.backup_physician_id === p.id).length +
+            (calloutSummary.value.find(s => s.staff_id === p.id)?.total || 0)
+          )
+          const avg = totals.reduce((a,b) => a+b, 0) / Math.max(1, totals.length)
+          return avg > 0 && totals.some(t => t > avg * 1.5)
         })
 
         // auto-load when on-call view is active
@@ -5892,6 +5905,16 @@ document.addEventListener('DOMContentLoaded', () => {
           else if (item.type === 'staff') switchView('medical_staff')
         }
 
+        // Focus cmd input whenever palette opens
+        watch(() => ui.cmdPaletteOpen.value, (open) => {
+          if (open) {
+            Vue.nextTick(() => {
+              const inp = document.querySelector('.cmd-input-row input')
+              if (inp) inp.focus()
+            })
+          }
+        })
+
         // Arrow key navigation for palette (needs cmdItems in scope)
         window.addEventListener('keydown', (e) => {
           if (!ui.cmdPaletteOpen.value) return
@@ -6133,6 +6156,7 @@ document.addEventListener('DOMContentLoaded', () => {
           residentGapWarnings: rotationOps.residentGapWarnings,
           cmdQuery, cmdSelectedIdx, cmdItems, executeCmdItem,
           callouts, calloutsLoading, calloutSummary, calloutPeriod, calloutModal,
+          calloutFairnessAlert,
           calloutKPIs, calloutReasonLabels, calloutTimeTypes,
           openLogCalloutModal, editCallout, saveCallout, deleteCallout,
           loadCallouts, loadCalloutSummary,
