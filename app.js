@@ -563,7 +563,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ============ 4. ENHANCED API SERVICE ============
     class ApiService {
-      constructor() { this.cache = new Map() }
+      constructor() {
+        this.cache = new Map()
+        this._isOnline = navigator.onLine
+        this._sessionExpired = false
+        window.addEventListener('online',  () => { this._isOnline = true;  window.dispatchEvent(new CustomEvent('neumax:online'))  })
+        window.addEventListener('offline', () => { this._isOnline = false; window.dispatchEvent(new CustomEvent('neumax:offline')) })
+      }
+      get isOnline() { return this._isOnline }
 
       get token() { return localStorage.getItem(CONFIG.TOKEN_KEY) }
 
@@ -609,19 +616,27 @@ document.addEventListener('DOMContentLoaded', () => {
           if (res.status === 204) return null
           if (!res.ok) {
             if (res.status === 401) {
-              localStorage.removeItem(CONFIG.TOKEN_KEY)
-              localStorage.removeItem(CONFIG.USER_KEY)
-              window.dispatchEvent(new CustomEvent('neumax:session-expired'))
-              throw new Error('Session expired. Please login again.')
+              if (!this._sessionExpired) {
+                this._sessionExpired = true
+                localStorage.removeItem(CONFIG.TOKEN_KEY)
+                localStorage.removeItem(CONFIG.USER_KEY)
+                window.dispatchEvent(new CustomEvent('neumax:session-expired'))
+              }
+              throw new Error('Session expired. Please log in again.')
             }
+            if (res.status === 403) throw new Error('You do not have permission to perform this action.')
+            if (res.status === 404) throw new Error('The requested resource was not found.')
             if (res.status === 503) {
               window.dispatchEvent(new CustomEvent('neumax:maintenance'))
               throw new Error('System is under maintenance. Please try again shortly.')
             }
-            const err = await res.text().catch(() => `HTTP ${res.status}`)
-            throw new Error(err)
-          }
-          const ct = res.headers.get('content-type')
+            if (res.status >= 500) throw new Error('A server error occurred. Please try again in a moment.')
+            const errBody = await res.text().catch(() => `HTTP ${res.status}`)
+            let errMsg = errBody
+            try { const j = JSON.parse(errBody); errMsg = j.message || j.error || errBody } catch {}
+            throw new Error(errMsg)
+            }
+            const ct = res.headers.get('content-type')
           const result = ct?.includes('application/json') ? await res.json() : await res.text()
           if (isGet && !options.skipCache) this.setCached(cacheKey, result)
           return result
@@ -642,6 +657,7 @@ document.addEventListener('DOMContentLoaded', () => {
           localStorage.setItem(CONFIG.TOKEN_KEY, data.token)
           localStorage.setItem(CONFIG.USER_KEY, JSON.stringify(data.user))
           this.clearCache()
+          this._sessionExpired = false
         }
         return data
       }
@@ -5843,6 +5859,30 @@ document.addEventListener('DOMContentLoaded', () => {
           } else { currentView.value = 'login' }
 
           // Session expiry — redirect to login cleanly from anywhere in the app
+          // ── Online / offline / maintenance ──
+          const isOnline = ref(navigator.onLine)
+          window.addEventListener('neumax:online', () => {
+            isOnline.value = true
+            showToast('Connection restored', 'Back online — syncing…', 'success', 3000)
+            if (currentUser.value) {
+              try { staffOps.loadMedicalStaff(true); rotationOps.loadRotations(true) } catch {}
+            }
+          })
+          window.addEventListener('neumax:offline', () => {
+            isOnline.value = false
+            showToast('No connection', 'You are offline. Changes cannot be saved until you reconnect.', 'warning', 0)
+          })
+          window.addEventListener('neumax:maintenance', () => {
+            showToast('System Maintenance', 'The system is temporarily offline for maintenance.', 'warning', 0)
+          })
+
+          // ── Dashboard auto-refresh every 5 min ──
+          const dashRefreshInterval = setInterval(() => {
+            if (currentUser.value && currentView.value === 'dashboard') {
+              try { dashOps.loadSystemStats() } catch {}
+            }
+          }, 300000)
+
           window.addEventListener('neumax:session-expired', () => {
             currentUser.value = null
             currentView.value = 'login'
@@ -5874,7 +5914,7 @@ document.addEventListener('DOMContentLoaded', () => {
             modals.forEach(m => { if (m.show) m.show = false })
           })
 
-          onUnmounted(() => { clearInterval(statusInterval); clearInterval(timeInterval); if (rotationCheckInterval) clearInterval(rotationCheckInterval) })
+          onUnmounted(() => { clearInterval(statusInterval); clearInterval(timeInterval); clearInterval(dashRefreshInterval); if (rotationCheckInterval) clearInterval(rotationCheckInterval) })
         })
 
         // ── ⌘K Command Palette (defined here — full access to all refs) ──
@@ -6007,7 +6047,7 @@ document.addEventListener('DOMContentLoaded', () => {
           loadResearchDashboard, // override with wired wrapper that passes research data refs
           ...dashOps,
           handleLogin, handleLogout,
-          switchView, situationItems, dailyBriefing, toggleStatsSidebar, handleGlobalSearch, globalSearchResults, clearSearch,
+          switchView, situationItems, dailyBriefing, toggleStatsSidebar, handleGlobalSearch, globalSearchResults, clearSearch, isOnline,
           newsPosts, newsLoading, newsLoaded, newsModal, newsFilters, filteredNews,
           newsWordCount, newsWordLimit,
           loadNews, showAddNewsModal, editNews, saveNews,
