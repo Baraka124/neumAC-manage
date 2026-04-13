@@ -5833,6 +5833,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         watch([medicalStaff, rotations, trainingUnits, absences], () => updateDashboardStats(), { deep: true })
 
+        // ── isOnline — declared at root scope so template can access it ──
+        const isOnline = ref(navigator.onLine)
+        // Update when API layer fires events
+        window.addEventListener('neumax:online',  () => { isOnline.value = true  })
+        window.addEventListener('neumax:offline', () => { isOnline.value = false })
+
         onMounted(() => {
           const token = localStorage.getItem(CONFIG.TOKEN_KEY)
           const user = localStorage.getItem(CONFIG.USER_KEY)
@@ -5860,7 +5866,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
           // Session expiry — redirect to login cleanly from anywhere in the app
           // ── Online / offline / maintenance ──
-          const isOnline = ref(navigator.onLine)
           window.addEventListener('neumax:online', () => {
             isOnline.value = true
             showToast('Connection restored', 'Back online — syncing…', 'success', 3000)
