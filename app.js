@@ -5964,8 +5964,8 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter(s => s.full_name?.toLowerCase().includes(q) && hasActionWord)
             .slice(0,3)
             .flatMap(s => [
-              { type:'action', id:, label:, sub:'Open rotation modal pre-filled', icon:'fa-calendar-plus', fn: () => rotationOps.showAddRotationModal(s) },
-              { type:'action', id:, label:, sub:'Open absence modal pre-filled', icon:'fa-user-minus', fn: () => { switchView('staff_absence'); Vue.nextTick(() => absenceOps?.showAddAbsenceModal?.(s)) } },
+              { type:'action', id:'rot_'+s.id, label:'Assign rotation — ' + (s.full_name.split(' ').slice(-1)[0]), sub:'Open rotation modal pre-filled', fn: () => rotationOps.showAddRotationModal(s) },
+              { type:'action', id:'abs_'+s.id, label:'Log absence — ' + (s.full_name.split(' ').slice(-1)[0]),    sub:'Open absence modal pre-filled',  fn: () => { switchView('staff_absence'); Vue.nextTick(() => absenceOps?.showAddAbsenceModal?.(s)) } },
             ])
           const viewItems = views.filter(v => !q || v.label.toLowerCase().includes(q) || v.sub.toLowerCase().includes(q))
           return [...actionItems, ...staffActionItems, ...staffItems, ...unitItems, ...viewItems].slice(0, 12)
