@@ -413,11 +413,79 @@
 
       /* ── DESIGN TOKENS ── */
       :root {
-        --nm-navy:#07111f; --nm-navy2:#0f2d54; --nm-teal:#00b3b3;
-        --nm-surface:#fdfcfb; --nm-surface2:#f5f4f0; --nm-surface3:#efeee9;
-        --nm-border:rgba(0,0,0,.07); --nm-text1:#111110; --nm-text2:#6b6b67; --nm-text3:#a0a09b;
-        --s4:4px; --s8:8px; --s12:12px; --s16:16px; --s20:20px; --s24:24px; --s32:32px;
-        --r8:8px; --r10:10px; --r12:12px;
+        /* ── Core palette ── */
+        --nm-navy:     #07111f;
+        --nm-navy2:    #0f2d54;
+        --nm-navy3:    #162b48;
+        --nm-teal:     #00b3b3;
+        --nm-teal-lt:  #e0f7f7;
+        --nm-teal-mid: rgba(0,179,179,.15);
+
+        /* ── Surface system (paper-like warmth) ── */
+        --nm-surface:  #fdfcfb;
+        --nm-surface2: #f5f4f0;
+        --nm-surface3: #efeee9;
+        --nm-surface4: #e8e7e1;
+        --nm-glass:    rgba(255,255,255,.72);
+        --nm-glass2:   rgba(255,255,255,.5);
+
+        /* ── Border system ── */
+        --nm-border:   rgba(0,0,0,.07);
+        --nm-border2:  rgba(0,0,0,.12);
+        --nm-border3:  rgba(0,0,0,.18);
+
+        /* ── Typography ── */
+        --nm-text1:  #111110;
+        --nm-text2:  #6b6b67;
+        --nm-text3:  #a0a09b;
+        --nm-text4:  #c8c7c1;
+
+        /* ── Semantic status ── */
+        --nm-ok:       #00b3b3;
+        --nm-ok-bg:    rgba(0,179,179,.08);
+        --nm-ok-border:rgba(0,179,179,.2);
+        --nm-warn:     #d97706;
+        --nm-warn-bg:  rgba(217,119,6,.08);
+        --nm-warn-border:rgba(217,119,6,.2);
+        --nm-danger:   #dc2626;
+        --nm-danger-bg:rgba(220,38,38,.07);
+        --nm-danger-border:rgba(220,38,38,.18);
+        --nm-info:     #2563eb;
+        --nm-info-bg:  rgba(37,99,235,.07);
+        --nm-info-border:rgba(37,99,235,.18);
+
+        /* ── People status ring colors ── */
+        --ps-active:   #00b3b3;       /* available / active */
+        --ps-oncall:   #7c3aed;       /* on call today */
+        --ps-leave:    #d97706;       /* on leave */
+        --ps-inactive: #a0a09b;       /* inactive */
+        --ps-resident: #2563eb;       /* resident */
+
+        /* ── Coverage risk ── */
+        --cov-full:    rgba(0,179,179,.12);
+        --cov-full-bd: rgba(0,179,179,.3);
+        --cov-partial: rgba(217,119,6,.10);
+        --cov-partial-bd:rgba(217,119,6,.28);
+        --cov-gap:     rgba(220,38,38,.10);
+        --cov-gap-bd:  rgba(220,38,38,.28);
+
+        /* ── Elevation shadows ── */
+        --shadow-1:  0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+        --shadow-2:  0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.05);
+        --shadow-3:  0 12px 32px rgba(0,0,0,.12), 0 4px 8px rgba(0,0,0,.06);
+        --shadow-pop:0 20px 60px rgba(0,0,0,.18), 0 8px 20px rgba(0,0,0,.1);
+
+        /* ── Spacing ── */
+        --s4:4px; --s8:8px; --s12:12px; --s16:16px;
+        --s20:20px; --s24:24px; --s32:32px; --s48:48px;
+
+        /* ── Radius ── */
+        --r4:4px; --r6:6px; --r8:8px; --r10:10px;
+        --r12:12px; --r16:16px; --r20:20px; --r-pill:999px;
+
+        /* ── Animation ── */
+        --ease-out: cubic-bezier(.22,1,.36,1);
+        --ease-spring: cubic-bezier(.34,1.56,.64,1);
       }
 
       /* ── AUTHORITATIVE TYPOGRAPHY — 3 tiers, readable without glasses ── */
@@ -1641,7 +1709,7 @@
       @media (max-width: 1024px) {
         #app .sidebar { width:clamp(56px,14vw,220px) !important; }
         #app .sidebar .sidebar-menu-link span { font-size:12px !important; }
-        #app .dbsr { grid-template-columns: repeat(2,1fr) !important; }
+        #app .dbsr { grid-template-columns: repeat(4,1fr) !important; border-bottom:1px solid var(--nm-border); }
         #app .absence-kpi-strip { grid-template-columns: repeat(2,1fr) !important; }
         #app .tu-kpi-strip { grid-template-columns: repeat(2,1fr) auto !important; }
         #app .kpi-row { grid-template-columns: repeat(2,1fr) !important; }
@@ -1690,7 +1758,7 @@
         #app .dbh-top { flex-direction:column !important; align-items:flex-start !important; gap:12px !important; }
         #app .dbh-greeting { font-size:20px !important; }
         #app .dbh-actions { flex-wrap:wrap !important; gap:6px !important; }
-        #app .dbsr { grid-template-columns:repeat(2,1fr) !important; border-bottom:1px solid var(--nm-border); }
+        #app .dbsr { grid-template-columns: repeat(4,1fr) !important; border-bottom:1px solid var(--nm-border); }
         #app .dbsr-stat { padding:12px 14px 10px !important; }
         #app .dbsr-num  { font-size:26px !important; }
 
@@ -2329,6 +2397,1291 @@
       @media (max-width: 768px) {
         #app .chart-bar-item { grid-template-columns:70px 1fr 24px; }
         #app .bar-label { font-size:11px; }
+      }
+
+
+      /* ── Dashboard health pill ── */
+      #app .dbh-health-pill {
+        display:flex; align-items:center; gap:6px;
+        padding:5px 12px; border-radius:20px;
+        border:1px solid; font-size:12px; font-weight:600;
+        background:rgba(255,255,255,.04);
+        letter-spacing:.01em; flex-shrink:0;
+        order:-1;
+      }
+      #app .dbh-health-dot {
+        width:6px; height:6px; border-radius:50%; flex-shrink:0;
+      }
+      @media (max-width: 480px) {
+        #app .dbh-health-pill { display:none !important; }
+      }
+
+
+      /* ── pd-empty-sub — profile drawer empty state subtitle ── */
+      #app .pd-empty-sub {
+        font-size:12px; color:var(--nm-text3); margin-top:4px; line-height:1.5;
+      }
+
+      /* ── table-callouts — duty log table specific overrides ── */
+      #app .table-callouts td { vertical-align:middle; padding:10px 14px; }
+      #app .table-callouts .date-cell { font-size:13px; line-height:1.4; }
+      #app .table-callouts .badge {
+        font-size:11px; font-weight:600; padding:2px 8px;
+        border-radius:4px; white-space:nowrap;
+      }
+
+      /* ── nm-skel-row — skeleton row for tables ── */
+      #app .nm-skel-row {
+        border-bottom: 1px solid var(--nm-border) !important;
+      }
+
+      /* ── callout modal ── */
+      #app .callout-time-grid {
+        display:grid; grid-template-columns:1fr 1fr; gap:12px;
+      }
+
+
+      /* ── Profile drawer — schedule / history / activity layout ── */
+      #app .pd-clear-row {
+        display:flex; align-items:center; gap:8px;
+        padding:12px 0; color:var(--nm-text3); font-size:13px;
+      }
+      #app .pd-schedule-grid {
+        display:grid; grid-template-columns:1fr 1fr; gap:12px;
+        padding-top:8px;
+      }
+      @media (max-width: 600px) {
+        #app .pd-schedule-grid { grid-template-columns:1fr; }
+      }
+      #app .pd-schedule-col { display:flex; flex-direction:column; gap:4px; }
+      #app .pd-schedule-label {
+        font-size:11px; font-weight:700; text-transform:uppercase;
+        letter-spacing:.06em; color:var(--nm-text3);
+        display:flex; align-items:center; gap:5px; margin-bottom:6px;
+      }
+      #app .pd-shift-row {
+        display:flex; align-items:center; gap:8px;
+        padding:6px 0; border-bottom:1px solid var(--nm-border);
+        font-size:12px;
+      }
+      #app .pd-shift-row:last-child { border-bottom:none; }
+      #app .pd-shift-date { color:var(--nm-text2); font-weight:500; min-width:70px; }
+      #app .pd-shift-time { color:var(--nm-text3); font-family:monospace; font-size:11px; flex:1; }
+      #app .pd-more { font-size:11px; color:var(--nm-text3); padding:4px 0; }
+
+      /* ── Profile drawer history rows ── */
+      #app .pd-history-row {
+        display:flex; align-items:flex-start; gap:10px;
+        padding:8px 0; border-bottom:1px solid var(--nm-border);
+      }
+      #app .pd-history-row:last-child { border-bottom:none; }
+      #app .pd-history-dot {
+        width:8px; height:8px; border-radius:50%;
+        background:var(--nm-teal,#00b3b3);
+        flex-shrink:0; margin-top:4px;
+      }
+      #app .pd-history-body { flex:1; min-width:0; }
+      #app .pd-history-unit {
+        font-size:13px; font-weight:500; color:var(--nm-text1);
+        display:block;
+      }
+      #app .pd-history-dates { font-size:11px; color:var(--nm-text3); margin-top:2px; }
+
+      /* ── On-call summary — high/low duty load rows ── */
+      #app .oc-summary-row--high { background:rgba(226,75,74,.04); }
+      #app .oc-summary-row--high:hover { background:rgba(226,75,74,.08) !important; }
+      #app .oc-summary-row--low  { background:rgba(16,185,129,.03); }
+
+      /* ── Stat blocks in supervision/leave panels ── */
+      #app .pd-stat-row {
+        display:grid; grid-template-columns:repeat(3,1fr);
+        gap:10px; margin-bottom:14px;
+      }
+      #app .pd-stat-block {
+        background:var(--nm-surface2); border:1px solid var(--nm-border);
+        border-radius:8px; padding:12px; text-align:center;
+      }
+      #app .pd-stat-num {
+        font-size:26px; font-weight:700; color:var(--nm-text1);
+        font-family:'IBM Plex Mono',monospace; line-height:1;
+      }
+      #app .pd-stat-lbl {
+        font-size:11px; color:var(--nm-text3); margin-top:4px;
+        text-transform:uppercase; letter-spacing:.05em;
+      }
+
+      /* ── Research coordinator banner ── */
+      #app .research-coordinator-banner {
+        display:flex; align-items:flex-start; gap:10px;
+        padding:10px 14px; background:rgba(0,179,179,.06);
+        border:1px solid rgba(0,179,179,.18); border-radius:8px;
+        margin-bottom:12px;
+      }
+      #app .rcb-icon { color:var(--nm-teal,#00b3b3); flex-shrink:0; margin-top:1px; }
+      #app .rcb-title { font-size:13px; font-weight:600; color:var(--nm-teal,#00b3b3); }
+      #app .rcb-lines { font-size:12px; color:var(--nm-text2); margin-top:3px; line-height:1.5; }
+
+
+      /* ════════════════════════════════════════════════════════════
+         CROSS-PLATFORM RESPONSIVE SYSTEM
+         Desktop-first (hospital monitors) → tablet → mobile
+         ════════════════════════════════════════════════════════════ */
+
+      /* ── DESKTOP BASE — 1280px+ (primary target: hospital workstation) ── */
+      #app .dbsr {
+        grid-template-columns: repeat(4, 1fr) !important;
+      }
+      #app .db-main-grid {
+        display:grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap:20px !important;
+        align-items:start !important;
+      }
+      #app .db-panel { min-height:320px; }
+
+      /* Sidebar: clamp keeps it proportional on 1920px monitors */
+      #app .sidebar {
+        width: clamp(220px, 14vw, 260px) !important;
+        flex-shrink: 0 !important;
+      }
+      #app .sidebar.sidebar-collapsed {
+        width: 56px !important;
+      }
+
+      /* Content area — never wider than a readable line length on ultra-wide */
+      #app .content-area {
+        min-width: 0 !important;
+        overflow-x: hidden !important;
+      }
+      #app .view-inner {
+        max-width: 1600px;
+        margin: 0 auto;
+      }
+
+      /* ── WIDESCREEN — 1440px+ (large hospital monitor / dual-screen) ── */
+      @media (min-width: 1440px) {
+        #app .dbsr { grid-template-columns: repeat(4, 1fr) !important; }
+        #app .db-main-grid { grid-template-columns: 1fr 1fr 1fr !important; gap:24px !important; }
+        #app .sidebar { width: clamp(240px, 13vw, 280px) !important; }
+        #app .rha-kpi-strip { grid-template-columns: repeat(4, 1fr) !important; }
+        #app .rha-charts-row { grid-template-columns: repeat(3, 1fr) !important; }
+      }
+
+      /* ── 1024px — small laptop / 13" clinical tablet landscape ── */
+      @media (max-width: 1024px) {
+        /* dbsr mobile: handled by cross-platform system */
+        #app .db-main-grid { grid-template-columns: 1fr !important; }
+        #app .sidebar { width: clamp(200px, 18vw, 220px) !important; }
+        #app .rha-charts-row { grid-template-columns: 1fr !important; }
+        #app .profile-drawer {
+          width: min(520px, 96vw) !important;
+        }
+      }
+
+      /* ── 768px — tablet portrait / large phone landscape ── */
+      @media (max-width: 768px) {
+        /* Sidebar goes off-canvas */
+        #app .sidebar {
+          position: fixed !important;
+          left: -280px !important;
+          top: 0 !important;
+          height: 100vh !important;
+          width: 260px !important;
+          z-index: 1000 !important;
+          transition: left .22s ease !important;
+          box-shadow: none !important;
+        }
+        #app .sidebar.mobile-open {
+          left: 0 !important;
+          box-shadow: 4px 0 24px rgba(0,0,0,.35) !important;
+        }
+        #app .content-area {
+          width: 100vw !important;
+          overflow-x: hidden !important;
+        }
+        /* Main content layout */
+        #app .dbsr { grid-template-columns: repeat(2, 1fr) !important; }
+        #app .db-main-grid { grid-template-columns: 1fr !important; gap:12px !important; }
+        #app .dbh-actions { flex-wrap: wrap !important; gap:6px !important; }
+        #app .dbh-btn { font-size:12px !important; padding:5px 10px !important; }
+        /* Tables */
+        #app .table-responsive {
+          max-height: calc(100vh - 180px) !important;
+          overflow-x: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+        }
+        /* Gantt */
+        #app .mv-gantt-area { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
+        #app .mv-gantt { min-width: 600px !important; }
+        /* Modals — slide up from bottom on mobile */
+        #app .modal-overlay {
+          align-items: flex-end !important;
+          padding: 0 !important;
+        }
+        #app .modal-container, #app .sm-modal {
+          width: 100vw !important;
+          max-width: 100vw !important;
+          border-radius: 16px 16px 0 0 !important;
+          max-height: 92vh !important;
+        }
+        /* Profile drawer */
+        #app .profile-drawer {
+          width: 100vw !important;
+          max-width: 100vw !important;
+          border-left: none !important;
+          border-top: 1px solid rgba(0,0,0,.12) !important;
+          position: fixed !important;
+          top: auto !important;
+          bottom: 0 !important;
+          height: 92vh !important;
+          border-radius: 16px 16px 0 0 !important;
+        }
+        #app .pd-identity {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+        /* Research hub */
+        #app .rha-kpi-strip { grid-template-columns: 1fr 1fr !important; }
+        #app .rha-charts-row { grid-template-columns: 1fr !important; }
+        /* News grid */
+        #app .nm-news-grid,
+        #app .news-cards-grid { grid-template-columns: 1fr !important; }
+      }
+
+      /* ── 480px — phone portrait ── */
+      @media (max-width: 480px) {
+        #app .dbsr { grid-template-columns: 1fr 1fr !important; }
+        #app .dbsr-num { font-size:24px !important; }
+        #app .dbh-health-pill { display:none !important; }
+        /* Table columns — hide less critical on narrow screens */
+        #app .table-hide-mobile { display:none !important; }
+        /* Filter inputs full width */
+        #app .filter-bar { flex-direction:column !important; align-items:stretch !important; }
+        #app .filter-bar input,
+        #app .filter-bar select { width:100% !important; max-width:none !important; }
+        /* Analytics */
+        #app .rha-kpi-strip { grid-template-columns:1fr !important; }
+        #app .rha-kpi-val { font-size:22px !important; }
+      }
+
+      /* ── iOS / Android INPUT FIX — prevent zoom on focus ── */
+      @media (max-width: 768px) {
+        #app input[type="text"],
+        #app input[type="email"],
+        #app input[type="tel"],
+        #app input[type="password"],
+        #app input[type="date"],
+        #app input[type="time"],
+        #app select,
+        #app textarea {
+          font-size: 16px !important;  /* prevents iOS auto-zoom */
+        }
+      }
+
+      /* ── TOUCH TARGETS — minimum 44px on any touch device ── */
+      @media (hover: none) and (pointer: coarse) {
+        #app .tbl-btn { height:42px !important; min-width:42px !important; padding:0 !important; }
+        #app .btn-sm  { height:40px !important; min-height:40px !important; }
+        #app .pd-tab  { min-height:44px !important; }
+        #app .rhub-tab { min-height:44px !important; }
+        #app .sidebar-menu-link { min-height:48px !important; }
+        #app .dbh-btn  { min-height:44px !important; }
+      }
+
+      /* ── PRINT — clinical report printing ── */
+      @media print {
+        #app .sidebar,
+        #app .live-stats-sidebar,
+        #app .nm-hamburger,
+        #app .tbl-btn,
+        #app .btn-primary,
+        #app .breadcrumb,
+        #app .filter-bar { display:none !important; }
+        #app .content-area { width:100% !important; overflow:visible !important; }
+        #app .table-responsive { overflow:visible !important; max-height:none !important; }
+      }
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   NEUMAS — CLINICAL INTELLIGENCE DESIGN SYSTEM
+   Version 2.0 — Information-rich, action-oriented, alive
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── New font pairing: Instrument Serif for warmth, DM Sans for clarity ── */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap');
+
+/* ── Extended token system ── */
+:root {
+  --pulse-available:  #00b3b3;
+  --pulse-oncall:     #f59e0b;
+  --pulse-leave:      #ef4444;
+  --pulse-ending:     #8b5cf6;
+  --pulse-inactive:   #d1d5db;
+  --surface-glass:    rgba(255,255,255,0.72);
+  --surface-glass-dark: rgba(7,17,31,0.82);
+  --shadow-card:      0 2px 8px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.04);
+  --shadow-float:     0 8px 32px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.08);
+  --shadow-popover:   0 16px 48px rgba(0,0,0,.14), 0 4px 12px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.06);
+  --transition-fast:  0.12s cubic-bezier(0.22,1,0.36,1);
+  --transition-med:   0.22s cubic-bezier(0.22,1,0.36,1);
+  --transition-spring:0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   HOVER INTELLIGENCE POPOVER SYSTEM
+   ══════════════════════════════════════════════════════════════════ */
+#app .intel-popover-wrap {
+  position: fixed;
+  z-index: 9800;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+}
+#app .intel-popover-wrap.entering { animation: popoverIn 0.18s cubic-bezier(0.22,1,0.36,1) forwards; }
+#app .intel-popover-wrap.leaving  { animation: popoverOut 0.12s ease forwards; }
+@keyframes popoverIn  { from { opacity:0; transform:translateY(6px) scale(.97) } to { opacity:1; transform:translateY(0) scale(1) } }
+@keyframes popoverOut { from { opacity:1; transform:scale(1) } to { opacity:0; transform:scale(.96) } }
+
+#app .intel-pop {
+  width: 280px;
+  background: var(--nm-surface);
+  border: 1px solid var(--nm-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-popover);
+  overflow: hidden;
+  font-size: 13px;
+  pointer-events: none;
+}
+#app .intel-pop-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--nm-border);
+}
+#app .intel-pop-av {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; flex-shrink: 0;
+  color: #fff; position: relative;
+}
+#app .intel-pop-av::after {
+  content: '';
+  position: absolute; bottom: 0; right: 0;
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 2px solid var(--nm-surface);
+  background: var(--pulse-inactive);
+}
+#app .intel-pop-av.pulse-available::after  { background: var(--pulse-available); }
+#app .intel-pop-av.pulse-oncall::after     { background: var(--pulse-oncall); }
+#app .intel-pop-av.pulse-leave::after      { background: var(--pulse-leave); }
+#app .intel-pop-av.pulse-ending::after     { background: var(--pulse-ending); }
+#app .intel-pop-name { font-weight: 600; color: var(--nm-text1); line-height: 1.3; }
+#app .intel-pop-role { font-size: 11px; color: var(--nm-text3); margin-top: 2px; }
+#app .intel-pop-status {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; padding: 2px 7px;
+  border-radius: 4px; margin-top: 4px;
+}
+#app .intel-pop-body { padding: 10px 16px 14px; display: flex; flex-direction: column; gap: 6px; }
+#app .intel-pop-row  { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; }
+#app .intel-pop-row-icon { width: 14px; flex-shrink: 0; color: var(--nm-text3); margin-top: 1px; }
+#app .intel-pop-row-content { flex: 1; min-width: 0; }
+#app .intel-pop-row-label { color: var(--nm-text3); font-size: 11px; }
+#app .intel-pop-row-val   { color: var(--nm-text1); font-weight: 500; }
+#app .intel-pop-mini-bar  {
+  height: 4px; background: var(--nm-surface3); border-radius: 2px;
+  overflow: hidden; margin-top: 4px;
+}
+#app .intel-pop-mini-fill { height: 100%; border-radius: 2px; }
+#app .intel-pop-divider { height: 1px; background: var(--nm-border); margin: 2px -16px; }
+
+/* ══════════════════════════════════════════════════════════════════
+   STAFF VIEW — INTELLIGENCE LAYER
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Pulse dot — availability indicator on every staff row */
+#app .pulse-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0; position: relative;
+}
+#app .pulse-dot--available { background: var(--pulse-available); }
+#app .pulse-dot--oncall    { background: var(--pulse-oncall); }
+#app .pulse-dot--leave     { background: var(--pulse-leave); }
+#app .pulse-dot--ending    { background: var(--pulse-ending); }
+#app .pulse-dot--inactive  { background: var(--pulse-inactive); }
+
+/* Pulsing animation for on-call now */
+#app .pulse-dot--oncall::after {
+  content: '';
+  position: absolute; inset: -3px;
+  border-radius: 50%; border: 2px solid var(--pulse-oncall);
+  animation: pulsering 1.8s ease infinite;
+}
+@keyframes pulsering { 0%,100% { opacity:.6; transform:scale(1) } 50% { opacity:0; transform:scale(1.8) } }
+
+/* Next-event chip on staff rows */
+#app .staff-next-event {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; padding: 2px 7px; border-radius: 4px;
+  white-space: nowrap; font-weight: 500;
+}
+#app .staff-next-event--rotation { background: rgba(0,179,179,.08); color: var(--nm-teal); border: 1px solid rgba(0,179,179,.18); }
+#app .staff-next-event--oncall   { background: rgba(245,158,11,.08); color: #d97706; border: 1px solid rgba(245,158,11,.18); }
+#app .staff-next-event--leave    { background: rgba(239,68,68,.07); color: #dc2626; border: 1px solid rgba(239,68,68,.15); }
+#app .staff-next-event--ending   { background: rgba(139,92,246,.07); color: #7c3aed; border: 1px solid rgba(139,92,246,.15); }
+
+/* Department pulse bar — sits above the staff table */
+#app .dept-pulse-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 16px 20px;
+  background: var(--nm-surface);
+  border: 1px solid var(--nm-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+}
+#app .dpb-item {
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; gap: 3px; position: relative;
+  cursor: pointer; transition: opacity var(--transition-fast);
+}
+#app .dpb-item:not(:last-child)::after {
+  content: ''; position: absolute; right: 0; top: 10%; bottom: 10%;
+  width: 1px; background: var(--nm-border);
+}
+#app .dpb-item:hover { opacity: .75; }
+#app .dpb-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 28px; font-weight: 600; line-height: 1;
+  color: var(--nm-text1);
+}
+#app .dpb-label { font-size: 11px; font-weight: 600; color: var(--nm-text3); text-transform: uppercase; letter-spacing: .05em; }
+#app .dpb-sub   { font-size: 11px; color: var(--nm-text3); }
+#app .dpb-num--teal   { color: var(--nm-teal); }
+#app .dpb-num--amber  { color: #d97706; }
+#app .dpb-num--red    { color: #dc2626; }
+#app .dpb-num--purple { color: #7c3aed; }
+
+/* ══════════════════════════════════════════════════════════════════
+   TRAINING UNITS — OCCUPANCY COCKPIT CARDS
+   ══════════════════════════════════════════════════════════════════ */
+
+/* New unit card grid layout */
+#app .unit-cockpit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+#app .unit-cockpit-card {
+  background: var(--nm-surface);
+  border: 1px solid var(--nm-border);
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
+  box-shadow: var(--shadow-card);
+}
+#app .unit-cockpit-card:hover {
+  box-shadow: var(--shadow-float);
+  border-color: rgba(0,0,0,.12);
+  transform: translateY(-1px);
+}
+#app .unit-cockpit-card.ucc--full    { border-top: 3px solid #ef4444; }
+#app .unit-cockpit-card.ucc--filling { border-top: 3px solid #f59e0b; }
+#app .unit-cockpit-card.ucc--open    { border-top: 3px solid var(--nm-teal); }
+#app .unit-cockpit-card.ucc--empty   { border-top: 3px solid var(--nm-border); opacity: .8; }
+
+#app .ucc-header {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 16px 18px 12px;
+}
+#app .ucc-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,179,179,.07); border: 1px solid rgba(0,179,179,.15);
+  flex-shrink: 0; font-size: 16px; color: var(--nm-teal);
+}
+#app .ucc-title-block { flex: 1; min-width: 0; }
+#app .ucc-name { font-size: 15px; font-weight: 600; color: var(--nm-text1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#app .ucc-dept { font-size: 12px; color: var(--nm-text3); margin-top: 2px; }
+#app .ucc-capacity-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px; font-weight: 600; flex-shrink: 0;
+  padding: 4px 10px; border-radius: 20px;
+}
+#app .ucc-capacity-badge.full    { background: rgba(239,68,68,.08); color: #dc2626; border: 1px solid rgba(239,68,68,.2); }
+#app .ucc-capacity-badge.filling { background: rgba(245,158,11,.08); color: #d97706; border: 1px solid rgba(245,158,11,.2); }
+#app .ucc-capacity-badge.open    { background: rgba(0,179,179,.08); color: var(--nm-teal); border: 1px solid rgba(0,179,179,.2); }
+#app .ucc-capacity-badge.empty   { background: var(--nm-surface2); color: var(--nm-text3); border: 1px solid var(--nm-border); }
+
+/* Occupancy visual track */
+#app .ucc-occ-track {
+  padding: 0 18px 14px;
+}
+#app .ucc-occ-dots {
+  display: flex; gap: 6px; margin-bottom: 8px;
+}
+#app .ucc-occ-dot {
+  flex: 1; height: 6px; border-radius: 3px;
+  background: var(--nm-surface3);
+  transition: background var(--transition-fast);
+}
+#app .ucc-occ-dot.filled { background: var(--nm-teal); }
+#app .ucc-occ-dot.filled.warn { background: #f59e0b; }
+#app .ucc-occ-dot.filled.full { background: #ef4444; }
+
+/* Current residents in the card */
+#app .ucc-residents {
+  padding: 0 18px 10px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+#app .ucc-resident-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; border-radius: 7px;
+  background: var(--nm-surface2);
+  font-size: 12px; color: var(--nm-text2);
+}
+#app .ucc-resident-av {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(0,179,179,.12); border: 1px solid rgba(0,179,179,.25);
+  color: var(--nm-teal); font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+#app .ucc-resident-name { flex: 1; font-weight: 500; }
+#app .ucc-resident-days { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--nm-text3); }
+#app .ucc-empty-slot {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; border-radius: 7px;
+  border: 1px dashed var(--nm-border);
+  font-size: 12px; color: var(--nm-text3);
+}
+
+/* Next opening strip */
+#app .ucc-next-opening {
+  margin: 4px 18px 14px;
+  padding: 7px 10px; border-radius: 8px;
+  background: rgba(0,179,179,.04); border: 1px solid rgba(0,179,179,.12);
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--nm-teal);
+}
+
+/* 30-day timeline strip */
+#app .ucc-timeline {
+  border-top: 1px solid var(--nm-border);
+  padding: 10px 18px;
+  display: flex; gap: 2px; align-items: flex-end;
+}
+#app .ucc-tl-day {
+  flex: 1; border-radius: 2px; cursor: default;
+  min-height: 4px; background: var(--nm-surface3);
+  transition: height var(--transition-fast);
+}
+#app .ucc-tl-day.has-resident  { background: rgba(0,179,179,.35); }
+#app .ucc-tl-day.at-capacity   { background: rgba(239,68,68,.4); }
+#app .ucc-tl-day.is-today      { background: var(--nm-navy); }
+
+/* ══════════════════════════════════════════════════════════════════
+   ABSENCE VIEW — COVERAGE CALENDAR + INTELLIGENCE
+   ══════════════════════════════════════════════════════════════════ */
+
+#app .abs-view-switcher {
+  display: flex; gap: 4px;
+  background: var(--nm-surface2); border-radius: 8px; padding: 3px;
+  margin-left: auto;
+}
+#app .abs-view-btn {
+  padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500;
+  color: var(--nm-text3); cursor: pointer; background: transparent;
+  border: none; transition: all var(--transition-fast);
+  display: flex; align-items: center; gap: 5px;
+}
+#app .abs-view-btn.active {
+  background: var(--nm-surface); color: var(--nm-text1);
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+
+/* Coverage calendar grid */
+#app .abs-calendar {
+  background: var(--nm-surface); border: 1px solid var(--nm-border);
+  border-radius: 12px; overflow: hidden; margin-bottom: 18px;
+  box-shadow: var(--shadow-card);
+}
+#app .abs-cal-header {
+  display: flex; align-items: center;
+  padding: 14px 20px; border-bottom: 1px solid var(--nm-border);
+  gap: 14px;
+}
+#app .abs-cal-nav { display: flex; gap: 4px; }
+#app .abs-cal-nav-btn {
+  width: 30px; height: 30px; border-radius: 7px; display: flex;
+  align-items: center; justify-content: center;
+  background: var(--nm-surface2); border: 1px solid var(--nm-border);
+  cursor: pointer; color: var(--nm-text2); transition: all var(--transition-fast);
+}
+#app .abs-cal-nav-btn:hover { background: var(--nm-surface3); color: var(--nm-text1); }
+#app .abs-cal-title { font-size: 15px; font-weight: 600; color: var(--nm-text1); font-family: 'Instrument Serif', Georgia, serif; }
+
+/* Calendar grid */
+#app .abs-cal-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+}
+#app .abs-cal-dow {
+  text-align: center; font-size: 11px; font-weight: 700; color: var(--nm-text3);
+  text-transform: uppercase; letter-spacing: .06em;
+  padding: 8px 0; border-bottom: 1px solid var(--nm-border);
+  background: var(--nm-surface2);
+}
+#app .abs-cal-day {
+  min-height: 72px; padding: 7px 8px;
+  border-right: 1px solid var(--nm-border);
+  border-bottom: 1px solid var(--nm-border);
+  cursor: pointer; position: relative;
+  transition: background var(--transition-fast);
+}
+#app .abs-cal-day:hover { background: var(--nm-surface2); }
+#app .abs-cal-day.other-month { opacity: .4; background: var(--nm-surface2); }
+#app .abs-cal-day.is-today { background: rgba(0,179,179,.04); }
+#app .abs-cal-day.is-today .abs-cal-day-num { color: var(--nm-teal); font-weight: 700; }
+#app .abs-cal-day.risk-high   { background: rgba(239,68,68,.05); }
+#app .abs-cal-day.risk-medium { background: rgba(245,158,11,.04); }
+#app .abs-cal-day:nth-child(7n) { border-right: none; }
+#app .abs-cal-day-num {
+  font-size: 13px; font-weight: 500; color: var(--nm-text1); margin-bottom: 4px;
+}
+#app .abs-cal-absence-pills { display: flex; flex-direction: column; gap: 2px; }
+#app .abs-cal-pill {
+  font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%;
+}
+#app .abs-cal-pill--vacation  { background: rgba(0,179,179,.1); color: var(--nm-teal); }
+#app .abs-cal-pill--sick      { background: rgba(239,68,68,.1); color: #dc2626; }
+#app .abs-cal-pill--conference{ background: rgba(59,130,246,.1); color: #2563eb; }
+#app .abs-cal-pill--other     { background: rgba(156,163,175,.15); color: #6b7280; }
+#app .abs-cal-risk-bar {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 3px; border-radius: 0;
+}
+#app .abs-cal-risk-bar.low    { background: transparent; }
+#app .abs-cal-risk-bar.medium { background: rgba(245,158,11,.4); }
+#app .abs-cal-risk-bar.high   { background: rgba(239,68,68,.5); }
+
+/* Coverage summary strip */
+#app .abs-coverage-strip {
+  display: flex; gap: 2px; height: 48px; align-items: flex-end;
+  margin-bottom: 14px; padding: 0 4px;
+}
+#app .abs-cov-day {
+  flex: 1; border-radius: 3px 3px 0 0; min-height: 4px;
+  cursor: pointer; position: relative;
+  transition: opacity var(--transition-fast);
+}
+#app .abs-cov-day:hover { opacity: .75; }
+#app .abs-cov-day-tooltip {
+  position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  background: var(--nm-navy); color: #fff; font-size: 10px; padding: 3px 7px;
+  border-radius: 4px; white-space: nowrap; pointer-events: none; opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+#app .abs-cov-day:hover .abs-cov-day-tooltip { opacity: 1; }
+
+/* ══════════════════════════════════════════════════════════════════
+   DASHBOARD — ACTIVE INTELLIGENCE RAIL
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Enhanced stat tiles with sparklines */
+#app .dbsr-stat { position: relative; overflow: hidden; }
+#app .dbsr-sparkline {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 32px; opacity: .4; pointer-events: none;
+}
+#app .dbsr-action-hint {
+  position: absolute; top: 10px; right: 10px;
+  font-size: 10px; color: var(--nm-text3); letter-spacing: .03em;
+  opacity: 0; transition: opacity var(--transition-fast);
+}
+#app .dbsr-stat:hover .dbsr-action-hint { opacity: 1; }
+
+/* Staff row — intelligent hover triggers */
+#app .staff-table-row { cursor: pointer; position: relative; }
+#app .staff-table-row:hover { background: rgba(0,179,179,.025) !important; }
+#app .staff-table-row .intel-trigger {
+  cursor: default;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   POPOVER TRIGGER ZONES — inline name styling
+   ══════════════════════════════════════════════════════════════════ */
+#app .intel-name {
+  position: relative; display: inline;
+}
+#app .intel-name:hover {
+  color: var(--nm-teal);
+  text-decoration: underline; text-decoration-style: dotted;
+  text-underline-offset: 2px; cursor: default;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   MICRO-INTERACTIONS & POLISH
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Staggered entrance animation for list items */
+#app .view-dashboard .dbsr-stat,
+#app .unit-cockpit-card,
+#app .intel-pop-row {
+  animation: slideUp 0.25s cubic-bezier(0.22,1,0.36,1) backwards;
+}
+#app .dbsr-stat:nth-child(1) { animation-delay: .03s; }
+#app .dbsr-stat:nth-child(2) { animation-delay: .06s; }
+#app .dbsr-stat:nth-child(3) { animation-delay: .09s; }
+#app .dbsr-stat:nth-child(4) { animation-delay: .12s; }
+#app .unit-cockpit-card:nth-child(1) { animation-delay: .04s; }
+#app .unit-cockpit-card:nth-child(2) { animation-delay: .08s; }
+#app .unit-cockpit-card:nth-child(3) { animation-delay: .12s; }
+#app .unit-cockpit-card:nth-child(4) { animation-delay: .16s; }
+#app .unit-cockpit-card:nth-child(5) { animation-delay: .20s; }
+#app .unit-cockpit-card:nth-child(6) { animation-delay: .24s; }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   VIEW MODE TOGGLE — shared between modules
+   ══════════════════════════════════════════════════════════════════ */
+#app .view-mode-toggle {
+  display: flex; gap: 1px;
+  background: var(--nm-surface3); border-radius: 8px; padding: 2px;
+}
+#app .vmt-btn {
+  padding: 5px 10px; border-radius: 6px; font-size: 11px;
+  font-weight: 600; cursor: pointer; background: transparent;
+  border: none; color: var(--nm-text3);
+  display: flex; align-items: center; gap: 4px;
+  transition: all var(--transition-fast);
+}
+#app .vmt-btn.active { background: var(--nm-surface); color: var(--nm-text1); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+/* ══════════════════════════════════════════════════════════════════
+   ABSENCE CALENDAR RESPONSIVE
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  #app .dept-pulse-bar { grid-template-columns: 1fr 1fr; }
+  #app .unit-cockpit-grid { grid-template-columns: 1fr; }
+  #app .abs-cal-day { min-height: 52px; }
+  #app .abs-cal-pill { display: none; }
+}
+@media (max-width: 480px) {
+  #app .dept-pulse-bar { grid-template-columns: 1fr 1fr; gap: 6px; padding: 12px; }
+  #app .dpb-num { font-size: 22px; }
+}
+
+
+      /* ═══════════════════════════════════════════════════════════════
+         GLOBAL PHYSICIAN POPOVER SYSTEM
+         Shows on hover over any [data-popover-staff] element
+         ═══════════════════════════════════════════════════════════════ */
+
+      #staffPopover {
+        position:fixed; z-index:9500;
+        width:300px;
+        background:var(--nm-surface);
+        border:1px solid var(--nm-border2);
+        border-radius:var(--r12);
+        box-shadow:var(--shadow-pop);
+        pointer-events:none;
+        opacity:0;
+        transform:translateY(6px) scale(.97);
+        transition:opacity .18s var(--ease-out), transform .18s var(--ease-out);
+        overflow:hidden;
+      }
+      #staffPopover.visible {
+        opacity:1;
+        transform:translateY(0) scale(1);
+        pointer-events:all;
+      }
+      .spop-header {
+        display:flex; align-items:center; gap:12px;
+        padding:16px 16px 12px;
+        background:var(--nm-navy);
+        position:relative;
+        overflow:hidden;
+      }
+      .spop-header::before {
+        content:'';
+        position:absolute; inset:0;
+        background:radial-gradient(ellipse at top right, rgba(0,179,179,.15) 0%, transparent 70%);
+        pointer-events:none;
+      }
+      .spop-avatar {
+        width:44px; height:44px; border-radius:var(--r-pill);
+        display:flex; align-items:center; justify-content:center;
+        font-size:15px; font-weight:700; color:#fff;
+        flex-shrink:0; position:relative;
+        letter-spacing:-.02em;
+      }
+      .spop-avatar::after {
+        content:'';
+        position:absolute; inset:-3px;
+        border-radius:50%;
+        border:2px solid var(--ps-active);
+        opacity:.6;
+      }
+      .spop-avatar.oncall::after { border-color:var(--ps-oncall); opacity:1; animation:spopRing 1.5s ease infinite; }
+      .spop-avatar.leave::after  { border-color:var(--ps-leave); opacity:.8; }
+      .spop-avatar.inactive::after { border-color:var(--ps-inactive); opacity:.3; }
+      @keyframes spopRing {
+        0%,100% { transform:scale(1); opacity:.8; }
+        50%      { transform:scale(1.08); opacity:.4; }
+      }
+      .spop-name   { font-size:14px; font-weight:600; color:#fff; line-height:1.2; }
+      .spop-role   { font-size:11px; color:rgba(255,255,255,.5); margin-top:2px; }
+      .spop-status {
+        margin-left:auto; flex-shrink:0;
+        font-size:10px; font-weight:700; text-transform:uppercase;
+        letter-spacing:.07em; padding:3px 8px; border-radius:var(--r-pill);
+      }
+      .spop-status.active   { background:var(--nm-ok-bg); color:var(--nm-ok); }
+      .spop-status.oncall   { background:rgba(124,58,237,.12); color:#7c3aed; }
+      .spop-status.leave    { background:var(--nm-warn-bg); color:var(--nm-warn); }
+      .spop-status.inactive { background:rgba(0,0,0,.06); color:var(--nm-text3); }
+
+      .spop-body { padding:12px 16px; display:flex; flex-direction:column; gap:10px; }
+
+      .spop-section { display:flex; flex-direction:column; gap:5px; }
+      .spop-section-label {
+        font-size:10px; font-weight:700; text-transform:uppercase;
+        letter-spacing:.07em; color:var(--nm-text3);
+        display:flex; align-items:center; gap:5px;
+      }
+      .spop-section-label svg { opacity:.6; }
+
+      .spop-row {
+        display:flex; align-items:center; gap:8px;
+        font-size:12px; color:var(--nm-text2);
+      }
+      .spop-row-accent { color:var(--nm-text1); font-weight:500; }
+      .spop-badge {
+        font-size:10px; font-weight:600; padding:2px 7px;
+        border-radius:var(--r-pill); flex-shrink:0;
+      }
+      .spop-badge.teal   { background:var(--nm-ok-bg);   color:var(--nm-ok);   }
+      .spop-badge.purple { background:rgba(124,58,237,.08); color:#7c3aed; }
+      .spop-badge.amber  { background:var(--nm-warn-bg); color:var(--nm-warn); }
+      .spop-badge.blue   { background:var(--nm-info-bg); color:var(--nm-info); }
+
+      .spop-none { font-size:12px; color:var(--nm-text3); font-style:italic; }
+
+      .spop-divider { height:1px; background:var(--nm-border); margin:2px 0; }
+
+      .spop-actions {
+        display:flex; gap:6px;
+        padding:10px 16px 14px; border-top:1px solid var(--nm-border);
+      }
+      .spop-action-btn {
+        flex:1; padding:7px 10px; border-radius:var(--r8);
+        border:1px solid var(--nm-border2); background:var(--nm-surface2);
+        font-size:12px; font-weight:500; color:var(--nm-text1);
+        cursor:pointer; text-align:center;
+        transition:background .1s, border-color .1s;
+        display:flex; align-items:center; justify-content:center; gap:5px;
+      }
+      .spop-action-btn:hover { background:var(--nm-surface3); border-color:var(--nm-border2); }
+      .spop-action-btn.primary {
+        background:var(--nm-teal); border-color:var(--nm-teal);
+        color:#fff;
+      }
+      .spop-action-btn.primary:hover { background:#009d9d; }
+
+      /* ═══════════════════════════════════════════════════════════════
+         PEOPLE INTELLIGENCE GRID  (staffView === 'people')
+         ═══════════════════════════════════════════════════════════════ */
+
+      .pig-grid {
+        display:grid;
+        grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+        gap:14px;
+        padding:20px 24px 24px;
+      }
+
+      .pig-card {
+        background:var(--nm-surface);
+        border:1px solid var(--nm-border);
+        border-radius:var(--r12);
+        box-shadow:var(--shadow-1);
+        cursor:pointer;
+        transition:box-shadow .15s var(--ease-out), transform .15s var(--ease-out), border-color .15s;
+        position:relative;
+        overflow:hidden;
+        display:flex; flex-direction:column;
+      }
+      .pig-card:hover {
+        box-shadow:var(--shadow-3);
+        transform:translateY(-2px);
+        border-color:var(--nm-border2);
+      }
+      .pig-card.oncall { border-color:rgba(124,58,237,.25); }
+      .pig-card.oncall::before {
+        content:''; position:absolute; top:0; left:0; right:0; height:2px;
+        background:linear-gradient(90deg, #7c3aed, #a78bfa);
+      }
+      .pig-card.leave { border-color:var(--nm-warn-border); opacity:.85; }
+      .pig-card.inactive { opacity:.55; }
+
+      /* Card body */
+      .pig-body { display:flex; gap:14px; align-items:flex-start; padding:16px 16px 12px; }
+
+      /* Avatar with status ring */
+      .pig-avatar-wrap { position:relative; flex-shrink:0; }
+      .pig-avatar {
+        width:48px; height:48px; border-radius:50%;
+        display:flex; align-items:center; justify-content:center;
+        font-size:16px; font-weight:700; color:#fff; letter-spacing:-.02em;
+        position:relative; z-index:1;
+      }
+      .pig-avatar.attending { background:linear-gradient(135deg, #0e7490, #00b3b3); }
+      .pig-avatar.resident  { background:linear-gradient(135deg, #1e40af, #3b82f6); }
+      .pig-avatar.leave     { background:linear-gradient(135deg, #92400e, #d97706); }
+      .pig-avatar.inactive  { background:var(--nm-surface4); color:var(--nm-text3); }
+
+      /* Animated ring SVG */
+      .pig-ring {
+        position:absolute; top:-4px; left:-4px;
+        width:56px; height:56px;
+        transform:rotate(-90deg);
+        pointer-events:none;
+      }
+      .pig-ring-track { fill:none; stroke:var(--nm-surface3); stroke-width:2; }
+      .pig-ring-fill  {
+        fill:none; stroke-width:2.5;
+        stroke-linecap:round;
+        transition:stroke-dashoffset .6s var(--ease-out);
+      }
+      .pig-ring-fill.active   { stroke:var(--ps-active); }
+      .pig-ring-fill.oncall   { stroke:var(--ps-oncall); }
+      .pig-ring-fill.leave    { stroke:var(--ps-leave); }
+      .pig-ring-fill.inactive { stroke:var(--ps-inactive); stroke-dasharray:0 200; }
+      .pig-ring-fill.resident { stroke:var(--ps-resident); }
+
+      /* Status dot */
+      .pig-status-dot {
+        position:absolute; bottom:1px; right:1px; z-index:2;
+        width:11px; height:11px; border-radius:50%;
+        border:2px solid var(--nm-surface);
+      }
+      .pig-status-dot.active   { background:var(--ps-active); }
+      .pig-status-dot.oncall   { background:var(--ps-oncall); animation:pigPulse 1.8s infinite; }
+      .pig-status-dot.leave    { background:var(--ps-leave); }
+      .pig-status-dot.inactive { background:var(--ps-inactive); }
+      @keyframes pigPulse {
+        0%,100% { box-shadow:0 0 0 0 rgba(124,58,237,.5); }
+        50%      { box-shadow:0 0 0 5px rgba(124,58,237,0); }
+      }
+
+      /* Info side */
+      .pig-info { flex:1; min-width:0; padding-top:2px; }
+      .pig-name {
+        font-size:14px; font-weight:600; color:var(--nm-text1);
+        line-height:1.2; letter-spacing:-.01em;
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      }
+      .pig-role { font-size:11px; color:var(--nm-text3); margin-top:2px; }
+      .pig-spec { font-size:11px; color:var(--nm-text2); margin-top:1px;
+                  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+      /* Status pill in card */
+      .pig-pill {
+        display:inline-flex; align-items:center; gap:4px;
+        font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+        padding:2px 7px; border-radius:var(--r-pill); margin-top:6px;
+        border:1px solid;
+      }
+      .pig-pill.active   { background:var(--nm-ok-bg); color:var(--nm-ok); border-color:var(--nm-ok-border); }
+      .pig-pill.oncall   { background:rgba(124,58,237,.08); color:#7c3aed; border-color:rgba(124,58,237,.2); }
+      .pig-pill.leave    { background:var(--nm-warn-bg); color:var(--nm-warn); border-color:var(--nm-warn-border); }
+      .pig-pill.inactive { background:rgba(0,0,0,.04); color:var(--nm-text3); border-color:var(--nm-border); }
+
+      /* Footer strip */
+      .pig-footer {
+        display:flex; align-items:center; gap:8px;
+        padding:10px 16px;
+        border-top:1px solid var(--nm-border);
+        background:var(--nm-surface2);
+        border-radius:0 0 var(--r12) var(--r12);
+        min-height:36px;
+      }
+      .pig-footer-item {
+        display:flex; align-items:center; gap:4px;
+        font-size:11px; color:var(--nm-text3);
+      }
+      .pig-footer-item svg { color:var(--nm-text4); }
+      .pig-footer-item.active { color:var(--nm-text2); }
+      .pig-footer-item.highlight { color:var(--nm-teal); font-weight:600; }
+      .pig-footer-item.warn { color:var(--nm-warn); font-weight:600; }
+      .pig-footer-item.oncall-today { color:#7c3aed; font-weight:600; }
+      .pig-footer-dot { width:3px; height:3px; border-radius:50%; background:var(--nm-border2); flex-shrink:0; }
+
+      /* Section dividers in grid */
+      .pig-divider {
+        grid-column:1/-1;
+        display:flex; align-items:center; gap:12px;
+        padding:8px 0 4px;
+      }
+      .pig-divider-label {
+        font-size:10px; font-weight:700; text-transform:uppercase;
+        letter-spacing:.1em; color:var(--nm-text3);
+        white-space:nowrap;
+      }
+      .pig-divider-line { flex:1; height:1px; background:var(--nm-border); }
+      .pig-divider-count {
+        font-size:10px; color:var(--nm-text4);
+        font-family:monospace; flex-shrink:0;
+      }
+
+      /* Empty state */
+      .pig-empty {
+        grid-column:1/-1; padding:48px;
+        text-align:center; color:var(--nm-text3);
+      }
+
+      /* ── Responsive ── */
+      @media (max-width:900px) {
+        .pig-grid { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px; padding:14px; }
+      }
+      @media (max-width:600px) {
+        .pig-grid { grid-template-columns:1fr 1fr; gap:8px; padding:10px; }
+        .pig-name  { font-size:13px; }
+        .pig-footer{ display:none; }
+      }
+
+      /* ═══════════════════════════════════════════════════════════════
+         COVERAGE CALENDAR (absenceView === 'calendar')
+         ═══════════════════════════════════════════════════════════════ */
+
+      .cov-cal {
+        padding:20px 24px;
+        display:flex; flex-direction:column; gap:16px;
+      }
+      .cov-cal-nav {
+        display:flex; align-items:center; gap:10px;
+      }
+      .cov-cal-title {
+        font-size:16px; font-weight:600; color:var(--nm-text1);
+        letter-spacing:-.01em;
+      }
+      .cov-cal-btn {
+        width:30px; height:30px; border-radius:var(--r8);
+        border:1px solid var(--nm-border2); background:var(--nm-surface);
+        cursor:pointer; display:flex; align-items:center; justify-content:center;
+        color:var(--nm-text2); transition:background .1s;
+      }
+      .cov-cal-btn:hover { background:var(--nm-surface3); }
+      .cov-today-btn {
+        font-size:11px; font-weight:600; padding:4px 10px; border-radius:var(--r-pill);
+        background:var(--nm-ok-bg); color:var(--nm-ok); border:1px solid var(--nm-ok-border);
+        cursor:pointer;
+      }
+
+      /* Grid: 7 cols = days of week */
+      .cov-grid {
+        display:grid;
+        grid-template-columns:repeat(7,1fr);
+        gap:6px;
+      }
+      .cov-grid-dow {
+        text-align:center; font-size:10px; font-weight:700;
+        text-transform:uppercase; letter-spacing:.07em;
+        color:var(--nm-text3); padding-bottom:4px;
+      }
+      .cov-cell {
+        border-radius:var(--r8);
+        border:1px solid var(--nm-border);
+        background:var(--nm-surface);
+        min-height:72px; padding:6px;
+        cursor:pointer; position:relative;
+        transition:box-shadow .12s, border-color .12s;
+        overflow:hidden;
+      }
+      .cov-cell:hover { box-shadow:var(--shadow-2); border-color:var(--nm-border2); }
+      .cov-cell.today {
+        border-color:var(--nm-teal) !important;
+        box-shadow:0 0 0 1px var(--nm-teal);
+      }
+      .cov-cell.other-month { opacity:.4; }
+      .cov-cell.has-gap     { background:var(--cov-gap); border-color:var(--cov-gap-bd); }
+      .cov-cell.has-risk    { background:var(--cov-partial); border-color:var(--cov-partial-bd); }
+      .cov-cell.full-cover  { background:var(--cov-full); border-color:var(--cov-full-bd); }
+
+      .cov-cell-day {
+        font-size:11px; font-weight:600; color:var(--nm-text2);
+        line-height:1;
+      }
+      .cov-cell.today .cov-cell-day {
+        color:var(--nm-teal); font-weight:700;
+      }
+
+      /* Absence strips in cells */
+      .cov-absence-strip {
+        margin-top:4px; border-radius:3px;
+        height:18px; display:flex; align-items:center;
+        padding:0 5px; font-size:10px; font-weight:600;
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+        cursor:pointer;
+      }
+      .cov-absence-strip.planned  { background:rgba(0,179,179,.12); color:#00b3b3; }
+      .cov-absence-strip.sick     { background:rgba(220,38,38,.1); color:#dc2626; }
+      .cov-absence-strip.conference{ background:rgba(37,99,235,.08); color:#2563eb; }
+      .cov-absence-strip.personal { background:rgba(124,58,237,.08); color:#7c3aed; }
+
+      /* +N more */
+      .cov-more { font-size:10px; color:var(--nm-text3); margin-top:2px; }
+
+      /* Legend */
+      .cov-legend {
+        display:flex; gap:12px; flex-wrap:wrap;
+      }
+      .cov-legend-item {
+        display:flex; align-items:center; gap:5px;
+        font-size:11px; color:var(--nm-text2);
+      }
+      .cov-legend-dot {
+        width:10px; height:10px; border-radius:3px; flex-shrink:0;
+      }
+
+      /* ═══════════════════════════════════════════════════════════════
+         TRAINING UNIT OCCUPANCY CARDS
+         ═══════════════════════════════════════════════════════════════ */
+
+      .tuo-grid {
+        display:grid;
+        grid-template-columns:repeat(auto-fill, minmax(320px,1fr));
+        gap:16px; padding:20px 24px 24px;
+      }
+
+      .tuo-card {
+        background:var(--nm-surface);
+        border:1px solid var(--nm-border);
+        border-radius:var(--r12);
+        box-shadow:var(--shadow-1);
+        display:flex; flex-direction:column;
+        overflow:hidden;
+        cursor:pointer;
+        transition:box-shadow .15s var(--ease-out), transform .15s var(--ease-out), border-color .15s;
+      }
+      .tuo-card:hover { box-shadow:var(--shadow-3); transform:translateY(-2px); border-color:var(--nm-border2); }
+      .tuo-card.full   { border-top:3px solid var(--nm-teal); }
+      .tuo-card.partial{ border-top:3px solid var(--nm-warn); }
+      .tuo-card.empty  { border-top:3px solid var(--nm-danger); opacity:.8; }
+      .tuo-card.inactive{ opacity:.5; border-top:3px solid var(--nm-border2); }
+
+      .tuo-header {
+        display:flex; align-items:flex-start; gap:14px;
+        padding:16px 18px 12px;
+      }
+
+      /* Capacity ring */
+      .tuo-ring-wrap { position:relative; flex-shrink:0; width:52px; height:52px; }
+      .tuo-ring-svg  { transform:rotate(-90deg); width:52px; height:52px; }
+      .tuo-ring-bg   { fill:none; stroke:var(--nm-surface3); stroke-width:4; }
+      .tuo-ring-fill {
+        fill:none; stroke-width:4; stroke-linecap:round;
+        transition:stroke-dashoffset .7s var(--ease-out);
+      }
+      .tuo-ring-fill.full    { stroke:var(--nm-teal); }
+      .tuo-ring-fill.partial { stroke:var(--nm-warn); }
+      .tuo-ring-fill.empty   { stroke:var(--nm-danger); stroke-dasharray:0 200; }
+      .tuo-ring-num {
+        position:absolute; inset:0;
+        display:flex; flex-direction:column;
+        align-items:center; justify-content:center;
+        font-size:16px; font-weight:700; color:var(--nm-text1); line-height:1;
+      }
+      .tuo-ring-denom { font-size:9px; color:var(--nm-text3); font-weight:400; }
+
+      .tuo-title-block { flex:1; min-width:0; }
+      .tuo-name {
+        font-size:15px; font-weight:600; color:var(--nm-text1);
+        line-height:1.2; letter-spacing:-.01em;
+      }
+      .tuo-code {
+        font-size:10px; font-family:monospace; font-weight:600;
+        color:var(--nm-text3); margin-top:3px; text-transform:uppercase;
+        letter-spacing:.08em;
+      }
+      .tuo-dept { font-size:11px; color:var(--nm-text2); margin-top:2px; }
+
+      /* Slot grid */
+      .tuo-slots {
+        display:flex; gap:5px; flex-wrap:wrap;
+        padding:0 18px 14px;
+      }
+      .tuo-slot {
+        width:28px; height:28px; border-radius:var(--r6);
+        border:1.5px dashed var(--nm-border2);
+        display:flex; align-items:center; justify-content:center;
+        font-size:10px; font-weight:700;
+        color:var(--nm-text4); position:relative;
+        transition:all .12s;
+      }
+      .tuo-slot.occupied {
+        background:var(--nm-ok-bg); border:1.5px solid var(--nm-ok-border);
+        color:var(--nm-ok); font-size:9px; cursor:pointer;
+      }
+      .tuo-slot.occupied:hover { background:var(--nm-teal-mid); transform:scale(1.08); }
+      .tuo-slot.ending-soon {
+        background:var(--nm-warn-bg); border-color:var(--nm-warn-border); color:var(--nm-warn);
+      }
+
+      /* Resident list in card */
+      .tuo-residents { display:flex; flex-direction:column; gap:0; }
+      .tuo-resident-row {
+        display:flex; align-items:center; gap:10px;
+        padding:8px 18px; border-top:1px solid var(--nm-border);
+        transition:background .1s;
+      }
+      .tuo-resident-row:hover { background:var(--nm-surface2); }
+      .tuo-res-av {
+        width:28px; height:28px; border-radius:50%;
+        background:linear-gradient(135deg, #1e40af, #3b82f6);
+        display:flex; align-items:center; justify-content:center;
+        font-size:10px; font-weight:700; color:#fff; flex-shrink:0;
+      }
+      .tuo-res-name { font-size:13px; font-weight:500; color:var(--nm-text1); flex:1; min-width:0;
+                      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .tuo-res-days { font-size:11px; font-family:monospace; color:var(--nm-text3); flex-shrink:0; }
+      .tuo-res-days.ending { color:var(--nm-warn); font-weight:600; }
+
+      /* Empty slot CTA */
+      .tuo-empty-slot {
+        padding:12px 18px; border-top:1px solid var(--nm-border);
+        display:flex; align-items:center; gap:8px;
+        font-size:12px; color:var(--nm-text3);
+      }
+      .tuo-empty-slot-fill {
+        display:flex; align-items:center; justify-content:center;
+        width:28px; height:28px; border-radius:var(--r6);
+        border:1.5px dashed var(--nm-border2); color:var(--nm-text4);
+        flex-shrink:0;
+      }
+
+      /* Upcoming gap indicator */
+      .tuo-gap-badge {
+        margin:0 18px 14px;
+        padding:7px 10px; border-radius:var(--r8);
+        background:var(--nm-warn-bg); border:1px solid var(--nm-warn-border);
+        font-size:11px; color:var(--nm-warn); font-weight:500;
+        display:flex; align-items:center; gap:6px;
+      }
+      .tuo-gap-badge.danger {
+        background:var(--nm-danger-bg); border-color:var(--nm-danger-border);
+        color:var(--nm-danger);
+      }
+
+      @media (max-width:900px) {
+        .tuo-grid { grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
+      }
+      @media (max-width:600px) {
+        .tuo-grid { grid-template-columns:1fr; padding:12px; }
       }
 
 
@@ -3033,6 +4386,14 @@
                                 </div>
                             </div>
                             <div class="dbh-actions">
+                                <!-- Department health score pill -->
+                                <div class="dbh-health-pill" v-if="systemSummary.activeStaff > 0"
+                                     :style="{ borderColor: systemSummary.healthColor, color: systemSummary.healthColor }">
+                                    <span class="dbh-health-dot" :style="{ background: systemSummary.healthColor }"></span>
+                                    {{ systemSummary.healthLabel }}
+                                    <span style="opacity:.5;margin:0 2px">·</span>
+                                    <span style="font-family:'IBM Plex Mono',monospace;">{{ systemSummary.healthScore }}%</span>
+                                </div>
                                 <button class="dbh-btn" @click="showAddMedicalStaffModal" v-if="hasPermission('medical_staff','create')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
                                     Add Staff
@@ -3067,9 +4428,10 @@
                                 </div>
                             </template>
                             <template v-else>
-                                <div v-if="!loading" class="dbh-alert dbh-alert--ok">
+                                <div v-if="!loading && situationItems.length === 0" class="dbh-alert dbh-alert--ok">
                                     <span class="dbh-alert-dot"></span>
-                                    <span class="dbh-alert-text">All clear — no urgent items today</span>
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:var(--nm-teal);flex-shrink:0"><path d="M20 6L9 17L4 12"/></svg>
+                                    <span class="dbh-alert-text">{{ systemSummary.activeStaff > 0 ? (systemSummary.todayHasCoverage ? 'On-call covered · ' : '') + systemSummary.activeRotations + ' rotations active · ' + systemSummary.activeStaff + ' staff available' : 'All clear' }}</span>
                                 </div>
                                 <div v-else class="dbh-alert" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08);">
                                     <span class="dbh-alert-dot" style="background:rgba(255,255,255,.2);"></span>
@@ -3081,7 +4443,7 @@
 
                     <!-- 2. STAT RAIL -->
                     <div class="dbsr">
-                        <div class="dbsr-stat" @click="switchView('medical_staff')">
+                        <div class="dbsr-stat" @click="switchView('medical_staff', { status: 'active' })">
                             <div class="dbsr-num">{{ systemStats.totalStaff || 0 }}</div>
                             <div class="dbsr-lbl">Medical Staff</div>
                             <div class="dbsr-pills">
@@ -3091,7 +4453,7 @@
                             </div>
                             <div class="dbsr-accent dbsr-accent--teal"></div>
                         </div>
-                        <div class="dbsr-stat" @click="switchView('resident_rotations')">
+                        <div class="dbsr-stat" @click="switchView('resident_rotations', { rotationStatus: 'active' })">
                             <div class="dbsr-num">{{ systemStats.activeRotations || 0 }}</div>
                             <div class="dbsr-lbl">Active Rotations</div>
                             <div class="dbsr-pills">
@@ -3112,7 +4474,7 @@
                             </div>
                             <div class="dbsr-accent dbsr-accent--amber"></div>
                         </div>
-                        <div class="dbsr-stat" @click="switchView('research_lines')">
+                        <div class="dbsr-stat" @click="switchView('research_hub')">
                             <div class="dbsr-num">{{ analyticsSummary?.researchLines || researchLines.length || 0 }}</div>
                             <div class="dbsr-lbl">Research Lines</div>
                             <div class="dbsr-pills">
@@ -3303,6 +4665,9 @@
                                     <button class="btn-pill" :class="{ active: staffView === 'table' }" @click="staffView = 'table'">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01"/></svg> Table
                                     </button>
+                                    <button class="btn-pill" :class="{ active: staffView === 'people' }" @click="staffView = 'people'">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="3" width="8" height="8" rx="2"/><rect x="14" y="3" width="8" height="8" rx="2"/><rect x="2" y="13" width="8" height="8" rx="2"/><rect x="14" y="13" width="8" height="8" rx="2"/></svg> People
+                                    </button>
                                     <button class="btn-pill" :class="{ active: staffView === 'compact' }" @click="staffView = 'compact'">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg> Compact
                                     </button>
@@ -3310,6 +4675,30 @@
                                 <button class="btn btn-primary" @click="showAddMedicalStaffModal" v-if="hasPermission('medical_staff', 'create')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add Staff</button>
                             </div>
                         </div>
+                        <!-- ── Department Pulse Bar — live availability intelligence ── -->
+                        <div class="dept-pulse-bar" style="margin-bottom:16px;">
+                            <div class="dpb-item" @click="switchView('medical_staff', { status: 'active' })">
+                                <div class="dpb-num dpb-num--teal">{{ deptPulseStats.active }}</div>
+                                <div class="dpb-label">Available</div>
+                                <div class="dpb-sub">active staff</div>
+                            </div>
+                            <div class="dpb-item" @click="switchView('oncall_schedule')">
+                                <div class="dpb-num dpb-num--amber">{{ deptPulseStats.onCallToday }}</div>
+                                <div class="dpb-label">On call today</div>
+                                <div class="dpb-sub">{{ deptPulseStats.onCallToday === 0 ? '⚠ no coverage' : 'physicians' }}</div>
+                            </div>
+                            <div class="dpb-item" @click="switchView('staff_absence')">
+                                <div class="dpb-num" :class="deptPulseStats.onLeave > 2 ? 'dpb-num--red' : deptPulseStats.onLeave > 0 ? 'dpb-num--amber' : ''">{{ deptPulseStats.onLeave }}</div>
+                                <div class="dpb-label">On leave</div>
+                                <div class="dpb-sub">right now</div>
+                            </div>
+                            <div class="dpb-item" @click="switchView('resident_rotations', { rotationStatus: 'active' })">
+                                <div class="dpb-num">{{ deptPulseStats.rotationCount }}</div>
+                                <div class="dpb-label">Rotations</div>
+                                <div class="dpb-sub">active</div>
+                            </div>
+                        </div>
+
                         <div class="filter-bar">
                             <input type="text" class="form-control" v-model="staffFilters.search" placeholder="Search name…" aria-label="Search staff">
                             <!-- Active category filter chip from dept cross-nav -->
@@ -3354,6 +4743,100 @@
                             <div v-if="loading" class="scc-grid" style="padding:16px 24px;pointer-events:none;">
                                 <div v-for="i in 8" :key="i" class="nm-skel-card nm-skeleton" style="height:120px;border-radius:10px;"></div>
                             </div>
+
+                            <!-- ── People Intelligence Grid (staffView === 'people') ── -->
+                            <div v-if="staffView === 'people'">
+                                <div v-if="loading" class="pig-grid" style="pointer-events:none;">
+                                    <div v-for="i in 9" :key="i" class="nm-skel-card nm-skeleton" style="height:148px;border-radius:12px;"></div>
+                                </div>
+                                <div v-else class="pig-grid">
+                                    <template v-for="(item, idx) in compactStaffWithDividers" :key="item.id || 'div-'+idx">
+                                        <!-- Section divider -->
+                                        <div v-if="item._divider" class="pig-divider">
+                                            <span class="pig-divider-label">{{ item._divider }}</span>
+                                            <span class="pig-divider-line"></span>
+                                        </div>
+                                        <!-- People card -->
+                                        <div v-else
+                                             class="pig-card"
+                                             :class="{
+                                                 'oncall':   isOnCallToday(item.id),
+                                                 'leave':    item.employment_status === 'on_leave',
+                                                 'inactive': item.employment_status === 'inactive'
+                                             }"
+                                             @click="viewStaffDetails(item)"
+                                             @mouseenter="showPopover(item, $event)"
+                                             @mouseleave="hidePopover()"
+                                             data-popover-staff>
+
+                                            <div class="pig-body">
+                                                <!-- Avatar with ring -->
+                                                <div class="pig-avatar-wrap">
+                                                    <svg class="pig-ring" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+                                                        <circle class="pig-ring-track" cx="28" cy="28" r="24"/>
+                                                        <circle class="pig-ring-fill"
+                                                                :class="isOnCallToday(item.id) ? 'oncall' : item.employment_status === 'on_leave' ? 'leave' : item.employment_status === 'inactive' ? 'inactive' : isResidentType(item.staff_type) ? 'resident' : 'active'"
+                                                                cx="28" cy="28" r="24"
+                                                                :stroke-dasharray="`${isOnCallToday(item.id) ? 151 : item.employment_status==='inactive' ? 0 : 151} 200`"
+                                                                stroke-dashoffset="0"/>
+                                                    </svg>
+                                                    <div class="pig-avatar"
+                                                         :class="item.employment_status==='on_leave' ? 'leave' : item.employment_status==='inactive' ? 'inactive' : isResidentType(item.staff_type) ? 'resident' : 'attending'">
+                                                        {{ (item.full_name||'').split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('') }}
+                                                    </div>
+                                                    <span class="pig-status-dot"
+                                                          :class="isOnCallToday(item.id) ? 'oncall' : item.employment_status === 'on_leave' ? 'leave' : item.employment_status === 'inactive' ? 'inactive' : 'active'"></span>
+                                                </div>
+
+                                                <!-- Info -->
+                                                <div class="pig-info">
+                                                    <div class="pig-name">{{ item.full_name }}</div>
+                                                    <div class="pig-role">{{ formatStaffType(item.staff_type) }}</div>
+                                                    <div v-if="item.specialization && !isResidentType(item.staff_type)" class="pig-spec">{{ item.specialization }}</div>
+                                                    <div class="pig-pill"
+                                                         :class="isOnCallToday(item.id) ? 'oncall' : item.employment_status==='on_leave' ? 'leave' : item.employment_status==='inactive' ? 'inactive' : 'active'">
+                                                        <span style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;"></span>
+                                                        {{ isOnCallToday(item.id) ? 'On call' : item.employment_status==='on_leave' ? 'On leave' : item.employment_status==='inactive' ? 'Inactive' : 'Available' }}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Footer -->
+                                            <div class="pig-footer">
+                                                <!-- Rotation (residents) -->
+                                                <template v-if="isResidentType(item.staff_type)">
+                                                    <div class="pig-footer-item" :class="getCurrentRotationForStaff(item.id) ? 'active' : ''">
+                                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 12C4 16.4 7.6 20 12 20S20 16.4 20 12 16.4 4 12 4"/><path d="M8 4H12V8"/></svg>
+                                                        {{ getCurrentRotationForStaff(item.id) ? getTrainingUnitName(getCurrentRotationForStaff(item.id).training_unit_id) : 'No rotation' }}
+                                                    </div>
+                                                    <div v-if="getCurrentRotationForStaff(item.id)" class="pig-footer-item" :class="getRotationDaysLeft(item.id) <= 7 ? 'warn' : 'active'" style="margin-left:auto;">
+                                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7V12L15 15"/></svg>
+                                                        {{ getRotationDaysLeft(item.id) }}d
+                                                    </div>
+                                                </template>
+                                                <!-- On-call (attendings) -->
+                                                <template v-else>
+                                                    <div class="pig-footer-item" :class="isOnCallToday(item.id) ? 'oncall-today' : ''">
+                                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3"/></svg>
+                                                        {{ isOnCallToday(item.id) ? 'On call now' : getUpcomingOnCall(item.id).length > 0 ? getUpcomingOnCall(item.id).length + ' shift' + (getUpcomingOnCall(item.id).length>1?'s':'') + ' ahead' : 'No on-call' }}
+                                                    </div>
+                                                </template>
+                                                <!-- Leave indicator -->
+                                                <div v-if="getUpcomingLeave(item.id).length" class="pig-footer-item pig-footer-dot" style="margin-left:auto;"></div>
+                                                <div v-if="getUpcomingLeave(item.id).length" class="pig-footer-item warn">
+                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10H21"/></svg>
+                                                    Leave
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <div v-if="filteredMedicalStaff.length === 0" class="pig-empty">
+                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        <div style="margin-top:12px;font-weight:500;color:var(--nm-text2)">No staff match this filter</div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div v-else class="scc-grid">
 
                             <template v-for="(item, idx) in compactStaffWithDividers" :key="item.id || 'div-'+idx">
@@ -3457,15 +4940,27 @@
                                 <tbody>
                                     <tr v-for="staff in filteredMedicalStaff" :key="staff.id" :class="['row-' + staff.employment_status, 'staff-table-row']" @click="viewStaffDetails(staff)">
                                         <td>
-                                            <div class="staff-name-cell">
+                                            <div class="staff-name-cell"
+                                                 @mouseenter="showIntelPopover(staff.id, $event)"
+                                                 @mouseleave="hideIntelPopover()">
                                                 <div class="staff-table-av"
                                                      :class="staff.employment_status === 'on_leave' ? 'staff-table-av--leave'
                                                            : isResidentType(staff.staff_type) ? 'staff-table-av--resident'
-                                                           : 'staff-table-av--attending'">
+                                                           : 'staff-table-av--attending'"
+                                                     style="position:relative;">
                                                     {{ (staff.full_name||'').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                                                    <!-- Pulse dot on avatar -->
+                                                    <span class="pulse-dot" :class="'pulse-dot--' + getStaffPulseState(staff.id)"
+                                                          style="position:absolute;bottom:1px;right:1px;border:2px solid var(--nm-surface)"></span>
                                                 </div>
                                                 <div style="min-width:0;flex:1;">
                                                     <div class="staff-name-primary">{{ staff.full_name }}</div>
+                                                    <!-- Next event chip -->
+                                                    <div v-if="getStaffNextEvent(staff.id)" style="margin-top:3px;">
+                                                        <span class="staff-next-event" :class="'staff-next-event--' + getStaffNextEvent(staff.id).type">
+                                                            {{ getStaffNextEvent(staff.id).label }}
+                                                        </span>
+                                                    </div>
                                                     <div class="staff-name-sub" v-if="staff.specialization || (isResidentType(staff.staff_type) && staff.resident_category)">
                                                         <span v-if="staff.specialization">{{ staff.specialization }}</span>
                                                         <span v-else-if="isResidentType(staff.staff_type) && staff.resident_category"
@@ -3921,40 +5416,41 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr v-for="staff in availablePhysicians.slice(0,12)" :key="staff.id" class="staff-table-row">
+                                        <tr v-for="row in calloutDistribution.slice(0,12)" :key="row.id" class="staff-table-row"
+                                                :class="{ 'oc-summary-row--high': row.deviation > 40, 'oc-summary-row--low': row.deviation < -30 && row.total > 0 }">
                                             <td>
                                                 <div class="staff-name-cell">
                                                     <div class="staff-table-av staff-table-av--attending">
-                                                        {{ (staff.full_name||'??').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                                                        {{ (row.name||'??').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
                                                     </div>
                                                     <div>
-                                                        <div class="staff-name-primary">{{ staff.full_name }}</div>
-                                                        <div style="font-size:11px;color:var(--nm-text3);">{{ formatStaffType(staff.staff_type) }}</div>
+                                                        <div class="staff-name-primary">{{ row.name }}</div>
+                                                        <div style="font-size:11px;color:var(--nm-text3);">{{ formatStaffType(row.staffType) }}</div>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td style="text-align:center;font-family:monospace;font-weight:500;">
-                                                {{ filteredOnCallSchedules.filter(s => (s.primary_physician_id===staff.id || s.backup_physician_id===staff.id)).length }}
+                                                {{ row.scheduled }}
                                             </td>
                                             <td style="text-align:center;font-family:monospace;font-weight:500;">
-                                                <span :style="(calloutSummary.find(s=>s.staff_id===staff.id)?.total||0) > 3 ? 'color:#e24b4a' : (calloutSummary.find(s=>s.staff_id===staff.id)?.total||0) > 1 ? 'color:#ef9f27' : 'color:#10b981'">
-                                                    {{ calloutSummary.find(s=>s.staff_id===staff.id)?.total || 0 }}
+                                                <span :style="row.callouts > 3 ? 'color:#e24b4a' : row.callouts > 1 ? 'color:#ef9f27' : 'color:#10b981'">
+                                                    {{ row.callouts }}
                                                 </span>
                                             </td>
                                             <td style="text-align:center;font-family:monospace;font-size:12px;color:#7c3aed;">
-                                                {{ calloutSummary.find(s=>s.staff_id===staff.id)?.night || 0 }}
+                                                {{ row.night }}
                                             </td>
                                             <td style="text-align:center;font-family:monospace;font-size:12px;color:#92400e;">
-                                                {{ calloutSummary.find(s=>s.staff_id===staff.id)?.weekend || 0 }}
+                                                {{ row.weekend }}
                                             </td>
                                             <td style="text-align:center;">
                                                 <span style="font-size:12px;font-weight:600;font-family:monospace;background:var(--nm-surface2);padding:3px 9px;border-radius:5px;">
-                                                    {{ (filteredOnCallSchedules.filter(s=>s.primary_physician_id===staff.id||s.backup_physician_id===staff.id).length) + (calloutSummary.find(s=>s.staff_id===staff.id)?.total||0) }}
+                                                    {{ row.total }}
                                                 </span>
                                             </td>
                                             <td>
                                                 <div style="width:80px;height:5px;background:var(--nm-surface3);border-radius:3px;overflow:hidden;">
-                                                    <div :style="{ width: Math.min(100, Math.round(((filteredOnCallSchedules.filter(s=>s.primary_physician_id===staff.id||s.backup_physician_id===staff.id).length)+(calloutSummary.find(s=>s.staff_id===staff.id)?.total||0)) / Math.max(1, availablePhysicians.reduce((a,p) => a + (filteredOnCallSchedules.filter(s=>s.primary_physician_id===p.id||s.backup_physician_id===p.id).length)+(calloutSummary.find(s=>s.staff_id===p.id)?.total||0), 0) / Math.max(1, availablePhysicians.length) * 2) * 100))+'%', height:'100%', borderRadius:'3px', background:'#07111f' }"></div>
+                                                    <div :style="{ width: Math.min(100, Math.round(row.total / Math.max(1, row.avg * 2) * 100)) + '%', height:'100%', borderRadius:'3px', background: row.deviation > 40 ? '#e24b4a' : row.deviation > 15 ? '#ef9f27' : '#10b981' }"></div>
                                                 </div>
                                             </td>
                                         </tr>
@@ -4278,9 +5774,13 @@
                                         :title="rotation.rotation_status === 'terminated_early' ? 'Terminated early — this rotation was ended before completion' : rotation.rotation_status === 'completed' ? 'Completed rotation' : ''"
                                         @click="hasPermission('resident_rotations', 'update') && editRotation(rotation)">
                                         <td>
-                                            <div class="staff-name-cell">
-                                                <div class="staff-table-av staff-table-av--resident">
+                                            <div class="staff-name-cell"
+                                                 @mouseenter.stop="showIntelPopover(rotation.resident_id, $event)"
+                                                 @mouseleave.stop="hideIntelPopover()">
+                                                <div class="staff-table-av staff-table-av--resident" style="position:relative;">
                                                     {{ (getResidentName(rotation.resident_id)||'??').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                                                    <span class="pulse-dot" :class="'pulse-dot--' + getStaffPulseState(rotation.resident_id)"
+                                                          style="position:absolute;bottom:1px;right:1px;border:2px solid var(--nm-surface)"></span>
                                                 </div>
                                                 <div class="staff-name-block">
                                                     <div class="staff-name-primary"
@@ -4571,8 +6071,10 @@
                                             <!-- Active rotations -->
                                             <div v-for="rot in getUnitRotations(unit.id).filter(r => r.rotation_status === 'active')" :key="'a-'+rot.id" class="tuc-resident-row tuc-resident-row--active">
                                                 <div class="tuc-res-avatar">{{ (getResidentShortName(rot.resident_id)||'??').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}</div>
-                                                <div class="tuc-res-info">
-                                                    <span class="tuc-res-name">{{ getResidentShortName(rot.resident_id) || '—' }}</span>
+                                                <div class="tuc-res-info"
+                                                     @mouseenter="showIntelPopover(rot.resident_id, $event)"
+                                                     @mouseleave="hideIntelPopover()">
+                                                    <span class="tuc-res-name intel-name">{{ getResidentShortName(rot.resident_id) || '—' }}</span>
                                                     <span class="tuc-res-dates">→ {{ new Date(rot.end_date+'T00:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'short'}) }}</span>
                                                 </div>
                                                 <span v-if="getDaysUntilFree(rot.end_date) <= 45 && getDaysUntilFree(rot.end_date) > 0" class="tuc-free-chip">Free in {{ getDaysUntilFree(rot.end_date) }}d</span>
@@ -4580,8 +6082,10 @@
                                             <!-- Scheduled rotations -->
                                             <div v-for="rot in getUnitRotations(unit.id).filter(r => r.rotation_status === 'scheduled')" :key="'s-'+rot.id" class="tuc-resident-row tuc-resident-row--scheduled">
                                                 <div class="tuc-res-avatar">{{ (getResidentShortName(rot.resident_id)||'??').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}</div>
-                                                <div class="tuc-res-info">
-                                                    <span class="tuc-res-name">{{ getResidentShortName(rot.resident_id) || '—' }}</span>
+                                                <div class="tuc-res-info"
+                                                     @mouseenter="showIntelPopover(rot.resident_id, $event)"
+                                                     @mouseleave="hideIntelPopover()">
+                                                    <span class="tuc-res-name intel-name">{{ getResidentShortName(rot.resident_id) || '—' }}</span>
                                                     <span class="tuc-res-dates">{{ new Date(rot.start_date+'T00:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'short'}) }}</span>
                                                 </div>
                                                 <span class="tuc-sched-badge">Sched</span>
@@ -4595,13 +6099,25 @@
                                             </div>
                                         </div>
 
-                                        <!-- Capacity bar + count -->
+                                        <!-- Occupancy dots + capacity count -->
                                         <div class="tuc-card-footer">
-                                            <div class="tuc-cap-bar" style="flex:1">
-                                                <div class="tuc-cap-fill" :style="{ width: Math.min(100,Math.round((getUnitActiveRotationCount(unit.id)/unit.maximum_residents)*100))+'%', background: getUnitActiveRotationCount(unit.id) >= unit.maximum_residents ? '#e24b4a' : getUnitActiveRotationCount(unit.id)/unit.maximum_residents > 0.5 ? '#ef9f27' : '#10b981' }"></div>
+                                            <div class="ucc-occ-dots" style="flex:1;margin:0">
+                                                <template v-for="slot in unit.maximum_residents" :key="slot">
+                                                    <div class="ucc-occ-dot"
+                                                         :class="{ filled: slot <= getUnitActiveRotationCount(unit.id), warn: slot <= getUnitActiveRotationCount(unit.id) && getUnitActiveRotationCount(unit.id)/unit.maximum_residents > 0.5 && getUnitActiveRotationCount(unit.id) < unit.maximum_residents, full: slot <= getUnitActiveRotationCount(unit.id) && getUnitActiveRotationCount(unit.id) >= unit.maximum_residents }"></div>
+                                                </template>
                                             </div>
                                             <span class="tuc-cap-label">{{ getUnitActiveRotationCount(unit.id) }}/{{ unit.maximum_residents }}</span>
-                                            <span v-if="getUnitScheduledCount(unit.id) > 0" style="font-size:9.5px;color:#3b82f6;font-family:monospace;font-weight:600">+{{ getUnitScheduledCount(unit.id) }} sched</span>
+                                            <span v-if="getUnitScheduledCount(unit.id) > 0" style="font-size:9.5px;color:#3b82f6;font-family:monospace;font-weight:600">+{{ getUnitScheduledCount(unit.id) }}</span>
+                                        </div>
+                                        <!-- 30-day forward timeline strip -->
+                                        <div class="ucc-timeline" style="padding:8px 14px 10px;gap:1px;">
+                                            <div v-for="(day, i) in getUnit30DayTimeline(unit.id)" :key="i"
+                                                 class="ucc-tl-day"
+                                                 :class="{ 'has-resident': day.active > 0 && !day.full, 'at-capacity': day.full, 'is-today': day.isToday }"
+                                                 :style="{ height: day.full ? '14px' : day.active > 0 ? '10px' : '5px' }"
+                                                 :title="day.isToday ? 'Today: ' + day.active + ' resident(s)' : ''">
+                                            </div>
                                         </div>
                                     </div>
                                 </template>
@@ -4658,7 +6174,27 @@
                     <div class="card mb-6">
                         <div class="card-header">
                             <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2v-2a4 4 0 0 1 4-4h3"/><circle cx="9" cy="7" r="4"/><circle cx="17" cy="17" r="4"/><path d="M17 15v2l1 1"/></svg> Staff Absence</div>
+                            <div style="display:flex;gap:8px;align-items:center">
+                                <div class="view-toggle">
+                                    <button class="btn-pill" :class="{ active: absenceView === 'calendar' }" @click="absenceView = 'calendar'">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Calendar
+                                    </button>
+                                    <button class="btn-pill" :class="{ active: absenceView === 'list' }" @click="absenceView = 'list'">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01"/></svg> List
+                                    </button>
+                                </div>
                             <button class="btn btn-primary" @click="showAddAbsenceModal" v-if="hasPermission('staff_absence', 'create')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Record Absence</button>
+                            <!-- View mode toggle -->
+                            <div class="view-mode-toggle">
+                                <button class="vmt-btn" :class="{ active: absenceViewMode === 'table' }" @click="absenceViewMode = 'table'">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9H21M3 15H21M9 3V21"/></svg>
+                                    Table
+                                </button>
+                                <button class="vmt-btn" :class="{ active: absenceViewMode === 'calendar' }" @click="absenceViewMode = 'calendar'">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2V6M8 2V6M3 10H21"/></svg>
+                                    Calendar
+                                </button>
+                            </div>
                         </div>
                         <div class="filter-bar">
                             <select class="form-select" v-model="absenceFilters.staff">
@@ -4690,7 +6226,7 @@
                             <input type="date" class="form-control" v-model="absenceFilters.startDate" style="max-width:160px;min-width:130px">
                             <input type="text" class="form-control" v-model="absenceFilters.search" placeholder="Search..." style="flex:1;max-width:220px;min-width:120px">
                         </div>
-                        <div class="table-responsive">
+                        <div v-show="absenceViewMode === 'table'" class="table-responsive">ve">
                             <table class="table table-striped table-absence">
                                 <thead>
                                     <tr>
@@ -4715,10 +6251,15 @@
                                         }"
                                         @click="hasPermission('staff_absence', 'update') && editAbsence(absence)">
                                         <td>
-                                            <div class="staff-name-cell">
+                                            <div class="staff-name-cell"
+                                                 @mouseenter.stop="showIntelPopover(absence.staff_member_id, $event)"
+                                                 @mouseleave.stop="hideIntelPopover()">
                                                 <div class="staff-table-av"
-                                                     :class="absence.current_status === 'currently_absent' ? 'staff-table-av--leave' : 'staff-table-av--attending'">
+                                                     :class="absence.current_status === 'currently_absent' ? 'staff-table-av--leave' : 'staff-table-av--attending'"
+                                                     style="position:relative;">
                                                     {{ (getStaffName(absence.staff_member_id)||'??').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                                                    <span class="pulse-dot" :class="'pulse-dot--' + getStaffPulseState(absence.staff_member_id)"
+                                                          style="position:absolute;bottom:1px;right:1px;border:2px solid var(--nm-surface)"></span>
                                                 </div>
                                                 <div class="staff-name-primary">{{ getStaffName(absence.staff_member_id) }}</div>
                                             </div>
@@ -4758,6 +6299,96 @@
                                 <button class="btn-pill" @click="goToPage('absences', pagination.absences.page + 1)" :disabled="pagination.absences.page === absenceTotalPages"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></button>
                             </div>
                         </div>
+                        <!-- ── COVERAGE STRIP — 30-day forward availability ── -->
+                        <div style="margin-bottom:16px;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                                <span style="font-size:12px;font-weight:600;color:var(--nm-text3);text-transform:uppercase;letter-spacing:.06em;">30-day coverage forecast</span>
+                                <span style="font-size:11px;color:var(--nm-text3);">{{ absCoverage30.filter(d=>d.pct < 0.8).length }} days below 80% coverage</span>
+                            </div>
+                            <div class="abs-coverage-strip">
+                                <div v-for="day in absCoverage30" :key="day.date"
+                                     class="abs-cov-day"
+                                     :style="{
+                                       height: Math.max(8, Math.round(day.pct * 44)) + 'px',
+                                       background: day.pct >= 0.85 ? 'var(--nm-teal)' : day.pct >= 0.7 ? '#f59e0b' : '#ef4444',
+                                       opacity: day.isToday ? 1 : 0.5 + day.pct * 0.5
+                                     }">
+                                    <div class="abs-cov-day-tooltip">
+                                        {{ day.label }}<br>{{ day.available }}/{{ day.available + day.absent }} available
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ── CALENDAR VIEW ── -->
+                        <div v-show="absenceViewMode === 'calendar'">
+                            <div class="abs-calendar">
+                                <!-- Calendar header -->
+                                <div class="abs-cal-header">
+                                    <div class="abs-cal-nav">
+                                        <button class="abs-cal-nav-btn" @click="absCalPrevMonth">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+                                        </button>
+                                        <button class="abs-cal-nav-btn" @click="absCalNextMonth">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                                        </button>
+                                    </div>
+                                    <span class="abs-cal-title">{{ absCalendarTitle }}</span>
+                                    <button class="btn btn-ghost btn-sm" style="margin-left:auto;font-size:11px"
+                                            @click="absCalendarMonth = new Date().getMonth(); absCalendarYear = new Date().getFullYear()">
+                                        Today
+                                    </button>
+                                    <!-- Legend -->
+                                    <div style="display:flex;align-items:center;gap:12px;font-size:11px;color:var(--nm-text3);margin-left:12px;">
+                                        <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:2px;background:rgba(239,68,68,.4);display:inline-block"></span> High risk</span>
+                                        <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:2px;background:rgba(245,158,11,.3);display:inline-block"></span> Medium</span>
+                                    </div>
+                                </div>
+                                <!-- Day-of-week headers -->
+                                <div class="abs-cal-grid">
+                                    <div class="abs-cal-dow" v-for="dow in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']" :key="dow">{{ dow }}</div>
+                                    <!-- Calendar days -->
+                                    <div v-for="day in absCalendarDays" :key="day.date"
+                                         class="abs-cal-day"
+                                         :class="{
+                                           'other-month': day.otherMonth,
+                                           'is-today': day.isToday,
+                                           'risk-high': day.risk === 'high' && !day.otherMonth,
+                                           'risk-medium': day.risk === 'medium' && !day.otherMonth
+                                         }"
+                                         @click="!day.otherMonth && (absenceFilters.startDate = day.date); absenceViewMode = 'table'">
+                                        <div class="abs-cal-day-num">{{ day.day }}</div>
+                                        <div class="abs-cal-absence-pills">
+                                            <template v-for="(abs, ai) in day.absences.slice(0, 3)" :key="abs.id || ai">
+                                                <div class="abs-cal-pill"
+                                                     :class="'abs-cal-pill--' + (abs.absence_reason === 'vacation' ? 'vacation' : abs.absence_reason === 'sick_leave' ? 'sick' : abs.absence_reason === 'conference' ? 'conference' : 'other')"
+                                                     :title="(medicalStaff.find(s=>s.id===abs.staff_member_id)?.full_name || 'Staff') + ' · ' + formatAbsenceReason(abs.absence_reason)">
+                                                    {{ (medicalStaff.find(s=>s.id===abs.staff_member_id)?.full_name || '?').split(' ').map(n=>n[0]).join('').slice(0,3) }}
+                                                </div>
+                                            </template>
+                                            <div v-if="day.absences.length > 3" class="abs-cal-pill abs-cal-pill--other">+{{ day.absences.length - 3 }}</div>
+                                        </div>
+                                        <!-- Risk indicator bar -->
+                                        <div class="abs-cal-risk-bar" v-if="!day.otherMonth && day.risk !== 'none'"
+                                             :style="{ background: day.risk === 'high' ? 'rgba(239,68,68,.5)' : day.risk === 'medium' ? 'rgba(245,158,11,.4)' : 'transparent' }"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Quick stats below calendar -->
+                            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;" v-if="absCalendarDays.filter(d=>!d.otherMonth).length > 0">
+                                <div v-for="(stat, i) in [
+                                    { label: 'Total absences', val: absCalendarDays.filter(d=>!d.otherMonth).reduce((s,d)=>s+d.absences.length,0), color: 'var(--nm-text1)' },
+                                    { label: 'High-risk days', val: absCalendarDays.filter(d=>!d.otherMonth && d.risk==='high').length, color: '#dc2626' },
+                                    { label: 'Medium-risk days', val: absCalendarDays.filter(d=>!d.otherMonth && d.risk==='medium').length, color: '#d97706' },
+                                    { label: 'Clear days', val: absCalendarDays.filter(d=>!d.otherMonth && d.risk==='none').length, color: 'var(--nm-teal)' },
+                                ]" :key="i"
+                                     style="background:var(--nm-surface);border:1px solid var(--nm-border);border-radius:10px;padding:12px 14px;text-align:center;">
+                                    <div style="font-size:24px;font-weight:700;font-family:'DM Mono',monospace;line-height:1;" :style="{color:stat.color}">{{ stat.val }}</div>
+                                    <div style="font-size:11px;color:var(--nm-text3);margin-top:4px;text-transform:uppercase;letter-spacing:.05em;">{{ stat.label }}</div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -6897,7 +8528,89 @@
 
         
 
-        <!-- ============================================================
+        
+
+        <!-- ═══════════════════════════════════════════════════════
+             GLOBAL PHYSICIAN HOVER POPOVER
+        ═══════════════════════════════════════════════════════ -->
+        <div id="staffPopover" role="tooltip">
+            <template v-if="popover.staff">
+                <div class="spop-header">
+                    <div class="spop-avatar"
+                         :class="isOnCallToday(popover.staff.id) ? 'oncall' : popover.staff.employment_status === 'on_leave' ? 'leave' : popover.staff.employment_status === 'inactive' ? 'inactive' : ''"
+                         :style="{ background: isResidentType(popover.staff.staff_type) ? 'linear-gradient(135deg,#1e40af,#3b82f6)' : 'linear-gradient(135deg,#0e7490,#00b3b3)' }">
+                        {{ (popover.staff.full_name||'').split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('') }}
+                    </div>
+                    <div>
+                        <div class="spop-name">{{ popover.staff.full_name }}</div>
+                        <div class="spop-role">{{ formatStaffType(popover.staff.staff_type) }}</div>
+                    </div>
+                    <div class="spop-status"
+                         :class="isOnCallToday(popover.staff.id) ? 'oncall' : popover.staff.employment_status === 'on_leave' ? 'leave' : popover.staff.employment_status === 'inactive' ? 'inactive' : 'active'">
+                        {{ isOnCallToday(popover.staff.id) ? 'On call' : popover.staff.employment_status === 'on_leave' ? 'On leave' : popover.staff.employment_status === 'inactive' ? 'Inactive' : 'Available' }}
+                    </div>
+                </div>
+                <div class="spop-body">
+                    <!-- Current rotation (residents) -->
+                    <div class="spop-section" v-if="isResidentType(popover.staff.staff_type)">
+                        <div class="spop-section-label">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 12C4 16.4 7.6 20 12 20C16.4 20 20 16.4 20 12C20 7.6 16.4 4 12 4"/><path d="M8 4H12V8"/></svg>
+                            Current Rotation
+                        </div>
+                        <div v-if="getCurrentRotationForStaff(popover.staff.id)" class="spop-row">
+                            <span class="spop-badge teal">{{ getTrainingUnitName(getCurrentRotationForStaff(popover.staff.id).training_unit_id) }}</span>
+                            <span style="color:var(--nm-text3);font-size:11px;">{{ getRotationDaysLeft(popover.staff.id) }} days left</span>
+                        </div>
+                        <div v-else class="spop-none">No active rotation</div>
+                    </div>
+                    <!-- On-call shifts -->
+                    <div class="spop-section">
+                        <div class="spop-section-label">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3"/></svg>
+                            Next On-call
+                        </div>
+                        <template v-if="getUpcomingOnCall(popover.staff.id).slice(0,2).length">
+                            <div v-for="shift in getUpcomingOnCall(popover.staff.id).slice(0,2)" :key="shift.id" class="spop-row">
+                                <span class="spop-badge" :class="shift.shift_type==='primary_call'?'purple':'blue'">
+                                    {{ shift.shift_type==='primary_call' ? 'Primary' : 'Backup' }}
+                                </span>
+                                <span>{{ shift.duty_date ? new Date(shift.duty_date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}) : '—' }}</span>
+                            </div>
+                        </template>
+                        <div v-else class="spop-none">No upcoming on-call</div>
+                    </div>
+                    <!-- Leave -->
+                    <div class="spop-section" v-if="getUpcomingLeave(popover.staff.id).length">
+                        <div class="spop-section-label">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10H21M8 3V7M16 3V7"/></svg>
+                            Upcoming Leave
+                        </div>
+                        <div v-for="leave in getUpcomingLeave(popover.staff.id).slice(0,1)" :key="leave.id" class="spop-row">
+                            <span class="spop-badge amber">{{ formatAbsenceReason(leave.absence_reason) }}</span>
+                            <span style="font-size:11px;color:var(--nm-text2);">{{ formatDate(leave.start_date) }}</span>
+                        </div>
+                    </div>
+                    <!-- Contact -->
+                    <div class="spop-divider"></div>
+                    <div class="spop-row" v-if="popover.staff.professional_email">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--nm-text3)" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 9L12 15L21 9"/></svg>
+                        <span style="color:var(--nm-text2);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ popover.staff.professional_email }}</span>
+                    </div>
+                </div>
+                <div class="spop-actions">
+                    <button class="spop-action-btn" @click.stop="viewStaffDetails(popover.staff); hidePopover()">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20C4 17 7.6 15 12 15C16.4 15 20 17 20 20"/></svg>
+                        Profile
+                    </button>
+                    <button class="spop-action-btn primary" @click.stop="showAddOnCallModal(popover.staff); hidePopover()" v-if="hasPermission('oncall_schedule','create')">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3"/></svg>
+                        On-call
+                    </button>
+                </div>
+            </template>
+        </div>
+
+<!-- ============================================================
              NEWS READER DRAWER
         ============================================================ -->
         <template v-if="newsDrawer.show && newsDrawer.post">
@@ -7801,7 +9514,7 @@
                             </div>
                             <div class="sm-field">
                                 <div class="sm-label">Shift Type <span class="req">·</span></div>
-                                <select class="sm-select" v-model="onCallModal.form.shift_type">
+                                <select class="sm-select" v-model="onCallModal.form.shift_type" :class="{'is-invalid': fieldErrors.oncall?.shift_type}">
                                     <option value="primary_call">Primary Call</option>
                                     <option value="backup_call">Backup Call</option>
                                     <option value="float_physician">Float Physician</option>
@@ -7812,11 +9525,11 @@
                         <div class="sm-row">
                             <div class="sm-field">
                                 <div class="sm-label">Start Time</div>
-                                <input type="time" class="sm-input" v-model="onCallModal.form.start_time">
+                                <input type="time" class="sm-input" v-model="onCallModal.form.start_time" :class="{'is-invalid': fieldErrors.oncall?.start_time}">
                             </div>
                             <div class="sm-field">
                                 <div class="sm-label">End Time</div>
-                                <input type="time" class="sm-input" v-model="onCallModal.form.end_time">
+                                <input type="time" class="sm-input" v-model="onCallModal.form.end_time" :class="{'is-invalid': fieldErrors.oncall?.end_time}">
                             </div>
                         </div>
                         <div class="sm-divider">Staff assignment</div>
@@ -8095,7 +9808,7 @@
                         <div class="sm-row">
                             <div class="sm-field">
                                 <div class="sm-label">Category</div>
-                                <select class="sm-select" v-model="rotationModal.form.rotation_category">
+                                <select class="sm-select" v-model="rotationModal.form.rotation_category" :class="{'is-invalid': fieldErrors.rotation?.rotation_category}">
                                     <option value="clinical_rotation">Clinical Rotation</option>
                                     <option value="elective_rotation">Elective Rotation</option>
                                     <option value="research_block">Research Block</option>
@@ -10550,6 +12263,96 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg><span>More</span>
             </button>
         </nav>
+
+    <!-- ══════════════════════════════════════════════════
+         HOVER INTELLIGENCE POPOVER
+         Teleports to body position, triggered by staff hover
+         ══════════════════════════════════════════════════ -->
+    <teleport to="body">
+      <div v-if="hoverPopover.show && hoverPopover.data"
+           class="intel-popover-wrap"
+           :class="{ entering: hoverPopover.entering }"
+           :style="{ left: hoverPopover.x + 'px', top: hoverPopover.y + 'px' }">
+        <div class="intel-pop">
+          <!-- Header: avatar + name + pulse -->
+          <div class="intel-pop-header">
+            <div class="intel-pop-av"
+                 :class="'pulse-' + hoverPopover.data.pulse"
+                 :style="{ background: hoverPopover.data.pulse === 'leave' ? '#ef4444' : hoverPopover.data.pulse === 'oncall' ? '#f59e0b' : hoverPopover.data.pulse === 'ending' ? '#8b5cf6' : 'var(--nm-teal)' }">
+              {{ (hoverPopover.data.staff.full_name||'').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+            </div>
+            <div>
+              <div class="intel-pop-name">{{ hoverPopover.data.staff.full_name }}</div>
+              <div class="intel-pop-role">{{ formatStaffType(hoverPopover.data.staff.staff_type) }}</div>
+              <span class="intel-pop-status"
+                    :style="{ background: hoverPopover.data.pulse==='available' ? 'rgba(0,179,179,.08)' : hoverPopover.data.pulse==='oncall' ? 'rgba(245,158,11,.1)' : hoverPopover.data.pulse==='leave' ? 'rgba(239,68,68,.08)' : 'rgba(139,92,246,.08)', color: hoverPopover.data.pulse==='available' ? 'var(--nm-teal)' : hoverPopover.data.pulse==='oncall' ? '#d97706' : hoverPopover.data.pulse==='leave' ? '#dc2626' : '#7c3aed' }">
+                <span style="width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block"></span>
+                {{ hoverPopover.data.pulse === 'available' ? 'Available' : hoverPopover.data.pulse === 'oncall' ? 'On call today' : hoverPopover.data.pulse === 'leave' ? 'On leave' : hoverPopover.data.pulse === 'ending' ? 'Rotation ending soon' : 'Inactive' }}
+              </span>
+            </div>
+          </div>
+          <!-- Body: contextual info -->
+          <div class="intel-pop-body">
+            <!-- Current rotation -->
+            <template v-if="hoverPopover.data.currentRot">
+              <div class="intel-pop-row">
+                <svg class="intel-pop-row-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 12C4 16.4 7.6 20 12 20S20 16.4 20 12 16.4 4 12 4"/><path d="M8 4H12V8"/></svg>
+                <div class="intel-pop-row-content">
+                  <div class="intel-pop-row-label">Rotation</div>
+                  <div class="intel-pop-row-val">{{ getTrainingUnitName(hoverPopover.data.currentRot.training_unit_id) }}</div>
+                  <div class="intel-pop-mini-bar">
+                    <div class="intel-pop-mini-fill"
+                         :style="{ width: Math.min(100, Math.round((new Date() - new Date(hoverPopover.data.currentRot.start_date)) / (new Date(hoverPopover.data.currentRot.end_date) - new Date(hoverPopover.data.currentRot.start_date)) * 100)) + '%', background: 'var(--nm-teal)' }"></div>
+                  </div>
+                  <div class="intel-pop-row-label" style="margin-top:2px">
+                    Ends {{ formatDate(hoverPopover.data.currentRot.end_date) }} · {{ Math.max(0, Math.ceil((new Date(hoverPopover.data.currentRot.end_date) - new Date()) / 86400000)) }}d left
+                  </div>
+                </div>
+              </div>
+              <div class="intel-pop-divider"></div>
+            </template>
+            <!-- Current leave -->
+            <template v-if="hoverPopover.data.currentLeave">
+              <div class="intel-pop-row">
+                <svg class="intel-pop-row-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10H21M8 3V7M16 3V7"/></svg>
+                <div class="intel-pop-row-content">
+                  <div class="intel-pop-row-label">On leave</div>
+                  <div class="intel-pop-row-val" style="color:#dc2626">{{ formatAbsenceReason(hoverPopover.data.currentLeave.absence_reason) }} · returns {{ formatDate(hoverPopover.data.currentLeave.end_date) }}</div>
+                </div>
+              </div>
+              <div class="intel-pop-divider"></div>
+            </template>
+            <!-- Next on-call shifts -->
+            <template v-if="hoverPopover.data.upcomingOC.length > 0">
+              <div class="intel-pop-row">
+                <svg class="intel-pop-row-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3C11.2 3 9 7.5 12 11C15 14.5 21 12.8 21 12.8Z"/></svg>
+                <div class="intel-pop-row-content">
+                  <div class="intel-pop-row-label">Upcoming on-call</div>
+                  <div v-for="oc in hoverPopover.data.upcomingOC.slice(0,2)" :key="oc.id" class="intel-pop-row-val" style="font-size:12px">
+                    {{ formatDate(oc.duty_date) }} · {{ oc.start_time?.substring(0,5) }}–{{ oc.end_time?.substring(0,5) }}
+                  </div>
+                </div>
+              </div>
+            </template>
+            <!-- No events — clean state -->
+            <template v-if="!hoverPopover.data.currentRot && !hoverPopover.data.currentLeave && hoverPopover.data.upcomingOC.length === 0">
+              <div class="intel-pop-row">
+                <svg class="intel-pop-row-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--nm-teal)" stroke-width="1.5" stroke-linecap="round"><path d="M20 6L9 17L4 12"/></svg>
+                <div class="intel-pop-row-val" style="color:var(--nm-teal)">Available — no upcoming commitments</div>
+              </div>
+            </template>
+            <!-- Contact -->
+            <div class="intel-pop-divider"></div>
+            <div class="intel-pop-row" v-if="hoverPopover.data.staff.professional_email || hoverPopover.data.staff.mobile_phone">
+              <svg class="intel-pop-row-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 9L12 15L21 9"/></svg>
+              <div class="intel-pop-row-content">
+                <div class="intel-pop-row-val" style="font-size:12px">{{ hoverPopover.data.staff.professional_email || hoverPopover.data.staff.mobile_phone }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </teleport>
 
     </div><!-- end app-layout -->
 </div><!-- end #app -->
