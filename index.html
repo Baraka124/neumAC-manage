@@ -3846,6 +3846,87 @@
       }
 
 
+      /* ═══════════════════════════════════════════════
+         LAYOUT FIXES — content-area fullheight + scroll
+         ═══════════════════════════════════════════════ */
+
+      /* Full-height views: no padding, flex column, fills viewport */
+      #app .content-area--fullheight {
+        padding: 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 !important;
+        min-height: 0 !important;
+        height: 100% !important;
+      }
+
+      /* Research hub: fill height and enable inner scroll */
+      #app .research-hub {
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        height: 100% !important;
+      }
+      #app .rhub-body {
+        flex: 1 !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+      }
+      #app .rhub-panel {
+        height: 100% !important;
+        overflow-y: auto !important;
+        min-height: 0 !important;
+        padding-bottom: 40px !important;
+      }
+      /* Research panel split view: nav + content both scroll independently */
+      #app .rp-body {
+        flex: 1 !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+      }
+      #app .rp-nav {
+        overflow-y: auto !important;
+        flex-shrink: 0 !important;
+      }
+      #app .rp-detail {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        min-width: 0 !important;
+      }
+      /* Trials and projects list: scroll */
+      #app .rhub-trials-list,
+      #app .rhub-projects-list {
+        overflow-y: auto !important;
+        flex: 1 !important;
+        min-height: 0 !important;
+      }
+
+      /* News view: fill height and scroll */
+      #app .news-view {
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+      }
+      #app .news-grid,
+      #app .news-feed {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        min-height: 0 !important;
+        padding-bottom: 40px !important;
+      }
+
+      /* Settings: normal scroll within content-area */
+      #app .content-area:not(.content-area--fullheight) {
+        overflow-y: auto !important;
+      }
+
     </style>
 </head>
 <body>
@@ -6565,6 +6646,7 @@
 
                     </div>
                 </div>
+                </div>
 
                 <!-- ============ COMMUNICATIONS VIEW ============ -->
                 <div v-if="currentView === 'communications'">
@@ -6836,7 +6918,7 @@
 
                 </div>
 
-            </div><!-- /content-area -->
+           
 
                 <!-- ============ RESEARCH HUB (unified) ============ -->
                 <div v-if="currentView === 'research_hub'" class="research-hub" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;">
@@ -7626,6 +7708,8 @@
                         Syncing…
                     </div>
                 </div>
+
+            </div><!-- /content-area -->
 
                 <!-- ============================================================
                      NEWS COMPOSE MODAL
