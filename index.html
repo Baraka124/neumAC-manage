@@ -3927,6 +3927,332 @@
         overflow-y: auto !important;
       }
 
+      /* ── News scroll body ────────────────────────────────── */
+      #app .news-body {
+        flex: 1 1 0 !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding: 0 0 60px !important;
+      }
+      #app .news-view {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+      }
+      /* ── Settings scroll ─────────────────────────────────── */
+      #app .content-area:not(.content-area--fullheight) {
+        overflow-y: auto !important;
+      }
+
+/* ═══════════════════════════════════════════════════════════
+   SETTINGS — REDESIGNED
+   ═══════════════════════════════════════════════════════════ */
+
+/* Staff type chip grid */
+#app .stype-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px; padding: 18px 20px 22px;
+}
+#app .stype-chip {
+  display: flex; align-items: center; gap: 11px;
+  padding: 11px 14px; border-radius: 10px;
+  background: var(--nm-surface2);
+  border: 1px solid var(--nm-border);
+  cursor: pointer; transition: border-color .15s, box-shadow .15s;
+  position: relative; overflow: hidden;
+}
+#app .stype-chip:hover {
+  border-color: var(--nm-teal);
+  box-shadow: 0 0 0 3px rgba(0,179,179,.06);
+}
+#app .stype-chip.inactive { opacity: .45; }
+#app .stype-chip-badge {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  background: rgba(0,179,179,.12); color: var(--nm-teal);
+  font-size: 11px; font-weight: 800; letter-spacing: .03em;
+  display: flex; align-items: center; justify-content: center;
+}
+#app .stype-chip-info { flex: 1; min-width: 0; }
+#app .stype-chip-name { font-size: 13px; font-weight: 600; color: var(--nm-text1); line-height: 1.3; }
+#app .stype-chip-key  { font-size: 10px; color: var(--nm-text3); font-family: 'DM Mono', monospace; margin-top: 1px; }
+#app .stype-chip-res  {
+  position: absolute; top: 7px; right: 7px;
+  font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 3px;
+  background: rgba(99,102,241,.12); color: #6366f1; letter-spacing: .05em;
+}
+#app .stype-chip-actions {
+  display: flex; gap: 2px; opacity: 0; transition: opacity .12s; flex-shrink: 0;
+}
+#app .stype-chip:hover .stype-chip-actions { opacity: 1; }
+
+/* Settings toggle rows */
+#app .settings-toggles {
+  display: flex; flex-direction: column;
+  border-top: 1px solid var(--nm-border); margin-top: 20px;
+}
+#app .settings-toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 24px; border-bottom: 1px solid var(--nm-border);
+  transition: background .1s;
+}
+#app .settings-toggle-row:last-child { border-bottom: none; }
+#app .settings-toggle-row:hover { background: var(--nm-surface2); }
+#app .stl-label { font-size: 13px; font-weight: 500; color: var(--nm-text1); }
+#app .stl-sub   { font-size: 11px; color: var(--nm-text3); margin-top: 1px; }
+#app .stl-danger .stl-label { color: #dc2626; }
+
+/* Pill toggle switch */
+#app .nm-toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; cursor: pointer; }
+#app .nm-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+#app .nm-toggle-track {
+  position: absolute; inset: 0; border-radius: 10px;
+  background: var(--nm-surface3); border: 1px solid var(--nm-border);
+  transition: background .2s, border-color .2s;
+}
+#app .nm-toggle input:checked + .nm-toggle-track { background: var(--nm-teal); border-color: var(--nm-teal); }
+#app .nm-toggle input:disabled + .nm-toggle-track { opacity: .4; cursor: not-allowed; }
+#app .nm-toggle-track::after {
+  content: ''; position: absolute;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; top: 2px; left: 2px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.2);
+  transition: transform .18s cubic-bezier(.34,1.56,.64,1);
+}
+#app .nm-toggle input:checked + .nm-toggle-track::after { transform: translateX(16px); }
+
+/* Settings form grid */
+#app .settings-form-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+  padding: 20px 24px;
+}
+@media (max-width: 680px) { #app .settings-form-grid { grid-template-columns: 1fr; } }
+
+/* Rotation service cards — the existing .nm-svc-card design is fine, just add polish */
+#app .nm-svc-grid { padding: 16px 20px; }
+#app .nm-svc-card { border-radius: 12px; }
+
+/* ═══════════════════════════════════════════════════════════
+   NEWS & POSTS — REDESIGNED
+   ═══════════════════════════════════════════════════════════ */
+
+#app .news-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px 12px; flex-shrink: 0;
+  border-bottom: 1px solid var(--nm-border);
+}
+#app .news-header-title { font-size: 15px; font-weight: 700; color: var(--nm-text1); }
+#app .news-filter-bar {
+  display: flex; align-items: center; gap: 8px; padding: 10px 20px;
+  border-bottom: 1px solid var(--nm-border); flex-shrink: 0; flex-wrap: wrap;
+}
+#app .news-type-pills {
+  display: flex; gap: 2px; background: var(--nm-surface2);
+  border-radius: 7px; padding: 3px;
+}
+#app .ntp-btn {
+  padding: 4px 12px; border-radius: 5px; font-size: 11px; font-weight: 600;
+  cursor: pointer; background: transparent; border: none;
+  color: var(--nm-text3); transition: all .12s; white-space: nowrap;
+}
+#app .ntp-btn.active {
+  background: var(--nm-surface);
+  color: var(--nm-text1);
+  box-shadow: 0 1px 3px rgba(0,0,0,.09);
+}
+#app .news-body { padding: 12px 20px; overflow-y: auto; flex: 1 1 0; min-height: 0; padding-bottom: 60px; }
+
+/* News card — completely redesigned */
+#app .news-card {
+  display: grid;
+  grid-template-columns: 3px 1fr auto;
+  border-radius: 10px;
+  border: 1px solid var(--nm-border);
+  margin-bottom: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--nm-surface);
+  transition: box-shadow .15s, transform .12s, border-color .15s;
+}
+#app .news-card:hover {
+  box-shadow: 0 3px 14px rgba(0,0,0,.08);
+  transform: translateY(-1px);
+  border-color: rgba(0,0,0,.08);
+}
+#app .news-card-left { align-self: stretch; }
+#app .news-card--update .news-card-left    { background: #00b3b3; }
+#app .news-card--article .news-card-left   { background: #2563eb; }
+#app .news-card--publication .news-card-left { background: #7c3aed; }
+#app .news-card--photo_story .news-card-left { background: #d97706; }
+#app .news-card-body { padding: 12px 16px; min-width: 0; }
+#app .news-card-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 9px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 3px; margin-bottom: 5px;
+}
+#app .tag-update      { background: rgba(0,179,179,.1); color: #007f7f; }
+#app .tag-article     { background: rgba(37,99,235,.1); color: #1d4ed8; }
+#app .tag-publication { background: rgba(124,58,237,.1); color: #6d28d9; }
+#app .tag-photo_story { background: rgba(217,119,6,.1); color: #b45309; }
+#app .news-card-title {
+  font-size: 14px; font-weight: 600; color: var(--nm-text1);
+  line-height: 1.35; margin-bottom: 4px;
+}
+/* Publication — journal name as subtitle above the meta row */
+#app .news-pub-line {
+  font-size: 12px; font-style: italic; color: #7c3aed;
+  font-family: 'Instrument Serif', Georgia, serif;
+  margin-bottom: 2px;
+}
+#app .news-pub-authors {
+  font-size: 11px; color: var(--nm-text3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+#app .news-pub-doi {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; color: var(--nm-text3); text-decoration: none;
+  font-family: 'DM Mono', monospace;
+}
+#app .news-pub-doi:hover { color: var(--nm-teal); }
+#app .news-card-excerpt {
+  font-size: 12px; color: var(--nm-text2); line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; margin-bottom: 6px;
+}
+#app .news-card-meta {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 11px; color: var(--nm-text3);
+}
+#app .news-author-av {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: rgba(0,179,179,.1); color: var(--nm-teal);
+  font-size: 8px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+#app .news-meta-line {
+  background: rgba(0,179,179,.08); padding: 1px 5px; border-radius: 3px; color: #007f7f;
+}
+#app .news-expiry--warn { color: #d97706 !important; }
+#app .news-card-right {
+  display: flex; flex-direction: column; align-items: flex-end;
+  justify-content: space-between; padding: 12px 14px 12px 8px;
+  gap: 8px; flex-shrink: 0; min-width: 100px;
+}
+#app .news-status-badge {
+  font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: .06em; white-space: nowrap;
+}
+#app .nsb--draft    { background: rgba(245,158,11,.1); color: #b45309; }
+#app .nsb--archived { background: var(--nm-surface2); color: var(--nm-text3); }
+#app .news-status-dot { width: 7px; height: 7px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+#app .news-vis-btn {
+  display: flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 500;
+  padding: 3px 7px; border-radius: 4px; cursor: pointer; border: none;
+  background: transparent; color: var(--nm-text3); transition: all .12s;
+}
+#app .news-vis-btn:hover { background: var(--nm-surface2); color: var(--nm-text1); }
+#app .news-actions { display: flex; gap: 3px; align-items: center; opacity: 0; transition: opacity .15s; flex-direction: column; }
+#app .news-card:hover .news-actions { opacity: 1; }
+#app .nm-news-primary {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 5px;
+  cursor: pointer; border: none; transition: all .12s; white-space: nowrap; width: 100%;
+}
+#app .nm-news-primary--pub  { background: var(--nm-teal); color: #fff; }
+#app .nm-news-primary--pub:hover { filter: brightness(1.1); }
+#app .nm-news-primary--edit { background: var(--nm-surface2); color: var(--nm-text2); border: 1px solid var(--nm-border); }
+#app .nm-news-primary--edit:hover { border-color: var(--nm-text2); }
+#app .nm-news-primary--arch { background: var(--nm-surface2); color: var(--nm-text3); border: 1px solid var(--nm-border); }
+#app .nm-news-primary--del  { background: rgba(220,38,38,.06); color: #dc2626; border: 1px solid rgba(220,38,38,.15); }
+#app .nm-news-primary--del:hover { background: rgba(220,38,38,.12); }
+
+/* ═══════════════════════════════════════════════════════════
+   RESEARCH HUB — Polish existing strong design
+   ═══════════════════════════════════════════════════════════ */
+
+/* Innovation cards grid tighter */
+#app .rhub-projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px; padding: 16px;
+}
+#app .inno-card {
+  border-radius: 12px; background: var(--nm-surface);
+  border: 1px solid var(--nm-border); overflow: hidden; cursor: pointer;
+  transition: box-shadow .15s, transform .12s, border-color .15s;
+}
+#app .inno-card:hover {
+  box-shadow: 0 5px 20px rgba(0,0,0,.09); transform: translateY(-2px);
+  border-color: rgba(0,0,0,.08);
+}
+#app .inno-card-bar { height: 3px; background: var(--stage-color, var(--nm-teal)); }
+#app .inno-card-body { padding: 14px 16px; }
+#app .inno-card-stage {
+  font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--stage-color, var(--nm-teal)); margin-bottom: 6px;
+}
+#app .inno-card-title { font-size: 14px; font-weight: 600; color: var(--nm-text1); line-height: 1.35; margin-bottom: 8px; }
+#app .inno-card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 11px; color: var(--nm-text3); }
+#app .inno-card-cat {
+  font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 3px;
+  background: var(--nm-surface2); border: 1px solid var(--nm-border);
+}
+#app .inno-card-foot {
+  padding: 10px 16px; border-top: 1px solid var(--nm-border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--nm-surface2);
+}
+#app .inno-card-pi { font-size: 11px; color: var(--nm-text2); display: flex; align-items: center; gap: 5px; }
+#app .inno-card-actions { display: flex; gap: 3px; opacity: 0; transition: opacity .12s; }
+#app .inno-card:hover .inno-card-actions { opacity: 1; }
+
+/* Trials table — more magazine-feel */
+#app .rhub-trials-list { padding: 0; }
+#app .rht-row {
+  display: grid; grid-template-columns: 42px 1fr 70px 90px 110px 40px;
+  align-items: center; gap: 12px; padding: 12px 20px;
+  border-bottom: 1px solid var(--nm-border);
+  cursor: pointer; transition: background .1s;
+}
+#app .rht-row:hover { background: rgba(0,179,179,.025); }
+#app .rht-row:last-child { border-bottom: none; }
+#app .rht-phase-badge {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; color: #fff;
+  letter-spacing: -.02em; flex-shrink: 0;
+}
+#app .rht-main { min-width: 0; }
+#app .rht-title { font-size: 13px; font-weight: 600; color: var(--nm-text1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+#app .rht-meta  { display: flex; align-items: center; gap: 7px; font-size: 10px; color: var(--nm-text3); }
+#app .rht-protocol { font-family: 'DM Mono', monospace; font-size: 9px; background: var(--nm-surface2); border: 1px solid var(--nm-border); padding: 1px 5px; border-radius: 3px; color: var(--nm-text2); }
+#app .rht-enroll-nums { font-size: 11px; font-weight: 600; color: var(--nm-text1); margin-bottom: 3px; text-align: right; }
+#app .rht-enroll-bar { height: 3px; background: var(--nm-surface3); border-radius: 2px; overflow: hidden; }
+#app .rht-enroll-bar div { height: 100%; border-radius: 2px; background: var(--nm-teal); }
+#app .rht-dates { font-size: 10px; color: var(--nm-text3); text-align: right; }
+#app .rht-status {
+  font-size: 9px; font-weight: 800; padding: 3px 8px; border-radius: 4px;
+  text-transform: uppercase; letter-spacing: .06em; white-space: nowrap;
+}
+#app .rht-status--recruiting { background: rgba(0,179,179,.1); color: #007f7f; }
+#app .rht-status--activo     { background: rgba(37,99,235,.1); color: #1d4ed8; }
+#app .rht-status--completado { background: rgba(156,163,175,.12); color: #6b7280; }
+#app .rht-status--prep       { background: rgba(245,158,11,.1); color: #b45309; }
+#app .rht-actions { display: flex; gap: 2px; opacity: 0; transition: opacity .12s; justify-content: flex-end; }
+#app .rht-row:hover .rht-actions { opacity: 1; }
+#app .rht-filter-bar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--nm-border); flex-shrink: 0; flex-wrap: wrap; }
+
+/* Analytics tab */
+#app .rhub-analytics { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+#app .ra-kpi-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+#app .ra-kpi { background: var(--nm-surface2); border: 1px solid var(--nm-border); border-radius: 10px; padding: 14px 16px; }
+#app .ra-kpi-val { font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; font-style: italic; color: var(--nm-text1); line-height: 1; }
+#app .ra-kpi-lbl { font-size: 11px; color: var(--nm-text3); margin-top: 4px; font-weight: 500; }
+
     </style>
 </head>
 <body>
@@ -6721,30 +7047,29 @@
                             <div class="skeleton-row" style="height: 40px;"></div>
                         </div>
 
-                        <!-- TABLA -->
-                        <div v-else class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr><th>Display Name</th><th>Type Key</th><th>Badge</th><th>Resident</th><th>Supervise</th><th>Status</th><th>Order</th><th></th></tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="st in staffTypesList" :key="st.id" :class="{ 'opacity-50': !st.is_active }">
-                                        <td><strong>{{ st.display_name }}</strong></td>
-                                        <td><code>{{ st.type_key }}</code></td>
-                                        <td><span :class="['badge', st.badge_class]">{{ st.display_name }}</span></td>
-                                        <td class="text-center"><i :class="st.is_resident_type ? 'fas fa-check text-success' : 'fas fa-minus text-muted'"></i></td>
-                                        <td class="text-center"><i :class="st.can_supervise ? 'fas fa-check text-success' : 'fas fa-minus text-muted'"></i></td>
-                                        <td class="text-center"><span :class="st.is_active ? 'badge badge-success' : 'badge badge-secondary'">{{ st.is_active ? 'Active' : 'Inactive' }}</span></td>
-                                        <td class="text-center">{{ st.display_order }}</td>
-                                        <td class="text-end">
-                                            <button class="btn-icon" @click="openEditStaffType(st)" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg></button>
-                                            <button class="btn-icon" @click="toggleStaffTypeActive(st)" :title="st.is_active ? 'Deactivate' : 'Activate'"><i :class="st.is_active ? 'fas fa-eye-slash' : 'fas fa-eye'"></i></button>
-                                            <button class="btn-icon btn-icon--danger" @click="deleteStaffType(st)" title="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="staffTypesList.length === 0"><td colspan="8" class="empty-state"><div class="empty-state-title">No staff types defined</div><div class="empty-state-description">Click "Add Staff Type" to create your first staff category.</div></td></tr>
-                                </tbody>
-                            </table>
+                        <!-- CHIP GRID -->
+                        <div v-else class="stype-grid">
+                            <div v-for="st in staffTypesList" :key="st.id"
+                                 class="stype-chip" :class="{ inactive: !st.is_active }">
+                                <div class="stype-chip-badge">{{ st.display_name.slice(0,2).toUpperCase() }}</div>
+                                <div class="stype-chip-info">
+                                    <div class="stype-chip-name">{{ st.display_name }}</div>
+                                    <div class="stype-chip-key">{{ st.type_key }}</div>
+                                </div>
+                                <span v-if="st.is_resident_type" class="stype-chip-res">R</span>
+                                <div class="stype-chip-actions">
+                                    <button class="btn-icon" @click.stop="openEditStaffType(st)" title="Edit">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg>
+                                    </button>
+                                    <button class="btn-icon btn-icon--danger" @click.stop="deleteStaffType(st)" title="Remove">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div v-if="staffTypesList.length===0"
+                                 style="grid-column:1/-1;padding:32px;text-align:center;color:var(--nm-text3);font-size:13px;">
+                                No staff types — click Add Staff Type to create one.
+                            </div>
                         </div>
                     </div>
 
@@ -6884,27 +7209,48 @@
                             </div>
 
                             <div style="display:flex;flex-direction:column;gap:10px;padding-top:4px;border-top:1px solid var(--border);">
-                                <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:4px">Feature Flags</div>
-                                <label class="license-toggle">
-                                    <input type="checkbox" v-model="systemSettings.enable_audit_logging" :disabled="!hasPermission('system_settings','update')">
-                                    <span class="license-toggle-track"><span class="license-toggle-thumb"></span></span>
-                                    <span class="license-toggle-label">Enable Audit Logging</span>
-                                </label>
-                                <label class="license-toggle">
-                                    <input type="checkbox" v-model="systemSettings.notifications_enabled" :disabled="!hasPermission('system_settings','update')">
-                                    <span class="license-toggle-track"><span class="license-toggle-thumb"></span></span>
-                                    <span class="license-toggle-label">Notifications Enabled</span>
-                                </label>
-                                <label class="license-toggle">
-                                    <input type="checkbox" v-model="systemSettings.absence_notifications" :disabled="!hasPermission('system_settings','update')">
-                                    <span class="license-toggle-track"><span class="license-toggle-thumb"></span></span>
-                                    <span class="license-toggle-label">Absence Notifications</span>
-                                </label>
-                                <label class="license-toggle">
-                                    <input type="checkbox" v-model="systemSettings.maintenance_mode" :disabled="!hasPermission('system_settings','update')">
-                                    <span class="license-toggle-track"><span class="license-toggle-thumb"></span></span>
-                                    <span class="license-toggle-label">Maintenance Mode</span>
-                                </label>
+                                <div class="settings-toggles" style="margin:0 -24px;">
+                                    <div class="settings-toggle-row">
+                                        <div>
+                                            <div class="stl-label">Audit Logging</div>
+                                            <div class="stl-sub">Record all user actions to the audit log</div>
+                                        </div>
+                                        <label class="nm-toggle">
+                                            <input type="checkbox" v-model="systemSettings.enable_audit_logging" :disabled="!hasPermission('system_settings','update')">
+                                            <span class="nm-toggle-track"></span>
+                                        </label>
+                                    </div>
+                                    <div class="settings-toggle-row">
+                                        <div>
+                                            <div class="stl-label">Email Notifications</div>
+                                            <div class="stl-sub">Send email alerts for key events</div>
+                                        </div>
+                                        <label class="nm-toggle">
+                                            <input type="checkbox" v-model="systemSettings.notifications_enabled" :disabled="!hasPermission('system_settings','update')">
+                                            <span class="nm-toggle-track"></span>
+                                        </label>
+                                    </div>
+                                    <div class="settings-toggle-row">
+                                        <div>
+                                            <div class="stl-label">Absence Notifications</div>
+                                            <div class="stl-sub">Alert coordinators when absences are recorded</div>
+                                        </div>
+                                        <label class="nm-toggle">
+                                            <input type="checkbox" v-model="systemSettings.absence_notifications" :disabled="!hasPermission('system_settings','update')">
+                                            <span class="nm-toggle-track"></span>
+                                        </label>
+                                    </div>
+                                    <div class="settings-toggle-row stl-danger">
+                                        <div>
+                                            <div class="stl-label">Maintenance Mode</div>
+                                            <div class="stl-sub">Blocks all non-admin API access</div>
+                                        </div>
+                                        <label class="nm-toggle">
+                                            <input type="checkbox" v-model="systemSettings.maintenance_mode" :disabled="!hasPermission('system_settings','update')">
+                                            <span class="nm-toggle-track"></span>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
 
                             <div v-if="hasPermission('system_settings','update')" style="display:flex;justify-content:flex-end;padding-top:4px;border-top:1px solid var(--border)">
@@ -7599,28 +7945,24 @@
                             </button>
                         </div>
 
+                        <div class="news-body">
                         <div v-for="post in filteredNews" :key="post.id" class="news-card" :class="'news-card--' + post.post_type" @click.stop="openNewsDrawer(post)">
 
-                            <!-- Left accent + type -->
-                            <div class="news-card-left">
-                                <span class="news-type-badge" :class="'ntb--' + post.post_type">
-                                    <svg v-if="post.post_type==='update'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M13 2L3 14H12L11 22L21 10H12L13 2Z"/></svg>
-                                    <svg v-else-if="post.post_type==='article'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-                                    <svg v-else-if="post.post_type==='publication'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                                    <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                                    {{ post.post_type === 'update' ? 'Update' : post.post_type === 'article' ? 'Article' : post.post_type === 'photo_story' ? 'Photo Story' : 'Publication' }}
-                                </span>
-                            </div>
+                            <!-- Left accent stripe -->
+                            <div class="news-card-left"></div>
 
                             <!-- Content -->
                             <div class="news-card-body">
+                                <div class="news-card-tag" :class="'tag-' + post.post_type">
+                                    {{ post.post_type === 'update' ? 'Update' : post.post_type === 'article' ? 'Article' : post.post_type === 'photo_story' ? 'Photo Story' : 'Publication' }}
+                                </div>
                                 <div class="news-card-title">{{ post.title }}</div>
 
-                                <!-- Publication fields -->
+                                <!-- Publication fields — journal prominent -->
                                 <div v-if="post.post_type === 'publication'" class="news-pub-meta">
-                                    <span v-if="post.journal_name" class="news-journal">{{ post.journal_name }}</span>
-                                    <span v-if="post.authors_text" class="news-authors">{{ post.authors_text }}</span>
-                                    <a v-if="post.doi" :href="'https://doi.org/' + post.doi" target="_blank" class="news-doi">
+                                    <div v-if="post.journal_name" class="news-pub-line">{{ post.journal_name }}</div>
+                                    <div v-if="post.authors_text" class="news-pub-authors">{{ post.authors_text }}</div>
+                                    <a v-if="post.doi" :href="'https://doi.org/' + post.doi" target="_blank" class="news-pub-doi">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg> DOI {{ post.doi }}
                                     </a>
                                     <!-- Fallback: show body as excerpt if no publication metadata is filled -->
@@ -7709,6 +8051,7 @@
                     </div>
                 </div>
 
+                        </div><!-- /news-body -->
             </div><!-- /content-area -->
 
                 <!-- ============================================================
