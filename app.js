@@ -6354,7 +6354,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return { staff, pulse, nextEvent, currentRot, upcomingOC, currentLeave }
       }
 
-      const showIntelPopover = (staffId, event) => {
+      const showIntelPopover = (staffIdOrObj, event) => {
+        // Accept both a UUID string and a full staff object
+        const staffId = (typeof staffIdOrObj === 'object' && staffIdOrObj !== null)
+          ? (staffIdOrObj.id || staffIdOrObj)
+          : staffIdOrObj
         if (hoverPopover._timer) clearTimeout(hoverPopover._timer)
         if (hoverPopover._hideTimer) clearTimeout(hoverPopover._hideTimer)
         hoverPopover._timer = setTimeout(() => {
