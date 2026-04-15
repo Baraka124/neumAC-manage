@@ -3685,6 +3685,167 @@
       }
 
 
+      /* ── Research hub: trial row hover elevation ── */
+      #app .rht-row {
+        transition: box-shadow var(--transition-fast), background var(--transition-fast), transform var(--transition-fast) !important;
+      }
+      #app .rht-row:hover {
+        box-shadow: 0 2px 12px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.04) !important;
+        transform: translateY(-1px) !important;
+        z-index: 1 !important;
+      }
+
+      /* ── Gantt: pulse dot on dark background ── */
+      #app .mv-name-cell .pulse-dot--available { background: var(--nm-teal) !important; }
+      #app .mv-name-cell .pulse-dot--oncall    { background: #f59e0b !important; }
+      #app .mv-name-cell .pulse-dot--leave     { background: #ef4444 !important; }
+      #app .mv-name-cell .pulse-dot--ending    { background: #a78bfa !important; }
+
+      /* ── Dashboard health ring ── */
+      #app .dbh-health-ring circle { transition: stroke-dasharray 0.8s cubic-bezier(0.22,1,0.36,1); }
+
+      /* ── Absence calendar: weekend columns ── */
+      #app .abs-cal-dow:nth-child(6),
+      #app .abs-cal-dow:nth-child(7) { color: var(--nm-text2) !important; }
+
+      /* ── Unit cockpit card: transition on hover ── */
+      #app .tuc:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,.08) !important;
+      }
+      #app .tuc { transition: transform var(--transition-fast), box-shadow var(--transition-fast) !important; }
+
+      /* ── Staff table: smooth row highlight ── */
+      #app .staff-table-row { transition: background var(--transition-fast) !important; }
+
+      /* ── Popover: ensure it shows above everything ── */
+      .intel-popover-wrap { z-index: 99900 !important; }
+
+      /* ── People grid (pig): add pulse dot to ring ── */
+      #app .pig-card { position: relative; }
+
+      /* ── dbsr-stat: smooth scale on hover ── */
+      #app .dbsr-stat {
+        transition: transform var(--transition-fast), box-shadow var(--transition-fast) !important;
+      }
+      #app .dbsr-stat:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,.08) !important;
+      }
+
+      /* ── Absence coverage strip: smooth bars ── */
+      #app .abs-cov-day {
+        transition: opacity var(--transition-fast), transform var(--transition-fast) !important;
+      }
+      #app .abs-cov-day:hover {
+        opacity: 1 !important;
+        transform: scaleY(1.08) !important;
+      }
+
+      /* ── Research line nav: hover state ── */
+      #app .rp-nav-item {
+        transition: background var(--transition-fast), border-color var(--transition-fast) !important;
+      }
+      #app .rp-nav-item:not(.rp-nav-item--active):hover {
+        background: var(--nm-surface3) !important;
+      }
+
+      /* ── News cards: publication distinct style ── */
+      #app .news-card--publication {
+        border-left-width: 4px !important;
+      }
+      #app .news-card--publication .news-card-left {
+        background: rgba(99,102,241,.06) !important;
+      }
+
+
+      /* ══════════════════════════════════════════════════════════════
+         MOBILE POLISH — comprehensive 768 / 480 / touch pass
+         ══════════════════════════════════════════════════════════════ */
+      @media (max-width: 768px) {
+        /* Popover: full-width bottom sheet on mobile */
+        .intel-popover-wrap {
+          position: fixed !important;
+          bottom: 0 !important; left: 0 !important; right: 0 !important;
+          top: auto !important;
+          padding: 0 0 env(safe-area-inset-bottom, 0) !important;
+        }
+        .intel-pop {
+          width: 100% !important; border-radius: 18px 18px 0 0 !important;
+          border-left: none !important; border-right: none !important;
+          border-bottom: none !important;
+          max-height: 70vh !important; overflow-y: auto !important;
+        }
+        .intel-pop::before {
+          content: ''; display: block; width: 36px; height: 4px;
+          background: var(--nm-surface3); border-radius: 2px;
+          margin: 10px auto 6px;
+        }
+
+        /* Dept pulse bar: 2-col */
+        #app .dept-pulse-bar { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+        #app .dpb-item:not(:last-child)::after { display: none !important; }
+        #app .dpb-item:nth-child(odd)::after { 
+          display: block !important; right: 0; top: 10%; bottom: 10%;
+          background: var(--nm-border);
+        }
+
+        /* Absence calendar: compact cells */
+        #app .abs-cal-day { min-height: 56px !important; padding: 5px 6px !important; }
+        #app .abs-cal-pill { font-size: 9px !important; padding: 1px 3px !important; }
+        #app .abs-cal-day-num { font-size: 12px !important; }
+
+        /* Gantt: narrower name column, horizontal scroll */
+        #app .mv-grid { overflow-x: auto !important; }
+        #app .mv-name-cell { min-width: 120px !important; max-width: 140px !important; }
+        #app .mv-resident-name { font-size: 11px !important; }
+
+        /* People grid: 2 col */
+        #app .pig-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+
+        /* On-call day view: stack dates */
+        #app .db-oc-dayrow { flex-direction: column !important; gap: 6px !important; }
+        #app .db-oc-datecol { flex-direction: row !important; gap: 8px !important; align-items: center !important; }
+
+        /* Unit cockpit cards: 1 col */
+        #app .unit-cockpit-grid { grid-template-columns: 1fr !important; }
+
+        /* Coverage strip: smaller */
+        #app .abs-coverage-strip { height: 32px !important; }
+      }
+
+      @media (max-width: 480px) {
+        /* Popover: larger handle */
+        .intel-pop::before { width: 44px !important; }
+
+        /* Dept pulse bar: tiny numbers */
+        #app .dpb-num { font-size: 22px !important; }
+        #app .dpb-label { font-size: 10px !important; }
+
+        /* Dashboard stat rail: 2x2 */
+        #app .dbsr { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+        #app .dbsr-num { font-size: 28px !important; }
+
+        /* Absence calendar: hide pills, show count */
+        #app .abs-cal-pill:not(:first-child) { display: none !important; }
+        #app .abs-cal-day { min-height: 44px !important; }
+
+        /* Research hub tabs: icon-only on small screens */
+        #app .rhub-tab span:not(.rhub-tab-count) { display: none !important; }
+
+        /* Action hints: hide on touch */
+        #app .dbsr-action-hint { display: none !important; }
+      }
+
+      /* Touch: larger hit targets for all interactive elements */
+      @media (hover: none) and (pointer: coarse) {
+        #app .rp-nav-item { min-height: 52px !important; }
+        #app .abs-cal-day { cursor: default !important; }
+        #app .tuc { cursor: default !important; }
+        #app .dpb-item { min-height: 44px !important; }
+      }
+
+
     </style>
 </head>
 <body>
@@ -4765,8 +4926,8 @@
                                                  'inactive': item.employment_status === 'inactive'
                                              }"
                                              @click="viewStaffDetails(item)"
-                                             @mouseenter="showPopover(item, $event)"
-                                             @mouseleave="hidePopover()"
+                                             @mouseenter="showIntelPopover(item, $event)"
+                                             @mouseleave="hideIntelPopover()"
                                              data-popover-staff>
 
                                             <div class="pig-body">
@@ -5204,12 +5365,19 @@
                                             </div>
                                         </td>
                                         <td :data-label="'Physician'">
-                                            <div class="oc-physician-cell">
-                                                <div class="oc-physician-av">
+                                            <div class="oc-physician-cell"
+                                                 @mouseenter.stop="showIntelPopover(schedule.primary_physician_id, $event)"
+                                                 @mouseleave.stop="hideIntelPopover()">
+                                                <div class="oc-physician-av" style="position:relative;">
                                                     {{ (getPhysicianName(schedule.primary_physician_id)||'??').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                                                    <span class="pulse-dot pulse-dot--oncall"
+                                                          style="position:absolute;bottom:0;right:0;width:7px;height:7px;border:2px solid var(--nm-surface)"></span>
                                                 </div>
                                                 <div>
-                                                    <div class="oc-physician-name">{{ getPhysicianName(schedule.primary_physician_id) }}</div>
+                                                    <div class="oc-physician-name intel-name">{{ getPhysicianName(schedule.primary_physician_id) }}</div>
+                                                    <div style="font-size:11px;color:var(--nm-text3);margin-top:1px;" v-if="isToday(schedule.duty_date)">
+                                                        On duty now
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
@@ -5712,10 +5880,16 @@
 
                                 <!-- Resident rows -->
                                 <template v-for="resident in residentsWithRotations" :key="resident.id">
-                                    <div class="mv-name-cell">
-                                        <div class="mv-resident-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg></div>
+                                    <div class="mv-name-cell"
+                                         @mouseenter="showIntelPopover(resident.id, $event)"
+                                         @mouseleave="hideIntelPopover()">
+                                        <div class="mv-resident-icon" style="position:relative;">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6L3 11L12 16L21 11L12 6Z"/><path d="M8 13.5V17C8 17 10 19 12 19C14 19 16 17 16 13.5"/></svg>
+                                            <span class="pulse-dot" :class="'pulse-dot--' + getStaffPulseState(resident.id)"
+                                                  style="position:absolute;bottom:-2px;right:-2px;width:6px;height:6px;border:1.5px solid var(--nm-navy2)"></span>
+                                        </div>
                                         <div class="mv-resident-text">
-                                            <div class="mv-resident-name">{{ resident.full_name }}</div>
+                                            <div class="mv-resident-name intel-name">{{ resident.full_name }}</div>
                                             <div class="mv-resident-year">{{ formatTrainingYear(resident.training_year) || 'PGY-?' }}</div>
                                         </div>
                                     </div>
@@ -6997,7 +7171,9 @@
                             <input type="text" class="form-control" v-model="trialFilters.search" placeholder="Search protocol or title…">
                         </div>
                         <div class="rhub-trials-list">
-                            <div v-for="trial in filteredTrials" :key="trial.id" class="rht-row" @click="viewTrial(trial)">
+                            <div v-for="trial in filteredTrials" :key="trial.id" class="rht-row"
+                                     @click="viewTrial(trial)"
+                                     style="position:relative;">
                                 <div class="rht-phase-badge" :style="{ background: getPhaseColor(trial.phase) }">{{ trial.phase?.replace('Phase ','') }}</div>
                                 <div class="rht-main">
                                     <div class="rht-title">{{ trial.title }}</div>
@@ -7006,7 +7182,10 @@
                                         <span class="rht-sep">·</span>
                                         <span>{{ getResearchLineName(trial.research_line_id) }}</span>
                                         <span v-if="trial.principal_investigator_id" class="rht-sep">·</span>
-                                        <span v-if="trial.principal_investigator_id"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M12 15v3M10.5 17h3"/></svg> {{ getStaffName(trial.principal_investigator_id) }}</span>
+                                        <span v-if="trial.principal_investigator_id"
+                                                  @mouseenter.stop="showIntelPopover(trial.principal_investigator_id, $event)"
+                                                  @mouseleave.stop="hideIntelPopover()"
+                                                  class="intel-name"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M12 15v3M10.5 17h3"/></svg> {{ getStaffName(trial.principal_investigator_id) }}</span>
                                     </div>
                                 </div>
                                 <div class="rht-enrollment" v-if="trial.enrollment_target">
