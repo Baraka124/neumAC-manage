@@ -4504,7 +4504,7 @@
             </header>
 
             <!-- Content Area -->
-            <div class="content-area" :class="{'content-area--dash': currentView === 'dashboard'}" v-if="!['research_hub','news'].includes(currentView)">
+            <div class="content-area" :class="{'content-area--dash': currentView === 'dashboard', 'content-area--fullheight': ['research_hub','news'].includes(currentView)}">
 
                 <!-- System Alert Banner -->
                 <div v-if="systemAlerts.length > 0" style="margin-bottom:24px;">
@@ -12648,4 +12648,4 @@
     })();
     </script>
 </body>
-</html>    
+</html>
