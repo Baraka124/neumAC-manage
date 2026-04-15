@@ -1575,7 +1575,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (medicalStaffModal.mode === 'add') {
             savedStaff = await API.createMedicalStaff(data)
             medicalStaff.value.unshift(savedStaff)
-            showToast('Success', 'Medical staff added', 'success'); Vue.nextTick(() => updateDashboardStats())
+            showToast('Success', 'Medical staff added', 'success')
           } else {
             savedStaff = await API.updateMedicalStaff(f.id, data)
             const idx = medicalStaff.value.findIndex(s => s.id === savedStaff.id)
@@ -1926,7 +1926,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (onCallModal.mode === 'add') {
             const result = await API.createOnCall(data);
             onCallSchedule.value.unshift({ ...result, duty_date: Utils.normalizeDate(result.duty_date) });
-            showToast('Success', 'On-call scheduled', 'success'); Vue.nextTick(() => updateDashboardStats());
+            showToast('Success', 'On-call scheduled', 'success');
           } else {
             const result = await API.updateOnCall(f.id, data);
             const idx = onCallSchedule.value.findIndex(s => s.id === result.id);
@@ -2410,7 +2410,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const normalize = r => ({ ...r, start_date: Utils.normalizeDate(r.start_date), end_date: Utils.normalizeDate(r.end_date) })
           if (rotationModal.mode === 'add') {
             rotations.value.unshift(normalize(await API.createRotation(data)))
-            showToast('Success', 'Rotation scheduled', 'success'); Vue.nextTick(() => updateDashboardStats())
+            showToast('Success', 'Rotation scheduled', 'success')
           } else {
             const result = normalize(await API.updateRotation(f.id, data))
             const idx = rotations.value.findIndex(r => r.id === result.id)
@@ -2974,7 +2974,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (idx !== -1) absences.value[idx] = record
             showToast('Success', 'Absence updated', 'success')
           }
-          absenceModal.show = false; clearAll('absence'); await loadAbsences(); Vue.nextTick(() => updateDashboardStats())
+          absenceModal.show = false; clearAll('absence'); await loadAbsences()
         } catch (e) { showToast('Error', e.message || 'Failed to save absence', 'error') }
         finally { saving.value = false }
       }
@@ -5236,10 +5236,17 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         })
 
+        const availablePhysicians = computed(() => medicalStaff.value.filter(s =>
+          s.employment_status === 'active' && s.staff_type &&
+          (staffTypeMap.value[s.staff_type] != null
+            ? true  // any active known type is eligible for scheduling
+            : ['attending_physician','fellow','nurse_practitioner','medical_resident'].includes(s.staff_type))
+        ))
+
         const calloutFairnessAlert = computed(() => {
           if (!availablePhysicians?.value?.length) return false
           const totals = availablePhysicians.value.map(p =>
-            (filteredOnCallSchedules.value || []).filter(s => s.primary_physician_id === p.id || s.backup_physician_id === p.id).length +
+            (onCallOps.filteredOnCallSchedules.value || []).filter(s => s.primary_physician_id === p.id || s.backup_physician_id === p.id).length +
             (calloutSummary.value.find(s => s.staff_id === p.id)?.total || 0)
           )
           const avg = totals.reduce((a,b) => a+b, 0) / Math.max(1, totals.length)
@@ -5251,7 +5258,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!availablePhysicians?.value?.length) return []
           const physicians = availablePhysicians.value
           const items = physicians.map(p => {
-            const scheduled = (filteredOnCallSchedules.value || []).filter(
+            const scheduled = (onCallOps.filteredOnCallSchedules.value || []).filter(
               s => s.primary_physician_id === p.id || s.backup_physician_id === p.id
             ).length
             const summary = calloutSummary.value.find(s => s.staff_id === p.id) || {}
@@ -5488,12 +5495,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // All clinical staff eligible for on-call (attendings, fellows, NPs, and residents)
         // Dynamic: uses staffTypeMap flags instead of hardcoded type key lists
         // Falls back to legacy keys so nothing breaks if staffTypeMap isn't loaded yet
-        const availablePhysicians = computed(() => medicalStaff.value.filter(s =>
-          s.employment_status === 'active' && s.staff_type &&
-          (staffTypeMap.value[s.staff_type] != null
-            ? true  // any active known type is eligible for scheduling
-            : ['attending_physician','fellow','nurse_practitioner','medical_resident'].includes(s.staff_type))
-        ))
+
         const availableResidents = computed(() => {
           // Use isResidentType() which handles both staffTypeMap lookup AND fallback
           const residents = medicalStaff.value.filter(s =>
