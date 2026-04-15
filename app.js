@@ -5171,6 +5171,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const p = new URLSearchParams({ year: calloutPeriod.year, month: calloutPeriod.month, limit: 200 })
             const res = await API.request(`/api/emergency-callouts?${p}`)
             callouts.value = res.data || []
+            if (res._tableNotFound) {
+              showToast('Setup needed', 'Run the emergency_callouts SQL migration in Supabase. See System Guide.', 'warning')
+            }
             _calloutsLoadedKey = key
           } catch(e) { showToast('Error', 'Failed to load duty log', 'error') }
           finally { calloutsLoading.value = false }
@@ -6750,7 +6753,7 @@ document.addEventListener('DOMContentLoaded', () => {
           callouts, calloutsLoading, calloutSummary, calloutPeriod, calloutModal,
           calloutFairnessAlert,
           calloutKPIs, calloutDistribution, calloutFairnessAlert, calloutReasonLabels, calloutTimeTypes,
-          openLogCalloutModal, editCallout, saveCallout, deleteCallout,
+          openLogCalloutModal, editCallout, saveCallout, deleteCallout,   
           loadCallouts, loadCalloutSummary,
         }    
       }
@@ -6770,4 +6773,4 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>`;
     throw error;
   }
-});
+});      
