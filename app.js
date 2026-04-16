@@ -6108,7 +6108,14 @@ document.addEventListener('DOMContentLoaded', () => {
           } catch (e) { showToast('Error', e?.message || 'Failed to save settings', 'error') }
         }
 
-        const loadAllData = async () => {
+        const getUnitFillColor = (unit, rotations) => {
+        const cur = (rotations?.value || rotations || []).filter(r => r.training_unit_id === unit.id && r.rotation_status === 'active').length
+        const max = unit.maximum_residents || 1
+        const pct = cur / max
+        return pct >= 1 ? '#e24b4a' : pct >= 0.75 ? '#ef9f27' : cur === 0 ? 'var(--nm-surface3)' : '#10b981'
+      }
+
+      const loadAllData = async () => {
           loading.value = true
           try {
             // Wake Railway immediately — runs in background while we set up
