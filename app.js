@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   try {
-    if (typeof Vue === 'undefined') throw new Error('Vue.js not loaded')
+    if (typeof Vue === 'undefined') throw new Error('Vue.js not loaded')   
 
     const { createApp, ref, reactive, computed, onMounted, watch, onUnmounted } = Vue 
 
