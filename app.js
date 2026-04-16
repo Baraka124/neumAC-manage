@@ -955,7 +955,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // ============ 4.5 ENHANCED RESEARCH PROFILE ============
       
-      async getStaffResearchProfile(staffId) {
+      async getOpsMetrics(date = null) {
+        const p = date ? `?date=${date}` : ''
+        return this.request(`/api/ops-metrics${p}`)
+      }
+      async postOpsMetrics(metrics) {
+        this.invalidate('/api/ops-metrics')
+        return this.request('/api/ops-metrics', { method: 'POST', body: metrics })
+      }
+      async deleteOpsMetric(id) {
+        this.invalidate('/api/ops-metrics')
+        return this.request(`/api/ops-metrics/${id}`, { method: 'DELETE' })
+      }
+
+    async getStaffResearchProfile(staffId) {
         try {
           const [performance, allTrials, allProjects, researchLines, rotations] = await Promise.all([
             this.getResearchLinesPerformance(), this.getAllClinicalTrials(),
@@ -3858,8 +3871,162 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ============ 6.9 useComms ============
     function useComms({ showToast, showConfirmation }) {
-      const announcements = ref([])
-      const communicationsFilters = reactive({ search: '', priority: '', audience: '' })
+      const announcements  = ref([])
+      const opsMetrics     = Vue.ref([])
+      const opsLoading     = Vue.ref(false)
+      const briefingForm   = Vue.reactive({
+        show: false,
+        fields: {
+          interconsultas_total:         { label: 'Interconsultas',      sub_label: 'urgentes', value: '', sub: '' },
+          er_patients_waiting:          { label: 'ER — Neumología',     sub_label: 'espera media (min)', value: '', sub: '' },
+          beds_free_total:              { label: 'Camas libres',        sub_label: 'de las cuales UCI', value: '', sub: '' },
+          discharges_pending_total:     { label: 'Altas pendientes',    sub_label: 'esperando informe', value: '', sub: '' },
+          bronchoscopies_urgent:        { label: 'Broncoscopias urg.',  sub_label: 'suite libre desde (hora)', value: '', sub: '' },
+        }
+      })
+
+      const loadOpsMetrics = async () => {
+        opsLoading.value = true
+        try {
+          const res = await API.getOpsMetrics()
+          opsMetrics.value = res?.data || []
+        } catch(e) { opsMetrics.value = [] }
+        finally { opsLoading.value = false }
+      }
+
+      const getMetric = (key) => opsMetrics.value.find(m => m.metric_key === key)
+      const metricVal = (key) => getMetric(key)?.metric_value ?? null
+      const metricSub = (key) => getMetric(key)?.metric_sub ?? null
+      const metricVal2 = (key) => getMetric(key)?.metric_value2 ?? null
+
+      const saveDailyBriefing = async (saving) => {
+        if (saving?.value) return
+        if (saving) saving.value = true
+        try {
+          const rows = []
+          for (const [key, field] of Object.entries(briefingForm.fields)) {
+            if (field.value !== '' && field.value !== null) {
+              rows.push({
+                metric_key:   key,
+                metric_value: parseInt(field.value) || 0,
+                metric_sub:   field.sub || null,
+                metric_value2: null,
+              })
+            }
+          }
+          if (!rows.length) { showToast('Validation', 'Enter at least one number', 'warning'); return }
+          await API.postOpsMetrics(rows)
+          briefingForm.show = false
+          showToast('Briefing posted', 'Pulse tiles updated for the team', 'success')
+          await loadOpsMetrics()
+        } catch(e) { showToast('Error', e.message || 'Failed to post briefing', 'error') }
+        finally { if (saving) saving.value = false }
+      }
+
+      const updateMetricInline = async (key, value, sub = null) => {
+        try {
+          await API.postOpsMetrics([{ metric_key: key, metric_value: parseInt(value)||0, metric_sub: sub }])
+          await loadOpsMetrics()
+        } catch(e) { showToast('Error', 'Failed to update', 'error') }
+      }
+
+      const communicationsFilters = reactive({ search: '', priority: '', audience: '', type: '' })
+
+      // ── Ops Room state ──────────────────────────────────────────
+      const broadcastForm  = Vue.reactive({ show: false, type: 'broadcast', text: '', expiryHours: 4 })
+      const feedFilter     = Vue.ref('all')   // all | broadcast | protocol | announcement | kudos
+
+      // Live broadcast = announcements with priority 'urgent' that haven't expired
+      const livebroadcasts = Vue.computed(() =>
+        (announcements.value || []).filter(a => {
+          if (a.priority_level !== 'urgent') return false
+          if (!a.publish_end_date) return true
+          return new Date(a.publish_end_date) > new Date()
+        }).slice(0, 3)
+      )
+
+      // Feed = all non-expired announcements ordered by created_at desc
+      const feedItems = Vue.computed(() => {
+        let items = (announcements.value || []).slice()
+        if (feedFilter.value !== 'all') {
+          items = items.filter(a => (a.type || 'announcement') === feedFilter.value)
+        }
+        return items.slice(0, 30)
+      })
+
+      // Pulse stats derived from existing data
+      const commsPulse = Vue.computed(() => {
+        const today = new Date()
+        const todayStr = today.toISOString().slice(0, 10)
+        const onDuty = (medicalStaff?.value || []).filter(s => s.employment_status === 'active').length
+        const onCall = (onCallSchedule?.value || []).filter(s => {
+          const d = s.duty_date ? Utils.normalizeDate(s.duty_date) : ''
+          return d === todayStr
+        }).length
+        const absent = (absences?.value || []).filter(a => {
+          const s = Utils.normalizeDate(a.start_date)
+          const e = Utils.normalizeDate(a.end_date)
+          return todayStr >= s && todayStr <= e && a.current_status === 'currently_absent'
+        }).length
+        const activeBroadcasts = livebroadcasts.value.length
+        return { onDuty, onCall, absent, activeBroadcasts }
+      })
+
+      const broadcastTypeConfig = {
+        broadcast:    { label: 'Broadcast', color: '#ef4444', bg: 'rgba(239,68,68,.08)',   barColor: '#ef4444' },
+        protocol:     { label: 'Protocol',  color: '#10b981', bg: 'rgba(16,185,129,.08)', barColor: '#10b981' },
+        announcement: { label: 'Announcement', color: '#94a3b8', bg: 'rgba(148,163,184,.08)', barColor: '#94a3b8' },
+        kudos:        { label: 'Recognition', color: '#0ea5e9', bg: 'rgba(14,165,233,.08)', barColor: '#0ea5e9' },
+      }
+
+      const getAnnouncementType = (a) => {
+        if (a.priority_level === 'urgent') return 'broadcast'
+        if (a.type) return a.type
+        if (a.priority_level === 'high') return 'protocol'
+        return 'announcement'
+      }
+
+      const openBroadcastForm = (type = 'broadcast') => {
+        broadcastForm.show   = true
+        broadcastForm.type   = type
+        broadcastForm.text   = ''
+        broadcastForm.expiryHours = type === 'broadcast' ? 4 : type === 'kudos' ? 168 : 72
+      }
+
+      const submitBroadcast = async (saving) => {
+        if (!broadcastForm.text.trim()) { showToast('Validation', 'Message is required', 'warning'); return }
+        if (saving?.value) return
+        if (saving) saving.value = true
+        try {
+          const typeMap = {
+            broadcast:    { priority_level: 'urgent',  type: 'broadcast'    },
+            protocol:     { priority_level: 'high',    type: 'protocol'     },
+            announcement: { priority_level: 'normal',  type: 'announcement' },
+            kudos:        { priority_level: 'low',     type: 'kudos'        },
+          }
+          const cfg = typeMap[broadcastForm.type] || typeMap.announcement
+          const endDate = new Date(Date.now() + broadcastForm.expiryHours * 3600000)
+          await API.createAnnouncement({
+            title:            broadcastForm.text.slice(0, 100),
+            content:          broadcastForm.text,
+            priority_level:   cfg.priority_level,
+            type:             cfg.type,
+            target_audience:  'all_staff',
+            publish_start_date: new Date().toISOString().slice(0,10),
+            publish_end_date:   endDate.toISOString().slice(0,10),
+          })
+          broadcastForm.show = false
+          showToast('Posted', `${broadcastTypeConfig[broadcastForm.type]?.label || 'Message'} sent to department`, 'success')
+          await loadAnnouncements()
+        } catch(e) { showToast('Error', e.message || 'Failed to post', 'error') }
+        finally { if (saving) saving.value = false }
+      }
+
+      const dismissBroadcast = async (announcement) => {
+        // Mark as read locally; optionally call API to record seen
+        const idx = announcements.value.findIndex(a => a.id === announcement.id)
+        if (idx !== -1) announcements.value[idx] = { ...announcements.value[idx], _dismissed: true }
+      }
       const communicationsModal = reactive({
         show: false, activeTab: 'announcement', mode: 'add',
         form: { id: null, title: '', content: '', priority: 'normal', target_audience: 'all_staff', target_department_id: '', updateType: 'daily', dailySummary: '', highlight1: '', highlight2: '', alerts: { erBusy: false, icuFull: false, wardFull: false, staffShortage: false }, metricName: '', metricValue: '', metricTrend: 'stable', metricChange: '', metricNote: '', alertLevel: 'low', alertMessage: '', affectedAreas: { er: false, icu: false, ward: false, surgery: false } }
@@ -3938,7 +4105,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       })
 
-      return { announcements, communicationsFilters, communicationsModal, announcementReadModal, filteredAnnouncements, recentAnnouncements, unreadAnnouncements, loadAnnouncements, showCommunicationsModal, editAnnouncement, viewAnnouncement, saveCommunication, deleteAnnouncement }
+      return { announcements, communicationsFilters, communicationsModal, announcementReadModal, filteredAnnouncements, recentAnnouncements, unreadAnnouncements, loadAnnouncements, loadOpsMetrics, opsMetrics, opsLoading, briefingForm, getMetric, metricVal, metricSub, metricVal2, saveDailyBriefing, updateMetricInline, broadcastForm, feedFilter, livebroadcasts, feedItems, commsPulse, broadcastTypeConfig, getAnnouncementType, openBroadcastForm, submitBroadcast, dismissBroadcast, showCommunicationsModal, editAnnouncement, viewAnnouncement, saveCommunication, deleteAnnouncement }
     }
 
     // ============ 6.10 useLiveStatus ============
@@ -5280,7 +5447,10 @@ document.addEventListener('DOMContentLoaded', () => {
         })
 
         // auto-load when on-call view is active
-        watch(() => currentView.value, v => { if (v === 'oncall_schedule') { loadCallouts(); loadCalloutSummary() } }, { immediate: false })
+        watch(() => currentView.value, v => {
+          if (v === 'oncall_schedule')  { loadCallouts(); loadCalloutSummary() }
+          if (v === 'communications')   { loadAnnouncements(); loadOpsMetrics() }
+        }, { immediate: false })
 
         // ── NEWS READER DRAWER ────────────────────────────────────────
         const newsDrawer = reactive({ show: false, post: null })
