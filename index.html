@@ -4253,6 +4253,634 @@
 #app .ra-kpi-val { font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; font-style: italic; color: var(--nm-text1); line-height: 1; }
 #app .ra-kpi-lbl { font-size: 11px; color: var(--nm-text3); margin-top: 4px; font-weight: 500; }
 
+/* ═══════════════════════════════════════════════════════════════════
+   OPS ROOM — Communications + Live Status redesign
+   ═══════════════════════════════════════════════════════════════════ */
+
+#app .ops-room {
+  display: flex; flex-direction: column; gap: 0;
+  flex: 1 1 0; min-height: 0; overflow-y: auto;
+  padding: 20px; padding-bottom: 60px;
+}
+
+/* Pulse strip */
+#app .ops-pulse-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px; margin-bottom: 20px;
+}
+@media (max-width: 700px) { #app .ops-pulse-strip { grid-template-columns: repeat(2,1fr); } }
+
+#app .ops-pulse-tile {
+  background: var(--nm-surface);
+  border: 1px solid var(--nm-border);
+  border-radius: 12px; padding: 14px 16px;
+  transition: border-color .15s;
+}
+#app .ops-pulse-tile:hover { border-color: rgba(0,179,179,.3); }
+#app .opt-val {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 26px; font-weight: 400;
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-style: italic; color: var(--nm-text1);
+  line-height: 1; margin-bottom: 4px;
+}
+#app .opt-lbl { font-size: 11px; color: var(--nm-text3); font-weight: 500; }
+#app .opt-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+#app .opt-dot--green  { background: #10b981; }
+#app .opt-dot--amber  { background: #f59e0b; }
+#app .opt-dot--red    { background: #ef4444; }
+#app .opt-dot--pulse  { animation: ops-pulse 2s ease-in-out infinite; }
+@keyframes ops-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: .5; transform: scale(1.3); }
+}
+
+/* Section structure */
+#app .ops-section {
+  margin-bottom: 20px;
+}
+#app .ops-section-label {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 10px; font-weight: 700; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--nm-text3);
+  margin-bottom: 10px;
+}
+#app .ops-live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #ef4444;
+  animation: ops-pulse 1.5s ease-in-out infinite;
+}
+
+/* Live broadcast cards */
+#app .ops-broadcast-card {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 14px; border-radius: 10px; margin-bottom: 8px;
+  border: 1px solid transparent;
+}
+#app .obc--critical {
+  background: rgba(239,68,68,.05); border-color: rgba(239,68,68,.2);
+}
+#app .obc--info {
+  background: var(--nm-surface2); border-color: var(--nm-border);
+}
+#app .obc-icon {
+  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+#app .obc-icon--critical { background: rgba(239,68,68,.1); color: #ef4444; }
+#app .obc-icon--info     { background: var(--nm-surface3); color: var(--nm-text2); }
+#app .obc-body { flex: 1; min-width: 0; }
+#app .obc-text { font-size: 13px; font-weight: 500; color: var(--nm-text1); line-height: 1.4; margin-bottom: 4px; }
+#app .obc-meta { font-size: 11px; color: var(--nm-text3); display: flex; align-items: center; gap: 5px; }
+#app .obc-expiry { color: var(--nm-text3); }
+#app .obc-dismiss {
+  font-size: 11px; padding: 4px 10px; border-radius: 5px;
+  cursor: pointer; background: transparent; border: 1px solid var(--nm-border);
+  color: var(--nm-text3); flex-shrink: 0; transition: all .12s;
+}
+#app .obc-dismiss:hover { border-color: var(--nm-text2); color: var(--nm-text1); }
+
+/* Compose bar */
+#app .ops-compose-bar {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--nm-surface); border: 1px solid var(--nm-border);
+  border-radius: 12px; padding: 10px 14px; cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+#app .ops-compose-bar:hover {
+  border-color: var(--nm-teal);
+  box-shadow: 0 0 0 3px rgba(0,179,179,.06);
+}
+#app .ocb-av {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(0,179,179,.12); color: var(--nm-teal);
+  font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+#app .ocb-prompt { flex: 1; font-size: 13px; color: var(--nm-text3); }
+#app .ocb-types  { display: flex; gap: 4px; flex-shrink: 0; flex-wrap: wrap; }
+#app .oct-pill {
+  font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 4px;
+  cursor: pointer; border: 1px solid transparent; letter-spacing: .03em;
+  transition: all .12s;
+}
+#app .oct-broadcast { background: rgba(239,68,68,.1); color: #dc2626; border-color: rgba(239,68,68,.2); }
+#app .oct-protocol  { background: rgba(16,185,129,.1); color: #059669; border-color: rgba(16,185,129,.2); }
+#app .oct-info      { background: rgba(148,163,184,.1); color: #64748b; border-color: rgba(148,163,184,.2); }
+#app .oct-kudos     { background: rgba(14,165,233,.1); color: #0284c7; border-color: rgba(14,165,233,.2); }
+#app .oct-pill:hover { filter: brightness(.9); }
+
+/* Expanded compose */
+#app .ops-compose-expanded {
+  background: var(--nm-surface); border: 1px solid var(--nm-teal);
+  border-radius: 12px; overflow: hidden;
+  box-shadow: 0 0 0 3px rgba(0,179,179,.08);
+}
+#app .oce-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-bottom: 1px solid var(--nm-border);
+  background: var(--nm-surface2);
+}
+#app .oce-type-tabs { display: flex; gap: 3px; }
+#app .oce-type-btn {
+  font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 5px;
+  cursor: pointer; border: 1px solid transparent; background: transparent;
+  color: var(--nm-text3); transition: all .12s;
+}
+#app .oce-type-btn.active.oce-broadcast { background: rgba(239,68,68,.1); color: #dc2626; border-color: rgba(239,68,68,.2); }
+#app .oce-type-btn.active.oce-protocol  { background: rgba(16,185,129,.1); color: #059669; border-color: rgba(16,185,129,.2); }
+#app .oce-type-btn.active.oce-announcement { background: var(--nm-surface); color: var(--nm-text1); border-color: var(--nm-border); }
+#app .oce-type-btn.active.oce-kudos    { background: rgba(14,165,233,.1); color: #0284c7; border-color: rgba(14,165,233,.2); }
+#app .oce-type-btn:not(.active):hover  { background: var(--nm-surface2); color: var(--nm-text2); }
+#app .oce-body { padding: 12px 14px; }
+#app .oce-textarea {
+  width: 100%; resize: none;
+  font-size: 13px; line-height: 1.6;
+  color: var(--nm-text1); background: transparent;
+  border: 1px solid var(--nm-border); border-radius: 8px;
+  padding: 10px 12px; outline: none;
+  font-family: inherit; transition: border-color .15s;
+}
+#app .oce-textarea:focus { border-color: var(--nm-teal); }
+#app .oce-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 10px; gap: 10px;
+}
+#app .oce-expiry {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--nm-text3);
+}
+#app .oce-expiry-sel {
+  font-size: 12px; background: transparent; border: 1px solid var(--nm-border);
+  border-radius: 5px; padding: 2px 6px; color: var(--nm-text2); cursor: pointer;
+}
+
+/* Feed section */
+#app .ops-feed-section { flex: 1; }
+#app .ops-feed-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px; flex-wrap: wrap;
+}
+#app .ops-feed-filters { display: flex; gap: 3px; }
+#app .ops-feed-filter {
+  font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 5px;
+  cursor: pointer; background: transparent;
+  border: 1px solid transparent; color: var(--nm-text3);
+  transition: all .12s;
+}
+#app .ops-feed-filter:hover { background: var(--nm-surface2); color: var(--nm-text2); }
+#app .ops-feed-filter.active {
+  background: var(--nm-surface2); color: var(--nm-text1);
+  border-color: var(--nm-border);
+}
+#app .ops-feed { }
+#app .ops-feed-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 0; border-bottom: 1px solid var(--nm-border);
+}
+#app .ops-feed-item:last-child { border-bottom: none; }
+#app .ofi-bar {
+  width: 3px; border-radius: 2px; align-self: stretch;
+  flex-shrink: 0; min-height: 36px;
+}
+#app .ofi-av {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  background: var(--nm-surface2); border: 1px solid var(--nm-border);
+  color: var(--nm-text2); font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+#app .ofi-body { flex: 1; min-width: 0; }
+#app .ofi-header {
+  display: flex; align-items: center; gap: 7px; margin-bottom: 3px; flex-wrap: wrap;
+}
+#app .ofi-author { font-size: 12px; font-weight: 600; color: var(--nm-text1); }
+#app .ofi-tag {
+  font-size: 9px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .06em; padding: 2px 6px; border-radius: 3px;
+}
+#app .ofi-time  { font-size: 11px; color: var(--nm-text3); margin-left: auto; }
+#app .ofi-title { font-size: 13px; font-weight: 600; color: var(--nm-text1); margin-bottom: 2px; }
+#app .ofi-text  { font-size: 13px; color: var(--nm-text2); line-height: 1.5; }
+#app .ofi-actions {
+  display: flex; gap: 5px; margin-top: 6px;
+  opacity: 0; transition: opacity .12s;
+}
+#app .ops-feed-item:hover .ofi-actions { opacity: 1; }
+#app .ofi-noted, #app .ofi-del {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 11px; padding: 3px 8px; border-radius: 5px;
+  cursor: pointer; background: transparent;
+  border: 1px solid var(--nm-border); color: var(--nm-text3);
+  transition: all .12s;
+}
+#app .ofi-noted:hover { border-color: var(--nm-teal); color: var(--nm-teal); }
+#app .ofi-del:hover   { border-color: rgba(239,68,68,.4); color: #ef4444; background: rgba(239,68,68,.04); }
+
+/* Empty state */
+#app .ops-feed-empty {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 60px 40px; gap: 10px; color: var(--nm-text3);
+  font-size: 13px; text-align: center;
+}
+#app .ops-feed-empty p { margin: 0; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   OPS ROOM — Full redesign, extremely beautiful
+   ═══════════════════════════════════════════════════════════════════════ */
+
+#app .ops-view {
+  flex: 1 1 0; min-height: 0; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+
+/* Two-column layout */
+#app .ops-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 0;
+  flex: 1 1 0; min-height: 0; overflow: hidden;
+}
+@media (max-width: 860px) {
+  #app .ops-layout { grid-template-columns: 1fr; }
+}
+
+/* ─── LEFT COLUMN ─────────────────────────────────────────────── */
+#app .ops-left {
+  background: #0d1b2e;
+  border-right: 1px solid rgba(255,255,255,.06);
+  display: flex; flex-direction: column;
+  overflow-y: auto; padding: 20px 18px 40px;
+  min-height: 0;
+}
+
+#app .ops-left-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+#app .ops-live-indicator {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 10px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: rgba(255,255,255,.35);
+}
+#app .ops-live-pulse {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #00b3b3;
+  box-shadow: 0 0 0 0 rgba(0,179,179,.4);
+  animation: ops-glow 2s ease-in-out infinite;
+}
+@keyframes ops-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,179,179,.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(0,179,179,.0); }
+}
+
+#app .ops-briefing-btn {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 600; padding: 4px 10px;
+  border-radius: 6px; cursor: pointer;
+  background: rgba(0,179,179,.12);
+  border: 1px solid rgba(0,179,179,.25);
+  color: #00b3b3; transition: all .15s;
+}
+#app .ops-briefing-btn:hover {
+  background: rgba(0,179,179,.22); border-color: rgba(0,179,179,.5);
+}
+
+/* Daily briefing form */
+#app .ops-briefing-form {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px; padding: 14px; margin-bottom: 14px;
+  animation: ops-slide-down .2s ease;
+}
+@keyframes ops-slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+#app .obf-title {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; color: rgba(255,255,255,.5);
+  margin-bottom: 12px;
+}
+#app .obf-grid {
+  display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;
+}
+#app .obf-field {}
+#app .obf-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: rgba(255,255,255,.3); margin-bottom: 4px;
+}
+#app .obf-inputs { display: flex; gap: 5px; }
+#app .obf-num {
+  width: 64px; font-size: 13px; font-weight: 600;
+  padding: 5px 8px; border-radius: 6px; text-align: center;
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+  color: #fff; outline: none; transition: border-color .15s;
+}
+#app .obf-num:focus { border-color: rgba(0,179,179,.5); }
+#app .obf-sub {
+  flex: 1; font-size: 12px; padding: 5px 9px; border-radius: 6px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+  color: rgba(255,255,255,.5); outline: none; transition: border-color .15s;
+}
+#app .obf-sub:focus { border-color: rgba(0,179,179,.3); color: rgba(255,255,255,.8); }
+#app .obf-sub::placeholder { color: rgba(255,255,255,.2); }
+#app .obf-num::placeholder  { color: rgba(255,255,255,.2); }
+#app .obf-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 10px; border-top: 1px solid rgba(255,255,255,.07);
+}
+#app .obf-note { font-size: 10px; color: rgba(255,255,255,.2); }
+
+/* Pulse tiles grid */
+#app .ops-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+#app .ops-tile {
+  border-radius: 12px; padding: 13px 14px;
+  position: relative; overflow: hidden;
+  border: 1px solid transparent;
+  transition: border-color .2s, background .2s;
+  cursor: default;
+  display: flex; align-items: stretch; gap: 0;
+}
+#app .ops-tile--lg { grid-column: span 2; }
+#app .ops-tile--auto {}
+
+/* Urgency states */
+#app .ops-tile--urgent {
+  background: rgba(239,68,68,.08);
+  border-color: rgba(239,68,68,.2);
+}
+#app .ops-tile--warn {
+  background: rgba(245,158,11,.07);
+  border-color: rgba(245,158,11,.18);
+}
+#app .ops-tile--ok {
+  background: rgba(16,185,129,.07);
+  border-color: rgba(16,185,129,.18);
+}
+#app .ops-tile--dim {
+  background: rgba(255,255,255,.03);
+  border-color: rgba(255,255,255,.07);
+}
+#app .ops-tile--skeleton {
+  background: rgba(255,255,255,.03);
+  border-color: rgba(255,255,255,.06);
+  min-height: 72px;
+}
+
+#app .ot-accent {
+  width: 3px; border-radius: 2px; flex-shrink: 0;
+  align-self: stretch; margin-right: 11px;
+}
+#app .ot-body { flex: 1; min-width: 0; }
+#app .ot-icon {
+  display: flex; align-items: center;
+  flex-shrink: 0; margin-left: 8px; align-self: center;
+}
+#app .ot-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: rgba(255,255,255,.35);
+  margin-bottom: 4px;
+}
+#app .ot-val {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 30px; font-style: italic; font-weight: 400;
+  line-height: 1; color: rgba(255,255,255,.9);
+  margin-bottom: 3px;
+}
+#app .ot-val--empty { color: rgba(255,255,255,.15); font-size: 22px; }
+#app .ot-sub {
+  font-size: 10px; color: rgba(255,255,255,.35); line-height: 1.3;
+}
+#app .ot-sub-urgent { color: rgba(239,68,68,.7); }
+
+/* Tiles empty state */
+#app .ops-tiles-empty {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 32px 20px; gap: 8px; text-align: center;
+  color: rgba(255,255,255,.25); font-size: 12px;
+}
+#app .ops-tiles-empty p { margin: 0; }
+
+/* ─── RIGHT COLUMN ────────────────────────────────────────────── */
+#app .ops-right {
+  display: flex; flex-direction: column;
+  overflow: hidden; min-height: 0;
+  background: var(--nm-surface);
+}
+
+/* Broadcasts */
+#app .ops-broadcasts {
+  padding: 14px 18px 0; flex-shrink: 0;
+}
+#app .ops-section-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 9px; font-weight: 800; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--nm-text3);
+  margin-bottom: 8px;
+}
+#app .ops-live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #ef4444;
+  animation: ops-glow 1.4s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(239,68,68,.4);
+}
+@keyframes ops-glow-red {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,.4); }
+  50%       { box-shadow: 0 0 0 5px rgba(239,68,68,.0); }
+}
+#app .ops-bc-card {
+  display: flex; align-items: flex-start; gap: 0;
+  border-radius: 9px; margin-bottom: 7px; overflow: hidden;
+  border: 1px solid transparent;
+}
+#app .ops-bc--red  {
+  background: rgba(239,68,68,.05); border-color: rgba(239,68,68,.18);
+}
+#app .ops-bc--blue {
+  background: var(--nm-surface2); border-color: var(--nm-border);
+}
+#app .ops-bc-stripe {
+  width: 3px; flex-shrink: 0; align-self: stretch;
+}
+#app .ops-bc--red  .ops-bc-stripe { background: #ef4444; }
+#app .ops-bc--blue .ops-bc-stripe { background: #3b82f6; }
+#app .ops-bc-ico {
+  width: 32px; height: 32px; display: flex; align-items: center;
+  justify-content: center; flex-shrink: 0; padding: 9px;
+}
+#app .ops-bc--red  .ops-bc-ico { color: #ef4444; }
+#app .ops-bc--blue .ops-bc-ico { color: #3b82f6; }
+#app .ops-bc-body { flex: 1; min-width: 0; padding: 9px 6px 9px 0; }
+#app .ops-bc-text { font-size: 12px; font-weight: 500; color: var(--nm-text1); line-height: 1.4; margin-bottom: 2px; }
+#app .ops-bc-meta { font-size: 10px; color: var(--nm-text3); }
+#app .ops-bc-dismiss {
+  font-size: 14px; line-height: 1; padding: 8px 12px; align-self: stretch;
+  cursor: pointer; background: transparent; border: none;
+  color: var(--nm-text3); transition: color .12s;
+  display: flex; align-items: flex-start; padding-top: 10px;
+}
+#app .ops-bc-dismiss:hover { color: var(--nm-text1); }
+
+/* Compose zone */
+#app .ops-compose-zone {
+  padding: 10px 18px 12px; flex-shrink: 0;
+  border-bottom: 1px solid var(--nm-border);
+}
+#app .ops-compose-dormant {
+  display: flex; align-items: center; gap: 9px;
+  background: var(--nm-surface2); border: 1px solid var(--nm-border);
+  border-radius: 10px; padding: 9px 12px; cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+#app .ops-compose-dormant:hover {
+  border-color: var(--nm-teal);
+  box-shadow: 0 0 0 3px rgba(0,179,179,.06);
+}
+#app .ocd-av {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(0,179,179,.12); color: var(--nm-teal);
+  font-size: 9px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+#app .ocd-text { flex: 1; font-size: 12px; color: var(--nm-text3); }
+#app .ocd-pills { display: flex; gap: 3px; flex-shrink: 0; }
+#app .ocd-pill {
+  font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 3px;
+  cursor: pointer; transition: filter .12s; letter-spacing: .02em;
+}
+#app .ocd-pill--broadcast { background: rgba(239,68,68,.1); color: #dc2626; }
+#app .ocd-pill--protocol  { background: rgba(16,185,129,.1); color: #059669; }
+#app .ocd-pill--note      { background: rgba(148,163,184,.1); color: #64748b; }
+#app .ocd-pill--kudos     { background: rgba(14,165,233,.1); color: #0284c7; }
+#app .ocd-pill:hover { filter: brightness(.88); }
+
+/* Compose expanded */
+#app .ops-compose-open {
+  border: 1px solid var(--nm-teal); border-radius: 10px; overflow: hidden;
+  box-shadow: 0 0 0 3px rgba(0,179,179,.07);
+  animation: ops-slide-down .18s ease;
+}
+#app .oco-tabs {
+  display: flex; align-items: center;
+  background: var(--nm-surface2); border-bottom: 1px solid var(--nm-border);
+  padding: 5px 8px; gap: 2px;
+}
+#app .oco-tab {
+  font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 5px;
+  cursor: pointer; border: 1px solid transparent;
+  background: transparent; color: var(--nm-text3); transition: all .12s;
+}
+#app .oco-tab--active.oco-tab--broadcast    { background: rgba(239,68,68,.1); color: #dc2626; border-color: rgba(239,68,68,.2); }
+#app .oco-tab--active.oco-tab--protocol     { background: rgba(16,185,129,.1); color: #059669; border-color: rgba(16,185,129,.2); }
+#app .oco-tab--active.oco-tab--announcement { background: var(--nm-surface); color: var(--nm-text1); border-color: var(--nm-border); }
+#app .oco-tab--active.oco-tab--kudos        { background: rgba(14,165,233,.1); color: #0284c7; border-color: rgba(14,165,233,.2); }
+#app .oco-tab:not(.oco-tab--active):hover   { background: var(--nm-surface); }
+#app .oco-close {
+  margin-left: auto; padding: 4px 6px; border-radius: 5px; cursor: pointer;
+  background: transparent; border: none; color: var(--nm-text3); transition: color .12s;
+}
+#app .oco-close:hover { color: var(--nm-text1); }
+#app .oco-textarea {
+  display: block; width: 100%; resize: none;
+  font-size: 13px; line-height: 1.6; padding: 11px 14px;
+  background: var(--nm-surface); border: none; outline: none;
+  color: var(--nm-text1); font-family: inherit;
+}
+#app .oco-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; background: var(--nm-surface2);
+  border-top: 1px solid var(--nm-border);
+}
+#app .oco-expiry {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--nm-text3);
+}
+#app .oco-exp-sel {
+  font-size: 11px; background: transparent;
+  border: 1px solid var(--nm-border); border-radius: 4px;
+  padding: 2px 6px; color: var(--nm-text2); cursor: pointer;
+}
+
+/* Feed zone */
+#app .ops-feed-zone {
+  flex: 1 1 0; min-height: 0; overflow: hidden;
+  display: flex; flex-direction: column; padding: 12px 18px 0;
+}
+#app .ops-feed-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 8px; flex-shrink: 0;
+}
+#app .ops-feed-filters { display: flex; gap: 2px; }
+#app .ops-ff {
+  font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 5px;
+  cursor: pointer; background: transparent; border: 1px solid transparent;
+  color: var(--nm-text3); transition: all .12s;
+}
+#app .ops-ff:hover { background: var(--nm-surface2); color: var(--nm-text2); }
+#app .ops-ff.active {
+  background: var(--nm-surface2); color: var(--nm-text1);
+  border-color: var(--nm-border);
+}
+
+#app .ops-feed {
+  flex: 1 1 0; min-height: 0; overflow-y: auto;
+  padding-bottom: 40px;
+}
+#app .ops-fi {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 0; border-bottom: 1px solid var(--nm-border);
+}
+#app .ops-fi:last-child { border-bottom: none; }
+#app .ops-fi-bar {
+  width: 3px; border-radius: 2px; flex-shrink: 0;
+  align-self: stretch; min-height: 30px;
+}
+#app .ops-fi-av {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: var(--nm-surface2); border: 1px solid var(--nm-border);
+  font-size: 9px; font-weight: 700; color: var(--nm-text2);
+  display: flex; align-items: center; justify-content: center;
+}
+#app .ops-fi-body { flex: 1; min-width: 0; }
+#app .ops-fi-row  {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 2px; flex-wrap: wrap;
+}
+#app .ops-fi-author { font-size: 12px; font-weight: 600; color: var(--nm-text1); }
+#app .ops-fi-tag    {
+  font-size: 8.5px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .06em; padding: 1px 6px; border-radius: 3px;
+}
+#app .ops-fi-time   { font-size: 10px; color: var(--nm-text3); margin-left: auto; }
+#app .ops-fi-title  { font-size: 12px; font-weight: 600; color: var(--nm-text1); margin-bottom: 2px; }
+#app .ops-fi-text   { font-size: 12px; color: var(--nm-text2); line-height: 1.5; }
+#app .ops-fi-actions {
+  display: flex; gap: 4px; margin-top: 5px; opacity: 0; transition: opacity .12s;
+}
+#app .ops-fi:hover .ops-fi-actions { opacity: 1; }
+#app .ops-fi-btn {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 10px; padding: 2px 8px; border-radius: 4px;
+  cursor: pointer; background: transparent; border: 1px solid var(--nm-border);
+  color: var(--nm-text3); transition: all .12s;
+}
+#app .ops-fi-btn:hover     { border-color: var(--nm-teal); color: var(--nm-teal); }
+#app .ops-fi-btn--del:hover { border-color: rgba(239,68,68,.4); color: #dc2626; background: rgba(239,68,68,.04); }
+#app .ops-feed-empty {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 48px 20px; gap: 8px; color: var(--nm-text3);
+  font-size: 12px; text-align: center;
+}
+#app .ops-feed-empty p { margin: 0; }
+
     </style>
 </head>
 <body>
@@ -6975,56 +7603,299 @@
                 </div>
 
                 <!-- ============ COMMUNICATIONS VIEW ============ -->
-                <div v-if="currentView === 'communications'">
-                    <div class="card mb-6">
-                        <div class="card-header">
-                            <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg> Communications</div>
-                            <button class="btn btn-primary" @click="showCommunicationsModal" v-if="hasPermission('communications', 'create')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> New Communication</button>
-                        </div>
-                        <div class="filter-bar">
-                            <input type="text" class="form-control" v-model="communicationsFilters.search" placeholder="Search announcements...">
-                            <select class="form-select" v-model="communicationsFilters.priority">
-                                <option value="">All Priorities</option>
-                                <option value="normal">Normal</option>
-                                <option value="high">High</option>
-                                <option value="urgent">Urgent</option>
-                            </select>
-                            <select class="form-select" v-model="communicationsFilters.audience">
-                                <option value="">All Audiences</option>
-                                <option value="all_staff">All Staff</option>
-                                <option value="all">All (incl. admin)</option>
-                                <option value="residents_only">Residents Only</option>
-                                <option value="attending_only">Attendings Only</option>
-                            </select>
-                        </div>
-                        <div class="space-y-4">
-                            <div v-for="announcement in recentAnnouncements" :key="announcement.id" class="announcement-card">
-                                <div class="announcement-header">
-                                    <div>
-                                        <h4 class="announcement-title">{{ announcement.title }}</h4>
-                                        <div class="announcement-meta"><span>{{ announcement.author }}</span><span>•</span><span>{{ formatTimeAgo(announcement.created_at) }}</span></div>
+                <div v-if="currentView === 'communications'" class="ops-view">
+
+                    <!-- ══ TWO-COLUMN LAYOUT ════════════════════════════════════════
+                         Left: pulse tiles + feed  |  Right: compose + broadcasts
+                    ══════════════════════════════════════════════════════════════ -->
+                    <div class="ops-layout">
+
+                        <!-- ═══ LEFT COLUMN — situational awareness ═══ -->
+                        <div class="ops-left">
+
+                            <!-- Pulse header -->
+                            <div class="ops-left-head">
+                                <div class="ops-live-indicator">
+                                    <span class="ops-live-pulse"></span>
+                                    Situación operativa
+                                </div>
+                                <button class="ops-briefing-btn"
+                                        @click="briefingForm.show = !briefingForm.show"
+                                        v-if="hasPermission('communications','create')">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                                    Daily briefing
+                                </button>
+                            </div>
+
+                            <!-- ── DAILY BRIEFING FORM (expands inline) ── -->
+                            <div v-if="briefingForm.show" class="ops-briefing-form">
+                                <div class="obf-title">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                                    Post today's numbers · {{ new Date().toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' }) }}
+                                </div>
+                                <div class="obf-grid">
+                                    <template v-for="(field, key) in briefingForm.fields" :key="key">
+                                        <div class="obf-field">
+                                            <label class="obf-label">{{ field.label }}</label>
+                                            <div class="obf-inputs">
+                                                <input type="number" class="obf-num" v-model="field.value"
+                                                       placeholder="—" min="0" max="999">
+                                                <input type="text" class="obf-sub" v-model="field.sub"
+                                                       :placeholder="field.sub_label">
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                                <div class="obf-footer">
+                                    <span class="obf-note">Auto-clears at midnight · visible to entire team</span>
+                                    <div style="display:flex;gap:6px">
+                                        <button class="btn btn-outline btn-sm" @click="briefingForm.show = false">Cancel</button>
+                                        <button class="btn btn-primary btn-sm" @click="saveDailyBriefing(null)">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                                            Post briefing
+                                        </button>
                                     </div>
-                                    <span class="badge" :class="'badge-' + announcement.priority_level">{{ announcement.priority_level }}</span>
-                                </div>
-                                <p class="announcement-body">{{ announcement.content }}</p>
-                                <div class="announcement-footer">
-                                    <span>{{ formatAudience(announcement.target_audience) }}</span>
-                                    <button class="btn-pill btn-pill-view" @click="viewAnnouncement(announcement)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View</button>
-                                    <button v-if="hasPermission('communications','update')" class="btn-pill" @click="editAnnouncement(announcement)" style="background:var(--blue-lt);color:var(--blue);border-color:var(--blue-mid)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-                                    <button v-if="hasPermission('communications','delete')" class="btn-pill" @click="deleteAnnouncement(announcement)" style="background:var(--danger-lt);color:var(--danger);border-color:var(--danger-mid)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
                                 </div>
                             </div>
-                            <div v-if="recentAnnouncements.length === 0" class="empty-state">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg>
-                                <div class="empty-state-title">No communications found</div>
-                                <div class="empty-state-description">Keep your department informed with announcements</div>
-                                <button class="btn btn-primary btn-sm" @click="showCommunicationsModal" v-if="hasPermission('communications', 'create')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Post First Announcement</button>
+
+                            <!-- ── PULSE TILES ── -->
+                            <div class="ops-tiles" v-if="!opsLoading">
+
+                                <!-- Interconsultas -->
+                                <div class="ops-tile ops-tile--lg" :class="metricVal('interconsultas_total') > 0 ? 'ops-tile--urgent' : 'ops-tile--dim'">
+                                    <div class="ot-accent" style="background:#ef4444"></div>
+                                    <div class="ot-body">
+                                        <div class="ot-label">Interconsultas</div>
+                                        <div class="ot-val" v-if="metricVal('interconsultas_total') !== null">
+                                            {{ metricVal('interconsultas_total') }}
+                                        </div>
+                                        <div class="ot-val ot-val--empty" v-else>—</div>
+                                        <div class="ot-sub" v-if="metricSub('interconsultas_total')">
+                                            <span class="ot-sub-urgent">{{ metricSub('interconsultas_total') }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="ot-icon" style="color:rgba(239,68,68,.25)">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.54a16 16 0 0 0 6 6l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 16l-.58.92z"/></svg>
+                                    </div>
+                                </div>
+
+                                <!-- ER Patients -->
+                                <div class="ops-tile ops-tile--lg" :class="metricVal('er_patients_waiting') > 8 ? 'ops-tile--warn' : 'ops-tile--dim'">
+                                    <div class="ot-accent" style="background:#f59e0b"></div>
+                                    <div class="ot-body">
+                                        <div class="ot-label">Urgencias neumología</div>
+                                        <div class="ot-val" v-if="metricVal('er_patients_waiting') !== null">
+                                            {{ metricVal('er_patients_waiting') }}
+                                        </div>
+                                        <div class="ot-val ot-val--empty" v-else>—</div>
+                                        <div class="ot-sub" v-if="metricSub('er_patients_waiting')">{{ metricSub('er_patients_waiting') }} min espera</div>
+                                    </div>
+                                    <div class="ot-icon" style="color:rgba(245,158,11,.25)">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M8 19H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h3"/><path d="M16 5h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-3"/><path d="M12 12H4M12 12l-3-3M12 12l-3 3"/><path d="M12 12h8M12 12l3-3M12 12l3 3"/></svg>
+                                    </div>
+                                </div>
+
+                                <!-- Camas libres -->
+                                <div class="ops-tile" :class="metricVal('beds_free_total') !== null && metricVal('beds_free_total') < 3 ? 'ops-tile--urgent' : metricVal('beds_free_total') < 6 ? 'ops-tile--warn' : 'ops-tile--ok'">
+                                    <div class="ot-accent" style="background:#8b5cf6"></div>
+                                    <div class="ot-body">
+                                        <div class="ot-label">Camas libres</div>
+                                        <div class="ot-val" v-if="metricVal('beds_free_total') !== null">
+                                            {{ metricVal('beds_free_total') }}
+                                        </div>
+                                        <div class="ot-val ot-val--empty" v-else>—</div>
+                                        <div class="ot-sub" v-if="metricSub('beds_free_total')">{{ metricSub('beds_free_total') }} UCI</div>
+                                    </div>
+                                </div>
+
+                                <!-- Altas pendientes -->
+                                <div class="ops-tile" :class="metricVal('discharges_pending_total') > 3 ? 'ops-tile--warn' : 'ops-tile--dim'">
+                                    <div class="ot-accent" style="background:#3b82f6"></div>
+                                    <div class="ot-body">
+                                        <div class="ot-label">Altas pendientes</div>
+                                        <div class="ot-val" v-if="metricVal('discharges_pending_total') !== null">
+                                            {{ metricVal('discharges_pending_total') }}
+                                        </div>
+                                        <div class="ot-val ot-val--empty" v-else>—</div>
+                                        <div class="ot-sub" v-if="metricSub('discharges_pending_total')">{{ metricSub('discharges_pending_total') }} sin informe</div>
+                                    </div>
+                                </div>
+
+                                <!-- Broncoscopias urgentes -->
+                                <div class="ops-tile" :class="metricVal('bronchoscopies_urgent') > 0 ? 'ops-tile--urgent' : 'ops-tile--dim'">
+                                    <div class="ot-accent" style="background:#ef4444"></div>
+                                    <div class="ot-body">
+                                        <div class="ot-label">Broncoscopias urg.</div>
+                                        <div class="ot-val" v-if="metricVal('bronchoscopies_urgent') !== null">
+                                            {{ metricVal('bronchoscopies_urgent') }}
+                                        </div>
+                                        <div class="ot-val ot-val--empty" v-else>—</div>
+                                        <div class="ot-sub" v-if="metricSub('bronchoscopies_urgent')">Suite libre {{ metricSub('bronchoscopies_urgent') }}</div>
+                                    </div>
+                                </div>
+
+                                <!-- Rotaciones (from DB) -->
+                                <div class="ops-tile ops-tile--auto">
+                                    <div class="ot-accent" style="background:#00b3b3"></div>
+                                    <div class="ot-body">
+                                        <div class="ot-label">Rotaciones activas</div>
+                                        <div class="ot-val" style="color:var(--nm-teal)">
+                                            {{ rotations?.filter(r => r.rotation_status === 'active').length || 0 }}
+                                        </div>
+                                        <div class="ot-sub" style="color:rgba(0,179,179,.6)">
+                                            {{ rotations?.filter(r => r.rotation_status === 'active' && Utils.normalizeDate(r.end_date) <= Utils.normalizeDate(new Date(Date.now()+7*86400000))).length || 0 }} terminan pronto
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
+
+                            <!-- Skeleton while loading -->
+                            <div v-if="opsLoading" class="ops-tiles">
+                                <div v-for="i in 6" :key="i" class="ops-tile ops-tile--skeleton">
+                                    <div class="skeleton-row" style="height:14px;width:60%;margin-bottom:8px"></div>
+                                    <div class="skeleton-row" style="height:32px;width:40%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Empty state for tiles -->
+                            <div v-if="!opsLoading && opsMetrics.length === 0" class="ops-tiles-empty">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".3"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                                <p>No briefing posted yet today</p>
+                                <button v-if="hasPermission('communications','create')"
+                                        class="ops-briefing-btn" style="margin-top:6px"
+                                        @click="briefingForm.show = true">Post morning briefing</button>
+                            </div>
+
+                        </div>
+
+                        <!-- ═══ RIGHT COLUMN — feed + compose ═══ -->
+                        <div class="ops-right">
+
+                            <!-- ── LIVE BROADCASTS ── -->
+                            <div v-if="livebroadcasts.filter(b => !b._dismissed).length > 0" class="ops-broadcasts">
+                                <div class="ops-section-label">
+                                    <span class="ops-live-dot"></span> Live
+                                </div>
+                                <div v-for="bc in livebroadcasts" :key="bc.id"
+                                     v-if="!bc._dismissed"
+                                     class="ops-bc-card"
+                                     :class="bc.priority_level === 'urgent' ? 'ops-bc--red' : 'ops-bc--blue'">
+                                    <div class="ops-bc-stripe"></div>
+                                    <div class="ops-bc-ico">
+                                        <svg v-if="bc.priority_level === 'urgent'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+                                        <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+                                    </div>
+                                    <div class="ops-bc-body">
+                                        <div class="ops-bc-text">{{ bc.content || bc.title }}</div>
+                                        <div class="ops-bc-meta">{{ bc.created_by_name || '—' }} · {{ formatTimeAgo(bc.created_at) }}<span v-if="bc.publish_end_date"> · expires {{ formatDate(bc.publish_end_date) }}</span></div>
+                                    </div>
+                                    <button class="ops-bc-dismiss" @click.stop="dismissBroadcast(bc)">×</button>
+                                </div>
+                            </div>
+
+                            <!-- ── COMPOSE BAR ── -->
+                            <div class="ops-compose-zone" v-if="hasPermission('communications','create')">
+                                <div v-if="!broadcastForm.show" class="ops-compose-dormant" @click="openBroadcastForm('announcement')">
+                                    <div class="ocd-av">
+                                        {{ (currentUser?.full_name || 'U').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                                    </div>
+                                    <div class="ocd-text">What does the team need to know?</div>
+                                    <div class="ocd-pills">
+                                        <span class="ocd-pill ocd-pill--broadcast" @click.stop="openBroadcastForm('broadcast')">Broadcast</span>
+                                        <span class="ocd-pill ocd-pill--protocol"  @click.stop="openBroadcastForm('protocol')">Protocol</span>
+                                        <span class="ocd-pill ocd-pill--note"      @click.stop="openBroadcastForm('announcement')">Note</span>
+                                        <span class="ocd-pill ocd-pill--kudos"     @click.stop="openBroadcastForm('kudos')">Kudos</span>
+                                    </div>
+                                </div>
+
+                                <div v-else class="ops-compose-open">
+                                    <div class="oco-tabs">
+                                        <button v-for="t in ['broadcast','protocol','announcement','kudos']" :key="t"
+                                                class="oco-tab"
+                                                :class="{ 'oco-tab--active': broadcastForm.type === t, ['oco-tab--' + t]: true }"
+                                                @click="broadcastForm.type = t">
+                                            {{ broadcastTypeConfig[t].label }}
+                                        </button>
+                                        <button class="oco-close" @click="broadcastForm.show = false">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7l10 10M17 7l-10 10"/></svg>
+                                        </button>
+                                    </div>
+                                    <textarea class="oco-textarea"
+                                              v-model="broadcastForm.text"
+                                              :placeholder="broadcastForm.type === 'broadcast' ? 'Urgent — keep it short and clear…' : broadcastForm.type === 'kudos' ? 'Recognise someone's contribution…' : broadcastForm.type === 'protocol' ? 'Describe the protocol update…' : 'What does the department need to know?'"
+                                              rows="3"></textarea>
+                                    <div class="oco-footer">
+                                        <div class="oco-expiry">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                                            <select v-model.number="broadcastForm.expiryHours" class="oco-exp-sel">
+                                                <option :value="4">4 hours</option>
+                                                <option :value="8">8 hours</option>
+                                                <option :value="24">24 hours</option>
+                                                <option :value="72">3 days</option>
+                                                <option :value="168">1 week</option>
+                                            </select>
+                                        </div>
+                                        <button class="btn btn-primary btn-sm" @click="submitBroadcast(null)">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                                            Send
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ── DEPARTMENT FEED ── -->
+                            <div class="ops-feed-zone">
+                                <div class="ops-feed-header">
+                                    <div class="ops-section-label" style="margin:0">Feed</div>
+                                    <div class="ops-feed-filters">
+                                        <button v-for="f in ['all','broadcast','protocol','announcement','kudos']" :key="f"
+                                                class="ops-ff" :class="{ active: feedFilter === f }"
+                                                @click="feedFilter = f">
+                                            {{ f === 'all' ? 'All' : broadcastTypeConfig[f]?.label || f }}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="ops-feed">
+                                    <div v-for="item in feedItems" :key="item.id" class="ops-fi">
+                                        <div class="ops-fi-bar"
+                                             :style="{ background: broadcastTypeConfig[getAnnouncementType(item)]?.barColor || '#94a3b8' }">
+                                        </div>
+                                        <div class="ops-fi-av">
+                                            {{ (item.created_by_name || item.author || '?').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                                        </div>
+                                        <div class="ops-fi-body">
+                                            <div class="ops-fi-row">
+                                                <span class="ops-fi-author">{{ item.created_by_name || item.author || 'Staff' }}</span>
+                                                <span class="ops-fi-tag"
+                                                      :style="{ background: broadcastTypeConfig[getAnnouncementType(item)]?.bg, color: broadcastTypeConfig[getAnnouncementType(item)]?.color }">
+                                                    {{ broadcastTypeConfig[getAnnouncementType(item)]?.label }}
+                                                </span>
+                                                <span class="ops-fi-time">{{ formatTimeAgo(item.created_at) }}</span>
+                                            </div>
+                                            <div class="ops-fi-title" v-if="item.title && item.content && item.title !== item.content">{{ item.title }}</div>
+                                            <div class="ops-fi-text">{{ item.content || item.title }}</div>
+                                            <div class="ops-fi-actions">
+                                                <button class="ops-fi-btn" @click="editAnnouncement(item)" v-if="hasPermission('communications','update')">
+                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg> Edit
+                                                </button>
+                                                <button class="ops-fi-btn ops-fi-btn--del" @click="deleteAnnouncement(item)" v-if="hasPermission('communications','delete')">
+                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div v-if="feedItems.length === 0" class="ops-feed-empty">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".25"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+                                        <p>Nothing posted yet. Be first to update the department.</p>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
-                </div>
-
-            
+                </div>            
 
                 <!-- ============ SYSTEM SETTINGS VIEW ============ -->
                 <!-- FIX Bug1: moved inside content-area; Bug3: permission key fixed; Bug6: uses staffTypesLoading -->
