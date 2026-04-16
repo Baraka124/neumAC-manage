@@ -5200,7 +5200,7 @@
     <!-- ============- TOAST CONTAINER ==-=--=---=======-->
     <div class="toast-container">
         <div v-for="toast in toasts" :key="toast.id"
-             :class="['toast', `toast-${toast.type}`]"
+             :class="['toast', 'toast-' + toast.type]"
              role="alert" aria-live="polite" aria-atomic="true"> 
             <div class="toast-icon"><i :class="toast.icon"></i></div>
             <div class="toast-content">
