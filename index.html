@@ -5974,6 +5974,196 @@
     box-shadow: 4px 0 32px rgba(0,0,0,.4);
   }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   UNIFIED ACTION BUTTONS — embedded-ghost philosophy
+   Loads after style.css so wins cascade with zero !important needed.
+   
+   Core idea: icons are part of the content at rest, not separate UI
+   elements. They surface on hover — colour only, no filled boxes.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Single source of truth: the ghost token ── */
+:root {
+  --ab-size:    26px;     /* button square */
+  --ab-radius:  6px;
+  --ab-icon:    14px;     /* SVG viewbox width/height */
+  --ab-rest:    rgba(0,0,0,0);          /* transparent at rest */
+  --ab-border:  transparent;
+  --ab-color:   rgba(0,0,0,.28);        /* muted icon */
+  --ab-hover-bg: rgba(0,0,0,.05);
+  --ab-hover-color: var(--nm-text1, #111);
+  --ab-danger-hover-bg: rgba(239,68,68,.07);
+  --ab-danger-hover-color: #dc2626;
+}
+
+/* ── Base ghost button ─────────────────────────────────────────── */
+.tbl-btn,
+.btn-icon,
+.rot-action-btn,
+.nm-svc-btn,
+.nm-deg-btn,
+.inno-action-btn,
+.spop-action-btn,
+.dp-action-btn {
+  width:            var(--ab-size);
+  height:           var(--ab-size);
+  border-radius:    var(--ab-radius);
+  padding:          0;
+  border:           1px solid var(--ab-border);
+  background:       var(--ab-rest);
+  color:            var(--ab-color);
+  display:          inline-flex;
+  align-items:      center;
+  justify-content:  center;
+  cursor:           pointer;
+  flex-shrink:      0;
+  transition:       background .12s, color .12s, border-color .12s;
+}
+
+/* ── Default hover — reveal ──────────────────────────────────────── */
+.tbl-btn:hover,
+.btn-icon:hover,
+.rot-action-btn:hover,
+.nm-svc-btn:hover,
+.nm-deg-btn:hover,
+.inno-action-btn:hover,
+.spop-action-btn:hover,
+.dp-action-btn:hover {
+  background:     var(--ab-hover-bg);
+  color:          var(--ab-hover-color);
+  border-color:   rgba(0,0,0,.1);
+}
+
+/* ── Danger modifier ─────────────────────────────────────────────── */
+.tbl-btn--danger,
+.btn-icon--danger,
+.rot-action-btn--danger,
+.nm-svc-btn--del,
+.nm-deg-btn--del,
+.inno-action-btn--danger,
+.rp-detail-btn--danger {
+  color: var(--ab-color); /* stays muted at rest — same as normal */
+}
+
+.tbl-btn--danger:hover,
+.btn-icon--danger:hover,
+.rot-action-btn--danger:hover,
+.nm-svc-btn--del:hover,
+.nm-deg-btn--del:hover,
+.inno-action-btn--danger:hover,
+.rp-detail-btn--danger:hover {
+  background:   var(--ab-danger-hover-bg);
+  color:        var(--ab-danger-hover-color);
+  border-color: rgba(239,68,68,.18);
+}
+
+/* ── Success / teal modifier ─────────────────────────────────────── */
+.tbl-btn--success:hover,
+.tbl-btn--teal:hover {
+  background:   rgba(0,179,179,.08);
+  color:        #0d9e6e;
+  border-color: rgba(0,179,179,.2);
+}
+
+/* ── Research panel (dark bg) ────────────────────────────────────── */
+.rp-detail-btn {
+  width:         var(--ab-size);
+  height:        var(--ab-size);
+  border-radius: var(--ab-radius);
+  padding:       0;
+  border:        1px solid transparent;
+  background:    transparent;
+  color:         rgba(255,255,255,.35);
+  display:       inline-flex;
+  align-items:   center;
+  justify-content: center;
+  cursor:        pointer;
+  flex-shrink:   0;
+  transition:    background .12s, color .12s;
+}
+.rp-detail-btn:hover {
+  background: rgba(255,255,255,.1);
+  color:      rgba(255,255,255,.9);
+}
+.rp-detail-btn--danger:hover {
+  background: rgba(239,68,68,.2);
+  color:      #fca5a5;
+}
+
+/* ── Profile tab action button ───────────────────────────────────── */
+.pd-tab-action-btn {
+  display:      inline-flex;
+  align-items:  center;
+  gap:          5px;
+  padding:      4px 10px;
+  font-size:    11px;
+  font-weight:  500;
+  color:        rgba(255,255,255,.45);
+  border:       1px solid transparent;
+  border-radius: 6px;
+  background:   transparent;
+  cursor:       pointer;
+  transition:   all .12s;
+}
+.pd-tab-action-btn:hover {
+  color:        rgba(255,255,255,.9);
+  border-color: rgba(255,255,255,.15);
+  background:   rgba(255,255,255,.06);
+}
+.pd-tab-action-btn i { display: none; }
+
+/* ── SVG size lock — ensures all icons the same size ─────────────── */
+.tbl-btn svg,
+.btn-icon svg,
+.rot-action-btn svg,
+.nm-svc-btn svg,
+.nm-deg-btn svg,
+.inno-action-btn svg,
+.spop-action-btn svg,
+.rp-detail-btn svg,
+.dp-action-btn svg {
+  width:         var(--ab-icon);
+  height:        var(--ab-icon);
+  display:       block;
+  flex-shrink:   0;
+}
+
+/* ── Table row: buttons visible but quiet; fully reveal on row hover */
+.staff-table-row .tbl-btn,
+.staff-table-row .btn-icon,
+tr.staff-table-row .tbl-btn {
+  color: rgba(0,0,0,.22);
+}
+.staff-table-row:hover .tbl-btn,
+.staff-table-row:hover .btn-icon {
+  color: var(--ab-color);
+}
+.staff-table-row:hover .tbl-btn:hover,
+.staff-table-row:hover .btn-icon:hover {
+  background:   var(--ab-hover-bg);
+  color:        var(--ab-hover-color);
+  border-color: rgba(0,0,0,.1);
+}
+
+/* ── Card context: same reveal pattern ───────────────────────────── */
+.inno-card .inno-action-btn,
+.nm-svc-card .nm-svc-btn,
+.stype-chip .stype-chip-actions .btn-icon {
+  color: rgba(0,0,0,.2);
+}
+.inno-card:hover .inno-action-btn,
+.nm-svc-card:hover .nm-svc-btn,
+.stype-chip:hover .stype-chip-actions .btn-icon {
+  color: var(--ab-color);
+}
+
+/* ── Ensure btns are always reachable (no opacity fade on unhover) */
+.tbl-btn, .btn-icon, .rot-action-btn,
+.nm-svc-btn, .nm-deg-btn, .inno-action-btn {
+  opacity: 1;
+}
 </style>
 </head>
 <body>
