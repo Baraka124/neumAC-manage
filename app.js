@@ -1893,7 +1893,7 @@ document.addEventListener('DOMContentLoaded', () => {
         bulkOncall.calMonth = new Date().getMonth()
       }
 
-      onCallModal = reactive({
+      const onCallModal = reactive({
         show: false, mode: 'add',
         // M6 FIX: removed coverage_area (not a real DB column — DB has coverage_notes)
         form: { duty_date: Utils.normalizeDate(new Date()), shift_type: 'primary_call', coverage_area_id: '', start_time: '15:00', end_time: '08:00', primary_physician_id: '', backup_physician_id: '', coverage_notes: '' }
