@@ -5170,7 +5170,607 @@
   -webkit-backdrop-filter: blur(2px);
 }
 
-    </style>
+    
+/* ═══════════════════════════════════════════════════════════════
+   ABSENCE TIMELINE VIEW
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Wrapper */
+#app .abs-timeline-view {
+  display: flex; flex-direction: column;
+  flex: 1 1 0; min-height: 0; overflow: hidden;
+}
+
+/* ── Nav bar ── */
+#app .abs-tl-nav {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 18px 8px; flex-shrink: 0;
+  border-bottom: 1px solid var(--nm-border);
+  background: var(--nm-surface2);
+  flex-wrap: wrap;
+}
+#app .abs-tl-modes { display: flex; gap: 2px; }
+#app .abs-tl-mode-btn {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 6px;
+  cursor: pointer; border: 1px solid var(--nm-border);
+  background: transparent; color: var(--nm-text3); transition: all .12s;
+}
+#app .abs-tl-mode-btn.active {
+  background: var(--nm-text1); color: var(--nm-surface); border-color: var(--nm-text1);
+}
+#app .abs-tl-mode-btn:not(.active):hover { background: var(--nm-surface); color: var(--nm-text2); }
+#app .abs-tl-horizon { display: flex; gap: 2px; }
+#app .abs-hz-btn {
+  font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 5px;
+  cursor: pointer; border: 1px solid var(--nm-border);
+  background: transparent; color: var(--nm-text3); transition: all .12s;
+}
+#app .abs-hz-btn.active { background: var(--nm-surface); border-color: var(--nm-border); color: var(--nm-text1); }
+#app .abs-tl-period-nav {
+  display: flex; align-items: center; gap: 4px; margin-left: auto;
+}
+#app .abs-tl-pg {
+  width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--nm-border);
+  background: transparent; cursor: pointer; color: var(--nm-text3);
+  display: flex; align-items: center; justify-content: center; transition: all .12s;
+}
+#app .abs-tl-pg:hover { background: var(--nm-surface); color: var(--nm-text1); }
+#app .abs-tl-period-label {
+  font-size: 12px; font-weight: 500; color: var(--nm-text2); padding: 0 4px;
+  white-space: nowrap;
+}
+#app .abs-tl-today-btn {
+  font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 5px;
+  border: 1px solid var(--nm-teal); background: transparent; color: var(--nm-teal);
+  cursor: pointer; transition: all .12s;
+}
+#app .abs-tl-today-btn:hover { background: rgba(0,179,179,.08); }
+
+/* ── Scrollable grid wrap ── */
+#app .abs-tl-wrap {
+  flex: 1 1 0; min-height: 0; overflow: auto;
+}
+
+/* ── Main grid — 2 columns: name | months-area ── */
+#app .abs-tl-grid {
+  display: grid;
+  grid-template-columns: 168px 1fr;
+  min-width: 480px;
+}
+
+/* ── Corner + section spans ── */
+#app .abs-tl-corner {
+  background: var(--nm-surface2); border-bottom: 1px solid var(--nm-border);
+  height: 36px; flex-shrink: 0;
+}
+#app .abs-tl-section-label {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 14px;
+  font-size: 9px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .09em; color: var(--nm-text3);
+  background: var(--nm-surface2); border-bottom: 1px solid var(--nm-border);
+  border-top: 1px solid var(--nm-border);
+}
+#app .abs-tl-sec-dot {
+  width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+}
+#app .abs-tl-sec-dot--att { background: #0f2d54; }
+#app .abs-tl-sec-dot--res { background: var(--nm-teal); }
+
+/* ── Name cells ── */
+#app .abs-tl-name {
+  display: flex; align-items: center; gap: 9px;
+  padding: 0 14px; height: 40px;
+  border-bottom: 1px solid var(--nm-border);
+  cursor: pointer; transition: background .1s;
+}
+#app .abs-tl-name:hover { background: var(--nm-surface2); }
+#app .abs-tl-name--empty { opacity: .45; }
+#app .abs-tl-av {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 800; color: #fff;
+}
+#app .abs-tl-av--att { background: #0f2d54; }
+#app .abs-tl-av--res { background: rgba(0,179,179,.2); color: var(--nm-teal); font-weight: 900; }
+#app .abs-tl-name-body { min-width: 0; }
+#app .abs-tl-name-main {
+  font-size: 12px; font-weight: 500; color: var(--nm-text1);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+#app .abs-tl-name-sub { font-size: 10px; color: var(--nm-text3); }
+
+/* ── Month headers area ── */
+#app .abs-tl-months-area {
+  display: grid; position: relative;
+}
+#app .abs-tl-months-area--hdr {
+  border-bottom: 1px solid var(--nm-border);
+  background: var(--nm-surface2);
+}
+#app .abs-tl-month-hdr {
+  height: 36px; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--nm-text3);
+  border-left: 1px solid var(--nm-border);
+}
+#app .abs-tl-month-hdr--current { color: var(--nm-teal); background: rgba(0,179,179,.04); }
+#app .abs-tl-yr { font-size: 9px; opacity: .6; margin-left: 3px; }
+
+/* ── Coverage lane area ── */
+#app .abs-tl-cov-label {
+  display: flex; align-items: center; gap: 5px;
+  padding: 0 14px; height: 36px;
+  border-bottom: 1px solid var(--nm-border);
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--nm-text3);
+  background: var(--nm-surface2);
+}
+#app .abs-tl-months-area--cov {
+  border-bottom: 1px solid var(--nm-border);
+  background: var(--nm-surface2);
+}
+#app .abs-tl-cov-cell {
+  height: 36px; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  border-left: 1px solid var(--nm-border);
+}
+#app .abs-tl-cov-bar {
+  position: absolute; bottom: 0; left: 4px; right: 4px;
+  border-radius: 3px 3px 0 0; transition: height .3s ease;
+}
+#app .abs-tl-cov--ok       .abs-tl-cov-bar { background: rgba(16,185,129,.35); }
+#app .abs-tl-cov--warn     .abs-tl-cov-bar { background: rgba(245,158,11,.4); }
+#app .abs-tl-cov--critical .abs-tl-cov-bar { background: rgba(239,68,68,.45); }
+#app .abs-tl-cov-num {
+  position: relative; z-index: 1;
+  font-size: 10px; font-weight: 700; color: var(--nm-text2);
+}
+#app .abs-tl-cov--warn     .abs-tl-cov-num { color: #d97706; }
+#app .abs-tl-cov--critical .abs-tl-cov-num { color: #dc2626; }
+
+/* ── Staff row: months-area containing bg + bars ── */
+#app .abs-tl-months-area {
+  position: relative; height: 40px;
+  border-bottom: 1px solid var(--nm-border);
+}
+#app .abs-tl-month-bg {
+  border-left: 1px solid var(--nm-border);
+  height: 100%; transition: background .1s;
+}
+#app .abs-tl-month-bg--current { background: rgba(0,179,179,.025); }
+#app .abs-tl-month-bg--empty   { cursor: pointer; }
+#app .abs-tl-month-bg--empty:hover { background: rgba(0,179,179,.04); }
+
+/* Today line */
+#app .abs-tl-today {
+  position: absolute; top: 0; bottom: 0; width: 1.5px;
+  background: var(--nm-teal); opacity: .6; z-index: 4;
+  pointer-events: none;
+}
+#app .abs-tl-today::after {
+  content: '▼';
+  position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+  font-size: 7px; color: var(--nm-teal);
+}
+
+/* ── Absence bars ── */
+#app .abs-tl-bar {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  height: 20px; cursor: pointer; z-index: 3;
+  display: flex; align-items: center; padding: 0 7px;
+  overflow: hidden; white-space: nowrap;
+  transition: filter .12s, transform .12s;
+}
+#app .abs-tl-bar:hover {
+  filter: brightness(1.12);
+  transform: translateY(-50%) scaleY(1.08);
+  z-index: 5;
+}
+#app .abs-tl-bar-label {
+  font-size: 9px; font-weight: 700;
+  color: rgba(255,255,255,.92); letter-spacing: .02em;
+  pointer-events: none;
+}
+
+/* ── Planning empty state ── */
+#app .abs-tl-add-hint {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  gap: 4px; font-size: 10px; color: var(--nm-text3);
+  opacity: 0; transition: opacity .15s; z-index: 2;
+  cursor: pointer;
+}
+#app .abs-tl-months-area:hover .abs-tl-add-hint { opacity: 1; }
+
+/* ── Empty state ── */
+#app .abs-tl-empty {
+  grid-column: 1 / -1;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 60px 40px; gap: 10px; color: var(--nm-text3);
+  font-size: 13px; text-align: center;
+}
+#app .abs-tl-empty p { margin: 0; }
+
+/* ── Legend ── */
+#app .abs-tl-legend {
+  display: flex; align-items: center; gap: 14px;
+  padding: 8px 18px; flex-shrink: 0;
+  border-top: 1px solid var(--nm-border);
+  background: var(--nm-surface2); flex-wrap: wrap;
+}
+#app .abs-tl-leg-item {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; color: var(--nm-text2);
+}
+#app .abs-tl-leg-dot {
+  width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0;
+}
+#app .abs-tl-leg-sep {
+  flex: 1; min-width: 20px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NMSB — neuMAC Sidebar Redesign
+   Uses class .nmsb to win specificity over style.css .sidebar rules
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Shell ─────────────────────────────────────────────────────── */
+#app aside.nmsb {
+  width: var(--sidebar-w, 228px);
+  background: #07111f;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-right: 1px solid rgba(255,255,255,.06);
+  transition: width .2s cubic-bezier(.4,0,.2,1);
+}
+#app aside.nmsb.nmsb--collapsed {
+  width: var(--sidebar-sm, 56px);
+}
+
+/* ── Head ──────────────────────────────────────────────────────── */
+#app .nmsb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 14px 12px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+#app .nmsb--collapsed .nmsb-head {
+  justify-content: center;
+  padding: 16px 0 12px;
+}
+#app .nmsb-logo {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+#app .nmsb-collapse {
+  width: 26px; height: 26px;
+  border-radius: 6px;
+  background: rgba(255,255,255,.06);
+  border: none;
+  color: rgba(255,255,255,.35);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .12s, color .12s;
+}
+#app .nmsb-collapse:hover {
+  background: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.8);
+}
+#app .nmsb--collapsed .nmsb-collapse {
+  display: none;
+}
+
+/* ── Nav ───────────────────────────────────────────────────────── */
+#app .nmsb-nav {
+  flex: 1 1 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 0 4px;
+  scrollbar-width: none;
+}
+#app .nmsb-nav::-webkit-scrollbar { display: none; }
+
+/* Section label */
+#app .nmsb-section {
+  margin-bottom: 2px;
+}
+#app .nmsb-section-lbl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px 3px;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: rgba(255,255,255,.22);
+  user-select: none;
+}
+#app .nmsb-section-num {
+  font-weight: 900;
+  color: rgba(255,255,255,.12);
+}
+
+/* Nav item */
+#app .nmsb-item {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 1px 6px;
+  padding: 0;
+  border-radius: 8px;
+  text-decoration: none;
+  color: rgba(255,255,255,.55);
+  transition: background .12s, color .12s;
+  position: relative;
+  cursor: pointer;
+  min-height: 36px;
+}
+#app .nmsb--collapsed .nmsb-item {
+  margin: 1px auto;
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  justify-content: center;
+}
+#app .nmsb-item:hover {
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.85);
+}
+#app .nmsb-item.active {
+  background: rgba(0,179,179,.12);
+  color: #fff;
+}
+/* Active left accent bar */
+#app .nmsb-item.active::before {
+  content: '';
+  position: absolute;
+  left: -6px; top: 6px; bottom: 6px;
+  width: 3px;
+  background: #00b3b3;
+  border-radius: 0 2px 2px 0;
+}
+#app .nmsb--collapsed .nmsb-item.active::before {
+  left: -6px; top: 8px; bottom: 8px;
+}
+
+/* Icon */
+#app .nmsb-icon {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  border-radius: 8px;
+  transition: color .12s;
+}
+#app .nmsb--collapsed .nmsb-icon {
+  width: 40px; height: 40px;
+}
+
+/* Icon colour variants */
+#app .nmsb-item .nmsb-icon--slate   { color: rgba(148,163,184,.6); }
+#app .nmsb-item .nmsb-icon--green   { color: rgba(52,211,153,.65); }
+#app .nmsb-item .nmsb-icon--cyan    { color: rgba(34,211,238,.65); }
+#app .nmsb-item .nmsb-icon--amber   { color: rgba(251,191,36,.65); }
+#app .nmsb-item .nmsb-icon--violet  { color: rgba(167,139,250,.65); }
+
+#app .nmsb-item:hover .nmsb-icon,
+#app .nmsb-item.active .nmsb-icon {
+  color: #fff;
+}
+#app .nmsb-item.active .nmsb-icon--slate  { color: rgba(148,163,184,1); }
+#app .nmsb-item.active .nmsb-icon--green  { color: rgba(52,211,153,1); }
+#app .nmsb-item.active .nmsb-icon--cyan   { color: rgba(34,211,238,1); }
+#app .nmsb-item.active .nmsb-icon--amber  { color: rgba(251,191,36,1); }
+#app .nmsb-item.active .nmsb-icon--violet { color: rgba(167,139,250,1); }
+
+/* Label + sub */
+#app .nmsb-label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-right: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+}
+#app .nmsb-sub {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 400;
+  color: rgba(255,255,255,.3);
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#app .nmsb-item:hover .nmsb-sub,
+#app .nmsb-item.active .nmsb-sub {
+  color: rgba(255,255,255,.45);
+}
+
+/* Live dot */
+#app .nmsb-live-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #00b3b3;
+  flex-shrink: 0;
+  margin-right: 8px;
+  box-shadow: 0 0 0 0 rgba(0,179,179,.4);
+  animation: nmsb-pulse 2s ease-in-out infinite;
+}
+@keyframes nmsb-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,179,179,.4); }
+  50%       { box-shadow: 0 0 0 5px rgba(0,179,179,.0); }
+}
+
+/* Badges */
+#app .nmsb-badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  margin-right: 8px;
+  letter-spacing: .02em;
+}
+#app .nmsb-badge--alert {
+  background: rgba(239,68,68,.2);
+  color: #fca5a5;
+}
+#app .nmsb-badge--live {
+  background: rgba(0,179,179,.2);
+  color: #5eead4;
+}
+#app .nmsb-badge--count {
+  background: rgba(167,139,250,.2);
+  color: #c4b5fd;
+}
+
+/* ── Footer ────────────────────────────────────────────────────── */
+#app .nmsb-footer {
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255,255,255,.06);
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Search button */
+#app .nmsb-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07);
+  color: rgba(255,255,255,.3);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+  text-align: left;
+}
+#app .nmsb-search:hover {
+  background: rgba(255,255,255,.07);
+  border-color: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.5);
+}
+#app .nmsb-search span { flex: 1; }
+#app .nmsb-search kbd {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.1);
+  color: rgba(255,255,255,.3);
+  font-family: inherit;
+}
+#app .nmsb-search--icon {
+  width: 40px; height: 36px;
+  padding: 0;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+/* User card */
+#app .nmsb-user {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 6px 4px;
+  border-radius: 8px;
+  transition: background .12s;
+}
+#app .nmsb-user:hover { background: rgba(255,255,255,.04); }
+#app .nmsb--collapsed .nmsb-user {
+  justify-content: center;
+  padding: 6px 0;
+}
+#app .nmsb-user-av {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: rgba(0,179,179,.18);
+  color: #5eead4;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+#app .nmsb-user-dot {
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 1.5px solid #07111f;
+}
+#app .nmsb-user-body {
+  flex: 1;
+  min-width: 0;
+}
+#app .nmsb-user-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255,255,255,.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#app .nmsb-user-role {
+  font-size: 10px;
+  color: rgba(255,255,255,.3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#app .nmsb-logout {
+  width: 26px; height: 26px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,.2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .12s, color .12s;
+}
+#app .nmsb-logout:hover {
+  background: rgba(239,68,68,.15);
+  color: #fca5a5;
+}
+
+/* ── Mobile open state ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  #app aside.nmsb {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    z-index: 300;
+    transform: translateX(-100%);
+    transition: transform .25s cubic-bezier(.4,0,.2,1);
+    width: 228px;
+  }
+  #app aside.nmsb.mobile-open {
+    transform: translateX(0);
+    box-shadow: 4px 0 32px rgba(0,0,0,.4);
+  }
+}
+</style>
 </head>
 <body>
 <div id="app" v-cloak>
@@ -5392,190 +5992,232 @@
         <div class="mobile-backdrop" :class="{ visible: mobileMenuOpen }" @click="mobileMenuOpen = false"></div>
 
         <!-- Sidebar -->
-        <aside class="sidebar" :class="{ 'sidebar-collapsed': sidebarCollapsed, 'mobile-open': mobileMenuOpen }"
+        <aside class="sidebar nmsb" :class="{ 'nmsb--collapsed': sidebarCollapsed, 'mobile-open': mobileMenuOpen }"
                aria-label="Main navigation">
-            <div class="sidebar-header">
-                <div class="sidebar-logo">
-                    <svg v-if="!sidebarCollapsed" viewBox="0 0 108 30" fill="none" xmlns="http://www.w3.org/2000/svg" class="sb-neumax-svg" aria-label="neumAC">
-                        <defs><linearGradient id="sbng" x1="0" y1="0" x2="108" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#48cae4"/><stop offset="45%" stop-color="#4d9aff"/><stop offset="100%" stop-color="#a5b4fc"/></linearGradient></defs>
-                        <text x="1" y="23" font-family="'DM Sans', sans-serif" font-weight="600" font-size="24" fill="url(#sbng)" letter-spacing="-0.5">neum</text>
-                        <text x="62" y="23" font-family="'DM Sans', sans-serif" font-weight="800" font-size="24" fill="url(#sbng)" letter-spacing="-1">AC</text>
+
+            <!-- ── Header ── -->
+            <div class="nmsb-head">
+                <div class="nmsb-logo">
+                    <svg v-if="!sidebarCollapsed" viewBox="0 0 108 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="neumAC" style="height:22px;width:auto">
+                        <defs><linearGradient id="sbng2" x1="0" y1="0" x2="108" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#48cae4"/><stop offset="45%" stop-color="#4d9aff"/><stop offset="100%" stop-color="#a5b4fc"/></linearGradient></defs>
+                        <text x="1" y="23" font-family="'DM Sans', sans-serif" font-weight="600" font-size="24" fill="url(#sbng2)" letter-spacing="-0.5">neum</text>
+                        <text x="62" y="23" font-family="'DM Sans', sans-serif" font-weight="800" font-size="24" fill="url(#sbng2)" letter-spacing="-1">AC</text>
                     </svg>
-                    <svg v-if="sidebarCollapsed" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" class="sb-neumax-mono" aria-label="n">
-                        <defs><linearGradient id="sbmono" x1="0" y1="0" x2="30" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#48cae4"/><stop offset="100%" stop-color="#4d9aff"/></linearGradient></defs>
-                        <text x="3" y="23" font-family="'DM Sans', sans-serif" font-weight="800" font-size="24" fill="url(#sbmono)">n</text>
+                    <svg v-if="sidebarCollapsed" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="n" style="height:22px;width:22px">
+                        <defs><linearGradient id="sbmono2" x1="0" y1="0" x2="30" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#48cae4"/><stop offset="100%" stop-color="#4d9aff"/></linearGradient></defs>
+                        <text x="3" y="23" font-family="'DM Sans', sans-serif" font-weight="800" font-size="24" fill="url(#sbmono2)">n</text>
                     </svg>
                 </div>
-                <button class="sidebar-toggle" @click="sidebarCollapsed = !sidebarCollapsed"
-                        :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
-                    <i class="fas" :class="sidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+                <button class="nmsb-collapse" @click="sidebarCollapsed = !sidebarCollapsed"
+                        :aria-label="sidebarCollapsed ? 'Expand' : 'Collapse'"
+                        :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path v-if="!sidebarCollapsed" d="M15 18l-6-6 6-6"/>
+                        <path v-else d="M9 18l6-6-6-6"/>
+                    </svg>
                 </button>
             </div>
 
-            <!-- Live status bar -->
-            <div class="sb-live-status" @click="switchView('staff_absence')">
-                <div class="sb-status-wrap">
-                    <div class="sb-status-dot"></div>
-                    <div class="sb-status-ring"></div>
-                </div>
-                <div class="sb-status-txt" v-if="!sidebarCollapsed">
-                    <div class="sb-status-label">Live status</div>
-                    <div class="sb-status-val">{{ sidebarLiveStatus }}</div>
-                </div>
-            </div>
+            <!-- ── Nav ── -->
+            <nav class="nmsb-nav" aria-label="Primary navigation">
 
-            <nav class="sidebar-nav" aria-label="Primary navigation">
-
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title" data-num="01" v-if="!sidebarCollapsed">Dashboard</div>
-                    <ul class="sidebar-menu">
-                        <li class="sidebar-menu-item">
-                            <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'dashboard' }"
-                               @click.prevent="switchView('dashboard'); mobileMenuOpen = false"
-                               :aria-current="currentView === 'dashboard' ? 'page' : null">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="14" height="14" rx="1"/><rect x="14" y="3" width="14" height="14" rx="1"/><rect x="3" y="14" width="14" height="14" rx="1"/><rect x="14" y="14" width="14" height="14" rx="1"/></svg>
-                                <span v-if="!sidebarCollapsed" class="has-sub">
-                                    Overview
-                                    <em class="sb-nav-sub">Today · {{ systemStats.totalStaff || 0 }} staff</em>
-                                </span>
-                            </a>
-                        </li>
-                    </ul>
+                <!-- 01 Dashboard -->
+                <div class="nmsb-section">
+                    <div class="nmsb-section-lbl" v-if="!sidebarCollapsed">
+                        <span class="nmsb-section-num">01</span> Dashboard
+                    </div>
+                    <a href="#" class="nmsb-item" :class="{ active: currentView === 'dashboard' }"
+                       @click.prevent="switchView('dashboard'); mobileMenuOpen = false"
+                       :title="sidebarCollapsed ? 'Overview' : null">
+                        <span class="nmsb-icon nmsb-icon--slate">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+                        </span>
+                        <span class="nmsb-label" v-if="!sidebarCollapsed">
+                            Overview
+                            <em class="nmsb-sub">Today · {{ systemStats.totalStaff || 0 }} staff</em>
+                        </span>
+                    </a>
                 </div>
 
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title" data-num="02" v-if="!sidebarCollapsed">Clinical</div>
-                    <ul class="sidebar-menu">
-                        <li class="sidebar-menu-item" v-if="hasPermission('medical_staff', 'read')">
-                            <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'medical_staff' }"
-                               @click.prevent="switchView('medical_staff'); mobileMenuOpen = false"
-                               :aria-current="currentView === 'medical_staff' ? 'page' : null">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(52,211,153,1)" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                <span v-if="!sidebarCollapsed" class="has-sub">
-                                    Medical Staff
-                                    <em class="sb-nav-sub">{{ medicalStaff.length }} members</em>
-                                </span>
-                            </a>
-                        </li>
-                        <li class="sidebar-menu-item" v-if="hasPermission('oncall_schedule', 'read')">
-                            <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'oncall_schedule' }"
-                               @click.prevent="switchView('oncall_schedule'); mobileMenuOpen = false"
-                               :aria-current="currentView === 'oncall_schedule' ? 'page' : null">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(52,211,153,1)" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3"/><circle cx="18" cy="6" r="3"/></svg>
-                                <span v-if="!sidebarCollapsed" class="has-sub">
-                                    On-call
-                                    <em class="sb-nav-sub">Schedule · this week</em>
-                                </span>
-                                <span v-if="!sidebarCollapsed" class="sb-badge sb-badge--live">Live</span>
-                            </a>
-                        </li>
-                    </ul>
+                <!-- 02 Clinical -->
+                <div class="nmsb-section">
+                    <div class="nmsb-section-lbl" v-if="!sidebarCollapsed">
+                        <span class="nmsb-section-num">02</span> Clinical
+                    </div>
+                    <a href="#" class="nmsb-item" :class="{ active: currentView === 'medical_staff' }"
+                       @click.prevent="switchView('medical_staff'); mobileMenuOpen = false"
+                       v-if="hasPermission('medical_staff', 'read')"
+                       :title="sidebarCollapsed ? 'Medical Staff' : null">
+                        <span class="nmsb-icon nmsb-icon--green">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </span>
+                        <span class="nmsb-label" v-if="!sidebarCollapsed">
+                            Medical Staff
+                            <em class="nmsb-sub">{{ medicalStaff.length }} members</em>
+                        </span>
+                    </a>
+                    <a href="#" class="nmsb-item" :class="{ active: currentView === 'oncall_schedule' }"
+                       @click.prevent="switchView('oncall_schedule'); mobileMenuOpen = false"
+                       v-if="hasPermission('oncall_schedule', 'read')"
+                       :title="sidebarCollapsed ? 'On-call' : null">
+                        <span class="nmsb-icon nmsb-icon--green">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.54a16 16 0 0 0 6 6l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 16l-.58.92z"/></svg>
+                        </span>
+                        <span class="nmsb-label" v-if="!sidebarCollapsed">
+                            On-call
+                            <em class="nmsb-sub">Schedule · this week</em>
+                        </span>
+                        <span class="nmsb-live-dot" title="Live"></span>
+                    </a>
                 </div>
 
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title" data-num="03" v-if="!sidebarCollapsed">Structure</div>
-                    <ul class="sidebar-menu">
-                        <li class="sidebar-menu-item" v-if="hasPermission('training_units', 'read')">
-                            <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'training_units' }"
-                               @click.prevent="switchView('training_units'); mobileMenuOpen = false"
-                               :aria-current="currentView === 'training_units' ? 'page' : null">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(34,211,238,1)" stroke-width="1.5" stroke-linecap="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21"/></svg>
-                                <span v-if="!sidebarCollapsed" class="has-sub">
-                                    Clinical Units
-                                    <em class="sb-nav-sub">{{ trainingUnits.length }} units</em>
-                                </span>
-                            </a>
-                        </li>
-                        <li class="sidebar-menu-item" v-if="hasPermission('resident_rotations', 'read')">
-                            <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'resident_rotations' }"
-                               @click.prevent="switchView('resident_rotations'); mobileMenuOpen = false"
-                               :aria-current="currentView === 'resident_rotations' ? 'page' : null">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(34,211,238,1)" stroke-width="1.5" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/><path d="M12 8v4l3 3"/></svg>
-                                <span v-if="!sidebarCollapsed" class="has-sub">
-                                    Rotations
-                                    <em class="sb-nav-sub">{{ rotations.filter(r=>r.rotation_status==='active').length }} active</em>
-                                </span>
-                            </a>
-                        </li>
-                    </ul>
+                <!-- 03 Structure -->
+                <div class="nmsb-section">
+                    <div class="nmsb-section-lbl" v-if="!sidebarCollapsed">
+                        <span class="nmsb-section-num">03</span> Structure
+                    </div>
+                    <a href="#" class="nmsb-item" :class="{ active: currentView === 'training_units' }"
+                       @click.prevent="switchView('training_units'); mobileMenuOpen = false"
+                       v-if="hasPermission('training_units', 'read')"
+                       :title="sidebarCollapsed ? 'Clinical Units' : null">
+                        <span class="nmsb-icon nmsb-icon--cyan">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21"/></svg>
+                        </span>
+                        <span class="nmsb-label" v-if="!sidebarCollapsed">
+                            Clinical Units
+                            <em class="nmsb-sub">{{ trainingUnits.length }} units</em>
+                        </span>
+                    </a>
+                    <a href="#" class="nmsb-item" :class="{ active: currentView === 'resident_rotations' }"
+                       @click.prevent="switchView('resident_rotations'); mobileMenuOpen = false"
+                       v-if="hasPermission('resident_rotations', 'read')"
+                       :title="sidebarCollapsed ? 'Rotations' : null">
+                        <span class="nmsb-icon nmsb-icon--cyan">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 12C4 16.4 7.6 20 12 20C16.4 20 20 16.4 20 12C20 7.6 16.4 4 12 4"/><path d="M8 4H12V8"/></svg>
+                        </span>
+                        <span class="nmsb-label" v-if="!sidebarCollapsed">
+                            Rotations
+                            <em class="nmsb-sub">{{ rotations.filter(r=>r.rotation_status==='active').length }} active</em>
+                        </span>
+                    </a>
                 </div>
 
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title" data-num="04" v-if="!sidebarCollapsed">Admin</div>
-                    <ul class="sidebar-menu">
-                        <li class="sidebar-menu-item" v-if="hasPermission('staff_absence', 'read')">
-                            <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'staff_absence' }"
-                               @click.prevent="switchView('staff_absence'); mobileMenuOpen = false"
-                               :aria-current="currentView === 'staff_absence' ? 'page' : null">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(251,191,36,1)" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10H21M8 3V7M16 3V7M10 14L14 18M14 14L10 18"/></svg>
-                                <span v-if="!sidebarCollapsed" class="has-sub">
-                                    Absence
-                                    <em class="sb-nav-sub">{{ absenceKPIs.absentNow > 0 ? absenceKPIs.absentNow + ' absent now' : absenceKPIs.upcoming + ' upcoming' }}</em>
-                                </span>
-                                <span v-if="absenceKPIs.absentNow > 0" class="sb-badge sb-badge--alert">{{ absenceKPIs.absentNow }}</span>
-                            </a>
-                        </li>
-                        <li class="sidebar-menu-item" v-if="currentUser && ['system_admin','department_head'].includes(currentUser.user_role)">
-                            <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'system_settings' }"
-                               @click.prevent="switchView('system_settings'); mobileMenuOpen = false"
-                               :aria-current="currentView === 'system_settings' ? 'page' : null">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(251,191,36,1)" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
-                                <span v-if="!sidebarCollapsed" class="has-sub">
-                                    Settings
-                                    <em class="sb-nav-sub">Staff types · services</em>
-                                </span>
-                            </a>
-                        </li>
-                    </ul>
+                <!-- 04 Operations -->
+                <div class="nmsb-section">
+                    <div class="nmsb-section-lbl" v-if="!sidebarCollapsed">
+                        <span class="nmsb-section-num">04</span> Operations
+                    </div>
+                    <a href="#" class="nmsb-item" :class="{ active: currentView === 'staff_absence' }"
+                       @click.prevent="switchView('staff_absence'); mobileMenuOpen = false"
+                       v-if="hasPermission('staff_absence', 'read')"
+                       :title="sidebarCollapsed ? 'Absence' : null">
+                        <span class="nmsb-icon nmsb-icon--amber">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg>
+                        </span>
+                        <span class="nmsb-label" v-if="!sidebarCollapsed">
+                            Absence
+                            <em class="nmsb-sub">{{ absenceKPIs.absentNow > 0 ? absenceKPIs.absentNow + ' absent now' : absenceKPIs.upcoming + ' upcoming' }}</em>
+                        </span>
+                        <span v-if="absenceKPIs.absentNow > 0" class="nmsb-badge nmsb-badge--alert">{{ absenceKPIs.absentNow }}</span>
+                    </a>
+                    <a href="#" class="nmsb-item" :class="{ active: currentView === 'communications' }"
+                       @click.prevent="switchView('communications'); mobileMenuOpen = false"
+                       v-if="hasPermission('communications', 'read')"
+                       :title="sidebarCollapsed ? 'Ops Room' : null">
+                        <span class="nmsb-icon nmsb-icon--amber">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+                        </span>
+                        <span class="nmsb-label" v-if="!sidebarCollapsed">
+                            Ops Room
+                            <em class="nmsb-sub" v-if="livebroadcasts && livebroadcasts.filter(b=>!b._dismissed).length > 0">
+                                {{ livebroadcasts.filter(b=>!b._dismissed).length }} broadcast{{ livebroadcasts.filter(b=>!b._dismissed).length > 1 ? 's' : '' }} live
+                            </em>
+                            <em class="nmsb-sub" v-else>Briefings · comms</em>
+                        </span>
+                        <span v-if="livebroadcasts && livebroadcasts.filter(b=>!b._dismissed).length > 0"
+                              class="nmsb-badge nmsb-badge--live">{{ livebroadcasts.filter(b=>!b._dismissed).length }}</span>
+                    </a>
+                    <a href="#" class="nmsb-item" :class="{ active: currentView === 'system_settings' }"
+                       @click.prevent="switchView('system_settings'); mobileMenuOpen = false"
+                       v-if="currentUser && ['system_admin','department_head'].includes(currentUser.user_role)"
+                       :title="sidebarCollapsed ? 'Settings' : null">
+                        <span class="nmsb-icon nmsb-icon--amber">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
+                        </span>
+                        <span class="nmsb-label" v-if="!sidebarCollapsed">
+                            Settings
+                            <em class="nmsb-sub">Staff types · services</em>
+                        </span>
+                    </a>
                 </div>
 
-                <div class="sidebar-section" v-if="hasPermission('research_lines', 'read')">
-                    <div class="sidebar-section-title" data-num="05" v-if="!sidebarCollapsed">Research</div>
-                    <ul class="sidebar-menu">
-                        <li class="sidebar-menu-item">
-                            <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'research_hub' }"
-                               @click.prevent="switchView('research_hub'); mobileMenuOpen = false"
-                               :aria-current="currentView === 'research_hub' ? 'page' : null">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,1)" stroke-width="1.5" stroke-linecap="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg>
-                                <span v-if="!sidebarCollapsed" class="has-sub">
-                                    Research Hub
-                                    <em class="sb-nav-sub">{{ researchLines.length }} lines · {{ clinicalTrials.length }} studies</em>
-                                </span>
-                            </a>
-                        </li>
-                        <li class="sidebar-menu-item">
-                            <a href="#" class="sidebar-menu-link" :class="{ active: currentView === 'news' }"
-                               @click.prevent="switchView('news'); mobileMenuOpen = false"
-                               :aria-current="currentView === 'news' ? 'page' : null">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,1)" stroke-width="1.5" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                                <span v-if="!sidebarCollapsed" class="has-sub">
-                                    News &amp; Posts
-                                    <em class="sb-nav-sub">{{ newsPosts.filter(p=>p.status==='draft').length }} drafts</em>
-                                </span>
-                                <span v-if="!sidebarCollapsed && newsPosts.filter(p=>p.status==='draft').length > 0" class="sb-badge sb-badge--count">{{ newsPosts.filter(p=>p.status==='draft').length }}</span>
-                            </a>
-                        </li>
-                    </ul>
+                <!-- 05 Research -->
+                <div class="nmsb-section" v-if="hasPermission('research_lines', 'read')">
+                    <div class="nmsb-section-lbl" v-if="!sidebarCollapsed">
+                        <span class="nmsb-section-num">05</span> Research
+                    </div>
+                    <a href="#" class="nmsb-item" :class="{ active: currentView === 'research_hub' }"
+                       @click.prevent="switchView('research_hub'); mobileMenuOpen = false"
+                       :title="sidebarCollapsed ? 'Research Hub' : null">
+                        <span class="nmsb-icon nmsb-icon--violet">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg>
+                        </span>
+                        <span class="nmsb-label" v-if="!sidebarCollapsed">
+                            Research Hub
+                            <em class="nmsb-sub">{{ researchLines.length }} lines · {{ clinicalTrials.length }} studies</em>
+                        </span>
+                    </a>
+                    <a href="#" class="nmsb-item" :class="{ active: currentView === 'news' }"
+                       @click.prevent="switchView('news'); mobileMenuOpen = false"
+                       :title="sidebarCollapsed ? 'News &amp; Posts' : null">
+                        <span class="nmsb-icon nmsb-icon--violet">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        </span>
+                        <span class="nmsb-label" v-if="!sidebarCollapsed">
+                            News &amp; Posts
+                            <em class="nmsb-sub">{{ newsPosts.filter(p=>p.status==='draft').length }} drafts</em>
+                        </span>
+                        <span v-if="!sidebarCollapsed && newsPosts.filter(p=>p.status==='draft').length > 0"
+                              class="nmsb-badge nmsb-badge--count">{{ newsPosts.filter(p=>p.status==='draft').length }}</span>
+                    </a>
                 </div>
 
             </nav>
 
-            <div class="sidebar-footer">
-                <div class="sb-search" v-if="!sidebarCollapsed" @click="cmdPaletteOpen = true; cmdQuery = ''">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <!-- ── Footer: search + user ── -->
+            <div class="nmsb-footer">
+
+                <!-- ⌘K search -->
+                <button class="nmsb-search" v-if="!sidebarCollapsed"
+                        @click="cmdPaletteOpen = true; cmdQuery = ''">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
                     <span>Search or jump to…</span>
                     <kbd>⌘K</kbd>
-                </div>
-                <div class="sidebar-user">
-                    <div class="sidebar-user-avatar">
-                        {{ currentUser && currentUser.full_name ? getInitials(currentUser.full_name) : '' }}
+                </button>
+                <button class="nmsb-search nmsb-search--icon" v-if="sidebarCollapsed"
+                        @click="cmdPaletteOpen = true; cmdQuery = ''"
+                        title="Search (⌘K)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                </button>
+
+                <!-- User card -->
+                <div class="nmsb-user">
+                    <div class="nmsb-user-av">
+                        {{ currentUser && currentUser.full_name ? currentUser.full_name.split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() : '?' }}
+                        <span class="nmsb-user-dot"></span>
                     </div>
-                    <div class="user-info" v-if="!sidebarCollapsed">
-                        <div class="user-name">{{ currentUser && currentUser.full_name ? currentUser.full_name : '' }}</div>
-                        <div class="user-role">{{ currentUser && currentUser.user_role ? getUserRoleDisplay(currentUser.user_role) : '' }}</div>
+                    <div class="nmsb-user-body" v-if="!sidebarCollapsed">
+                        <div class="nmsb-user-name">{{ currentUser && currentUser.full_name ? currentUser.full_name.split(' ').slice(0,2).join(' ') : '—' }}</div>
+                        <div class="nmsb-user-role">{{ currentUser && currentUser.user_role ? getUserRoleDisplay(currentUser.user_role) : '' }}</div>
                     </div>
+                    <button v-if="!sidebarCollapsed" class="nmsb-logout"
+                            @click="logout" title="Sign out">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                    </button>
                 </div>
+
             </div>
+
         </aside>
 
         <!-- Live Statistics Sidebar Toggle -->
@@ -7692,6 +8334,10 @@
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2V6M8 2V6M3 10H21"/></svg>
                                     Calendar
                                 </button>
+                                <button class="vmt-btn" :class="{ active: absenceViewMode === 'timeline' }" @click="absenceViewMode = 'timeline'">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h12"/><path d="M18 15l3 3-3 3"/></svg>
+                                    Timeline
+                                </button>
                             </div>
                         </div>
                         <div class="filter-bar">
@@ -7892,6 +8538,207 @@
                                 </div>
                             </div>
                         </div>
+
+                    <!-- ══ TIMELINE VIEW ══════════════════════════════════════════════ -->
+                    <div v-show="absenceViewMode === 'timeline'" class="abs-timeline-view">
+
+                        <!-- Nav bar -->
+                        <div class="abs-tl-nav">
+                            <div class="abs-tl-modes">
+                                <button class="abs-tl-mode-btn" :class="{ active: !absTimelinePlanning }"
+                                        @click="absTimelinePlanning = false">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                                    Review
+                                </button>
+                                <button class="abs-tl-mode-btn" :class="{ active: absTimelinePlanning }"
+                                        @click="absTimelinePlanning = true">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg>
+                                    Planning
+                                </button>
+                            </div>
+                            <div class="abs-tl-horizon">
+                                <button v-for="h in [1,3,6]" :key="h"
+                                        class="abs-hz-btn" :class="{ active: absTimelineHorizon === h }"
+                                        @click="absTimelineHorizon = h">{{ h }}mo</button>
+                            </div>
+                            <div class="abs-tl-period-nav">
+                                <button class="abs-tl-pg" @click="absTimelineOffset -= absTimelineHorizon">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+                                </button>
+                                <span class="abs-tl-period-label">{{ getAbsHorizonLabel() }}</span>
+                                <button v-if="absTimelineOffset !== 0" class="abs-tl-today-btn"
+                                        @click="absTimelineOffset = 0">Today</button>
+                                <button class="abs-tl-pg" @click="absTimelineOffset += absTimelineHorizon">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Gantt grid -->
+                        <div class="abs-tl-wrap">
+                            <div class="abs-tl-grid"
+                                 :style="{ gridTemplateColumns: '168px 1fr' }">
+
+                                <!-- Month headers -->
+                                <div class="abs-tl-corner"></div>
+                                <div class="abs-tl-months-area abs-tl-months-area--hdr"
+                                     :style="{ gridTemplateColumns: 'repeat(' + absTimelineHorizon + ', minmax(70px, 1fr))' }">
+                                    <div v-for="m in getHorizonMonths(absTimelineHorizon, absTimelineOffset)"
+                                         :key="'hdr-' + m.key"
+                                         class="abs-tl-month-hdr"
+                                         :class="{ 'abs-tl-month-hdr--current': m.isCurrent }">
+                                        {{ m.label }}<span v-if="absTimelineHorizon > 3" class="abs-tl-yr"> {{ m.year }}</span>
+                                    </div>
+                                </div>
+
+                                <!-- Coverage lane -->
+                                <div class="abs-tl-cov-label">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                    Cover
+                                </div>
+                                <div class="abs-tl-months-area abs-tl-months-area--cov"
+                                     :style="{ gridTemplateColumns: 'repeat(' + absTimelineHorizon + ', minmax(70px, 1fr))' }">
+                                    <div v-for="cov in absTimelineCoverage"
+                                         :key="'cov-' + cov.key"
+                                         class="abs-tl-cov-cell"
+                                         :class="'abs-tl-cov--' + cov.state"
+                                         :title="cov.available + ' of ' + cov.total + ' attendings available'">
+                                        <div class="abs-tl-cov-bar"
+                                             :style="{ height: Math.max(20, Math.round(cov.pct * 100)) + '%' }"></div>
+                                        <span class="abs-tl-cov-num">{{ cov.available }}/{{ cov.total }}</span>
+                                    </div>
+                                </div>
+
+                                <!-- ── ATTENDINGS SECTION ── -->
+                                <template v-if="absTimelineStaff.attendings.length > 0 || absTimelinePlanning">
+                                    <div class="abs-tl-section-label">
+                                        <span class="abs-tl-sec-dot abs-tl-sec-dot--att"></span>
+                                        Attendings
+                                    </div>
+
+                                    <template v-for="staff in absTimelineStaff.attendings" :key="staff.id">
+                                        <!-- Name cell -->
+                                        <div class="abs-tl-name"
+                                             :class="{ 'abs-tl-name--empty': getStaffAbsencesInHorizon(staff.id).length === 0 }"
+                                             @click="viewStaffDetails && viewStaffDetails(staff)">
+                                            <div class="abs-tl-av abs-tl-av--att">
+                                                {{ (staff.full_name || '?').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                                            </div>
+                                            <div class="abs-tl-name-body">
+                                                <div class="abs-tl-name-main">{{ (staff.full_name || '').split(' ').slice(0,2).join(' ') }}</div>
+                                                <div class="abs-tl-name-sub">{{ formatStaffType(staff.staff_type) }}</div>
+                                            </div>
+                                        </div>
+                                        <!-- Months area — contains bg cells + abs bars absolutely -->
+                                        <div class="abs-tl-months-area"
+                                             :style="{ gridTemplateColumns: 'repeat(' + absTimelineHorizon + ', minmax(70px, 1fr))' }"
+                                             @click="absTimelinePlanning && getStaffAbsencesInHorizon(staff.id).length === 0 && showAddAbsenceModal && showAddAbsenceModal(staff)">
+                                            <!-- Month background cells -->
+                                            <div v-for="m in getHorizonMonths(absTimelineHorizon, absTimelineOffset)"
+                                                 :key="'bg-' + staff.id + '-' + m.key"
+                                                 class="abs-tl-month-bg"
+                                                 :class="{ 'abs-tl-month-bg--current': m.isCurrent, 'abs-tl-month-bg--empty': getStaffAbsencesInHorizon(staff.id).length === 0 }">
+                                            </div>
+                                            <!-- Today line -->
+                                            <div v-if="absTimelineTodayPct >= 0"
+                                                 class="abs-tl-today"
+                                                 :style="{ left: absTimelineTodayPct + '%' }">
+                                            </div>
+                                            <!-- Absence bars -->
+                                            <div v-for="abs in getStaffAbsencesInHorizon(staff.id)"
+                                                 :key="abs.id"
+                                                 class="abs-tl-bar"
+                                                 :style="getAbsenceBarStyle(abs)"
+                                                 :title="formatAbsenceReason(abs.absence_reason) + ' · ' + formatDate(abs.start_date) + ' → ' + formatDate(abs.end_date)"
+                                                 @click.stop="editAbsence && editAbsence(abs)">
+                                                <span class="abs-tl-bar-label">{{ ABS_COLOURS[abs.absence_reason]?.label || abs.absence_reason }}</span>
+                                            </div>
+                                            <!-- Planning empty hint -->
+                                            <div v-if="absTimelinePlanning && getStaffAbsencesInHorizon(staff.id).length === 0"
+                                                 class="abs-tl-add-hint">
+                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                                                Add leave
+                                            </div>
+                                        </div>
+                                    </template>
+                                </template>
+
+                                <!-- ── RESIDENTS SECTION ── -->
+                                <template v-if="absTimelineStaff.residents.length > 0 || absTimelinePlanning">
+                                    <div class="abs-tl-section-label">
+                                        <span class="abs-tl-sec-dot abs-tl-sec-dot--res"></span>
+                                        Residents
+                                    </div>
+
+                                    <template v-for="staff in absTimelineStaff.residents" :key="staff.id">
+                                        <div class="abs-tl-name"
+                                             :class="{ 'abs-tl-name--empty': getStaffAbsencesInHorizon(staff.id).length === 0 }"
+                                             @click="viewStaffDetails && viewStaffDetails(staff)">
+                                            <div class="abs-tl-av abs-tl-av--res">
+                                                {{ (staff.full_name || '?').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                                            </div>
+                                            <div class="abs-tl-name-body">
+                                                <div class="abs-tl-name-main">{{ (staff.full_name || '').split(' ').slice(0,2).join(' ') }}</div>
+                                                <div class="abs-tl-name-sub">{{ staff.residency_year_calc || formatStaffType(staff.staff_type) }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="abs-tl-months-area"
+                                             :style="{ gridTemplateColumns: 'repeat(' + absTimelineHorizon + ', minmax(70px, 1fr))' }"
+                                             @click="absTimelinePlanning && getStaffAbsencesInHorizon(staff.id).length === 0 && showAddAbsenceModal && showAddAbsenceModal(staff)">
+                                            <div v-for="m in getHorizonMonths(absTimelineHorizon, absTimelineOffset)"
+                                                 :key="'bg-' + staff.id + '-' + m.key"
+                                                 class="abs-tl-month-bg"
+                                                 :class="{ 'abs-tl-month-bg--current': m.isCurrent, 'abs-tl-month-bg--empty': getStaffAbsencesInHorizon(staff.id).length === 0 }">
+                                            </div>
+                                            <div v-if="absTimelineTodayPct >= 0"
+                                                 class="abs-tl-today"
+                                                 :style="{ left: absTimelineTodayPct + '%' }">
+                                            </div>
+                                            <div v-for="abs in getStaffAbsencesInHorizon(staff.id)"
+                                                 :key="abs.id"
+                                                 class="abs-tl-bar"
+                                                 :style="getAbsenceBarStyle(abs)"
+                                                 :title="formatAbsenceReason(abs.absence_reason) + ' · ' + formatDate(abs.start_date) + ' → ' + formatDate(abs.end_date)"
+                                                 @click.stop="editAbsence && editAbsence(abs)">
+                                                <span class="abs-tl-bar-label">{{ ABS_COLOURS[abs.absence_reason]?.label || abs.absence_reason }}</span>
+                                            </div>
+                                            <div v-if="absTimelinePlanning && getStaffAbsencesInHorizon(staff.id).length === 0"
+                                                 class="abs-tl-add-hint">
+                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                                                Add leave
+                                            </div>
+                                        </div>
+                                    </template>
+                                </template>
+
+                                <!-- Empty state -->
+                                <div v-if="absTimelineStaff.attendings.length === 0 && absTimelineStaff.residents.length === 0"
+                                     class="abs-tl-empty">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".25"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                                    <p>No absences recorded in this period</p>
+                                    <button v-if="hasPermission('staff_absence','create')"
+                                            class="btn btn-sm btn-primary" style="margin-top:8px"
+                                            @click="showAddAbsenceModal && showAddAbsenceModal()">
+                                        Record first absence
+                                    </button>
+                                </div>
+
+                            </div><!-- /abs-tl-grid -->
+                        </div><!-- /abs-tl-wrap -->
+
+                        <!-- Legend -->
+                        <div class="abs-tl-legend">
+                            <div v-for="(cfg, key) in ABS_COLOURS" :key="key" class="abs-tl-leg-item">
+                                <div class="abs-tl-leg-dot" :style="{ background: cfg.bg }"></div>
+                                {{ cfg.label }}
+                            </div>
+                            <div class="abs-tl-leg-sep"></div>
+                            <div class="abs-tl-leg-item" style="color:var(--nm-text3)">
+                                {{ absTimelinePlanning ? 'Click empty row to add absence' : 'Switch to Planning to schedule leave' }}
+                            </div>
+                        </div>
+
+                    </div><!-- /abs-timeline-view -->
 
                     </div>
                 </div>
@@ -8453,7 +9300,7 @@
                             <span class="rhub-tab-count">{{ innovationProjects.length }}</span>
                         </button>
                         <button class="rhub-tab" :class="{ 'rhub-tab--active': researchHubTab === 'analytics' }"
-                        @click="researchHubTab = 'analytics'; loadResearchDashboard(); loadTrialsTimeline(); loadResearchLinesPerformance(); loadPartnerCollaborations()"
+                        @click="researchHubTab = 'analytics'; loadResearchDashboard(); loadTrialsTimeline(); loadResearchLinesPerformance(); loadPartnerCollaborations()">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
                             <span>Analytics</span>
                         </button>
@@ -14128,7 +14975,7 @@
 
     </div><!-- end app-layout -->
 </div><!-- end #app -->
-    <script src="app.js?v=12"></script>
+    <script src="app.js?v=13"></script>
 
     <script>
     /* ── Login page — anatomical bronchial tree ── */
