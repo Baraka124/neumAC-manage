@@ -668,29 +668,135 @@
       #app .nm-dropdown-sep { height:1px; background:var(--nm-border); margin:3px 0; }
 
       /* ── ROTATION SERVICES ── */
-      #app .nm-svc-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:var(--s12); padding:var(--s16) var(--s24) var(--s24); }
-      #app .nm-svc-card { border:1px solid var(--nm-border); border-radius:var(--r10); background:var(--nm-surface); cursor:pointer; transition:border-color .12s; overflow:hidden; }
-      #app .nm-svc-card:hover { border-color:rgba(0,0,0,.15); }
-      #app .nm-svc-card.nm-open { border-color:var(--nm-navy2); }
-      #app .nm-svc-top { display:flex; align-items:center; gap:10px; padding:14px; }
-      #app .nm-svc-ico { width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-      #app .nm-svc-ico--int { background:#E1F5EE; }
-      #app .nm-svc-ico--ext { background:#FAEEDA; }
-      #app .nm-svc-info { flex:1; min-width:0; }
-      #app .nm-svc-name { font-size:13px; font-weight:500; color:var(--nm-text1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-      #app .nm-svc-type { font-size:11px; padding:2px 7px; border-radius:4px; font-weight:500; flex-shrink:0; }
-      #app .nm-svc-type--int { background:#E1F5EE; color:#0F6E56; }
-      #app .nm-svc-type--ext { background:#FAEEDA; color:#633806; }
-      #app .nm-svc-chev { color:var(--nm-text3); transition:transform .15s; flex-shrink:0; }
-      #app .nm-svc-card.nm-open .nm-svc-chev { transform:rotate(180deg); }
-      #app .nm-svc-detail { border-top:1px solid var(--nm-border); padding:12px 14px; display:none; flex-direction:column; gap:8px; }
-      #app .nm-svc-card.nm-open .nm-svc-detail { display:flex; }
-      #app .nm-svc-actions { display:flex; gap:6px; padding-top:8px; border-top:1px solid var(--nm-border); }
-      #app .nm-svc-btn { font-size:12px; padding:5px 10px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:4px; }
-      #app .nm-svc-btn--edit { background:var(--nm-surface); color:var(--nm-text1); border:1px solid rgba(0,0,0,.1); }
-      #app .nm-svc-btn--del  { background:#FCEBEB; color:#A32D2D; border:1px solid #F7C1C1; margin-left:auto; }
-      #app .nm-svc-empty { background:var(--nm-surface2); border:1px dashed rgba(0,0,0,.12); border-radius:var(--r10); min-height:88px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer; }
-      #app .nm-svc-empty span { font-size:13px; color:var(--nm-text3); }
+      /* ── ROTATION SERVICES GRID ── */
+      #app .nm-svc-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 10px;
+        padding: 16px 20px 20px;
+      }
+      #app .nm-svc-card {
+        border: 1px solid var(--nm-border);
+        border-radius: 12px;
+        background: var(--nm-surface);
+        cursor: pointer;
+        transition: border-color .15s, box-shadow .15s;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      #app .nm-svc-card:hover {
+        border-color: rgba(0,179,179,.3);
+        box-shadow: 0 2px 12px rgba(0,0,0,.06);
+      }
+      #app .nm-svc-card.nm-open {
+        border-color: var(--nm-teal);
+        box-shadow: 0 0 0 2px rgba(0,179,179,.1);
+      }
+      /* ── Top row — always visible ── */
+      #app .nm-svc-top {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 13px 14px;
+        min-height: 60px;
+      }
+      #app .nm-svc-ico {
+        width: 38px; height: 38px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        transition: transform .12s;
+      }
+      #app .nm-svc-card:hover .nm-svc-ico { transform: scale(1.05); }
+      #app .nm-svc-ico--int { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
+      #app .nm-svc-ico--ext { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+      #app .nm-svc-info { flex: 1; min-width: 0; }
+      #app .nm-svc-name {
+        font-size: 13px; font-weight: 600; color: var(--nm-text1);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        line-height: 1.3;
+      }
+      #app .nm-svc-inst {
+        font-size: 11px; color: var(--nm-text3);
+        margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      #app .nm-svc-type {
+        font-size: 10px; padding: 3px 8px; border-radius: 20px;
+        font-weight: 600; flex-shrink: 0; letter-spacing: .02em;
+      }
+      #app .nm-svc-type--int { background: rgba(16,185,129,.1); color: #059669; }
+      #app .nm-svc-type--ext { background: rgba(245,158,11,.1); color: #d97706; }
+      #app .nm-svc-chev {
+        color: var(--nm-text3); transition: transform .2s; flex-shrink: 0; margin-left: 2px;
+      }
+      #app .nm-svc-card.nm-open .nm-svc-chev { transform: rotate(180deg); color: var(--nm-teal); }
+      /* ── Preview strip — shows contact hint on closed card ── */
+      #app .nm-svc-preview {
+        padding: 0 14px 11px;
+        display: flex; align-items: center; gap: 5px;
+        font-size: 11px; color: var(--nm-text3);
+        border-top: 1px solid var(--nm-border);
+      }
+      #app .nm-svc-card.nm-open .nm-svc-preview { display: none; }
+      #app .nm-svc-preview svg { flex-shrink: 0; opacity: .5; }
+      #app .nm-svc-preview span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      /* ── Expanded detail ── */
+      #app .nm-svc-detail {
+        border-top: 1px solid var(--nm-border);
+        padding: 12px 14px 14px;
+        display: none; flex-direction: column; gap: 9px;
+        background: var(--nm-surface2);
+      }
+      #app .nm-svc-card.nm-open .nm-svc-detail { display: flex; }
+      #app .nm-svc-detail-row {
+        display: flex; align-items: flex-start; gap: 8px;
+        font-size: 12px; color: var(--nm-text2);
+      }
+      #app .nm-svc-detail-row svg { flex-shrink: 0; margin-top: 1px; color: var(--nm-text3); }
+      #app .nm-svc-detail-link {
+        color: var(--nm-teal); text-decoration: none; font-size: 12px;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      }
+      #app .nm-svc-detail-link:hover { text-decoration: underline; }
+      #app .nm-svc-detail-val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #app .nm-svc-actions {
+        display: flex; gap: 6px; padding-top: 10px;
+        border-top: 1px solid var(--nm-border); margin-top: 2px;
+      }
+      #app .nm-svc-btn {
+        font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: 7px;
+        cursor: pointer; display: flex; align-items: center; gap: 5px;
+        transition: background .12s, color .12s;
+      }
+      #app .nm-svc-btn--edit {
+        background: var(--nm-surface); color: var(--nm-text1);
+        border: 1px solid var(--nm-border);
+      }
+      #app .nm-svc-btn--edit:hover { background: var(--nm-surface2); }
+      #app .nm-svc-btn--del {
+        background: transparent; color: #b91c1c;
+        border: 1px solid rgba(185,28,28,.2);
+        margin-left: auto;
+      }
+      #app .nm-svc-btn--del:hover { background: rgba(185,28,28,.06); border-color: rgba(185,28,28,.35); }
+      /* ── Add / empty tile ── */
+      #app .nm-svc-empty {
+        background: var(--nm-surface);
+        border: 1.5px dashed var(--nm-border);
+        border-radius: 12px;
+        min-height: 60px;
+        display: flex; align-items: center; justify-content: center;
+        gap: 8px; cursor: pointer;
+        transition: border-color .12s, background .12s;
+        color: var(--nm-text3);
+        font-size: 13px; font-weight: 500;
+      }
+      #app .nm-svc-empty:hover {
+        border-color: var(--nm-teal);
+        background: rgba(0,179,179,.03);
+        color: var(--nm-teal);
+      }
 
       /* ── RESEARCH/NEWS LAYOUT ── */
       #app .main-content > .research-hub { display:flex !important; flex-direction:column !important; flex:1 1 0% !important; min-height:0 !important; width:100% !important; max-height:calc(100vh - var(--topbar-h,60px)) !important; overflow:hidden !important; margin:0 !important; padding:0 !important; }
@@ -4081,9 +4187,7 @@
 }
 @media (max-width: 680px) { #app .settings-form-grid { grid-template-columns: 1fr; } }
 
-/* Rotation service cards — the existing .nm-svc-card design is fine, just add polish */
-#app .nm-svc-grid { padding: 16px 20px; }
-#app .nm-svc-card { border-radius: 12px; }
+/* Rotation service cards — fully redesigned, see inline styles above */
 
 /* ═══════════════════════════════════════════════════════════
    NEWS & POSTS — REDESIGNED
@@ -5519,102 +5623,102 @@
   flex: 1 1 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 6px 0 4px;
+  padding: 8px 0 4px;
   scrollbar-width: none;
 }
 #app .nmsb-nav::-webkit-scrollbar { display: none; }
 
 /* Section label */
 #app .nmsb-section {
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 #app .nmsb-section-lbl {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px 3px;
+  padding: 10px 16px 4px;
   font-size: 9px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: .1em;
-  color: rgba(255,255,255,.22);
+  letter-spacing: .12em;
+  color: rgba(255,255,255,.18);
   user-select: none;
 }
 #app .nmsb-section-num {
   font-weight: 900;
-  color: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.1);
+  font-family: 'DM Mono', monospace;
 }
 
-/* Nav item */
+/* Nav item — 40px minimum height per UX guidelines */
 #app .nmsb-item {
   display: flex;
   align-items: center;
   gap: 0;
-  margin: 1px 6px;
+  margin: 1px 8px;
   padding: 0;
-  border-radius: 8px;
+  border-radius: 9px;
   text-decoration: none;
-  color: rgba(255,255,255,.55);
+  color: rgba(255,255,255,.5);
   transition: background .12s, color .12s;
   position: relative;
   cursor: pointer;
-  min-height: 36px;
+  min-height: 40px;
 }
 #app .nmsb--collapsed .nmsb-item {
-  margin: 1px auto;
+  margin: 2px auto;
   width: 40px; height: 40px;
   border-radius: 10px;
   justify-content: center;
 }
 #app .nmsb-item:hover {
-  background: rgba(255,255,255,.06);
-  color: rgba(255,255,255,.85);
+  background: rgba(255,255,255,.07);
+  color: rgba(255,255,255,.88);
 }
 #app .nmsb-item.active {
-  background: rgba(0,179,179,.12);
+  background: rgba(0,179,179,.14);
   color: #fff;
 }
-/* Active left accent bar */
+/* Active left accent — stronger, more visible */
 #app .nmsb-item.active::before {
   content: '';
   position: absolute;
-  left: -6px; top: 6px; bottom: 6px;
+  left: -8px; top: 8px; bottom: 8px;
   width: 3px;
-  background: #00b3b3;
-  border-radius: 0 2px 2px 0;
+  background: var(--nm-teal);
+  border-radius: 0 3px 3px 0;
+  box-shadow: 0 0 8px rgba(0,179,179,.4);
 }
 #app .nmsb--collapsed .nmsb-item.active::before {
-  left: -6px; top: 8px; bottom: 8px;
+  left: -8px; top: 9px; bottom: 9px;
 }
 
-/* Icon */
+/* Icon — 20px svg inside a 40px hit area for good density */
 #app .nmsb-icon {
-  width: 36px; height: 36px;
+  width: 40px; height: 40px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  border-radius: 8px;
+  border-radius: 9px;
   transition: color .12s;
 }
 #app .nmsb--collapsed .nmsb-icon {
   width: 40px; height: 40px;
 }
 
-/* Icon colour variants */
-#app .nmsb-item .nmsb-icon--slate   { color: rgba(148,163,184,.6); }
-#app .nmsb-item .nmsb-icon--green   { color: rgba(52,211,153,.65); }
-#app .nmsb-item .nmsb-icon--cyan    { color: rgba(34,211,238,.65); }
-#app .nmsb-item .nmsb-icon--amber   { color: rgba(251,191,36,.65); }
-#app .nmsb-item .nmsb-icon--violet  { color: rgba(167,139,250,.65); }
+/* Icon colour variants — muted by default, vivid on active */
+#app .nmsb-item .nmsb-icon--slate   { color: rgba(148,163,184,.55); }
+#app .nmsb-item .nmsb-icon--green   { color: rgba(52,211,153,.6); }
+#app .nmsb-item .nmsb-icon--cyan    { color: rgba(34,211,238,.6); }
+#app .nmsb-item .nmsb-icon--amber   { color: rgba(251,191,36,.6); }
+#app .nmsb-item .nmsb-icon--violet  { color: rgba(167,139,250,.6); }
 
-#app .nmsb-item:hover .nmsb-icon,
-#app .nmsb-item.active .nmsb-icon {
-  color: #fff;
-}
+#app .nmsb-item:hover .nmsb-icon { color: rgba(255,255,255,.8); }
+#app .nmsb-item.active .nmsb-icon { color: #fff; }
 #app .nmsb-item.active .nmsb-icon--slate  { color: rgba(148,163,184,1); }
-#app .nmsb-item.active .nmsb-icon--green  { color: rgba(52,211,153,1); }
-#app .nmsb-item.active .nmsb-icon--cyan   { color: rgba(34,211,238,1); }
-#app .nmsb-item.active .nmsb-icon--amber  { color: rgba(251,191,36,1); }
-#app .nmsb-item.active .nmsb-icon--violet { color: rgba(167,139,250,1); }
+#app .nmsb-item.active .nmsb-icon--green  { color: #34d399; }
+#app .nmsb-item.active .nmsb-icon--cyan   { color: #22d3ee; }
+#app .nmsb-item.active .nmsb-icon--amber  { color: #fbbf24; }
+#app .nmsb-item.active .nmsb-icon--violet { color: #a78bfa; }
 
 /* Label + sub */
 #app .nmsb-label {
@@ -5625,23 +5729,24 @@
   padding-right: 8px;
   font-size: 13px;
   font-weight: 500;
-  line-height: 1.2;
+  line-height: 1.25;
   color: inherit;
   white-space: nowrap;
   overflow: hidden;
 }
+#app .nmsb-item.active .nmsb-label { font-weight: 600; }
 #app .nmsb-sub {
   font-style: normal;
   font-size: 10px;
   font-weight: 400;
-  color: rgba(255,255,255,.3);
+  color: rgba(255,255,255,.28);
   margin-top: 1px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 #app .nmsb-item:hover .nmsb-sub,
 #app .nmsb-item.active .nmsb-sub {
-  color: rgba(255,255,255,.45);
+  color: rgba(255,255,255,.42);
 }
 
 /* Live dot */
@@ -5650,7 +5755,7 @@
   border-radius: 50%;
   background: #00b3b3;
   flex-shrink: 0;
-  margin-right: 8px;
+  margin-right: 10px;
   box-shadow: 0 0 0 0 rgba(0,179,179,.4);
   animation: nmsb-pulse 2s ease-in-out infinite;
 }
@@ -5666,8 +5771,9 @@
   padding: 2px 6px;
   border-radius: 8px;
   flex-shrink: 0;
-  margin-right: 8px;
+  margin-right: 10px;
   letter-spacing: .02em;
+  line-height: 14px;
 }
 #app .nmsb-badge--alert {
   background: rgba(239,68,68,.2);
@@ -5686,7 +5792,7 @@
 #app .nmsb-footer {
   flex-shrink: 0;
   border-top: 1px solid rgba(255,255,255,.06);
-  padding: 8px 6px;
+  padding: 8px 8px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -5698,11 +5804,11 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 7px 10px;
+  padding: 8px 10px;
   border-radius: 8px;
   background: rgba(255,255,255,.04);
   border: 1px solid rgba(255,255,255,.07);
-  color: rgba(255,255,255,.3);
+  color: rgba(255,255,255,.28);
   font-size: 12px;
   cursor: pointer;
   transition: background .12s, border-color .12s;
@@ -5718,13 +5824,13 @@
   font-size: 9px;
   padding: 1px 5px;
   border-radius: 4px;
-  background: rgba(255,255,255,.08);
+  background: rgba(255,255,255,.07);
   border: 1px solid rgba(255,255,255,.1);
-  color: rgba(255,255,255,.3);
+  color: rgba(255,255,255,.25);
   font-family: inherit;
 }
 #app .nmsb-search--icon {
-  width: 40px; height: 36px;
+  width: 40px; height: 38px;
   padding: 0;
   justify-content: center;
   margin: 0 auto;
@@ -5736,20 +5842,22 @@
   align-items: center;
   gap: 9px;
   padding: 6px 6px 4px;
-  border-radius: 8px;
+  border-radius: 9px;
   transition: background .12s;
+  cursor: pointer;
 }
-#app .nmsb-user:hover { background: rgba(255,255,255,.04); }
+#app .nmsb-user:hover { background: rgba(255,255,255,.05); }
 #app .nmsb--collapsed .nmsb-user {
   justify-content: center;
   padding: 6px 0;
 }
 #app .nmsb-user-av {
-  width: 30px; height: 30px;
+  width: 32px; height: 32px;
   border-radius: 50%;
-  background: rgba(0,179,179,.18);
+  background: rgba(0,179,179,.15);
+  border: 1.5px solid rgba(0,179,179,.25);
   color: #5eead4;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
@@ -5757,8 +5865,8 @@
 }
 #app .nmsb-user-dot {
   position: absolute;
-  bottom: 0; right: 0;
-  width: 8px; height: 8px;
+  bottom: -1px; right: -1px;
+  width: 9px; height: 9px;
   border-radius: 50%;
   background: #10b981;
   border: 1.5px solid #07111f;
@@ -5777,24 +5885,26 @@
 }
 #app .nmsb-user-role {
   font-size: 10px;
-  color: rgba(255,255,255,.3);
+  color: rgba(255,255,255,.28);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: .04em;
 }
 #app .nmsb-logout {
-  width: 26px; height: 26px;
-  border-radius: 6px;
+  width: 28px; height: 28px;
+  border-radius: 7px;
   background: transparent;
   border: none;
-  color: rgba(255,255,255,.2);
+  color: rgba(255,255,255,.18);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
   transition: background .12s, color .12s;
 }
 #app .nmsb-logout:hover {
-  background: rgba(239,68,68,.15);
+  background: rgba(239,68,68,.12);
   color: #fca5a5;
 }
 
@@ -9203,9 +9313,10 @@
                                  class="nm-svc-card"
                                  :class="{ 'nm-open': activeSvcId === svc.id }"
                                  @click="activeSvcId = activeSvcId === svc.id ? null : svc.id">
+                                <!-- Always-visible top row -->
                                 <div class="nm-svc-top">
                                     <div class="nm-svc-ico" :class="svc.service_type === 'external_institution' ? 'nm-svc-ico--ext' : 'nm-svc-ico--int'">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="svc.service_type==='external_institution' ? '#854F0B' : '#0F6E56'" stroke-width="1.5"><path d="M3 21H21M5 21V8L12 4L19 8V21"/></svg>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" :stroke="svc.service_type==='external_institution' ? '#d97706' : '#059669'" stroke-width="1.5"><path d="M3 21H21M5 21V8L12 4L19 8V21"/></svg>
                                     </div>
                                     <div class="nm-svc-info">
                                         <div class="nm-svc-name">{{ svc.name }}</div>
@@ -9214,31 +9325,31 @@
                                     <span class="nm-svc-type" :class="svc.service_type==='external_institution' ? 'nm-svc-type--ext' : 'nm-svc-type--int'">{{ svc.service_type==='external_institution' ? 'External' : 'Internal' }}</span>
                                     <svg class="nm-svc-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 9l6 6 6-6"/></svg>
                                 </div>
-                                <div class="nm-svc-meta" v-if="svc.contact_name || svc.contact_email">
-                                    <div class="nm-svc-meta-item" v-if="svc.contact_name">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                        {{ svc.contact_name }}
-                                    </div>
-                                    <div class="nm-svc-meta-item" v-if="svc.contact_email">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                                        {{ svc.contact_email }}
-                                    </div>
+                                <!-- Preview strip — contact hint, hidden when open -->
+                                <div class="nm-svc-preview" v-if="svc.contact_name || svc.contact_email">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                    <span>{{ svc.contact_name || svc.contact_email }}</span>
                                 </div>
+                                <!-- Expanded detail panel -->
                                 <div class="nm-svc-detail">
+                                    <div class="nm-svc-detail-row" v-if="svc.contact_name">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        <span class="nm-svc-detail-val">{{ svc.contact_name }}</span>
+                                    </div>
                                     <div class="nm-svc-detail-row" v-if="svc.contact_email">
-                                        <span class="nm-svc-detail-label">Email</span>
-                                        <a :href="'mailto:'+svc.contact_email" class="nm-svc-detail-link">{{ svc.contact_email }}</a>
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 9L12 15L21 9"/></svg>
+                                        <a :href="'mailto:'+svc.contact_email" class="nm-svc-detail-link" @click.stop>{{ svc.contact_email }}</a>
                                     </div>
                                     <div class="nm-svc-detail-row" v-if="svc.contact_phone">
-                                        <span class="nm-svc-detail-label">Phone</span>
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
                                         <span class="nm-svc-detail-val">{{ svc.contact_phone }}</span>
                                     </div>
-                                    <div class="nm-svc-actions">
+                                    <div class="nm-svc-actions" v-if="hasPermission('system_settings','update') || hasPermission('system_settings','delete')">
                                         <button class="nm-svc-btn nm-svc-btn--edit" @click.stop="openEditRotationService(svc)" v-if="hasPermission('system_settings','update')">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg> Edit
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg> Edit
                                         </button>
                                         <button class="nm-svc-btn nm-svc-btn--del" @click.stop="deleteRotationService(svc)" v-if="hasPermission('system_settings','delete')">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg> Remove
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg> Remove
                                         </button>
                                     </div>
                                 </div>
