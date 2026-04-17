@@ -2065,6 +2065,67 @@ document.addEventListener('DOMContentLoaded', () => {
         return Object.values(map).sort((a,b) => a.date.localeCompare(b.date))
       })
 
+      // ── Coverage Areas ────────────────────────────────────────────
+const coverageAreas = ref([])
+const coverageAreaModal = reactive({
+  show: false, mode: 'add',
+  form: { name: '', code: '', color: '#00b3b3', applies_weekends: true, display_order: 0 }
+})
+
+const loadCoverageAreas = async () => {
+  try {
+    const data = await API.getCoverageAreas()
+    if (data && !data.error) {
+      coverageAreas.value = Array.isArray(data) ? data : (data.data || [])
+    }
+  } catch { /* table may not exist yet */ }
+}
+
+const showAddCoverageAreaModal = () => {
+  coverageAreaModal.mode = 'add'
+  Object.assign(coverageAreaModal.form, { name: '', code: '', color: '#00b3b3', applies_weekends: true, display_order: 0 })
+  coverageAreaModal.show = true
+}
+
+const editCoverageArea = (area) => {
+  coverageAreaModal.mode = 'edit'
+  Object.assign(coverageAreaModal.form, { ...area })
+  coverageAreaModal.show = true
+}
+
+const saveCoverageArea = async () => {
+  const f = coverageAreaModal.form
+  if (!f.name?.trim()) { showToast('Validation', 'Area name is required', 'error'); return }
+  if (!f.code?.trim()) f.code = f.name.toUpperCase().replace(/\s+/g, '_').slice(0, 10)
+  try {
+    if (coverageAreaModal.mode === 'add') {
+      const result = await API.createCoverageArea(f)
+      coverageAreas.value.push(result.data || result)
+    } else {
+      const result = await API.updateCoverageArea(f.id, f)
+      const idx = coverageAreas.value.findIndex(a => a.id === f.id)
+      if (idx !== -1) coverageAreas.value[idx] = result.data || result
+    }
+    coverageAreaModal.show = false
+    showToast('Success', coverageAreaModal.mode === 'add' ? 'Coverage area added' : 'Coverage area updated', 'success')
+  } catch (e) { showToast('Error', e.message || 'Failed to save coverage area', 'error') }
+}
+
+const deleteCoverageArea = (area) => {
+  showConfirmation({
+    title: 'Delete Coverage Area', message: `Delete "${area.name}"?`,
+    icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
+    details: 'Any existing on-call shifts using this area will have their area cleared.',
+    onConfirm: async () => {
+      try {
+        await API.deleteCoverageArea(area.id)
+        coverageAreas.value = coverageAreas.value.filter(a => a.id !== area.id)
+        showToast('Deleted', `${area.name} removed`, 'success')
+      } catch (e) { showToast('Error', e.message || 'Failed to delete', 'error') }
+    }
+  })
+}
+
       return {
         onCallSchedule, todaysOnCall, loadingSchedule, onCallFilters, onCallModal,
         filteredOnCallSchedules, filteredOnCallAll, oncallTotalPages, todaysOnCallCount,
