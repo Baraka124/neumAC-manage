@@ -15630,10 +15630,10 @@ tr.staff-table-row .tbl-btn {
                   </div>
                   <div class="sm-field">
                       <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-                          <div class="nm-toggle" :class="{ active: coverageAreaModal.form.applies_weekends }"
-                               @click="coverageAreaModal.form.applies_weekends = !coverageAreaModal.form.applies_weekends">
-                              <div class="nm-toggle-thumb"></div>
-                          </div>
+                          <label class="nm-toggle">
+                              <input type="checkbox" v-model="coverageAreaModal.form.applies_weekends">
+                              <span class="nm-toggle-track"></span>
+                          </label>
                           <div>
                               <div style="font-size:13px;font-weight:500;color:var(--nm-text1)">Active on weekends</div>
                               <div style="font-size:11px;color:var(--nm-text3)">Include this area in weekend on-call scheduling</div>
