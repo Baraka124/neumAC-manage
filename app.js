@@ -5594,7 +5594,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // auto-load when on-call view is active
         watch(() => currentView.value, v => {
-          if (v === 'oncall_schedule')  { loadCallouts(); loadCalloutSummary(); loadCoverageAreas() }
+          if (v === 'oncall_schedule')  { loadCallouts(); loadCalloutSummary(); onCallOps.loadCoverageAreas() }
           if (v === 'communications')   { commsOps.loadAnnouncements(); commsOps.loadOpsMetrics() }
         }, { immediate: false })
 
@@ -5941,6 +5941,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentView.value = 'system_settings'
             if (!staffTypesList.value.length) loadStaffTypes(true)
             if (!rotationServices.value.length) loadRotationServices()
+            if (!onCallOps.coverageAreas.value.length) onCallOps.loadCoverageAreas()
             return
           }
           if (view === 'research_hub') {
