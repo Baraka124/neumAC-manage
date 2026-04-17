@@ -110,9 +110,11 @@
       .rp-detail-coord-avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-style:italic;font-family:'Fraunces',Georgia,serif;}
       .rp-detail-coord-name{font-size:13px;font-weight:500;color:#07111f;}
       .rp-detail-coord-role{font-size:10px;color:#909399;text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
-      .rp-detail-btn{width:30px;height:30px;border-radius:7px;border:none;background:rgba(255,255,255,.15);color:rgba(255,255,255,.7);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0;}
-      .rp-detail-btn:hover{background:rgba(255,255,255,.25);color:#fff;}
-      .rp-detail-btn--danger{background:rgba(226,75,74,.15);color:rgba(226,75,74,.7);}
+      .rp-detail-btn{width:28px;height:28px;border-radius:6px;border:1px solid transparent;background:transparent;color:rgba(255,255,255,.35);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0;}
+      .rp-detail-btn svg{width:13px;height:13px;opacity:.8;}
+      .rp-detail-btn:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.15);color:rgba(255,255,255,.9);}
+      .rp-detail-btn--danger{color:rgba(252,165,165,.5);}
+      .rp-detail-btn--danger:hover{background:rgba(185,28,28,.2);border-color:rgba(252,165,165,.2);color:#fca5a5;}
       .rp-detail-head-actions{display:flex;gap:6px;align-items:flex-start;flex-shrink:0;}
       .rp-detail-head-left{flex:1;min-width:0;}
       .rp-detail-no-coord{display:flex;align-items:center;gap:8px;font-size:12px;color:#909399;padding:10px 14px;background:#f5f4f0;border-radius:8px;border:1px solid #e3dfd6;}
@@ -1293,10 +1295,19 @@
       /* Size tokens enforced via CSS — no overrides needed */
       #app svg { flex-shrink:0; }
       /* Btn-icon container — consistent sizing */
-      #app .btn-icon  { width:28px !important; height:28px !important; display:inline-flex !important; align-items:center !important; justify-content:center !important; border-radius:6px !important; border:none !important; background:transparent !important; cursor:pointer !important; color:var(--nm-text2) !important; transition:background .1s, color .1s !important; }
-      #app .btn-icon:hover { background:var(--nm-surface2) !important; color:var(--nm-text1) !important; }
-      #app .btn-icon--danger:hover { background:#fee2e2 !important; color:#991b1b !important; }
-      #app .btn-icon svg { width:14px !important; height:14px !important; }
+      #app .btn-icon  {
+        width: 28px !important; height: 28px !important;
+        display: inline-flex !important; align-items: center !important; justify-content: center !important;
+        border-radius: 6px !important; border: 1px solid transparent !important;
+        background: transparent !important; cursor: pointer !important;
+        color: var(--nm-text3) !important;
+        transition: background .12s, color .12s, border-color .12s !important;
+        flex-shrink: 0 !important;
+      }
+      #app .btn-icon:hover { background: var(--nm-surface2) !important; border-color: var(--nm-border) !important; color: var(--nm-text1) !important; }
+      #app .btn-icon--danger:hover { background: rgba(185,28,28,.06) !important; border-color: rgba(185,28,28,.18) !important; color: #b91c1c !important; }
+      #app .btn-icon svg { width: 13px !important; height: 13px !important; opacity: .7; transition: opacity .12s; }
+      #app .btn-icon:hover svg { opacity: 1; }
 
       /* Sidebar nav icons — 16px standard */
       #app .sidebar .sidebar-menu-link svg:first-child { width:16px !important; height:16px !important; padding:0 !important; margin:0 11px !important; }
@@ -1470,71 +1481,66 @@
 
       /* ══ CRUD ACTION BUTTONS — single authoritative definition ══
          34px, always visible, no hover-hide, consistent everywhere  */
+      /* ═══════════════════════════════════════════════════════
+         UNIFIED ACTION BUTTON SYSTEM
+         Philosophy: ghost by default, embedded in UI fabric.
+         Icons 13px, 28px hit area — present but not shouting.
+         Color reveals only on hover/intent.
+         ═══════════════════════════════════════════════════════ */
       #app .tbl-btn {
-        display:inline-flex !important; align-items:center !important;
-        justify-content:center !important; gap:5px !important;
-        height:34px !important; min-width:34px !important;
-        padding:0 10px !important;
-        border-radius:6px !important;
-        border:1px solid var(--nm-border) !important;
-        background:var(--nm-surface) !important;
-        color:var(--nm-text2) !important;
-        font-size:12px !important; font-weight:500 !important;
-        cursor:pointer !important; white-space:nowrap !important;
-        flex-shrink:0 !important;
-        opacity:1 !important; visibility:visible !important;
-        transition:background .1s, border-color .1s, color .1s !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        height: 28px !important;
+        min-width: 28px !important;
+        padding: 0 8px !important;
+        border-radius: 6px !important;
+        border: 1px solid transparent !important;
+        background: transparent !important;
+        color: var(--nm-text3) !important;
+        font-size: 11px !important;
+        font-weight: 500 !important;
+        cursor: pointer !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transition: background .12s, border-color .12s, color .12s !important;
+        letter-spacing: .01em !important;
       }
       #app .tbl-btn:hover {
-        background:var(--nm-surface2) !important;
-        border-color:rgba(0,0,0,.18) !important;
-        color:var(--nm-text1) !important;
+        background: var(--nm-surface2) !important;
+        border-color: var(--nm-border) !important;
+        color: var(--nm-text1) !important;
       }
-      #app .tbl-btn svg { width:14px !important; height:14px !important; flex-shrink:0 !important; }
-      /* Semantic variants */
-      #app .tbl-btn--danger  { color:#b91c1c !important; border-color:#fecaca !important; background:#fef2f2 !important; }
-      #app .tbl-btn--danger:hover  { background:#fee2e2 !important; border-color:#fca5a5 !important; color:#991b1b !important; }
-      #app .tbl-btn--success { color:#065f46 !important; border-color:#86efac !important; background:#f0fdf4 !important; }
-      #app .tbl-btn--success:hover { background:#dcfce7 !important; border-color:#4ade80 !important; }
-      #app .tbl-btn--primary { color:#1e40af !important; border-color:#bfdbfe !important; background:#eff6ff !important; }
-      #app .tbl-btn--primary:hover { background:#dbeafe !important; border-color:#93c5fd !important; }
-      /* Always visible — kill all legacy hover-hide patterns */
-      #app .table-actions { opacity:1 !important; display:flex !important; gap:4px !important; align-items:center !important; flex-wrap:nowrap !important; }
-      #app tr .table-actions, #app tr:hover .table-actions { opacity:1 !important; }
-      #app .scc-actions { opacity:1 !important; }
-      #app .table td:last-child { white-space:nowrap !important; overflow:visible !important; min-width:90px !important; }
-      /* Touch targets */
+      #app .tbl-btn svg {
+        width: 13px !important; height: 13px !important;
+        flex-shrink: 0 !important; opacity: .7 !important;
+        transition: opacity .12s !important;
+      }
+      #app .tbl-btn:hover svg { opacity: 1 !important; }
+      /* Danger — reveals red only on hover */
+      #app .tbl-btn--danger { color:var(--nm-text3) !important; border-color:transparent !important; background:transparent !important; }
+      #app .tbl-btn--danger:hover { background:rgba(185,28,28,.06) !important; border-color:rgba(185,28,28,.18) !important; color:#b91c1c !important; }
+      #app .tbl-btn--danger:hover svg { color:#b91c1c !important; }
+      /* Success */
+      #app .tbl-btn--success { color:var(--nm-text3) !important; border-color:transparent !important; background:transparent !important; }
+      #app .tbl-btn--success:hover { background:rgba(5,150,105,.06) !important; border-color:rgba(5,150,105,.2) !important; color:#059669 !important; }
+      /* Primary */
+      #app .tbl-btn--primary { color:var(--nm-text3) !important; border-color:transparent !important; background:transparent !important; }
+      #app .tbl-btn--primary:hover { background:rgba(37,99,235,.06) !important; border-color:rgba(37,99,235,.18) !important; color:#1d4ed8 !important; }
+      /* Teal */
+      #app .tbl-btn--teal { color:var(--nm-text3) !important; border-color:transparent !important; background:transparent !important; }
+      #app .tbl-btn--teal:hover { background:rgba(0,179,179,.07) !important; border-color:rgba(0,179,179,.2) !important; color:var(--nm-teal) !important; }
+      /* Icon-only */
+      #app .tbl-btn--icon { padding:0 !important; width:28px !important; min-width:28px !important; }
+      /* Actions container */
+      #app .table-actions, #app .scc-actions { opacity:1 !important; display:flex !important; gap:2px !important; align-items:center !important; flex-wrap:nowrap !important; }
+      #app .table td:last-child { white-space:nowrap !important; overflow:visible !important; min-width:80px !important; }
       @media (hover:none) and (pointer:coarse) {
-        #app .tbl-btn { height:42px !important; min-width:42px !important; padding:0 !important; }
+        #app .tbl-btn { height:40px !important; min-width:40px !important; padding:0 !important; }
       }
-      #app .tbl-btn--danger {
-        color:#a32d2d !important;
-        border-color:#f7c1c1 !important;
-        background:#fcebeb !important;
-      }
-      #app .tbl-btn--danger:hover {
-        background:#fee2e2 !important;
-        border-color:#f09595 !important;
-      }
-      #app .tbl-btn--primary {
-        color:#1e40af !important;
-        border-color:#bfdbfe !important;
-        background:#eff6ff !important;
-      }
-      #app .tbl-btn--primary:hover {
-        background:#dbeafe !important;
-        border-color:#93c5fd !important;
-      }
-      #app .tbl-btn--success {
-        color:#065f46 !important;
-        border-color:#86efac !important;
-        background:#dcfce7 !important;
-      }
-      #app .tbl-btn--success:hover {
-        background:#bbf7d0 !important;
-      }
-      /* Icon-only variant (no label) */
-      #app .tbl-btn--icon { padding:0 !important; width:26px !important; }
 
       /* Date cells — monospace, compact */
       #app .table .date-cell {
@@ -2061,34 +2067,7 @@
         opacity:1 !important;
       }
 
-      /* ── btn-icon — alias to tbl-btn for consistency ── */
-      #app .btn-icon {
-        display:inline-flex !important;
-        align-items:center !important;
-        justify-content:center !important;
-        width:32px !important;
-        height:32px !important;
-        padding:0 !important;
-        border-radius:6px !important;
-        border:1px solid var(--nm-border) !important;
-        background:var(--nm-surface) !important;
-        color:var(--nm-text2) !important;
-        cursor:pointer !important;
-        flex-shrink:0 !important;
-        transition:background .1s, border-color .1s, color .1s !important;
-        opacity:1 !important;
-      }
-      #app .btn-icon:hover {
-        background:var(--nm-surface2) !important;
-        border-color:rgba(0,0,0,.18) !important;
-        color:var(--nm-text1) !important;
-      }
-      #app .btn-icon--danger:hover {
-        background:#fee2e2 !important;
-        border-color:#f09595 !important;
-        color:#7f1d1d !important;
-      }
-      #app .btn-icon svg { width:14px !important; height:14px !important; }
+      /* btn-icon canonical definition is above — ghost style, 28px, 13px icons */
 
       /* ── rot-action-btn — orb view (on-call, rotation compact) ── */
       /* Override style.css's circular design with our flat system */
@@ -6272,6 +6251,466 @@ tr.staff-table-row .tbl-btn {
   border-top: 1px solid var(--nm-border);
   background: var(--nm-surface2);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   BULK ON-CALL SCHEDULER
+   ═══════════════════════════════════════════════════════════════ */
+
+.bulk-oc-modal {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  width: min(820px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--nm-border);
+  box-shadow: 0 12px 48px rgba(0,0,0,.18);
+}
+
+/* ── Left panel ── */
+.boc-left {
+  background: #07111f;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.boc-left-head {
+  padding: 16px 14px 12px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: rgba(255,255,255,.25);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  flex-shrink: 0;
+}
+
+/* Steps */
+.boc-steps { flex-shrink: 0; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+.boc-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 14px;
+  cursor: default;
+  border-left: 3px solid transparent;
+  transition: background .12s;
+}
+.boc-step.active {
+  background: rgba(0,179,179,.08);
+  border-left-color: #00b3b3;
+}
+.boc-step.done { opacity: .55; cursor: pointer; }
+.boc-step.done:hover { opacity: .75; }
+.boc-step-num {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.07);
+  color: rgba(255,255,255,.35);
+  font-size: 9px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.boc-step.active .boc-step-num { background: #00b3b3; color: #fff; }
+.boc-step.done   .boc-step-num { background: rgba(16,185,129,.3); color: #34d399; }
+.boc-step-lbl { font-size: 12px; font-weight: 600; color: rgba(255,255,255,.55); }
+.boc-step.active .boc-step-lbl { color: #fff; }
+.boc-step-hint { font-size: 10px; color: rgba(255,255,255,.25); margin-top: 1px; }
+
+/* Queue */
+.boc-queue {
+  flex: 1 1 0;
+  overflow-y: auto;
+  padding: 10px 14px;
+  scrollbar-width: none;
+}
+.boc-queue::-webkit-scrollbar { display: none; }
+.boc-queue-title {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: rgba(255,255,255,.2);
+  margin-bottom: 8px;
+}
+.boc-queue-empty {
+  font-size: 10px;
+  color: rgba(255,255,255,.18);
+  line-height: 1.5;
+  padding: 4px 0;
+}
+.boc-queue-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.06);
+  margin-bottom: 4px;
+}
+.boc-q-av {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg,#00b3b3,#4a9ee8);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 800; color: #fff;
+  flex-shrink: 0;
+}
+.boc-q-body { flex: 1; min-width: 0; }
+.boc-q-name { font-size: 10px; font-weight: 600; color: rgba(255,255,255,.75); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.boc-q-meta { font-size: 9px; color: rgba(255,255,255,.28); }
+.boc-q-count {
+  font-size: 9px; font-weight: 800;
+  padding: 1px 6px; border-radius: 4px;
+  background: rgba(0,179,179,.15); color: #00b3b3;
+  flex-shrink: 0;
+}
+.boc-q-warn {
+  font-size: 9px; font-weight: 700;
+  padding: 1px 5px; border-radius: 4px;
+  background: rgba(239,68,68,.15); color: #fca5a5;
+  flex-shrink: 0;
+}
+.boc-q-del {
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  background: transparent; border: none;
+  color: rgba(255,255,255,.2);
+  cursor: pointer; font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: color .1s;
+}
+.boc-q-del:hover { color: #fca5a5; }
+
+/* Left footer */
+.boc-left-foot {
+  padding: 10px 14px 14px;
+  border-top: 1px solid rgba(255,255,255,.06);
+  display: flex; flex-direction: column; gap: 5px;
+  flex-shrink: 0;
+}
+.boc-btn-save {
+  width: 100%; padding: 8px;
+  border-radius: 8px; border: none;
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.25);
+  font-size: 12px; font-weight: 700;
+  cursor: not-allowed;
+  transition: all .15s;
+}
+.boc-btn-save.ready {
+  background: #00b3b3;
+  color: #fff;
+  cursor: pointer;
+}
+.boc-btn-save.ready:hover { background: #009999; }
+.boc-btn-add {
+  width: 100%; padding: 6px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.1);
+  color: rgba(255,255,255,.35);
+  font-size: 11px; font-weight: 600;
+  cursor: pointer;
+  transition: all .12s;
+}
+.boc-btn-add:hover { border-color: rgba(255,255,255,.2); color: rgba(255,255,255,.6); }
+
+/* ── Right panel ── */
+.boc-right {
+  background: var(--nm-surface2, #f8f7f5);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+.boc-close {
+  position: absolute; top: 12px; right: 14px;
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  background: var(--nm-surface, #fff);
+  border: 1px solid var(--nm-border);
+  color: var(--nm-text3);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .12s; z-index: 2;
+}
+.boc-close:hover { background: var(--nm-surface); color: var(--nm-text1); border-color: var(--nm-text3); }
+
+.boc-panel {
+  flex: 1 1 0;
+  overflow-y: auto;
+  padding: 18px 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.boc-panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--nm-text1);
+  padding-right: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Clone bar */
+.boc-clone-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(0,179,179,.05);
+  border: 1px solid rgba(0,179,179,.15);
+  font-size: 11px;
+  color: var(--nm-teal, #00b3b3);
+}
+
+/* Calendar nav */
+.boc-cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.boc-cal-btn {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  border: 1px solid var(--nm-border);
+  background: var(--nm-surface, #fff);
+  color: var(--nm-text3);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .1s;
+}
+.boc-cal-btn:hover { background: var(--nm-surface2); color: var(--nm-text1); }
+.boc-cal-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--nm-text1);
+}
+
+/* Day-of-week header */
+.boc-cal-dow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  margin-bottom: 2px;
+}
+.boc-cal-dow span {
+  text-align: center;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--nm-text3);
+  padding: 3px 0;
+}
+
+/* Calendar grid */
+.boc-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.boc-cal-day {
+  aspect-ratio: 1;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--nm-surface, #fff);
+  border: 1px solid var(--nm-border);
+  color: var(--nm-text2);
+  transition: all .1s;
+  position: relative;
+  user-select: none;
+}
+.boc-cal-day:hover:not(.boc-day--other) {
+  border-color: var(--nm-teal, #00b3b3);
+  color: var(--nm-teal, #00b3b3);
+}
+.boc-day--other { opacity: .25; pointer-events: none; }
+.boc-day--today { font-weight: 700; }
+.boc-day--selected {
+  background: var(--nm-teal, #00b3b3);
+  border-color: var(--nm-teal, #00b3b3);
+  color: #fff;
+  font-weight: 600;
+}
+.boc-day--absent:not(.boc-day--selected) {
+  background: rgba(239,68,68,.06);
+  border-color: rgba(239,68,68,.25);
+  color: #dc2626;
+}
+.boc-day--conflict {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+  font-weight: 600;
+}
+.boc-day-warn {
+  position: absolute;
+  top: -4px; right: -4px;
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: #fbbf24;
+  color: #1a1a1a;
+  font-size: 8px;
+  font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid #fff;
+}
+
+/* Legend */
+.boc-cal-legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.boc-leg {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--nm-text3);
+}
+.boc-leg-dot {
+  width: 10px; height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* Conflict banner */
+.boc-conflict-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(245,158,11,.07);
+  border: 1px solid rgba(245,158,11,.25);
+  font-size: 11px;
+  color: #92400e;
+  line-height: 1.5;
+}
+
+/* Area chip */
+.boc-area-chip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+
+/* Review list */
+.boc-review-list {
+  flex: 1 1 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--nm-border);
+  border-radius: 9px;
+  overflow: hidden;
+  background: var(--nm-surface, #fff);
+}
+.boc-review-block-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--nm-surface2, #f8f7f5);
+  border-bottom: 1px solid var(--nm-border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--nm-text1);
+}
+.boc-review-role {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0,179,179,.1);
+  color: var(--nm-teal, #00b3b3);
+}
+.boc-review-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--nm-border, #f0ede8);
+  font-size: 11px;
+}
+.boc-review-row:last-child { border-bottom: none; }
+.boc-review-row--conflict { background: rgba(245,158,11,.04); }
+.boc-review-date { font-weight: 500; color: var(--nm-text1); min-width: 110px; }
+.boc-review-time { color: var(--nm-text3); min-width: 80px; }
+.boc-review-warn {
+  font-size: 9px;
+  font-weight: 700;
+  color: #d97706;
+  margin-left: auto;
+}
+.boc-review-del {
+  width: 20px; height: 20px;
+  border-radius: 4px;
+  background: transparent; border: none;
+  color: var(--nm-text3);
+  cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color .1s;
+  margin-left: auto;
+}
+.boc-review-del:hover { color: #ef4444; }
+
+/* Footer row inside panels */
+.boc-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0 16px;
+  border-top: 1px solid var(--nm-border);
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+/* ── Dashboard oncall area groups ──────────────────────── */
+.db-oc-area-group { margin-bottom: 5px; }
+.db-oc-area-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  padding: 2px 0 4px 8px;
+  border-left: 2px solid;
+}
+.db-oc-area-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.db-oc-area-slots {
+  padding-left: 8px;
+  border-left: 2px solid rgba(0,0,0,.06);
+  margin-left: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 </style>
 </head>
 <body>
@@ -7137,31 +7576,63 @@ tr.staff-table-row .tbl-btn {
                                         <div class="db-oc-daynum">{{ new Date(day.date+'T12:00:00').getDate() }}</div>
                                     </div>
                                     <div class="db-oc-slots">
-                                        <div class="db-oc-slot-row" :class="day.primary ? 'db-oc-slot-row--ok' : 'db-oc-slot-row--gap'"
-                                             @click="!day.primary && hasPermission('oncall_schedule','create') ? showAddOnCallModal() : null">
-                                            <template v-if="day.primary">
-                                                <div class="db-oc-av db-oc-av--primary">{{ (getPhysicianName(day.primary.primary_physician_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
-                                                <div class="db-oc-slot-info">
-                                                    <span class="db-oc-name">{{ formatDrName(getPhysicianName(day.primary.primary_physician_id)) }}</span>
-                                                    <span class="db-oc-time">{{ (day.primary.start_time||'').slice(0,5) }}–{{ (day.primary.end_time||'').slice(0,5) }}</span>
+
+                                        <!-- Area-grouped slots -->
+                                        <template v-if="day.areas && day.areas.length > 0">
+                                            <div v-for="area in day.areas" :key="area.id" class="db-oc-area-group">
+                                                <div class="db-oc-area-label" :style="{ color: area.color, borderLeftColor: area.color + '60' }">
+                                                    <span class="db-oc-area-dot" :style="{ background: area.color }"></span>
+                                                    {{ area.name }}
                                                 </div>
-                                                <span class="db-oc-badge db-oc-badge--primary">Primary</span>
-                                            </template>
-                                            <template v-else>
-                                                <div class="db-oc-av db-oc-av--empty"></div>
-                                                <span class="db-oc-gap-label">No primary assigned</span>
-                                                <span v-if="hasPermission('oncall_schedule','create')" class="db-oc-assign-btn" @click.stop="showAddOnCallModal()">＋ Assign</span>
-                                            </template>
-                                        </div>
-                                        <div class="db-oc-slot-row db-oc-slot-row--backup" v-if="day.backup">
-                                            <div class="db-oc-av db-oc-av--backup">{{ (getPhysicianName(day.backup.primary_physician_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
-                                            <span class="db-oc-name" style="color:var(--text-2)">{{ formatDrName(getPhysicianName(day.backup.primary_physician_id)) }}</span>
-                                            <span class="db-oc-badge db-oc-badge--backup">Backup</span>
-                                        </div>
-                                        <div class="db-oc-slot-row db-oc-slot-row--warn" v-else-if="day.primary">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color:var(--warn);flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-                                            <span class="db-oc-gap-label" style="color:var(--warn)">No backup assigned</span>
-                                        </div>
+                                                <div class="db-oc-area-slots">
+                                                    <div class="db-oc-slot-row db-oc-slot-row--ok" v-if="area.primary">
+                                                        <div class="db-oc-av db-oc-av--primary">{{ (getPhysicianName(area.primary.primary_physician_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
+                                                        <div class="db-oc-slot-info">
+                                                            <span class="db-oc-name">{{ formatDrName(getPhysicianName(area.primary.primary_physician_id)) }}</span>
+                                                            <span class="db-oc-time">{{ (area.primary.start_time||'').slice(0,5) }}–{{ (area.primary.end_time||'').slice(0,5) }}</span>
+                                                        </div>
+                                                        <span class="db-oc-badge db-oc-badge--primary">Primary</span>
+                                                    </div>
+                                                    <div class="db-oc-slot-row db-oc-slot-row--gap" v-else
+                                                         @click="hasPermission('oncall_schedule','create') && showAddOnCallModal()">
+                                                        <div class="db-oc-av db-oc-av--empty"></div>
+                                                        <span class="db-oc-gap-label">No primary</span>
+                                                        <span v-if="hasPermission('oncall_schedule','create')" class="db-oc-assign-btn">＋</span>
+                                                    </div>
+                                                    <div class="db-oc-slot-row db-oc-slot-row--backup" v-if="area.backup">
+                                                        <div class="db-oc-av db-oc-av--backup">{{ (getPhysicianName(area.backup.primary_physician_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
+                                                        <span class="db-oc-name" style="color:var(--text-2)">{{ formatDrName(getPhysicianName(area.backup.primary_physician_id)) }}</span>
+                                                        <span class="db-oc-badge db-oc-badge--backup">Backup</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <!-- No-area slot (legacy / no area assigned) -->
+                                        <template v-if="day.noArea && (day.noArea.primary || day.noArea.backup || day.areas.length === 0)">
+                                            <div class="db-oc-slot-row" :class="day.noArea.primary ? 'db-oc-slot-row--ok' : 'db-oc-slot-row--gap'"
+                                                 @click="!day.noArea.primary && hasPermission('oncall_schedule','create') ? showAddOnCallModal() : null">
+                                                <template v-if="day.noArea.primary">
+                                                    <div class="db-oc-av db-oc-av--primary">{{ (getPhysicianName(day.noArea.primary.primary_physician_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
+                                                    <div class="db-oc-slot-info">
+                                                        <span class="db-oc-name">{{ formatDrName(getPhysicianName(day.noArea.primary.primary_physician_id)) }}</span>
+                                                        <span class="db-oc-time">{{ (day.noArea.primary.start_time||'').slice(0,5) }}–{{ (day.noArea.primary.end_time||'').slice(0,5) }}</span>
+                                                    </div>
+                                                    <span class="db-oc-badge db-oc-badge--primary">Primary</span>
+                                                </template>
+                                                <template v-else-if="day.areas.length === 0">
+                                                    <div class="db-oc-av db-oc-av--empty"></div>
+                                                    <span class="db-oc-gap-label">No primary assigned</span>
+                                                    <span v-if="hasPermission('oncall_schedule','create')" class="db-oc-assign-btn" @click.stop="showAddOnCallModal()">＋ Assign</span>
+                                                </template>
+                                            </div>
+                                            <div class="db-oc-slot-row db-oc-slot-row--backup" v-if="day.noArea.backup">
+                                                <div class="db-oc-av db-oc-av--backup">{{ (getPhysicianName(day.noArea.backup.primary_physician_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
+                                                <span class="db-oc-name" style="color:var(--text-2)">{{ formatDrName(getPhysicianName(day.noArea.backup.primary_physician_id)) }}</span>
+                                                <span class="db-oc-badge db-oc-badge--backup">Backup</span>
+                                            </div>
+                                        </template>
+
                                     </div>
                                 </div>
                                 <div v-if="upcomingOnCallDays.length === 0" class="db-panel-empty">
@@ -7673,6 +8144,11 @@ tr.staff-table-row .tbl-btn {
                             On-call summary
                         </button>
                         <div style="margin-left:auto;display:flex;align-items:center;gap:8px;padding:0 16px;">
+                            <button class="btn btn-primary btn-sm" @click="openBulkOncall"
+                                    v-if="hasPermission('oncall_schedule','create')" style="background:rgba(0,179,179,.15);border-color:rgba(0,179,179,.3);color:#00b3b3;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h2M8 18h2M14 14h3M14 18h3"/></svg>
+                                Bulk schedule
+                            </button>
                             <button class="btn btn-primary btn-sm" @click="openLogCalloutModal" v-if="hasPermission('oncall_schedule','create')">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Log call-out
                             </button>
@@ -11036,7 +11512,8 @@ tr.staff-table-row .tbl-btn {
                 <div class="modal-body">
                     <div class="form-group mb-3">
                         <label class="form-label">Physician <span style="color:#e24b4a">*</span></label>
-                        <select class="form-select" v-model="calloutModal.form.staff_id">
+                        <select class="form-select" v-model="calloutModal.form.staff_id"
+                                    @change="suggestCalloutArea(calloutModal.form.staff_id)">
                             <option value="">Select physician…</option>
                             <optgroup label="Attending / Fellow">
                                 <option v-for="p in availablePhysicians.filter(x => !isResidentType(x.staff_type))" :key="p.id" :value="p.id">{{ p.full_name }}</option>
@@ -11066,6 +11543,17 @@ tr.staff-table-row .tbl-btn {
                                 <option value="daytime">Daytime</option>
                             </select>
                         </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label">Coverage Area <span style="font-weight:400;color:var(--nm-text3)">— optional</span></label>
+                        <select class="form-select" v-model="calloutModal.form.coverage_area_id">
+                            <option value="">No specific area</option>
+                            <option v-for="area in coverageAreas" :key="area.id" :value="area.id">{{ area.name }}</option>
+                        </select>
+                        <div style="font-size:10px;color:var(--nm-text3);margin-top:3px"
+                             v-if="!calloutModal.form.coverage_area_id && calloutModal.form.staff_id">
+                            Auto-suggests from tonight's on-call schedule
+                        </div>
+                    </div>
                         <div class="form-group">
                             <label class="form-label">Reason</label>
                             <select class="form-select" v-model="calloutModal.form.reason_category">
@@ -12751,8 +13239,9 @@ tr.staff-table-row .tbl-btn {
                             </div>
                         </div>
                         <!-- Coverage area field -->
+                        <div class="sm-divider">Coverage</div>
                         <div class="sm-field">
-                            <div class="sm-label">Coverage Area</div>
+                            <div class="sm-label">Area</div>
                             <select class="sm-select" v-model="onCallModal.form.coverage_area_id">
                                 <option value="">No specific area</option>
                                 <option v-for="area in coverageAreas" :key="area.id" :value="area.id">
@@ -12792,8 +13281,8 @@ tr.staff-table-row .tbl-btn {
                             </select>
                         </div>
                         <div class="sm-field">
-                            <div class="sm-label">Coverage Area</div>
-                            <input type="text" class="sm-input" v-model="onCallModal.form.coverage_notes" placeholder="e.g. UCRI, Urgencias, Guardia…">
+                            <div class="sm-label">Shift Notes <span class="hint">— optional</span></div>
+                            <input type="text" class="sm-input" v-model="onCallModal.form.coverage_notes" placeholder="Handover instructions, special arrangements…">
                         </div>
                     </div>
                     <div class="sm-form-footer">
@@ -15653,6 +16142,267 @@ tr.staff-table-row .tbl-btn {
                   </button>
               </div>
           </div>
+      </div>
+
+
+      <!-- ═══ BULK ON-CALL SCHEDULER ══════════════════════════════════════════ -->
+      <div v-if="bulkOncall.show" class="modal-overlay" @click.self="bulkOncall.show = false">
+        <div class="bulk-oc-modal">
+
+          <!-- ── LEFT PANEL ── -->
+          <div class="boc-left">
+            <div class="boc-left-head">Bulk On-call</div>
+
+            <!-- Steps nav -->
+            <div class="boc-steps">
+              <div class="boc-step" :class="{ active: bulkOncall.step===1, done: bulkOncall.step>1 }"
+                   @click="bulkOncall.step > 1 && (bulkOncall.step = 1)">
+                <div class="boc-step-num">
+                  <svg v-if="bulkOncall.step>1" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17L4 12"/></svg>
+                  <span v-else>1</span>
+                </div>
+                <div class="boc-step-body">
+                  <div class="boc-step-lbl">Clinician</div>
+                  <div class="boc-step-hint">Who · area · role</div>
+                </div>
+              </div>
+              <div class="boc-step" :class="{ active: bulkOncall.step===2, done: bulkOncall.step>2 }"
+                   @click="bulkOncall.step > 2 && (bulkOncall.step = 2)">
+                <div class="boc-step-num">
+                  <svg v-if="bulkOncall.step>2" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17L4 12"/></svg>
+                  <span v-else>2</span>
+                </div>
+                <div class="boc-step-body">
+                  <div class="boc-step-lbl">Dates</div>
+                  <div class="boc-step-hint">{{ (bulkOncall.current._dates||[]).length || 0 }} selected</div>
+                </div>
+              </div>
+              <div class="boc-step" :class="{ active: bulkOncall.step===3 }">
+                <div class="boc-step-num">3</div>
+                <div class="boc-step-body">
+                  <div class="boc-step-lbl">Review</div>
+                  <div class="boc-step-hint">{{ bulkTotalShifts }} shifts</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Queue -->
+            <div class="boc-queue">
+              <div class="boc-queue-title">Queue</div>
+              <div v-if="bulkOncall.queue.length === 0" class="boc-queue-empty">
+                Nothing added yet — build your first block
+              </div>
+              <div v-for="(block, bi) in bulkOncall.queue" :key="bi" class="boc-queue-item">
+                <div class="boc-q-av">
+                  {{ (allStaffLookup.find(s=>s.id===block.physician_id)?.full_name||'?').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                </div>
+                <div class="boc-q-body">
+                  <div class="boc-q-name">{{ allStaffLookup.find(s=>s.id===block.physician_id)?.full_name?.split(' ').slice(0,2).join(' ') }}</div>
+                  <div class="boc-q-meta">
+                    {{ block.shift_type === 'primary_call' ? 'Primary' : block.shift_type === 'backup_call' ? 'Backup' : 'Float' }}
+                    <span v-if="block.coverage_area_id"> · {{ coverageAreas.find(a=>a.id===block.coverage_area_id)?.name }}</span>
+                  </div>
+                </div>
+                <span class="boc-q-count">{{ block.dates.length }}</span>
+                <span v-if="block.conflicts.length > 0" class="boc-q-warn">⚠{{ block.conflicts.length }}</span>
+                <button class="boc-q-del" @click="bulkOncall.queue.splice(bi,1)" title="Remove">×</button>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="boc-left-foot">
+              <button class="boc-btn-save"
+                      :class="{ ready: bulkTotalShifts > 0 && !bulkOncall.saving }"
+                      :disabled="bulkTotalShifts === 0 || bulkOncall.saving"
+                      @click="bulkSave">
+                {{ bulkOncall.saving ? 'Saving…' : 'Save all (' + bulkTotalShifts + ')' }}
+              </button>
+              <button class="boc-btn-add" v-if="bulkOncall.queue.length > 0"
+                      @click="bulkOncall.step = 1">
+                ＋ Add another clinician
+              </button>
+            </div>
+          </div>
+
+          <!-- ── RIGHT PANEL ── -->
+          <div class="boc-right">
+
+            <!-- Close -->
+            <button class="boc-close" @click="bulkOncall.show = false">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7l10 10M17 7l-10 10"/></svg>
+            </button>
+
+            <!-- ══ STEP 1: WHO + AREA + ROLE ══ -->
+            <div v-show="bulkOncall.step === 1" class="boc-panel">
+              <div class="boc-panel-title">Who are you scheduling?</div>
+              <div class="sm-field">
+                <div class="sm-label">Clinician <span class="req">·</span></div>
+                <select class="sm-select" v-model="bulkOncall.current.physician_id">
+                  <option value="">Select clinician…</option>
+                  <optgroup label="Attendings">
+                    <option v-for="s in medicalStaff.filter(s=>s.employment_status==='active'&&!isResidentType(s.staff_type))" :key="s.id" :value="s.id">{{ s.full_name }}</option>
+                  </optgroup>
+                  <optgroup label="Residents">
+                    <option v-for="s in medicalStaff.filter(s=>s.employment_status==='active'&&isResidentType(s.staff_type))" :key="s.id" :value="s.id">{{ s.full_name }}</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div class="sm-row">
+                <div class="sm-field">
+                  <div class="sm-label">Coverage Area</div>
+                  <select class="sm-select" v-model="bulkOncall.current.coverage_area_id">
+                    <option value="">No specific area</option>
+                    <option v-for="area in coverageAreas" :key="area.id" :value="area.id">{{ area.name }}</option>
+                  </select>
+                </div>
+                <div class="sm-field">
+                  <div class="sm-label">Role <span class="req">·</span></div>
+                  <select class="sm-select" v-model="bulkOncall.current.shift_type">
+                    <option value="primary_call">Primary Call</option>
+                    <option value="backup_call">Backup Call</option>
+                    <option value="float_physician">Float Physician</option>
+                  </select>
+                </div>
+              </div>
+              <div class="sm-row">
+                <div class="sm-field">
+                  <div class="sm-label">Start Time</div>
+                  <input type="time" class="sm-input" v-model="bulkOncall.current.start_time">
+                </div>
+                <div class="sm-field">
+                  <div class="sm-label">End Time</div>
+                  <input type="time" class="sm-input" v-model="bulkOncall.current.end_time">
+                </div>
+              </div>
+
+              <!-- Clone from queue -->
+              <div v-if="bulkOncall.queue.length > 0" class="boc-clone-bar">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                Copy dates from:
+                <select class="sm-select" style="flex:1;max-width:180px;font-size:11px;height:26px"
+                        @change="bulkClone($event.target.value); $event.target.value=''">
+                  <option value="">— pick block —</option>
+                  <option v-for="(block, bi) in bulkOncall.queue" :key="bi" :value="bi">
+                    {{ allStaffLookup.find(s=>s.id===block.physician_id)?.full_name?.split(' ').slice(0,2).join(' ') }} ({{ block.dates.length }} dates)
+                  </option>
+                </select>
+              </div>
+
+              <div class="boc-footer">
+                <span style="font-size:10px;color:var(--nm-text3)">Step 1 of 3</span>
+                <button class="btn btn-primary" @click="bulkOncall.current.physician_id ? (bulkOncall.step=2) : showToast('Select clinician','Pick a clinician first','warning')">
+                  Next — Pick dates →
+                </button>
+              </div>
+            </div>
+
+            <!-- ══ STEP 2: DATE PICKER ══ -->
+            <div v-show="bulkOncall.step === 2" class="boc-panel">
+              <div class="boc-panel-title">
+                Pick dates for
+                <strong>{{ allStaffLookup.find(s=>s.id===bulkOncall.current.physician_id)?.full_name?.split(' ').slice(0,2).join(' ') }}</strong>
+                <span v-if="bulkOncall.current.coverage_area_id" class="boc-area-chip"
+                      :style="{ background: (coverageAreas.find(a=>a.id===bulkOncall.current.coverage_area_id)?.color||'#00b3b3') + '18', color: coverageAreas.find(a=>a.id===bulkOncall.current.coverage_area_id)?.color||'#00b3b3' }">
+                  {{ coverageAreas.find(a=>a.id===bulkOncall.current.coverage_area_id)?.name }}
+                </span>
+              </div>
+
+              <!-- Calendar nav -->
+              <div class="boc-cal-nav">
+                <button class="boc-cal-btn" @click="bulkOncall.calMonth > 0 ? bulkOncall.calMonth-- : (bulkOncall.calYear--, bulkOncall.calMonth=11)">‹</button>
+                <span class="boc-cal-label">{{ new Date(bulkOncall.calYear, bulkOncall.calMonth, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) }}</span>
+                <button class="boc-cal-btn" @click="bulkOncall.calMonth < 11 ? bulkOncall.calMonth++ : (bulkOncall.calYear++, bulkOncall.calMonth=0)">›</button>
+              </div>
+
+              <!-- Day-of-week headers -->
+              <div class="boc-cal-dow">
+                <span v-for="d in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']" :key="d">{{ d }}</span>
+              </div>
+
+              <!-- Calendar grid -->
+              <div class="boc-cal-grid">
+                <div v-for="day in bulkCalDays" :key="day.date"
+                     class="boc-cal-day"
+                     :class="{
+                       'boc-day--other':    day.otherMonth,
+                       'boc-day--today':    day.isToday,
+                       'boc-day--selected': day.selected && !day.isAbsent,
+                       'boc-day--conflict': day.selected && day.isAbsent,
+                       'boc-day--absent':   !day.selected && day.isAbsent,
+                     }"
+                     @click="bulkToggleDate(day)">
+                  {{ day.day }}
+                  <span v-if="day.selected && day.isAbsent" class="boc-day-warn">!</span>
+                </div>
+              </div>
+
+              <!-- Legend -->
+              <div class="boc-cal-legend">
+                <span class="boc-leg"><span class="boc-leg-dot" style="background:var(--nm-teal)"></span>Selected</span>
+                <span class="boc-leg"><span class="boc-leg-dot" style="background:rgba(239,68,68,.25);border:1px solid rgba(239,68,68,.4)"></span>On absence</span>
+                <span class="boc-leg"><span class="boc-leg-dot" style="background:#ef4444"></span>Selected + on absence ⚠</span>
+              </div>
+
+              <!-- Conflict banner -->
+              <div v-if="(bulkOncall.current._dates||[]).some(d => bulkCalDays.find(day=>day.date===d&&day.isAbsent))"
+                   class="boc-conflict-banner">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" style="flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+                <span>
+                  <strong>{{ (bulkOncall.current._dates||[]).filter(d => bulkCalDays.find(day=>day.date===d&&day.isAbsent)).length }} date(s) conflict with recorded absences</strong>
+                  — shifts will be saved but flagged for review. You can deselect them if needed.
+                </span>
+              </div>
+
+              <div class="boc-footer">
+                <button class="btn btn-outline" @click="bulkOncall.step = 1">← Back</button>
+                <span style="font-size:10px;color:var(--nm-text3)">{{ (bulkOncall.current._dates||[]).length }} dates selected</span>
+                <button class="btn btn-primary"
+                        @click="(bulkOncall.current._dates||[]).length > 0 ? bulkAddToQueue() : showToast('No dates','Select at least one date','warning')">
+                  Add to queue →
+                </button>
+              </div>
+            </div>
+
+            <!-- ══ STEP 3: REVIEW ══ -->
+            <div v-show="bulkOncall.step === 3" class="boc-panel">
+              <div class="boc-panel-title">Review — {{ bulkTotalShifts }} shifts · <span v-if="bulkTotalConflicts > 0" style="color:#d97706">{{ bulkTotalConflicts }} flagged</span><span v-else style="color:#10b981">no conflicts</span></div>
+
+              <div class="boc-review-list">
+                <template v-for="(block, bi) in bulkOncall.queue" :key="bi">
+                  <div class="boc-review-block-head">
+                    <div class="boc-q-av" style="width:22px;height:22px;font-size:7px">
+                      {{ (allStaffLookup.find(s=>s.id===block.physician_id)?.full_name||'?').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
+                    </div>
+                    <span>{{ allStaffLookup.find(s=>s.id===block.physician_id)?.full_name }}</span>
+                    <span class="boc-review-role">{{ block.shift_type === 'primary_call' ? 'Primary' : block.shift_type === 'backup_call' ? 'Backup' : 'Float' }}</span>
+                    <span v-if="block.coverage_area_id" class="boc-area-chip"
+                          :style="{ background: (coverageAreas.find(a=>a.id===block.coverage_area_id)?.color||'#00b3b3') + '18', color: coverageAreas.find(a=>a.id===block.coverage_area_id)?.color||'#00b3b3' }">
+                      {{ coverageAreas.find(a=>a.id===block.coverage_area_id)?.name }}
+                    </span>
+                    <span style="margin-left:auto;font-size:10px;color:var(--nm-text3)">{{ block.dates.length }} dates</span>
+                  </div>
+                  <div v-for="dateStr in block.dates" :key="dateStr"
+                       class="boc-review-row"
+                       :class="{ 'boc-review-row--conflict': block.conflicts.includes(dateStr) }">
+                    <span class="boc-review-date">{{ new Date(dateStr+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}) }}</span>
+                    <span class="boc-review-time">{{ block.start_time }} – {{ block.end_time }}</span>
+                    <span v-if="block.conflicts.includes(dateStr)" class="boc-review-warn">⚠ On absence</span>
+                    <button class="boc-review-del" @click="block.dates.splice(block.dates.indexOf(dateStr),1); block.conflicts=block.conflicts.filter(d=>d!==dateStr)" title="Remove this date">×</button>
+                  </div>
+                </template>
+              </div>
+
+              <div class="boc-footer">
+                <button class="btn btn-outline" @click="bulkOncall.step = 1">← Add more</button>
+                <button class="btn btn-primary" :disabled="bulkOncall.saving" @click="bulkSave">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 6L9 17L4 12"/></svg>
+                  {{ bulkOncall.saving ? 'Saving…' : 'Confirm · Save ' + bulkTotalShifts + ' shifts' }}
+                </button>
+              </div>
+            </div>
+
+          </div><!-- /boc-right -->
+        </div><!-- /bulk-oc-modal -->
       </div>
 
 </teleport>
