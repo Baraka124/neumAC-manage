@@ -2052,6 +2052,7 @@ document.addEventListener('DOMContentLoaded', () => {
       })
 
 
+      const loadOnCallSchedule = async () => {
         loadingSchedule.value = true
         try {
           const raw = await API.getOnCallSchedule()
