@@ -1895,7 +1895,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const onCallModal = reactive({
         show: false, mode: 'add',
-        // M6 FIX: removed coverage_area (not a real DB column — DB has coverage_notes)
+        showBackup: false,  // progressive disclosure — expands when user clicks "+ Assign backup"
         form: { duty_date: Utils.normalizeDate(new Date()), shift_type: 'primary_call', coverage_area_id: '', start_time: '15:00', end_time: '08:00', primary_physician_id: '', backup_physician_id: '', coverage_notes: '' }
       })
 
@@ -2045,6 +2045,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const showAddOnCallModal = (physician = null) => {
         clearAll('oncall')
         onCallModal.mode = 'add'
+        onCallModal.showBackup = false  // collapsed by default for new shifts
         Object.assign(onCallModal.form, {
           duty_date: Utils.normalizeDate(new Date()), shift_type: 'primary_call',
           coverage_area_id: '',
@@ -2066,6 +2067,8 @@ document.addEventListener('DOMContentLoaded', () => {
           coverage_area_id: schedule.coverage_area_id || schedule.coverage_area?.id || '',
           coverage_notes: schedule.coverage_notes || ''
         }
+        // Auto-expand backup field if one is already assigned
+        onCallModal.showBackup = !!(schedule.backup_physician_id)
         onCallModal.show = true
       }
 
