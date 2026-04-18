@@ -2111,7 +2111,8 @@ document.addEventListener('DOMContentLoaded', () => {
             duty_date: Utils.normalizeDate(f.duty_date), shift_type: f.shift_type || 'primary_call',
             start_time: f.start_time || '15:00', end_time: f.end_time || '08:00',
             primary_physician_id: f.primary_physician_id, backup_physician_id: f.backup_physician_id || null,
-            coverage_notes: f.coverage_notes || '', schedule_id: f.schedule_id || Utils.generateId('SCH')
+            coverage_notes: f.coverage_notes || '', schedule_id: f.schedule_id || Utils.generateId('SCH'),
+            coverage_area_id: f.coverage_area_id || null
           }
           if (onCallModal.mode === 'add') {
             const exists = await checkExistingSchedule(data.duty_date, data.shift_type, null, data.coverage_area_id);
