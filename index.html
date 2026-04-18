@@ -1019,6 +1019,27 @@
       #app .sm-label .hint { font-size:11px !important; color:var(--nm-text3) !important; }
       #app .sm-label .req  { color:var(--nm-teal) !important; }
 
+      /* ── Conflict banners — inline warnings inside modals ── */
+      #app .sm-conflict-banner {
+        display: flex; align-items: flex-start; gap: 8px;
+        padding: 9px 12px; border-radius: 8px; margin-top: 6px;
+        font-size: 11px; line-height: 1.45;
+        background: rgba(245,158,11,.08);
+        border: 1px solid rgba(245,158,11,.25);
+        color: #d97706;
+      }
+      #app .sm-conflict-banner svg { flex-shrink: 0; margin-top: 1px; }
+      #app .sm-conflict-banner strong { font-weight: 700; color: #b45309; }
+      /* On-call variant — same structure, slightly different hue */
+      #app .sm-conflict-banner--oncall {
+        background: rgba(239,68,68,.07);
+        border-color: rgba(239,68,68,.2);
+        color: #dc2626;
+      }
+      #app .sm-conflict-banner--oncall strong { color: #b91c1c; }
+
+
+
       /* ── Backup progressive disclosure ── */
       #app .sm-add-backup-btn {
         display: inline-flex; align-items: center; gap: 6px;
@@ -6802,6 +6823,57 @@ tr.staff-table-row .tbl-btn {
   flex-direction: column;
   gap: 2px;
 }
+
+/* ── Intelligence flags ──────────────────────────────── */
+.db-oc-flags {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.db-oc-flag {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  letter-spacing: .02em;
+}
+/* ⚠ On leave — amber, attention-getting */
+.db-oc-flag--absence {
+  background: rgba(245,158,11,.12);
+  color: #d97706;
+  border: 1px solid rgba(245,158,11,.25);
+}
+/* N nights — blue, informational */
+.db-oc-flag--fatigue {
+  background: rgba(99,102,241,.1);
+  color: #6366f1;
+  border: 1px solid rgba(99,102,241,.2);
+}
+/* No backup — muted, soft reminder */
+.db-oc-flag--nobackup {
+  background: transparent;
+  color: var(--nm-text3);
+  border: 1px solid var(--nm-border);
+}
+/* Backup label replaces old badge */
+.db-oc-flag--backup {
+  background: rgba(0,179,179,.08);
+  color: var(--nm-teal);
+  border: 1px solid rgba(0,179,179,.18);
+}
+/* Avatar in absence state — amber ring */
+.db-oc-av--absence {
+  background: rgba(245,158,11,.15) !important;
+  border: 2px solid rgba(245,158,11,.4) !important;
+  color: #d97706 !important;
+}
+/* Gap area row — slightly dimmer */
+.db-oc-slot-row--warn-absence {
+  background: rgba(245,158,11,.04) !important;
+}
 </style>
 </head>
 <body>
@@ -7676,24 +7748,36 @@ tr.staff-table-row .tbl-btn {
                                                     {{ area.name }}
                                                 </div>
                                                 <div class="db-oc-area-slots">
-                                                    <div class="db-oc-slot-row db-oc-slot-row--ok" v-if="area.primary">
-                                                        <div class="db-oc-av db-oc-av--primary">{{ (getPhysicianName(area.primary.primary_physician_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
+                                                    <!-- Assigned primary -->
+                                                    <div class="db-oc-slot-row db-oc-slot-row--ok" v-if="area.primary"
+                                                         :class="{ 'db-oc-slot-row--warn-absence': area.primary._onAbsence }">
+                                                        <div class="db-oc-av db-oc-av--primary"
+                                                             :class="{ 'db-oc-av--absence': area.primary._onAbsence }">
+                                                            {{ (getPhysicianName(area.primary.primary_physician_id)||'??').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase() }}
+                                                        </div>
                                                         <div class="db-oc-slot-info">
                                                             <span class="db-oc-name">{{ formatDrName(getPhysicianName(area.primary.primary_physician_id)) }}</span>
-                                                            <span class="db-oc-time">{{ (area.primary.start_time||'').slice(0,5) }}–{{ (area.primary.end_time||'').slice(0,5) }}</span>
+                                                            <span class="db-oc-time">{{ (area.primary.start_time||'').slice(0,5) }} → {{ (area.primary.end_time||'').slice(0,5) }}</span>
                                                         </div>
-                                                        <span class="db-oc-badge db-oc-badge--primary">Primary</span>
+                                                        <!-- Intelligence flags -->
+                                                        <div class="db-oc-flags">
+                                                            <span v-if="area.primary._onAbsence" class="db-oc-flag db-oc-flag--absence" title="This physician has an absence recorded for this date">⚠ On leave</span>
+                                                            <span v-else-if="area.primary._consecutive >= 2" class="db-oc-flag db-oc-flag--fatigue" :title="area.primary._consecutive + ' consecutive nights before this shift'">{{ area.primary._consecutive + 1 }} nights</span>
+                                                            <span v-if="!area.backup" class="db-oc-flag db-oc-flag--nobackup">No backup</span>
+                                                        </div>
                                                     </div>
+                                                    <!-- Gap row — no primary assigned -->
                                                     <div class="db-oc-slot-row db-oc-slot-row--gap" v-else
                                                          @click="hasPermission('oncall_schedule','create') && showAddOnCallModal()">
                                                         <div class="db-oc-av db-oc-av--empty"></div>
-                                                        <span class="db-oc-gap-label">No primary</span>
-                                                        <span v-if="hasPermission('oncall_schedule','create')" class="db-oc-assign-btn">＋</span>
+                                                        <span class="db-oc-gap-label">Unassigned</span>
+                                                        <span v-if="hasPermission('oncall_schedule','create')" class="db-oc-assign-btn">＋ Assign</span>
                                                     </div>
+                                                    <!-- Backup row -->
                                                     <div class="db-oc-slot-row db-oc-slot-row--backup" v-if="area.backup">
-                                                        <div class="db-oc-av db-oc-av--backup">{{ (getPhysicianName(area.backup.primary_physician_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
-                                                        <span class="db-oc-name" style="color:var(--text-2)">{{ formatDrName(getPhysicianName(area.backup.primary_physician_id)) }}</span>
-                                                        <span class="db-oc-badge db-oc-badge--backup">Backup</span>
+                                                        <div class="db-oc-av db-oc-av--backup">{{ (getPhysicianName(area.backup.primary_physician_id)||'??').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase() }}</div>
+                                                        <span class="db-oc-name" style="color:var(--nm-text2);font-size:11px">{{ formatDrName(getPhysicianName(area.backup.primary_physician_id)) }}</span>
+                                                        <span class="db-oc-flag db-oc-flag--backup">Backup</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -7704,12 +7788,19 @@ tr.staff-table-row .tbl-btn {
                                             <div class="db-oc-slot-row" :class="day.noArea.primary ? 'db-oc-slot-row--ok' : 'db-oc-slot-row--gap'"
                                                  @click="!day.noArea.primary && hasPermission('oncall_schedule','create') ? showAddOnCallModal() : null">
                                                 <template v-if="day.noArea.primary">
-                                                    <div class="db-oc-av db-oc-av--primary">{{ (getPhysicianName(day.noArea.primary.primary_physician_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
+                                                    <div class="db-oc-av db-oc-av--primary"
+                                                         :class="{ 'db-oc-av--absence': day.noArea.primary._onAbsence }">
+                                                        {{ (getPhysicianName(day.noArea.primary.primary_physician_id)||'??').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase() }}
+                                                    </div>
                                                     <div class="db-oc-slot-info">
                                                         <span class="db-oc-name">{{ formatDrName(getPhysicianName(day.noArea.primary.primary_physician_id)) }}</span>
-                                                        <span class="db-oc-time">{{ (day.noArea.primary.start_time||'').slice(0,5) }}–{{ (day.noArea.primary.end_time||'').slice(0,5) }}</span>
+                                                        <span class="db-oc-time">{{ (day.noArea.primary.start_time||'').slice(0,5) }} → {{ (day.noArea.primary.end_time||'').slice(0,5) }}</span>
                                                     </div>
-                                                    <span class="db-oc-badge db-oc-badge--primary">Primary</span>
+                                                    <div class="db-oc-flags">
+                                                        <span v-if="day.noArea.primary._onAbsence" class="db-oc-flag db-oc-flag--absence">⚠ On leave</span>
+                                                        <span v-else-if="day.noArea.primary._consecutive >= 2" class="db-oc-flag db-oc-flag--fatigue">{{ day.noArea.primary._consecutive + 1 }} nights</span>
+                                                        <span v-if="!day.noArea.backup" class="db-oc-flag db-oc-flag--nobackup">No backup</span>
+                                                    </div>
                                                 </template>
                                                 <template v-else-if="day.areas.length === 0">
                                                     <div class="db-oc-av db-oc-av--empty"></div>
@@ -7718,9 +7809,9 @@ tr.staff-table-row .tbl-btn {
                                                 </template>
                                             </div>
                                             <div class="db-oc-slot-row db-oc-slot-row--backup" v-if="day.noArea.backup">
-                                                <div class="db-oc-av db-oc-av--backup">{{ (getPhysicianName(day.noArea.backup.primary_physician_id)||'??').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }}</div>
-                                                <span class="db-oc-name" style="color:var(--text-2)">{{ formatDrName(getPhysicianName(day.noArea.backup.primary_physician_id)) }}</span>
-                                                <span class="db-oc-badge db-oc-badge--backup">Backup</span>
+                                                <div class="db-oc-av db-oc-av--backup">{{ (getPhysicianName(day.noArea.backup.primary_physician_id)||'??').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase() }}</div>
+                                                <span class="db-oc-name" style="color:var(--nm-text2);font-size:11px">{{ formatDrName(getPhysicianName(day.noArea.backup.primary_physician_id)) }}</span>
+                                                <span class="db-oc-flag db-oc-flag--backup">Backup</span>
                                             </div>
                                         </template>
 
@@ -13368,6 +13459,14 @@ tr.staff-table-row .tbl-btn {
                                 <option v-for="s in medicalStaff.filter(s=>s.employment_status==='active')" :key="s.id" :value="s.id">{{ s.full_name }} — {{ formatStaffType(s.staff_type) }}</option>
                             </select>
                             <small v-if="fieldErrors.oncall?.primary_physician_id" class="error-text">{{ fieldErrors.oncall.primary_physician_id }}</small>
+                            <!-- Moment A: physician on leave on this date -->
+                            <div v-if="onCallAbsenceConflict" class="sm-conflict-banner">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                <div>
+                                    <strong>{{ onCallAbsenceConflict.reason }}</strong> recorded {{ onCallAbsenceConflict.from }} – {{ onCallAbsenceConflict.to }}
+                                    <span style="display:block;font-size:10px;margin-top:2px;opacity:.8">Shift can still be saved — coordinate cover as needed</span>
+                                </div>
+                            </div>
                         </div>
                         <!-- Backup: progressive disclosure — collapsed by default, expands on click -->
                         <div class="sm-field" v-if="!onCallModal.showBackup">
@@ -14117,9 +14216,21 @@ tr.staff-table-row .tbl-btn {
                                 </template>
                             </select>
                             <small v-if="fieldErrors.absence?.staff_member_id" class="error-text">{{ fieldErrors.absence.staff_member_id }}</small>
+                            <!-- Moment B: physician has on-call shifts in this absence period -->
+                            <div v-if="absenceOnCallConflict.length > 0" class="sm-conflict-banner sm-conflict-banner--oncall">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+                                <div>
+                                    <strong>{{ absenceOnCallConflict.length }} on-call shift{{ absenceOnCallConflict.length > 1 ? 's' : '' }} need cover</strong>
+                                    <span style="display:block;font-size:10px;margin-top:3px;opacity:.8">
+                                        <span v-for="(c, i) in absenceOnCallConflict.slice(0,3)" :key="i" style="display:block">
+                                            {{ c.date }} · {{ c.role }}{{ c.area ? ' · ' + c.area : '' }} · {{ c.time }}
+                                        </span>
+                                        <span v-if="absenceOnCallConflict.length > 3">+ {{ absenceOnCallConflict.length - 3 }} more</span>
+                                    </span>
+                                    <span style="display:block;font-size:10px;margin-top:4px;font-weight:600;">Absence will be saved — coordinator notified to arrange cover</span>
+                                </div>
+                            </div>
                         </div>
-
-                        <!-- Leave type — pill switcher matching enrollment style -->
                         <div class="sm-field">
                             <div class="sm-label">Leave Type <span class="req">·</span></div>
                             <div class="sm-network" style="grid-template-columns:1fr 1fr;">
