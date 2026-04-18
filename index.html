@@ -1,7 +1,7 @@
 <!DOCTYPE html>       
 <html lang="en"> 
 <head>
-    <meta charset="UTF-8">  
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>neuMAC | Pulmonology Management System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -10528,7 +10528,9 @@ tr.staff-table-row .tbl-btn {
 
                             <!-- Area chips -->
                             <div class="stype-grid" v-if="coverageAreas.length > 0">
-                                <div v-for="area in coverageAreas" :key="area.id" class="nm-cov-chip">
+                                <div v-for="area in coverageAreas" :key="area.id"
+                                     class="nm-cov-chip"
+                                     @click="hasPermission('system_settings','update') && editCoverageArea(area)">
                                     <div class="nm-cov-dot" :style="{ background: area.color || '#00b3b3' }"></div>
                                     <div class="nm-cov-body">
                                         <div class="nm-cov-name">{{ area.name }}</div>
@@ -10539,10 +10541,10 @@ tr.staff-table-row .tbl-btn {
                                         </div>
                                     </div>
                                     <div class="stype-chip-actions" v-if="hasPermission('system_settings','update')">
-                                        <button class="btn-icon" @click="editCoverageArea(area)" title="Edit">
+                                        <button class="btn-icon" @click.stop="editCoverageArea(area)" title="Edit">
                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 20H8L18 10L14 6L4 16V20Z"/></svg>
                                         </button>
-                                        <button class="btn-icon btn-icon--danger" @click="deleteCoverageArea(area)" title="Remove"
+                                        <button class="btn-icon btn-icon--danger" @click.stop="deleteCoverageArea(area)" title="Remove"
                                                 v-if="hasPermission('system_settings','delete')">
                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
                                         </button>
