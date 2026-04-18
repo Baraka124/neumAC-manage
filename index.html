@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
     <link rel="stylesheet" href="style.css?v=7">
- 
+
     <style id="neumac-layout">
       /* ── Monthly rotation view ── */
       .mv-view { display:flex; flex-direction:column; gap:0; width:100%; }
@@ -6231,6 +6231,11 @@ tr.staff-table-row .tbl-btn {
   background: rgba(16,185,129,.1);
   color: #059669;
 }
+.nm-cov-tag--required {
+  background: rgba(239,68,68,.08);
+  color: #dc2626;
+  border: 1px solid rgba(239,68,68,.18);
+}
 
 /* ── Coverage area badge in schedule table ───────────────── */
 .oc-area-badge {
@@ -10502,6 +10507,7 @@ tr.staff-table-row .tbl-btn {
                                         <div class="nm-cov-meta">
                                             <span class="nm-cov-code">{{ area.code }}</span>
                                             <span v-if="area.applies_weekends" class="nm-cov-tag">Weekends ✓</span>
+                                            <span v-if="area.requires_coverage" class="nm-cov-tag nm-cov-tag--required">Coverage req.</span>
                                         </div>
                                     </div>
                                     <div class="stype-chip-actions" v-if="hasPermission('system_settings','update')">
@@ -16353,6 +16359,18 @@ tr.staff-table-row .tbl-btn {
                           <div>
                               <div style="font-size:13px;font-weight:500;color:var(--nm-text1)">Active on weekends</div>
                               <div style="font-size:11px;color:var(--nm-text3)">Include this area in weekend on-call scheduling</div>
+                          </div>
+                      </label>
+                  </div>
+                  <div class="sm-field">
+                      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+                          <label class="nm-toggle">
+                              <input type="checkbox" v-model="coverageAreaModal.form.requires_coverage">
+                              <span class="nm-toggle-track"></span>
+                          </label>
+                          <div>
+                              <div style="font-size:13px;font-weight:500;color:var(--nm-text1)">Requires daily coverage</div>
+                              <div style="font-size:11px;color:var(--nm-text3)">Dashboard flags this area as a gap when no primary is assigned</div>
                           </div>
                       </label>
                   </div>
