@@ -1916,24 +1916,25 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const checkExistingSchedule = async (date, shiftType, excludeId = null, coverageAreaId = null) => {
-        // Per-area uniqueness: one primary per coverage area per day (not one primary globally).
-        // If no coverage area is set, falls back to one primary per day (original behaviour).
+        // Uniqueness rules:
+        // • primary_call WITH area  → one per area per day
+        // • primary_call WITHOUT area → one per day (no area assigned, global slot)
+        // • backup_call / float → no global uniqueness enforced client-side
         try {
           const normalizedDate = Utils.normalizeDate(date)
-          if (shiftType === 'primary_call' && coverageAreaId) {
-            return onCallSchedule.value.some(s =>
-              Utils.normalizeDate(s.duty_date) === normalizedDate &&
-              s.shift_type === 'primary_call' &&
-              (s.coverage_area_id === coverageAreaId || s.coverage_area?.id === coverageAreaId) &&
-              (!excludeId || s.id !== excludeId)
-            )
+          if (shiftType === 'primary_call') {
+            return onCallSchedule.value.some(s => {
+              if (Utils.normalizeDate(s.duty_date) !== normalizedDate) return false
+              if (s.shift_type !== 'primary_call') return false
+              if (excludeId && s.id === excludeId) return false
+              const sArea = s.coverage_area_id || s.coverage_area?.id || null
+              // Same area (both set + matching) OR both have no area
+              return coverageAreaId
+                ? sArea === coverageAreaId
+                : !sArea
+            })
           }
-          return onCallSchedule.value.some(s =>
-            Utils.normalizeDate(s.duty_date) === normalizedDate &&
-            s.shift_type === shiftType &&
-            (!coverageAreaId || (s.coverage_area_id === coverageAreaId || s.coverage_area?.id === coverageAreaId)) &&
-            (!excludeId || s.id !== excludeId)
-          )
+          return false // backup/float: no client-side duplicate block
         } catch (error) { console.error('Failed to check existing schedule:', error); return false }
       }
 
