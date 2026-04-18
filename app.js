@@ -2010,7 +2010,48 @@ document.addEventListener('DOMContentLoaded', () => {
         return onCallSchedule.value.filter(s => Utils.normalizeDate(s.duty_date) === Utils.normalizeDate(onCallModal.form.duty_date));
       })
 
-      const loadOnCallSchedule = async () => {
+      // ── Moment A: on-call modal — physician has an absence on the selected date ──
+      const onCallAbsenceConflict = computed(() => {
+        const pid  = onCallModal.form.primary_physician_id
+        const date = onCallModal.form.duty_date
+        if (!pid || !date) return null
+        const normalised = Utils.normalizeDate(date)
+        const hit = (absences?.value || []).find(a => {
+          if (a.staff_member_id !== pid) return false
+          if (['cancelled', 'returned_to_duty'].includes(a.current_status)) return false
+          const s = Utils.normalizeDate(a.start_date)
+          const e = Utils.normalizeDate(a.end_date || a.start_date)
+          return normalised >= s && normalised <= e
+        })
+        if (!hit) return null
+        const reasonMap = { vacation: 'Vacation', sick_leave: 'Sick leave', conference: 'Conference', training: 'Training', personal: 'Personal leave', other: 'Absence' }
+        const reason = reasonMap[hit.absence_reason] || 'Absence'
+        const from   = new Date(hit.start_date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+        const to     = new Date(hit.end_date   + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+        return { reason, from, to, status: hit.current_status }
+      })
+
+      // ── Moment B: absence modal — physician has on-call shifts during the absence period ──
+      const absenceOnCallConflict = computed(() => {
+        const pid   = absenceModal?.form?.staff_member_id
+        const start = absenceModal?.form?.start_date
+        const end   = absenceModal?.form?.end_date
+        if (!pid || !start || !end) return []
+        const s = Utils.normalizeDate(start)
+        const e = Utils.normalizeDate(end)
+        return (onCallSchedule?.value || []).filter(shift => {
+          const d = Utils.normalizeDate(shift.duty_date)
+          return d >= s && d <= e &&
+            (shift.primary_physician_id === pid || shift.backup_physician_id === pid)
+        }).map(shift => ({
+          date:  new Date(shift.duty_date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }),
+          role:  shift.primary_physician_id === pid ? 'Primary' : 'Backup',
+          area:  shift.coverage_area?.name || (coverageAreas?.value || []).find(a => a.id === shift.coverage_area_id)?.name || null,
+          time:  `${(shift.start_time||'').slice(0,5)} → ${(shift.end_time||'').slice(0,5)}`
+        }))
+      })
+
+
         loadingSchedule.value = true
         try {
           const raw = await API.getOnCallSchedule()
@@ -2223,6 +2264,65 @@ document.addEventListener('DOMContentLoaded', () => {
           if (d === tomorrow) return 'Tomorrow'
           return fmt(d)
         }
+
+        // ── Helpers ───────────────────────────────────────────────────────
+        // Check if a physician is on absence for a given date
+        const isOnAbsence = (physicianId, dateStr) => {
+          if (!physicianId) return false
+          return (absences?.value || []).some(a => {
+            if (a.staff_member_id !== physicianId) return false
+            if (['cancelled','returned_to_duty'].includes(a.current_status)) return false
+            const s = Utils.normalizeDate(a.start_date)
+            const e = Utils.normalizeDate(a.end_date || a.start_date)
+            return dateStr >= s && dateStr <= e
+          })
+        }
+
+        // Count how many of the last N days this physician has a primary call
+        const consecutiveNights = (physicianId, dateStr) => {
+          if (!physicianId) return 0
+          let count = 0
+          for (let i = 1; i <= 6; i++) {
+            const d = Utils.normalizeDate(new Date(new Date(dateStr + 'T12:00:00').getTime() - i * 86400000))
+            const hadCall = (onCallSchedule.value || []).some(s =>
+              Utils.normalizeDate(s.duty_date) === d &&
+              s.primary_physician_id === physicianId &&
+              ['primary_call','primary'].includes(s.shift_type)
+            )
+            if (hadCall) count++
+            else break
+          }
+          return count
+        }
+
+        // Count calls this month for a physician
+        const callsThisMonth = (physicianId) => {
+          if (!physicianId) return 0
+          const now = new Date()
+          const monthStart = Utils.normalizeDate(new Date(now.getFullYear(), now.getMonth(), 1))
+          const monthEnd   = Utils.normalizeDate(new Date(now.getFullYear(), now.getMonth() + 1, 0))
+          return (onCallSchedule.value || []).filter(s =>
+            s.primary_physician_id === physicianId &&
+            ['primary_call','primary'].includes(s.shift_type) &&
+            Utils.normalizeDate(s.duty_date) >= monthStart &&
+            Utils.normalizeDate(s.duty_date) <= monthEnd
+          ).length
+        }
+
+        // Enrich a schedule slot with intelligence flags
+        const enrich = (s, dateStr) => {
+          if (!s) return s
+          const pid = s.primary_physician_id
+          const consec = consecutiveNights(pid, dateStr)
+          return {
+            ...s,
+            _onAbsence:  isOnAbsence(pid, dateStr),
+            _consecutive: consec,           // nights in a row BEFORE this one
+            _callsMonth:  callsThisMonth(pid)
+          }
+        }
+
+        // ── Build map ─────────────────────────────────────────────────────
         const map = {}
         ;(onCallSchedule.value || []).forEach(s => {
           const d = Utils.normalizeDate(s.duty_date)
@@ -2235,14 +2335,35 @@ document.addEventListener('DOMContentLoaded', () => {
           if (areaId) {
             let slot = map[d].areas.find(a => a.id === areaId)
             if (!slot) { slot = { id: areaId, name: areaName, color: areaColor, primary: null, backup: null }; map[d].areas.push(slot) }
-            if (['primary_call','primary'].includes(s.shift_type)) slot.primary = s
+            if (['primary_call','primary'].includes(s.shift_type)) slot.primary = enrich(s, d)
             else if (s.shift_type === 'backup_call') slot.backup = s
           } else {
-            // No area — goes into the generic slot
-            if (['primary_call','primary'].includes(s.shift_type)) map[d].noArea.primary = s
+            if (['primary_call','primary'].includes(s.shift_type)) map[d].noArea.primary = enrich(s, d)
             else if (s.shift_type === 'backup_call') map[d].noArea.backup = s
           }
         })
+
+        // ── Inject gap rows for active areas with no coverage ─────────────
+        const activeAreas = (coverageAreas?.value || []).filter(a => a.is_active)
+        Object.keys(map).forEach(dateStr => {
+          const day = map[dateStr]
+          activeAreas.forEach(area => {
+            const covered = day.areas.some(a => a.id === area.id)
+            if (!covered) {
+              day.areas.push({
+                id: area.id, name: area.name, color: area.color,
+                primary: null, backup: null, _gap: true
+              })
+            }
+          })
+          // Sort: covered areas first, gaps last
+          day.areas.sort((a, b) => {
+            if (a._gap && !b._gap) return 1
+            if (!a._gap && b._gap) return -1
+            return (a.name || '').localeCompare(b.name || '')
+          })
+        })
+
         return Object.values(map).sort((a,b) => a.date.localeCompare(b.date))
       })
 
@@ -2336,6 +2457,7 @@ document.addEventListener('DOMContentLoaded', () => {
         filteredOnCallSchedules, filteredOnCallAll, oncallTotalPages, todaysOnCallCount,
         loadOnCallSchedule, loadCoverageAreas, coverageAreas, coverageAreaModal, showAddCoverageAreaModal, editCoverageArea, saveCoverageArea, deleteCoverageArea, loadTodaysOnCall, showAddOnCallModal,
         editOnCallSchedule, saveOnCallSchedule, bulkOncall, bulkCalDays, bulkToggleDate, bulkAddToQueue, bulkClone, bulkTotalShifts, bulkTotalConflicts, bulkSave, openBulkOncall, deleteOnCallSchedule, contactPhysician,
+        onCallAbsenceConflict, absenceOnCallConflict,
         // NEW compact view properties
         groupedOnCallSchedules,
         isShiftActive,
