@@ -6113,7 +6113,10 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         const getOncallShiftsForDay = (day) => {
           const d = _ocmDate.value
-          const iso = new Date(d.getFullYear(), d.getMonth(), day).toISOString().slice(0, 10)
+          const yr = d.getFullYear()
+          const mo = String(d.getMonth() + 1).padStart(2, '0')
+          const dy = String(day).padStart(2, '0')
+          const iso = `${yr}-${mo}-${dy}`
           return (onCallOps.onCallSchedule?.value || []).filter(s => (s.duty_date || '').slice(0, 10) === iso)
         }
         const isOncallCellToday = (day) => {
