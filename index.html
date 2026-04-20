@@ -502,6 +502,7 @@
       #app .tuc-res-name { font-size:13px !important; }
       #app .db-oc-name, #app .db-rot-name { font-size:13px !important; }
       #app .rot-orb-label { font-size:12px !important; }
+      #app .rot-orb-area { font-size:10px !important; opacity:.85; font-weight:500; }
       #app .form-label, #app .modal-container .form-label, #app .sm-modal .form-label {
         font-size:12px !important; font-weight:500 !important;
         color:var(--nm-text2) !important; text-transform:uppercase !important;
@@ -870,12 +871,15 @@
       @keyframes orb-pulse-green { 0%,100%{box-shadow:0 0 0 3px rgba(16,185,129,.25),0 3px 10px rgba(16,185,129,.3)} 50%{box-shadow:0 0 0 6px rgba(16,185,129,.12),0 3px 14px rgba(16,185,129,.4)} }
       #app .rot-orb--scheduled { background:transparent !important; border:2px solid #3b82f6 !important; color:#3b82f6 !important; }
       #app .rot-orb--scheduled:hover { background:#dbeafe !important; }
+      #app .rot-orb--backup-oc { background:transparent !important; border:2px solid #10b981 !important; color:#10b981 !important; }
+      #app .rot-orb--backup-oc:hover { background:rgba(16,185,129,.08) !important; }
       #app .rot-orb--done { background:#f5f4f0 !important; border:1.5px solid #d1d0ca !important; color:#a0a09b !important; box-shadow:none !important; animation:none !important; }
       #app .rot-legend-dot--active    { background:#10b981 !important; box-shadow:0 0 6px rgba(16,185,129,.4) !important; border:none !important; }
       #app .rot-legend-dot--scheduled { background:#3b82f6 !important; border:none !important; box-shadow:none !important; }
       #app .rot-legend-dot--done      { background:var(--nm-text3) !important; border:none !important; box-shadow:none !important; }
-      #app .rot-compact .rot-orb--active    { background:#10b981 !important; }
-      #app .rot-compact .rot-orb--scheduled { background:#3b82f6 !important; }
+      #app .rot-compact .rot-orb--active    { background:#10b981 !important; color:#fff !important; }
+      #app .rot-compact .rot-orb--scheduled { background:#3b82f6 !important; color:#fff !important; border:none !important; }
+      #app .rot-compact .rot-orb--backup-oc { background:#10b981 !important; color:#fff !important; border:none !important; }
       #app .rot-compact .rot-orb--completed { background:var(--nm-text3) !important; }
       #app .staff-rotation-chip { background:#dcfce7 !important; border-color:#86efac !important; color:#14532d !important; }
       #app .src-dot { background:#10b981 !important; box-shadow:0 0 5px rgba(16,185,129,.6) !important; }
@@ -5681,7 +5685,8 @@
   transition: width .2s cubic-bezier(.4,0,.2,1);
 }
 #app aside.nmsb.nmsb--collapsed {
-  width: var(--sidebar-sm, 56px);
+  width: var(--sidebar-sm, 56px) !important;
+  transition: width .2s;
 }
 
 /* ── Head ──────────────────────────────────────────────────────── */
@@ -7205,7 +7210,7 @@ tr.staff-table-row .tbl-btn {
         <div class="mobile-backdrop" :class="{ visible: mobileMenuOpen }" @click="mobileMenuOpen = false"></div>
 
         <!-- Sidebar -->
-        <aside class="sidebar nmsb" :class="{ 'nmsb--collapsed': sidebarCollapsed, 'mobile-open': mobileMenuOpen }"
+        <aside class="sidebar nmsb" :class="{ 'nmsb--collapsed': sidebarCollapsed, 'sidebar-collapsed': sidebarCollapsed, 'mobile-open': mobileMenuOpen }"
                aria-label="Main navigation">
 
             <!-- ── Header ── -->
@@ -8527,7 +8532,13 @@ tr.staff-table-row .tbl-btn {
                                              'rot-orb--done':       shift.isPast && !shift.isToday,
                                          }"
                                          @click.stop="editOnCallSchedule(shift)">
-                                        <span class="rot-orb-label">{{ shift.dayLabel }} {{ shift.dateLabel }}</span>
+                                        <span class="rot-orb-label">
+                                            {{ shift.dayLabel }} {{ shift.dateLabel }}
+                                            <span v-if="shift.areaName" class="rot-orb-area"
+                                                  :style="shift.areaColor ? { color: shift.isPast ? 'inherit' : shift.areaColor } : {}">
+                                                · {{ shift.areaName }}
+                                            </span>
+                                        </span>
                                         <div class="rot-orb-tooltip">
                                             <div class="rot-tt-unit">{{ shift.shift_type === 'float_physician' ? 'Float Physician' : shift.shift_type === 'primary_call' ? 'Primary Call' : 'Backup Call' }}</div>
                                             <div v-if="shift.coverage_area_id || shift.coverage_area"
