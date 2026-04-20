@@ -2721,13 +2721,23 @@
       #app .dbsr {
         grid-template-columns: repeat(4, 1fr) !important;
       }
+      /* ── Dashboard: compact hero to keep stats above fold on laptops ── */
+      #app .dbh-frame { padding: 14px 20px 10px !important; }
+      #app .dbh-greeting { font-size: 24px !important; }
+      #app .dbh-alerts { margin-top: 10px !important; }
+      #app .dbsr-stat { padding: 14px 16px 12px !important; }
+      #app .dbsr-num { font-size: 32px !important; line-height: 1 !important; }
+
       #app .db-main-grid {
         display:grid !important;
-        grid-template-columns: 1fr 1fr !important;
+        grid-template-columns: 55fr 45fr !important;
         gap:20px !important;
-        align-items:start !important;
+        align-items:stretch !important;
       }
-      #app .db-panel { min-height:320px; }
+      #app .db-panel { min-height:0; display:flex; flex-direction:column; }
+      #app .db-panel > .db-panel-head { flex-shrink:0; }
+      #app .db-right-col { display:flex; flex-direction:column; gap:20px; }
+      #app .db-right-col > .db-panel { flex:1; }
 
       /* Sidebar: clamp keeps it proportional on 1920px monitors */
       #app .sidebar {
@@ -6486,6 +6496,50 @@ tr.staff-table-row .tbl-btn {
 @keyframes rot-avail-spin { to { transform: rotate(360deg); } }
 .rot-avail-spin { animation: rot-avail-spin .8s linear infinite; flex-shrink: 0; }
 
+/* ══ Coverage view — combined absence + on-call ═══════════════ */
+.cov-view { padding: 0; }
+.cov-view-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; border-bottom: 1px solid var(--nm-border);
+  background: var(--nm-surface2);
+}
+.cov-view-legend { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.cov-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--nm-text3); }
+.cov-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.cov-day-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 1fr;
+  border-bottom: 1px solid var(--nm-border);
+  min-height: 44px;
+}
+.cov-day-row:hover { background: rgba(0,179,179,.02); }
+.cov-date-col {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 8px 4px; background: var(--nm-surface2);
+  border-right: 1px solid var(--nm-border); flex-shrink: 0;
+}
+.cov-date-col--today .cov-date-wd,
+.cov-date-col--today .cov-date-num { color: var(--nm-teal); }
+.cov-date-col--today .cov-date-num { font-weight: 800; }
+.cov-date-wd { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--nm-text3); }
+.cov-date-num { font-size: 16px; font-weight: 600; color: var(--nm-text2); line-height: 1; }
+.cov-oncall-col { padding: 6px 12px; border-right: 1px solid var(--nm-border); display: flex; flex-direction: column; gap: 3px; justify-content: center; }
+.cov-absence-col { padding: 6px 12px; display: flex; flex-direction: column; gap: 3px; justify-content: center; }
+.cov-oc-chip { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--nm-text1); }
+.cov-oc-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.cov-oc-name { font-weight: 500; }
+.cov-oc-area { color: var(--nm-text3); font-size: 10px; }
+.cov-oc-warn { color: #d97706; }
+.cov-gap-chip { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+.cov-abs-chip { display: flex; align-items: center; gap: 6px; font-size: 11px; padding: 2px 6px; border-radius: 4px; border: 1px solid; }
+.cov-abs-chip--covered { background: rgba(16,185,129,.06); border-color: rgba(16,185,129,.18); }
+.cov-abs-chip--uncovered { background: rgba(245,158,11,.06); border-color: rgba(245,158,11,.2); }
+.cov-abs-name { font-weight: 500; color: var(--nm-text1); }
+.cov-abs-reason { font-size: 10px; color: var(--nm-text3); }
+.cov-abs-badge { font-size: 10px; font-weight: 800; margin-left: auto; }
+.cov-abs-badge--ok { color: #10b981; }
+.cov-abs-badge--warn { color: #d97706; }
+
 /* ── Callout analytics ──────────────────────────────────── */
 .co-analytics-grid {
   display: grid;
@@ -7089,6 +7143,57 @@ tr.staff-table-row .tbl-btn {
   border-top: 1px solid var(--nm-border);
   margin-top: auto;
   flex-shrink: 0;
+}
+
+/* ── Dashboard residents unassigned panel ──────────────── */
+.db-gap-panel {
+  margin-top: 20px;
+  border: 1px solid rgba(245,158,11,.2);
+  border-radius: 12px;
+  background: rgba(245,158,11,.03);
+  overflow: hidden;
+}
+.db-gap-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
+  background: rgba(245,158,11,.06);
+  border-bottom: 1px solid rgba(245,158,11,.12);
+}
+.db-gap-title {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; color: #92400e;
+}
+.db-gap-title svg { color: #d97706; flex-shrink: 0; }
+.db-gap-grid {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  padding: 12px 16px;
+}
+.db-gap-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 8px;
+  background: var(--nm-surface); border: 1px solid var(--nm-border);
+  cursor: pointer; transition: border-color .12s, box-shadow .12s;
+  min-width: 160px; max-width: 220px; flex: 1;
+}
+.db-gap-item:hover {
+  border-color: var(--nm-teal);
+  box-shadow: 0 0 0 2px rgba(0,179,179,.06);
+}
+.db-gap-av {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: rgba(245,158,11,.12); color: #92400e;
+  font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.db-gap-info { flex: 1; min-width: 0; }
+.db-gap-name { font-size: 12px; font-weight: 600; color: var(--nm-text1); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-gap-year { font-size: 10px; color: var(--nm-text3); font-family: monospace; }
+.db-gap-pills { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
+.db-gap-pill {
+  font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px;
+  background: rgba(245,158,11,.1); color: #d97706; border: 1px solid rgba(245,158,11,.2);
 }
 
 /* ── Dashboard oncall area groups ──────────────────────── */
@@ -7864,7 +7969,15 @@ tr.staff-table-row .tbl-btn {
                         <div v-if="searchResultsOpen && globalSearchQuery.length >= 2" class="search-results-dropdown">
                             <template v-if="Object.keys(globalSearchResults).length">
                                 <div v-for="(items, group) in globalSearchResults" :key="group" class="search-results-group">
-                                    <div class="search-group-label">{{ group === 'staff' ? 'Medical Staff' : group === 'rotations' ? 'Rotations' : 'Research' }}</div>
+                                    <div class="search-group-label">{{
+                                      group === 'staff' ? 'Medical Staff' :
+                                      group === 'rotations' ? 'Rotations' :
+                                      group === 'oncall' ? 'On-call Shifts' :
+                                      group === 'absences' ? 'Absences' :
+                                      group === 'areas' ? 'Coverage Areas' :
+                                      group === 'units' ? 'Training Units' :
+                                      group === 'research' ? 'Research' : group
+                                    }}</div>
                                     <div v-for="item in items" :key="item.id" class="search-result-item" @mousedown="item.action">
                                         <i class="fas" :class="item.icon"></i>
                                         <div class="search-result-text">
@@ -7915,9 +8028,9 @@ tr.staff-table-row .tbl-btn {
                     </div>
                 </div>
 
-                <!-- Breadcrumb -->
+                <!-- Breadcrumb — hidden on dashboard and fullscreen modules -->
                 <nav class="breadcrumb" aria-label="Breadcrumb"
-                     v-if="!['resident_rotations','research_hub','news'].includes(currentView)">
+                     v-if="!['dashboard','resident_rotations','research_hub','news'].includes(currentView)">
                     <button @click="switchView('dashboard')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21"/></svg><span>Dashboard</span></button>
                     <span class="bc-sep">/</span>
                     <span class="bc-current">{{ getCurrentViewTitle() }}</span>
@@ -8236,12 +8349,18 @@ tr.staff-table-row .tbl-btn {
                     <!-- Residents unassigned -->
                     <div class="db-gap-panel" v-if="residentGapWarnings && residentGapWarnings.length > 0">
                         <div class="db-gap-head">
-                            <span class="db-gap-title"><span class="db-gap-dot"></span>Residents Unassigned — Next 3 Months</span>
-                            <button class="db-panel-link" @click="switchView('resident_rotations')">Assign <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+                            <span class="db-gap-title">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                {{ residentGapWarnings.length }} resident{{ residentGapWarnings.length !== 1 ? 's' : '' }} unassigned — next 3 months
+                            </span>
+                            <button class="btn btn-sm btn-primary" @click="switchView('resident_rotations')" style="font-size:11px;padding:4px 10px">
+                                Assign rotation
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="margin-left:4px"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </button>
                         </div>
                         <div class="db-gap-grid">
                             <div v-for="w in residentGapWarnings" :key="w.id" class="db-gap-item" @click="showAddRotationModal({ id: w.id, full_name: w.name })">
-                                <div class="db-gap-av">{{ (w.name||'??').split(' ').map(p=>p[0]||'').join('').slice(0,2).toUpperCase() }}</div>
+                                <div class="db-gap-av">{{ (w.name||'?').replace(/^(Dr\.?|Dra\.?)\s*/i,'').trim()[0]?.toUpperCase() || '?' }}</div>
                                 <div class="db-gap-info">
                                     <span class="db-gap-name">{{ w.name || '—' }}</span>
                                     <span class="db-gap-year" v-if="w.year">PGY-{{ w.year }}</span>
@@ -9920,6 +10039,10 @@ tr.staff-table-row .tbl-btn {
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h12"/><path d="M18 15l3 3-3 3"/></svg>
                                     Timeline
                                 </button>
+                                <button class="vmt-btn" :class="{ active: absenceViewMode === 'coverage' }" @click="absenceViewMode = 'coverage'; onCallOps.loadOnCallSchedule()">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                    Coverage
+                                </button>
                             </div>
                         </div>
                         <div class="filter-bar">
@@ -10339,6 +10462,82 @@ tr.staff-table-row .tbl-btn {
                         </div>
 
                     </div><!-- /abs-timeline-view -->
+
+                    <!-- ══ COVERAGE VIEW — absences + on-call unified ══════════ -->
+                    <div v-show="absenceViewMode === 'coverage'" class="cov-view">
+
+                        <div class="cov-view-head">
+                            <div class="cov-view-legend">
+                                <span class="cov-legend-item"><span class="cov-legend-dot" style="background:#3b82f6"></span> On-call assigned</span>
+                                <span class="cov-legend-item"><span class="cov-legend-dot" style="background:#f59e0b"></span> Absence (no cover)</span>
+                                <span class="cov-legend-item"><span class="cov-legend-dot" style="background:#10b981"></span> Absence (covered)</span>
+                                <span class="cov-legend-item"><span class="cov-legend-dot" style="background:#ef4444;opacity:.3;border:1px dashed #ef4444"></span> On-call gap</span>
+                            </div>
+                            <span style="font-size:11px;color:var(--nm-text3)">Next 14 days</span>
+                        </div>
+
+                        <!-- Column headers -->
+                        <div class="cov-day-row" style="background:var(--nm-surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--nm-text3);min-height:32px">
+                            <div class="cov-date-col" style="border-right:1px solid var(--nm-border)"></div>
+                            <div class="cov-oncall-col" style="border-right:1px solid var(--nm-border)">On-call coverage</div>
+                            <div class="cov-absence-col">Absences</div>
+                        </div>
+
+                        <!-- Per-day rows -->
+                        <div v-for="day in upcomingOnCallDays" :key="day.date" class="cov-day-row">
+
+                            <!-- Date column -->
+                            <div class="cov-date-col" :class="{'cov-date-col--today': day.isToday}">
+                                <div class="cov-date-wd">{{ new Date(day.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short'}) }}</div>
+                                <div class="cov-date-num">{{ new Date(day.date+'T12:00:00').getDate() }}</div>
+                            </div>
+
+                            <!-- On-call assignments for this day -->
+                            <div class="cov-oncall-col">
+                                <div v-if="day.areas.some(a => a.primary)" class="cov-oncall-chips">
+                                    <div v-for="area in day.areas.filter(a => a.primary)" :key="area.id" class="cov-oc-chip">
+                                        <span class="cov-oc-dot" :style="{ background: area.color }"></span>
+                                        <span class="cov-oc-name">{{ formatDrName(getPhysicianName(area.primary.primary_physician_id)) }}</span>
+                                        <span class="cov-oc-area">{{ area.name }}</span>
+                                        <span v-if="area.primary._onAbsence" class="cov-oc-warn" title="On leave">⚠</span>
+                                    </div>
+                                </div>
+                                <div v-for="area in day.areas.filter(a => !a.primary && a._gap)" :key="'gap-'+area.id" class="cov-gap-chip">
+                                    <span class="cov-oc-dot" :style="{ background: area.color, opacity: .4 }"></span>
+                                    <span style="color:#ef4444;font-size:11px">{{ area.name }}: unassigned</span>
+                                </div>
+                                <div v-if="!day.areas.length" class="cov-no-schedule" style="font-size:11px;color:var(--nm-text3);font-style:italic">No shifts scheduled</div>
+                            </div>
+
+                            <!-- Absences for this day -->
+                            <div class="cov-absence-col">
+                                <template v-for="abs in absences.filter(a => {
+                                    if (['cancelled','returned_to_duty'].includes(a.current_status)) return false
+                                    const s = a.start_date; const e = a.end_date || a.start_date
+                                    return day.date >= s && day.date <= e
+                                })" :key="abs.id">
+                                    <div class="cov-abs-chip" :class="abs.coverage_arranged ? 'cov-abs-chip--covered' : 'cov-abs-chip--uncovered'">
+                                        <span class="cov-abs-name">{{ formatDrName(allStaffLookup.find(s=>s.id===abs.staff_member_id)?.full_name || '—') }}</span>
+                                        <span class="cov-abs-reason">{{ (abs.absence_reason||'').replace(/_/g,' ') }}</span>
+                                        <span class="cov-abs-badge" :class="abs.coverage_arranged ? 'cov-abs-badge--ok' : 'cov-abs-badge--warn'">
+                                            {{ abs.coverage_arranged ? '✓' : '!' }}
+                                        </span>
+                                    </div>
+                                </template>
+                                <div v-if="!absences.filter(a => {
+                                    if (['cancelled','returned_to_duty'].includes(a.current_status)) return false
+                                    return day.date >= (a.start_date) && day.date <= (a.end_date || a.start_date)
+                                }).length" style="font-size:11px;color:var(--nm-text3)">—</div>
+                            </div>
+
+                        </div>
+
+                        <div v-if="!upcomingOnCallDays.length" class="nm-empty" style="padding:40px">
+                            <div class="nm-empty-title">No data for next 14 days</div>
+                            <div class="nm-empty-sub">Schedule on-call shifts to see the coverage overview</div>
+                        </div>
+
+                    </div><!-- /cov-view -->
 
                     </div>
                 </div>
