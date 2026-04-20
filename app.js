@@ -1972,30 +1972,44 @@ document.addEventListener('DOMContentLoaded', () => {
       // Groups ALL on-call schedules by physician for the compact orb view
       const staffWithOnCallOrbs = computed(() => {
         const today = Utils.normalizeDate(new Date())
-        // Show shifts from 7 days ago onward (so recent past is visible, ancient history is not)
-        const cutoff = Utils.normalizeDate(new Date(Date.now() - 7 * 86400000))
+        // Respect same filters as detailed view
+        let shifts = onCallSchedule.value || []
+        // Default: hide past shifts unless date filter or search is active
+        if (!onCallFilters.date && !onCallFilters.search) {
+          shifts = shifts.filter(s => Utils.normalizeDate(s.duty_date) >= today)
+        }
+        if (onCallFilters.date)       shifts = shifts.filter(s => Utils.normalizeDate(s.duty_date) === onCallFilters.date)
+        if (onCallFilters.shiftType)  shifts = shifts.filter(s => s.shift_type === onCallFilters.shiftType)
+        if (onCallFilters.coverageArea) shifts = shifts.filter(s => s.coverage_area_id === onCallFilters.coverageArea || s.coverage_area?.id === onCallFilters.coverageArea)
+        if (onCallFilters.physician)  shifts = shifts.filter(s => s.primary_physician_id === onCallFilters.physician || s.backup_physician_id === onCallFilters.physician)
+        if (onCallFilters.search) {
+          const q = onCallFilters.search.toLowerCase()
+          shifts = shifts.filter(s => getPhysicianName(s.primary_physician_id).toLowerCase().includes(q) || (s.coverage_notes || '').toLowerCase().includes(q))
+        }
         const map = {}
-        ;(onCallSchedule.value || []).forEach(shift => {
+        shifts.forEach(shift => {
           const dutyDate = Utils.normalizeDate(shift.duty_date)
-          if (dutyDate < cutoff) return // skip very old shifts
           const id = shift.primary_physician_id
           if (!id) return
           const staff = allStaffLookup?.value?.find(s => s.id === id) || medicalStaff.value.find(s => s.id === id)
           if (!staff) return
-          if (!map[id]) map[id] = { id, name: staff.full_name, staffType: staff.staff_type,
-            // V1 FIX: viewStaffDetails/editMedicalStaff expect full_name and staff_type
-            // without these, editing from the on-call compact view fails silent validation
+          if (!map[id]) map[id] = {
+            id, name: staff.full_name, staffType: staff.staff_type,
             full_name: staff.full_name, staff_type: staff.staff_type,
             professional_email: staff.professional_email || '',
             department_id: staff.department_id || null,
             employment_status: staff.employment_status,
-            shifts: [] }
+            shifts: []
+          }
+          const areaObj = shift.coverage_area || (coverageAreas?.value || []).find(a => a.id === shift.coverage_area_id) || null
           map[id].shifts.push({
             ...shift, dutyDate,
             isToday: dutyDate === today,
             isPast:  dutyDate < today,
             dayLabel:  new Date(dutyDate + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' }),
             dateLabel: new Date(dutyDate + 'T12:00:00').toLocaleDateString('en', { day: 'numeric', month: 'short' }),
+            areaName:  areaObj?.name  || null,
+            areaColor: areaObj?.color || null,
             backupName: shift.backup_physician_id ? ((allStaffLookup?.value?.find(s => s.id === shift.backup_physician_id) || medicalStaff.value.find(s => s.id === shift.backup_physician_id))?.full_name || null) : null
           })
         })
