@@ -508,7 +508,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
       static getInitials(name) {
         if (!name || typeof name !== 'string') return '??'
-        return name.split(' ').map(w => w[0]).join('').toUpperCase().substring(0, 2)
+        const clean = name.replace(/^(Dr\.?|Dra\.?|Prof\.?)\s*/i, '').trim()
+        const parts = clean.split(/\s+/).filter(Boolean)
+        if (parts.length === 0) return '??'
+        if (parts.length === 1) return parts[0][0].toUpperCase()
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      }
+
+      // Consistent colour index from name — same name always same colour
+      static avatarColorIndex(name) {
+        if (!name) return 0
+        let h = 0
+        for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
+        return h % 8
+      }
+
+      // CSS class for the avatar based on staff type + name hash
+      // Returns: nm-av nm-av--{type} nm-av--c{0-7}
+      static avatarClass(staffType, name, size = 'md') {
+        const isResident = staffType === 'medical_resident' || staffType === 'external_resident' || staffType === 'rotating_other_dept'
+        const isFellow   = staffType === 'fellow'
+        const isNurse    = staffType === 'nurse_practitioner'
+        const isAdmin    = staffType === 'administrator' || staffType === 'admin'
+        const idx        = Utils.avatarColorIndex(name || '')
+        let typeClass = isResident ? 'resident' : isFellow ? 'fellow' : isNurse ? 'nurse' : isAdmin ? 'admin' : 'attending'
+        return `nm-av nm-av--${size} nm-av--${typeClass} nm-av--c${idx}`
       }
 
       // Format a clinician name for compact display in the dashboard.
@@ -6052,6 +6076,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const rotationView = ref('detailed') // 'compact', 'detailed', 'month'
         const onCallView = ref('detailed')
         const oncallTab  = ref('schedule')
+        const oncallMonthOffset = ref(0)  // 0 = current month, -1 = prev, +1 = next
 
         // ============ EXISTING COMPUTED PROPERTIES ============
         // Name lookups — canonical versions live in their composables and are
@@ -6276,6 +6301,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const getSearchPlaceholder = () => 'Search...'
 
         const getStaffTypeIcon = (t) => ({ attending_physician: 'fa-user-md', medical_resident: 'fa-user-graduate', fellow: 'fa-user-tie', nurse_practitioner: 'fa-user-nurse' }[t] || 'fa-user')
+        // ── Unified avatar helpers ────────────────────────────────────────────
+        const nmAv = (name, staffType, size = 'md') => Utils.avatarClass(staffType || '', name || '', size)
+        const nmAvI = (name) => Utils.getInitials(name || '')
         const getAbsenceReasonIcon = (r) => ({ vacation: 'fa-umbrella-beach', sick_leave: 'fa-procedures', conference: 'fa-chalkboard-teacher', training: 'fa-graduation-cap', personal: 'fa-user-clock', other: 'fa-question-circle' }[r] || 'fa-clock')
         const calculateCapacityPercent = (cur, max) => (!cur || !max) ? 0 : Math.round((cur / max) * 100)
         const getPreviewCardClass = () => absenceOps.absenceModal.form.absence_type === 'planned' ? 'planned' : 'unplanned'
@@ -7698,7 +7726,7 @@ document.addEventListener('DOMContentLoaded', () => {
           formatTimeAgo: (d) => Utils.formatRelativeTime(d),
           getInitials: (n) => Utils.getInitials(n),
           getTomorrow: () => Utils.getTomorrow(),
-          getStaffTypeIcon, getAbsenceReasonIcon, calculateCapacityPercent, getUnitFillColor,
+          getStaffTypeIcon, getAbsenceReasonIcon, nmAv, nmAvI, calculateCapacityPercent, getUnitFillColor,
           getPreviewCardClass, getPreviewIcon, getPreviewReasonText,
           getPreviewStatusClass, getPreviewStatusText, updatePreview, requestFullDossier,
           getPhaseColor: Utils.getPhaseColor, getPartnerTypeColor: Utils.getPartnerTypeColor, getStageColor: Utils.getStageColor, getStageConfig: Utils.getStageConfig, PROJECT_STAGES: PROJECT_STAGES_DATA, formatPercentage: Utils.formatPercentage,
@@ -7738,7 +7766,7 @@ document.addEventListener('DOMContentLoaded', () => {
           
           // NEW: Compact view properties - now coming from composables
           rotationView,
-          onCallView, oncallTab,
+          onCallView, oncallTab, oncallMonthOffset,
           residentsWithRotations: rotationOps.residentsWithRotations,
           groupedOnCallSchedules: onCallOps.groupedOnCallSchedules,
           staffWithOnCallOrbs: onCallOps.staffWithOnCallOrbs,
@@ -7769,7 +7797,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     })
 
-    app.mount('#app')   
+    app.mount('#app')
 
   } catch (error) {
     document.body.innerHTML = `
