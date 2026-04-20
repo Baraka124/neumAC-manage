@@ -82,7 +82,10 @@
 
       /* ── Gap warning strip (rotations view) ── */
       .rgw-strip{background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:12px 14px;margin-bottom:14px;}
-      .rgw-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+      .rgw-header{display:flex;align-items:center;gap:8px;margin-bottom:0;}
+      .rgw-toggle{margin-left:auto;background:transparent;border:none;cursor:pointer;color:#92400e;opacity:.6;padding:2px;display:flex;align-items:center;}
+      .rgw-toggle:hover{opacity:1;}
+      .rgw-list{margin-top:10px;}
       .rgw-title{font-size:12px;font-weight:700;color:#92400e;flex:1;}
       .rgw-sub{font-size:10px;color:#78716c;flex-shrink:0;}
       .rgw-list{display:flex;flex-wrap:wrap;gap:6px;}
@@ -9190,12 +9193,18 @@ tr.staff-table-row .tbl-btn {
 
                     <!-- ── Resident gap warning strip ── -->
                     <div v-if="residentGapWarnings.length > 0" class="rgw-strip">
-                        <div class="rgw-header">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg>
+                        <div class="rgw-header" @click="rgwCollapsed = !rgwCollapsed" style="cursor:pointer">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                             <span class="rgw-title">{{ residentGapWarnings.length }} resident{{ residentGapWarnings.length > 1 ? 's' : '' }} unassigned in next 3 months</span>
-                            <span class="rgw-sub">Click a resident to assign a rotation</span>
+                            <span class="rgw-sub" v-if="!rgwCollapsed">Click a resident to assign a rotation</span>
+                            <button class="rgw-toggle" @click.stop="rgwCollapsed = !rgwCollapsed" :title="rgwCollapsed ? 'Expand' : 'Collapse'">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path v-if="rgwCollapsed" d="M6 9l6 6 6-6"/>
+                                    <path v-else d="M18 15l-6-6-6 6"/>
+                                </svg>
+                            </button>
                         </div>
-                        <div class="rgw-list">
+                        <div class="rgw-list" v-if="!rgwCollapsed">
                             <div v-for="w in residentGapWarnings" :key="w.id" class="rgw-item"
                                  @click="showAddRotationModal({ id: w.id, full_name: w.name })"
                                  :title="'Gaps: ' + w.gaps.join(', ')">
@@ -9583,11 +9592,11 @@ tr.staff-table-row .tbl-btn {
                 <div v-if="currentView === 'training_units'">
                     <!-- Breadcrumb -->
                     <nav class="breadcrumb">
-                        <span class="breadcrumb-link" @click="switchView('medical_staff')">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="8" y="2" width="8" height="4" rx="1"/><rect x="2" y="14" width="8" height="4" rx="1"/><rect x="14" y="14" width="8" height="4" rx="1"/><path d="M12 6v4M6 14v-2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/></svg> Departments
+                        <span class="breadcrumb-link" @click="switchView('dashboard')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21"/></svg> Dashboard
                         </span>
                         <span class="breadcrumb-sep">›</span>
-                        <span class="breadcrumb-item active">Clinical Units</span>
+                        <span class="breadcrumb-item active">Training Units</span>
                         <span v-if="trainingUnitFilters.department" class="breadcrumb-sep">›</span>
                         <span v-if="trainingUnitFilters.department" class="breadcrumb-item active">
                             {{ departments.find(d => d.id === trainingUnitFilters.department)?.name || '' }}
