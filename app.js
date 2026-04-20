@@ -5947,6 +5947,25 @@ document.addEventListener('DOMContentLoaded', () => {
           })
         }
 
+        // ── Callout analytics computeds (moved from template to avoid block-body) ──
+        const calloutsByArea = Vue.computed(() => {
+          const cas = coverageAreas?.value || []
+          const acc = {}
+          ;(callouts.value || []).filter(c => c.coverage_area_id).forEach(c => {
+            const name = cas.find(a => a.id === c.coverage_area_id)?.name || c.coverage_area_id
+            acc[name] = (acc[name] || 0) + 1
+          })
+          return Object.entries(acc).sort((a,b) => b[1]-a[1]).slice(0, 6)
+        })
+        const calloutsByReason = Vue.computed(() => {
+          const acc = {}
+          ;(callouts.value || []).forEach(c => {
+            const k = c.reason_category || 'other'
+            acc[k] = (acc[k] || 0) + 1
+          })
+          return Object.entries(acc).sort((a,b) => b[1]-a[1]).slice(0, 6)
+        })
+
         const calloutKPIs = computed(() => {
           const c = callouts.value
           const now = new Date()
@@ -7587,7 +7606,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
           // Existing returns
           loading, saving, currentUser, loginForm, loginLoading, hasPermission,
-          splashVisible, dbDrawer, openDbDrawer, closeDbDrawer,
           ...Object.fromEntries(Object.entries(ui).filter(([k]) => k !== 'showToast')),
           showToast, showConfirmation, ui,
           ...staffOps,  // medicalStaff, allStaffLookup, hospitalsList (clinicalUnits removed — unused)
@@ -7806,7 +7824,7 @@ document.addEventListener('DOMContentLoaded', () => {
           
           // NEW: Compact view properties - now coming from composables
           rotationView,
-          onCallView, oncallTab, oncallMonthOffset,
+          onCallView, oncallTab, oncallMonthOffset, calloutsByArea, calloutsByReason,
           oncallMonthEmptyCells, oncallMonthDays, getOncallShiftsForDay, isOncallCellToday, oncallMonthSummary,
           residentsWithRotations: rotationOps.residentsWithRotations,
           groupedOnCallSchedules: onCallOps.groupedOnCallSchedules,
