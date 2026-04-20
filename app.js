@@ -6138,7 +6138,7 @@ document.addEventListener('DOMContentLoaded', () => {
           'Reclutando': 'Recruiting', 'Activo': 'Active',
           'Completado': 'Completed', 'En preparación': 'In preparation'
         }[s] || s)
-        const getCurrentViewTitle = () => VIEW_TITLES[currentView.value] || 'neumDesk Dashboard'
+        const getCurrentViewTitle = () => VIEW_TITLES[currentView.value] || 'neumDesk'
         const getCurrentViewSubtitle = () => VIEW_SUBTITLES[currentView.value] || 'Hospital Management System'
         const getSearchPlaceholder = () => 'Search...'
 
