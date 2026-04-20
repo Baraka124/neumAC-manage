@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>neumDesk — by neuMAC</title>
+    <title>neumDesk — by neumAC</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
@@ -1781,6 +1781,7 @@
       }
 
       /* Login form — keep its special large sizing */
+      .lc-product-attr { font-size:11px; color:rgba(255,255,255,.28); font-style:italic; margin-top:4px; letter-spacing:.01em; }
       #app .lc-input {
         height: 48px !important;
         font-size: 14px !important;
@@ -5705,7 +5706,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   NMSB — neuMAC Sidebar Redesign
+   NMSB — neumAC Sidebar Redesign
    Uses class .nmsb to win specificity over style.css .sidebar rules
    ═══════════════════════════════════════════════════════════════ */
 
@@ -6338,13 +6339,9 @@ tr.staff-table-row .tbl-btn {
   border-radius: 22px;
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 14px;
-  animation: nd-pulse 2s ease-in-out infinite;
 }
-@keyframes nd-pulse {
-  0%,100% { box-shadow: 0 0 0 0 rgba(0,179,179,.15); }
-  50%      { box-shadow: 0 0 0 12px rgba(0,179,179,.0); }
-}
-.nd-splash-n { width: 48px; height: 48px; }
+/* nd-pulse removed — splash mark is static */
+.nd-splash-n { width: 52px; height: 52px; }
 .nd-splash-wordmark {
   font-family: 'DM Sans', sans-serif;
   font-size: 26px; font-weight: 700;
@@ -6361,13 +6358,15 @@ tr.staff-table-row .tbl-btn {
   letter-spacing: .01em;
   margin-bottom: 4px;
 }
-.nd-splash-byline {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 10px; font-weight: 500;
-  color: rgba(255,255,255,.2);
-  letter-spacing: .12em; text-transform: uppercase;
+.nd-splash-sig {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
   margin-bottom: 28px;
 }
+.nd-splash-sig-line {
+  width: 32px; height: 1px;
+  background: rgba(255,255,255,.1);
+}
+.nd-splash-sig-svg { display: block; }
 .nd-splash-bar {
   width: 120px; height: 2px;
   background: rgba(255,255,255,.08);
@@ -7175,6 +7174,7 @@ tr.staff-table-row .tbl-btn {
     <transition name="splash-fade">
         <div v-if="splashVisible" class="nd-splash">
             <div class="nd-splash-inner">
+                <!-- neumAC logomark — static, no animation -->
                 <div class="nd-splash-mark">
                     <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" class="nd-splash-n">
                         <defs>
@@ -7183,15 +7183,21 @@ tr.staff-table-row .tbl-btn {
                                 <stop offset="100%" stop-color="#00b3b3"/>
                             </linearGradient>
                         </defs>
-                        <!-- breath arc above the n — lung expiration curve -->
-                        <path d="M14 20 Q28 8 42 20" stroke="url(#splashGrad)" stroke-width="2.5" stroke-linecap="round" fill="none" opacity=".7"/>
-                        <!-- the n mark -->
+                        <path d="M14 20 Q28 8 42 20" stroke="url(#splashGrad)" stroke-width="2.5" stroke-linecap="round" fill="none" opacity=".65"/>
                         <text x="8" y="46" font-family="'DM Sans', sans-serif" font-weight="800" font-size="38" fill="url(#splashGrad)">n</text>
                     </svg>
                 </div>
                 <div class="nd-splash-wordmark">neumDesk</div>
                 <div class="nd-splash-tagline">Clinical operations, unified</div>
-                <div class="nd-splash-byline">by neuMAC</div>
+                <!-- neumAC signature — the original wordmark, smaller, as author mark -->
+                <div class="nd-splash-sig">
+                    <div class="nd-splash-sig-line"></div>
+                    <svg viewBox="0 0 88 22" fill="none" xmlns="http://www.w3.org/2000/svg" class="nd-splash-sig-svg">
+                        <defs><linearGradient id="sigGrad" x1="0" y1="0" x2="88" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="rgba(255,255,255,.25)"/><stop offset="100%" stop-color="rgba(255,255,255,.15)"/></linearGradient></defs>
+                        <text x="0" y="17" font-family="'DM Sans', sans-serif" font-weight="600" font-size="18" fill="url(#sigGrad)" letter-spacing="-0.3">neum</text>
+                        <text x="48" y="17" font-family="'DM Sans', sans-serif" font-weight="800" font-size="18" fill="url(#sigGrad)" letter-spacing="-0.5">AC</text>
+                    </svg>
+                </div>
                 <div class="nd-splash-bar"><div class="nd-splash-bar-fill"></div></div>
             </div>
         </div>
@@ -7249,7 +7255,7 @@ tr.staff-table-row .tbl-btn {
             <!-- Top: neumAC brand -->
             <div class="lc-brand">
                 <div class="lc-brand-logo">
-                    <!-- neumAC wordmark SVG — matches the real logo exactly -->
+                    <!-- neumAC wordmark SVG — the research group logo, unchanged -->
                     <svg viewBox="0 0 110 32" fill="none" xmlns="http://www.w3.org/2000/svg" class="lc-neumax-svg">
                         <defs>
                             <linearGradient id="ng" x1="0" y1="0" x2="110" y2="0" gradientUnits="userSpaceOnUse">
@@ -7275,6 +7281,7 @@ tr.staff-table-row .tbl-btn {
             <div class="lc-product">
                 <div class="lc-product-name">neum<span>Desk</span></div>
                 <div class="lc-product-sub">Clinical Operations Platform</div>
+                <div class="lc-product-attr">a neumAC platform</div>
             </div>
 
             <!-- Divider -->
@@ -7343,21 +7350,18 @@ tr.staff-table-row .tbl-btn {
     <transition name="splash-fade">
     <div v-if="loading" class="app-loading-splash">
         <div class="als-inner">
+            <!-- Minimal n mark — no wordmark duplication after splash -->
             <div class="als-mark">
                 <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:28px;height:28px">
                     <defs><linearGradient id="alsg" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#48cae4"/><stop offset="100%" stop-color="#00b3b3"/></linearGradient></defs>
-                    <text x="3" y="28" font-family="'DM Sans', sans-serif" font-weight="800" font-size="30" fill="url(#alsg)">n</text>
+                    <path d="M7 16 Q18 5 29 16" stroke="url(#alsg)" stroke-width="1.8" stroke-linecap="round" fill="none" opacity=".55"/>
+                    <text x="3" y="32" font-family="'DM Sans', sans-serif" font-weight="800" font-size="28" fill="url(#alsg)">n</text>
                 </svg>
             </div>
-            <svg viewBox="0 0 148 28" fill="none" xmlns="http://www.w3.org/2000/svg" class="als-logo">
-                <defs><linearGradient id="alsg2" x1="0" y1="0" x2="148" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#48cae4"/><stop offset="45%" stop-color="#00b3b3"/><stop offset="100%" stop-color="#4d9aff"/></linearGradient></defs>
-                <text x="1" y="22" font-family="'DM Sans', sans-serif" font-weight="600" font-size="22" fill="url(#alsg2)" letter-spacing="-0.5">neum</text>
-                <text x="58" y="22" font-family="'DM Sans', sans-serif" font-weight="800" font-size="22" fill="url(#alsg2)" letter-spacing="-1">Desk</text>
-            </svg>
-            <div class="als-tagline">Clinical operations, unified</div>
             <div class="als-bar-wrap">
                 <div class="als-bar"></div>
             </div>
+            <div class="als-tagline">Loading clinical data…</div>
         </div>
     </div>
     </transition>
@@ -17355,7 +17359,7 @@ tr.staff-table-row .tbl-btn {
 
             ctx.globalAlpha = 1;
         }
-  
+
         function animate(){
             frame++;
             var breath = Math.sin(frame * 0.018) * 0.5 + 0.5;
