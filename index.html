@@ -9560,7 +9560,7 @@ tr.staff-table-row .tbl-btn {
                             </div>
                             <div style="display:flex;align-items:center;gap:8px">
                                 <span style="font-size:11px;color:var(--nm-text3)">
-                                    {{ (() => { const d = new Date(new Date().getFullYear(), new Date().getMonth() + oncallMonthOffset, 1); const covered = onCallSchedule.filter(s => { const sd = new Date(s.duty_date+'T12:00:00'); return sd.getMonth()===d.getMonth() && sd.getFullYear()===d.getFullYear(); }).map(s=>s.duty_date); const daysInMonth = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate(); return covered.length + '/' + daysInMonth + ' days scheduled'; })() }}
+                                    {{ (() => { const d = new Date(new Date().getFullYear(), new Date().getMonth() + oncallMonthOffset, 1); const yr = d.getFullYear(); const mo = String(d.getMonth()+1).padStart(2,'0'); const covered = [...new Set(onCallSchedule.filter(s => (s.duty_date||'').startsWith(yr+'-'+mo)).map(s=>s.duty_date))]; const daysInMonth = new Date(yr, d.getMonth()+1, 0).getDate(); return covered.length + '/' + daysInMonth + ' days scheduled'; })() }}
                                 </span>
                                 <button class="btn btn-primary btn-sm" @click="showAddOnCallModal" v-if="hasPermission('oncall_schedule','create')">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add
@@ -9571,7 +9571,7 @@ tr.staff-table-row .tbl-btn {
                         <!-- Area legend -->
                         <div class="ocm-area-legend">
                             <div v-for="area in coverageAreas.filter(a => a.is_active !== false)" :key="area.id" class="ocm-legend-item">
-                                <span class="ocm-legend-dot" :style="{ background: upcomingOnCallDays[0]?.areas?.find(x=>x.id===area.id)?.color || area.color || '#888' }"></span>
+                                <span class="ocm-legend-dot" :style="{ background: area.color || '#888888' }"></span>
                                 {{ area.name }}
                             </div>
                             <div class="ocm-legend-item">
@@ -9597,12 +9597,12 @@ tr.staff-table-row .tbl-btn {
                                 <span class="ocm-day-num">{{ day }}</span>
 
                                 <!-- Shifts for this day -->
-                                <template v-for="shift in (() => { const d = new Date(new Date().getFullYear(), new Date().getMonth() + oncallMonthOffset, day); const iso = d.toISOString().slice(0,10); return onCallSchedule.filter(s => Utils.normalizeDate(s.duty_date) === iso); })()" :key="shift.id">
+                                <template v-for="shift in (() => { const d = new Date(new Date().getFullYear(), new Date().getMonth() + oncallMonthOffset, day); const iso = d.toISOString().slice(0,10); return onCallSchedule.filter(s => (s.duty_date||'').slice(0,10) === iso); })()" :key="shift.id">
                                     <div class="ocm-shift-chip"
-                                         :style="{ background: 'rgba(' + ((coverageAreas.find(a=>a.id===shift.coverage_area_id)?.color||'#888').replace('#','').match(/../g)||['88','88','88']).map(x=>parseInt(x,16)).join(',') + ',.12)', color: coverageAreas.find(a=>a.id===shift.coverage_area_id)?.color || '#888' }"
-                                         @click.stop="openEditOnCallModal(shift)" style="cursor:pointer">
+                                         :style="{ background: 'rgba(0,179,179,.1)', color: coverageAreas.find(a=>a.id===shift.coverage_area_id)?.color || 'var(--nm-teal)' }"
+                                         @click.stop="editOnCallSchedule(shift)" style="cursor:pointer">
                                         <div class="ocm-shift-av"
-                                             :class="nmAv(getPhysicianName(shift.primary_physician_id), (medicalStaff.find(s=>s.id===shift.primary_physician_id)||{}).staff_type, 'xs')"
+                                             :class="nmAv(getPhysicianName(shift.primary_physician_id), (medicalStaff||[]).find ? (medicalStaff.find(s=>s.id===shift.primary_physician_id)||{}).staff_type : 'attending_physician', 'xs')"
                                              :style="{}">
                                             {{ nmAvI(getPhysicianName(shift.primary_physician_id)) }}
                                         </div>
@@ -9612,7 +9612,7 @@ tr.staff-table-row .tbl-btn {
 
                                 <!-- Gap indicator — required areas with no shift -->
                                 <template v-for="area in coverageAreas.filter(a => a.requires_coverage && a.is_active !== false)" :key="'gap'+area.id">
-                                    <div v-if="!onCallSchedule.some(s => { const d = new Date(new Date().getFullYear(), new Date().getMonth() + oncallMonthOffset, day); return Utils.normalizeDate(s.duty_date) === d.toISOString().slice(0,10) && s.coverage_area_id === area.id })"
+                                    <div v-if="!onCallSchedule.some(s => { const d = new Date(new Date().getFullYear(), new Date().getMonth() + oncallMonthOffset, day); return (s.duty_date||'').slice(0,10) === d.toISOString().slice(0,10) && s.coverage_area_id === area.id })"
                                          class="ocm-shift-chip ocm-shift-chip--gap"
                                          @click.stop="showAddOnCallModal"
                                          style="cursor:pointer"
@@ -10368,7 +10368,7 @@ tr.staff-table-row .tbl-btn {
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h12"/><path d="M18 15l3 3-3 3"/></svg>
                                     Timeline
                                 </button>
-                                <button class="vmt-btn" :class="{ active: absenceViewMode === 'coverage' }" @click="absenceViewMode = 'coverage'; onCallOps.loadOnCallSchedule()">
+                                <button class="vmt-btn" :class="{ active: absenceViewMode === 'coverage' }" @click="absenceViewMode = 'coverage'; loadOnCallSchedule()">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                                     Coverage
                                 </button>
