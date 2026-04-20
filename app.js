@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof Vue === 'undefined') throw new Error('Vue.js not loaded')   
 
     const { createApp, ref, reactive, computed, onMounted, watch, onUnmounted } = Vue 
- 
+
     // ============ 1. CONFIGURATION ====----===--====-=
     const CONFIG = {
       API_BASE_URL: window.location.hostname.includes('localhost')
@@ -1164,6 +1164,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const toasts = ref([])
       const sidebarCollapsed = ref(false)
       const mobileMenuOpen = ref(false)
+
+      // ── Splash screen ──────────────────────────────────────────────
+      const splashVisible = ref(true)
+      setTimeout(() => { splashVisible.value = false }, 1800)
+
+      // ── Dashboard expand drawers ────────────────────────────────────
+      const dbDrawer = reactive({ show: false, panel: null }) // panel: 'oncall' | 'rotations'
+      const openDbDrawer = (panel) => { dbDrawer.panel = panel; dbDrawer.show = true }
+      const closeDbDrawer = () => { dbDrawer.show = false }
       const userMenuOpen = ref(false)
       const statsSidebarOpen = ref(false)
       const searchResultsOpen = ref(false)
@@ -1252,6 +1261,7 @@ document.addEventListener('DOMContentLoaded', () => {
         confirmationModal, showConfirmation, confirmAction, cancelConfirmation,
         userProfileModal, systemAlerts, activeAlertsCount, dismissAlert,
         sidebarCollapsed, mobileMenuOpen, userMenuOpen, statsSidebarOpen, searchResultsOpen,
+        splashVisible, dbDrawer, openDbDrawer, closeDbDrawer,
         globalSearchQuery, currentView, sidebarLiveStatus,
         cmdPaletteOpen,
         isOffline,
