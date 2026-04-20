@@ -9560,7 +9560,7 @@ tr.staff-table-row .tbl-btn {
                             </div>
                             <div style="display:flex;align-items:center;gap:8px">
                                 <span style="font-size:11px;color:var(--nm-text3)">
-                                    {{ (() => { const d = new Date(new Date().getFullYear(), new Date().getMonth() + oncallMonthOffset, 1); const yr = d.getFullYear(); const mo = String(d.getMonth()+1).padStart(2,'0'); const covered = [...new Set(onCallSchedule.filter(s => (s.duty_date||'').startsWith(yr+'-'+mo)).map(s=>s.duty_date))]; const daysInMonth = new Date(yr, d.getMonth()+1, 0).getDate(); return covered.length + '/' + daysInMonth + ' days scheduled'; })() }}
+                                    {{ oncallMonthSummary }}
                                 </span>
                                 <button class="btn btn-primary btn-sm" @click="showAddOnCallModal" v-if="hasPermission('oncall_schedule','create')">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add
@@ -9585,19 +9585,17 @@ tr.staff-table-row .tbl-btn {
                             <div v-for="d in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']" :key="d" class="ocm-dow-hdr">{{ d }}</div>
 
                             <!-- Empty cells before first day -->
-                            <div v-for="e in (() => { const d = new Date(new Date().getFullYear(), new Date().getMonth() + oncallMonthOffset, 1); let dow = d.getDay(); return dow === 0 ? 6 : dow - 1; })()" :key="'e'+e" class="ocm-cell ocm-cell--empty"></div>
+                            <div v-for="e in oncallMonthEmptyCells" :key="'e'+e" class="ocm-cell ocm-cell--empty"></div>
 
                             <!-- Day cells -->
-                            <div v-for="day in (() => { const d = new Date(new Date().getFullYear(), new Date().getMonth() + oncallMonthOffset, 1); return new Date(d.getFullYear(), d.getMonth()+1, 0).getDate(); })()"
+                            <div v-for="day in oncallMonthDays"
                                  :key="day"
                                  class="ocm-cell"
-                                 :class="{
-                                    'ocm-cell--today': (() => { const d = new Date(new Date().getFullYear(), new Date().getMonth() + oncallMonthOffset, day); const t = new Date(); return d.getDate()===t.getDate() && d.getMonth()===t.getMonth() && d.getFullYear()===t.getFullYear(); })()
-                                 }">
+                                 :class="{ 'ocm-cell--today': isOncallCellToday(day) }">
                                 <span class="ocm-day-num">{{ day }}</span>
 
                                 <!-- Shifts for this day -->
-                                <template v-for="shift in (() => { const d = new Date(new Date().getFullYear(), new Date().getMonth() + oncallMonthOffset, day); const iso = d.toISOString().slice(0,10); return onCallSchedule.filter(s => (s.duty_date||'').slice(0,10) === iso); })()" :key="shift.id">
+                                <template v-for="shift in getOncallShiftsForDay(day)" :key="shift.id">
                                     <div class="ocm-shift-chip"
                                          :style="{ background: 'rgba(0,179,179,.1)', color: coverageAreas.find(a=>a.id===shift.coverage_area_id)?.color || 'var(--nm-teal)' }"
                                          @click.stop="editOnCallSchedule(shift)" style="cursor:pointer">
@@ -9612,9 +9610,9 @@ tr.staff-table-row .tbl-btn {
 
                                 <!-- Gap indicator — required areas with no shift -->
                                 <template v-for="area in coverageAreas.filter(a => a.requires_coverage && a.is_active !== false)" :key="'gap'+area.id">
-                                    <div v-if="!onCallSchedule.some(s => { const d = new Date(new Date().getFullYear(), new Date().getMonth() + oncallMonthOffset, day); return (s.duty_date||'').slice(0,10) === d.toISOString().slice(0,10) && s.coverage_area_id === area.id })"
+                                    <div v-if="!getOncallShiftsForDay(day).some(s => s.coverage_area_id === area.id)"
                                          class="ocm-shift-chip ocm-shift-chip--gap"
-                                         @click.stop="showAddOnCallModal"
+                                         @click.stop="showAddOnCallModal()"
                                          style="cursor:pointer"
                                          :title="area.name + ': no coverage'">
                                         {{ area.code || area.name.slice(0,3) }} gap
@@ -10691,7 +10689,7 @@ tr.staff-table-row .tbl-btn {
                                                  class="abs-tl-bar"
                                                  :style="getAbsenceBarStyle(abs)"
                                                  :title="formatAbsenceReason(abs.absence_reason) + ' · ' + formatDate(abs.start_date) + ' → ' + formatDate(abs.end_date)"
-                                                 @click.stop="editAbsence && editAbsence(abs)">
+                                                 @click.stop="editAbsence ? editAbsence(abs) : null">
                                                 <span class="abs-tl-bar-label">{{ ABS_COLOURS[abs.absence_reason]?.label || abs.absence_reason }}</span>
                                             </div>
                                             <!-- Planning empty hint -->
@@ -10740,7 +10738,7 @@ tr.staff-table-row .tbl-btn {
                                                  class="abs-tl-bar"
                                                  :style="getAbsenceBarStyle(abs)"
                                                  :title="formatAbsenceReason(abs.absence_reason) + ' · ' + formatDate(abs.start_date) + ' → ' + formatDate(abs.end_date)"
-                                                 @click.stop="editAbsence && editAbsence(abs)">
+                                                 @click.stop="editAbsence ? editAbsence(abs) : null">
                                                 <span class="abs-tl-bar-label">{{ ABS_COLOURS[abs.absence_reason]?.label || abs.absence_reason }}</span>
                                             </div>
                                             <div v-if="absTimelinePlanning && getStaffAbsencesInHorizon(staff.id).length === 0"
@@ -17411,7 +17409,7 @@ tr.staff-table-row .tbl-btn {
 
       <!-- ═══ DASHBOARD EXPAND DRAWER ══════════════════════════════════════════ -->
       <transition name="db-drawer">
-          <div v-if="dbDrawer.show" class="db-drawer" @keydown.esc="closeDbDrawer">
+          <div v-if="dbDrawer.show" class="db-drawer" @keydown.esc="closeDbDrawer" tabindex="-1">
 
               <!-- On-call drawer -->
               <template v-if="dbDrawer.panel === 'oncall'">
@@ -17452,8 +17450,9 @@ tr.staff-table-row .tbl-btn {
                                   </div>
                               </div>
                               <div v-else class="db-oc-slot-row db-oc-slot-row--gap"
-                                   @click="hasPermission('oncall_schedule','create') && (closeDbDrawer(), showAddOnCallModal())"
-                                   style="margin-bottom:4px">
+                                   @click="closeDbDrawer(); showAddOnCallModal()"
+                                   v-if="hasPermission('oncall_schedule','create')"
+                                   style="margin-bottom:4px;cursor:pointer">
                                   <div class="db-oc-av db-oc-av--empty"></div>
                                   <span class="db-oc-gap-label">Unassigned</span>
                                   <span v-if="hasPermission('oncall_schedule','create')" class="db-oc-assign-btn">＋ Assign</span>
