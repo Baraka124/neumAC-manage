@@ -1327,6 +1327,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const hasActiveStaffFilters = computed(() => !!(staffFilters.search || staffFilters.staffType || staffFilters.department || staffFilters.status || staffFilters.residentCategory || staffFilters.hospital || staffFilters.networkType))
       const staffProfileModal = reactive({ 
         show: false, staff: null, activeTab: 'activity',
+        units: [], unitsLoading: false,
         researchProfile: null, supervisionData: null, leaveBalance: null,
         loadingResearch: false, loadingSupervision: false, loadingLeave: false
       })
@@ -1776,7 +1777,7 @@ document.addEventListener('DOMContentLoaded', () => {
         staffFilters, staffProfileModal, medicalStaffModal,
         filteredMedicalStaff, filteredMedicalStaffAll, staffTotalPages,
         loadMedicalStaff, loadHospitals, addHospitalInline,
-        loadStaffCertificates, saveCertificate, deleteCertificate,
+        loadStaffCertificates, loadStaffUnits, saveCertificate, deleteCertificate,
         showAddMedicalStaffModal, editMedicalStaff, saveMedicalStaff, deactivateStaffMember,
         formatTrainingYear: Utils.formatTrainingYear, formatSpecialization: Utils.formatSpecialization, effectiveResidentYear: Utils.effectiveResidentYear,
         formatPhone: Utils.formatPhone, formatLicense: Utils.formatLicense,
@@ -5823,6 +5824,62 @@ document.addEventListener('DOMContentLoaded', () => {
           const absent = getUnitAbsentAttendingCount(unitId)
           return absent > 0 && (absent / total) >= 0.5
         }
+        // ── Weekly staffing grid ──────────────────────────────────────
+        const weeklyGridOffset = ref(0)  // 0 = current week, 1 = next, -1 = prev
+
+        const weeklyStaffingGrid = computed(() => {
+          // Build Mon-Sun for the selected week
+          const today = new Date()
+          const dayOfWeek = today.getDay() === 0 ? 6 : today.getDay() - 1  // Mon=0
+          const monday = new Date(today)
+          monday.setDate(today.getDate() - dayOfWeek + weeklyGridOffset.value * 7)
+          monday.setHours(0, 0, 0, 0)
+
+          const days = Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(monday)
+            d.setDate(monday.getDate() + i)
+            const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+            const isToday = iso === new Date().toISOString().slice(0, 10)
+            const isWeekend = i >= 5
+            return { iso, label: d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' }), isToday, isWeekend }
+          })
+
+          const rows = trainingUnits.value
+            .filter(u => u.unit_status === 'active' && (unitStaffCache.value[u.id]?.length || 0) > 0)
+            .map(u => {
+              const team = unitStaffCache.value[u.id] || []
+              const cells = days.map(day => {
+                const absentCount = team.filter(m =>
+                  absences.value.some(ab =>
+                    ab.staff_member_id === m.staff?.id &&
+                    !['cancelled','returned_to_duty'].includes(ab.current_status) &&
+                    ab.start_date <= day.iso && ab.end_date >= day.iso
+                  )
+                ).length
+                const present = team.length - absentCount
+                const pct = team.length > 0 ? present / team.length : 1
+                return { present, total: team.length, absent: absentCount,
+                         pct, critical: present === 0 && team.length > 0,
+                         warn: present > 0 && pct < 0.5 }
+              })
+              return { unitId: u.id, unitName: u.unit_name, team, cells }
+            })
+
+          return { days, rows, monday }
+        })
+
+        const understaffedUnitAlerts = computed(() => {
+          if (!unitStaffCache?.value || !trainingUnits?.value) return []
+          return trainingUnits.value
+            .filter(u => u.unit_status === 'active' && isUnitUnderstaffed(u.id))
+            .map(u => ({
+              id: 'unit-' + u.id,
+              unitName: u.unit_name,
+              present: getUnitPresentAttendingCount(u.id),
+              total: getUnitAttendingCount(u.id),
+            }))
+        })
+
         const isStaffAbsentToday = (staffId) => {
           const today = new Date().toISOString().slice(0, 10)
           return absences.value.some(ab =>
@@ -6344,6 +6401,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Load certificates into profile modal on demand
+        const loadStaffUnits = async (staffId) => {
+          if (!staffId) return
+          staffProfileModal.unitsLoading = true
+          staffProfileModal.units = []
+          try {
+            const res = await API.request(`/api/staff/${staffId}/units`)
+            staffProfileModal.units = res?.data || []
+          } catch { staffProfileModal.units = [] }
+          finally { staffProfileModal.unitsLoading = false }
+        }
+
         const loadStaffCertificates = async (staffId) => {
           if (!staffId) return
           staffOps.staffProfileModal.loadingCerts = true
@@ -7795,7 +7863,7 @@ document.addEventListener('DOMContentLoaded', () => {
           absCalPrevMonth, absCalNextMonth, absenceViewMode, absTimelineHorizon, absTimelineOffset, absTimelinePlanning, absTimelineStaff, getStaffAbsencesInHorizon, getAbsenceBarStyle, absTimelineCoverage, absTimelineTodayPct, getAbsHorizonLabel, ABS_COLOURS,
           absCoverage30, getUnit30DayTimeline, deptPulseStats, handleGlobalSearch, globalSearchResults, clearSearch, isOnline,
           getPhaseColor: (p) => Utils.getPhaseColor(p),
-          getStageColor: (s) => Utils.getStageColor(s), loadStaffCertificates,
+          getStageColor: (s) => Utils.getStageColor(s), loadStaffCertificates, loadStaffUnits,
           newsPosts, newsLoading, newsLoaded, newsModal, newsFilters, filteredNews,
           newsWordCount, newsWordLimit,
           loadNews, showAddNewsModal, editNews, saveNews,
@@ -7919,7 +7987,7 @@ document.addEventListener('DOMContentLoaded', () => {
           formatTimeAgo: (d) => Utils.formatRelativeTime(d),
           getInitials: (n) => Utils.getInitials(n),
           getTomorrow: () => Utils.getTomorrow(),
-          getStaffTypeIcon, getAbsenceReasonIcon, nmAv, nmAvI, getAbsenceUnitImpact, getUnitAbsentAttendingCount, getUnitPresentAttendingCount, isUnitUnderstaffed, isStaffAbsentToday, calculateCapacityPercent, getUnitFillColor,
+          getStaffTypeIcon, getAbsenceReasonIcon, nmAv, nmAvI, getAbsenceUnitImpact, getUnitAbsentAttendingCount, getUnitPresentAttendingCount, isUnitUnderstaffed, isStaffAbsentToday, understaffedUnitAlerts, weeklyStaffingGrid, weeklyGridOffset, calculateCapacityPercent, getUnitFillColor,
           getPreviewCardClass, getPreviewIcon, getPreviewReasonText,
           getPreviewStatusClass, getPreviewStatusText, updatePreview, requestFullDossier,
           getPhaseColor: Utils.getPhaseColor, getPartnerTypeColor: Utils.getPartnerTypeColor, getStageColor: Utils.getStageColor, getStageConfig: Utils.getStageConfig, PROJECT_STAGES: PROJECT_STAGES_DATA, formatPercentage: Utils.formatPercentage,
