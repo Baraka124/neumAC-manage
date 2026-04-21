@@ -7976,7 +7976,7 @@ document.addEventListener('DOMContentLoaded', () => {
           residentGapWarnings: rotationOps.residentGapWarnings,
           rgwCollapsed: rotationOps.rgwCollapsed,
           cmdQuery, cmdSelectedIdx, cmdItems, executeCmdItem,
-          isOffline: ui.isOffline, isMaintenanceMode: ui.isMaintenanceMode,   
+          isOffline: ui.isOffline, isMaintenanceMode: ui.isMaintenanceMode,
           callouts, calloutsLoading, calloutSummary, calloutPeriod, calloutModal,
           calloutFairnessAlert,
           calloutKPIs, calloutDistribution, calloutFairnessAlert, calloutReasonLabels, calloutTimeTypes,
