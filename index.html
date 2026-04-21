@@ -314,6 +314,33 @@
       .tu-kpi--active { background:rgba(0,179,179,.06) !important; }
       .tu-kpi--active .tu-kpi-label::after { content:' ✕'; font-size:9px; opacity:.5; }
 
+
+      /* ── Unit staff (clinical team) on unit cards ──────────────────── */
+      .tuc-attending-team { padding:8px 14px 6px; border-bottom:1px solid var(--nm-border,#e3dfd6); }
+      .tuc-team-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+      .tuc-team-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--nm-text3,#909399); }
+      .tuc-team-count { font-size:10px; color:var(--nm-text3,#909399); font-family:monospace; }
+      .tuc-team-count--warn { color:#ef9f27 !important; font-weight:600; }
+      .tuc-team-row { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+      .tuc-team-av-wrap { position:relative; }
+      .tuc-team-add { width:22px; height:22px; border-radius:50%; border:1.5px dashed var(--nm-border,#ccc); background:transparent; cursor:pointer; color:var(--nm-text3,#909399); font-size:14px; display:flex; align-items:center; justify-content:center; transition:all .12s; }
+      .tuc-team-add:hover { border-color:var(--nm-teal,#00b3b3); color:var(--nm-teal,#00b3b3); }
+      .tuc-team-empty { display:flex; align-items:center; gap:5px; padding:8px 14px; font-size:11px; color:var(--nm-text3,#b4b2a9); cursor:pointer; border-bottom:1px solid var(--nm-border,#e3dfd6); transition:color .1s; }
+      .tuc-team-empty:hover { color:var(--nm-teal,#00b3b3); }
+
+      /* Understaffed banner */
+      .tuc-understaffed-banner { display:flex; align-items:center; gap:6px; padding:5px 14px; font-size:10.5px; font-weight:600; color:#854f0b; background:#fef3c7; border-bottom:1px solid #fcd34d; }
+
+      /* Absence modal — unit impact */
+      .abs-unit-impact { margin:0 0 12px; border:1px solid var(--nm-border,#e3dfd6); border-radius:8px; overflow:hidden; }
+      .abs-unit-impact-hdr { display:flex; align-items:center; gap:5px; padding:7px 12px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--nm-text3,#909399); background:var(--nm-surface2,#f5f4f0); border-bottom:1px solid var(--nm-border,#e3dfd6); }
+      .abs-unit-impact-row { display:flex; align-items:center; justify-content:space-between; padding:6px 12px; border-bottom:.5px solid var(--nm-border,#e3dfd6); }
+      .abs-unit-impact-row:last-child { border-bottom:none; }
+      .abs-unit-impact-row--warn .abs-unit-impact-badge { color:#ef9f27; font-weight:600; }
+      .abs-unit-impact-row--critical .abs-unit-impact-badge { color:#e24b4a; font-weight:600; }
+      .abs-unit-impact-name { font-size:12px; color:var(--nm-text1,#07111f); }
+      .abs-unit-impact-badge { font-size:11px; font-family:monospace; color:var(--nm-text3,#909399); }
+
       /* ── Rotation rows compact ── */
       .rot-row{padding:8px 18px;min-height:44px;}
       .rot-track{flex-wrap:nowrap;overflow:hidden;gap:5px;}
@@ -10288,6 +10315,47 @@ tr.staff-table-row .tbl-btn {
                                             </div>
                                         </div>
 
+                                        <!-- Attending team for this unit -->
+                                        <div v-if="unitStaffCache[unit.id] && unitStaffCache[unit.id].length > 0"
+                                             class="tuc-attending-team">
+                                            <div class="tuc-team-hdr">
+                                                <span class="tuc-team-label">Clinical team</span>
+                                                <span class="tuc-team-count"
+                                                      :class="isUnitUnderstaffed(unit.id) ? 'tuc-team-count--warn' : ''">
+                                                    {{ getUnitPresentAttendingCount(unit.id) }}/{{ getUnitAttendingCount(unit.id) }} present
+                                                    <span v-if="getUnitAbsentAttendingCount(unit.id) > 0" style="margin-left:2px">
+                                                        · {{ getUnitAbsentAttendingCount(unit.id) }} absent
+                                                    </span>
+                                                </span>
+                                            </div>
+                                            <div class="tuc-team-row">
+                                                <template v-for="member in unitStaffCache[unit.id]" :key="member.id">
+                                                    <div class="tuc-team-av-wrap">
+                                                        <div :class="[nmAv(member.staff.full_name, member.staff.staff_type, 'xs'), getUnitAbsentAttendingCount(unit.id) > 0 && absences.filter(a => a.staff_member_id === member.staff.id && !['cancelled','returned_to_duty'].includes(a.current_status) && a.start_date <= new Date().toISOString().slice(0,10) && a.end_date >= new Date().toISOString().slice(0,10)).length > 0 ? 'nm-av--absent' : '']"
+                                                             :title="member.staff.full_name + (member.role === 'secondary' ? ' (secondary)' : '')">
+                                                            {{ nmAvI(member.staff.full_name) }}
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                <button v-if="hasPermission('training_units','update')"
+                                                        class="tuc-team-add"
+                                                        @click.stop="openUnitClinicians(unit)"
+                                                        title="Manage clinical team">+</button>
+                                            </div>
+                                        </div>
+                                        <div v-else-if="hasPermission('training_units','update')"
+                                             class="tuc-team-empty"
+                                             @click.stop="openUnitClinicians(unit)">
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                                            Assign clinical team
+                                        </div>
+
+                                        <!-- Understaffed warning banner -->
+                                        <div v-if="isUnitUnderstaffed(unit.id)" class="tuc-understaffed-banner">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+                                            Unit understaffed · {{ getUnitAbsentAttendingCount(unit.id) }} of {{ getUnitAttendingCount(unit.id) }} attending absent
+                                        </div>
+
                                         <!-- Resident slots -->
                                         <div class="tuc-resident-slots">
                                             <!-- Active rotations -->
@@ -15368,6 +15436,23 @@ tr.staff-table-row .tbl-btn {
 
                         <!-- Coverage — toggle + covering staff -->
                         <div class="sm-divider">Coverage</div>
+                        <!-- Unit impact warning -->
+                        <div v-if="absenceModal.form.staff_member_id && getAbsenceUnitImpact(absenceModal.form.staff_member_id).length > 0"
+                             class="abs-unit-impact">
+                            <div class="abs-unit-impact-hdr">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21"/></svg>
+                                Unit impact
+                            </div>
+                            <div v-for="u in getAbsenceUnitImpact(absenceModal.form.staff_member_id)" :key="u.unitId"
+                                 class="abs-unit-impact-row"
+                                 :class="u.remaining <= 0 ? 'abs-unit-impact-row--critical' : u.remaining <= 1 ? 'abs-unit-impact-row--warn' : ''">
+                                <span class="abs-unit-impact-name">{{ u.unitName }}</span>
+                                <span class="abs-unit-impact-badge">
+                                    {{ u.remaining <= 0 ? '⚠ No attending left' : u.remaining + ' of ' + u.total + ' attending' + (u.total !== 1 ? 's' : '') + ' present' }}
+                                </span>
+                            </div>
+                        </div>
+
                         <div class="sm-field">
                             <div class="sm-label">Coverage arranged?</div>
                             <div class="sm-network" style="grid-template-columns:1fr 1fr;">
