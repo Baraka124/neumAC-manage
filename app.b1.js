@@ -165,44 +165,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     const VIEW_TITLES = {
-      dashboard: 'Dashboard Overview', 
-      medical_staff: 'Medical Staff Management',
-      oncall_schedule: 'On-call Schedule', 
-      resident_rotations: 'Resident Rotations',
-      training_units: 'Clinical Units', 
-      staff_absence: 'Staff Absence Management',
-      department_management: 'Department Management',
-      research_hub: 'Research Hub',
-      research_lines: 'Research Hub', 
-      clinical_trials: 'Research Hub',
-      innovation_projects: 'Research Hub', 
-      analytics_dashboard: 'Research Hub',
-      analytics_performance: 'Research Hub', 
-      analytics_partners: 'Research Hub',
-      // FIX Bug5: missing view titles for news and system_settings
-      news: 'News & Posts',
-      system_settings: 'System Settings'
+      dashboard:             'Dashboard',
+      medical_staff:         'Medical Staff',
+      oncall_schedule:       'On-call',
+      resident_rotations:    'Rotations',
+      training_units:        'Training Units',
+      staff_absence:         'Staff Absence',
+      department_management: 'Departments',
+      research_hub:          'Research',
+      research_lines:        'Research',
+      clinical_trials:       'Research',
+      innovation_projects:   'Research',
+      analytics_dashboard:   'Research',
+      analytics_performance: 'Research',
+      analytics_partners:    'Research',
+      news:                  'News & Posts',
+      system_settings:       'Settings'
     }
     
-    const VIEW_SUBTITLES = {
-      dashboard: 'Real-time department overview and analytics',
-      medical_staff: 'Manage physicians, residents, and clinical staff',
-      oncall_schedule: 'View and manage on-call physician schedules',
-      resident_rotations: 'Track and manage resident training rotations',
-      training_units: 'Clinical units and resident assignments',
-      staff_absence: 'Track staff absences and coverage assignments',
-      department_management: 'Organizational structure and clinical units',
-      research_hub: 'Research lines, studies, projects and analytics',
-      research_lines: 'Research lines, studies, projects and analytics',
-      clinical_trials: 'Research lines, studies, projects and analytics',
-      innovation_projects: 'Research lines, studies, projects and analytics',
-      analytics_dashboard: 'Research lines, studies, projects and analytics',
-      analytics_performance: 'Research lines, studies, projects and analytics',
-      analytics_partners: 'Research lines, studies, projects and analytics',
-      // FIX Bug5: missing subtitles for news and system_settings
-      news: 'Departmental news, announcements and publications',
-      system_settings: 'Configure staff types and system-wide settings'
-    }
 
     // ============ 3. ENHANCED UTILS CLASS ============
     const PROJECT_STAGES_DATA = [
@@ -528,7 +508,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
       static getInitials(name) {
         if (!name || typeof name !== 'string') return '??'
-        return name.split(' ').map(w => w[0]).join('').toUpperCase().substring(0, 2)
+        const clean = name.replace(/^(Dr\.?|Dra\.?|Prof\.?)\s*/i, '').trim()
+        const parts = clean.split(/\s+/).filter(Boolean)
+        if (parts.length === 0) return '??'
+        if (parts.length === 1) return parts[0][0].toUpperCase()
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      }
+
+      // Consistent colour index from name — same name always same colour
+      static avatarColorIndex(name) {
+        if (!name) return 0
+        let h = 0
+        for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
+        return h % 8
+      }
+
+      // CSS class for the avatar based on staff type + name hash
+      // Returns: nm-av nm-av--{type} nm-av--c{0-7}
+      static avatarClass(staffType, name, size = 'md') {
+        const isResident = staffType === 'medical_resident' || staffType === 'external_resident' || staffType === 'rotating_other_dept'
+        const isFellow   = staffType === 'fellow'
+        const isNurse    = staffType === 'nurse_practitioner'
+        const isAdmin    = staffType === 'administrator' || staffType === 'admin'
+        const idx        = Utils.avatarColorIndex(name || '')
+        let typeClass = isResident ? 'resident' : isFellow ? 'fellow' : isNurse ? 'nurse' : isAdmin ? 'admin' : 'attending'
+        return `nm-av nm-av--${size} nm-av--${typeClass} nm-av--c${idx}`
       }
 
       // Format a clinician name for compact display in the dashboard.
@@ -968,7 +972,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return this.request(`/api/ops-metrics/${id}`, { method: 'DELETE' })
       }
 
-    async getCoverageAreas() {
+    async batchCreateOnCall(shifts) {
+        this.invalidate('/api/oncall')
+        return this.request('/api/oncall/batch', { method: 'POST', body: { shifts } })
+      }
+      async getCoverageAreas() {
         return this.getList('/api/coverage-areas')
       }
       async createCoverageArea(data) {
@@ -1160,6 +1168,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const toasts = ref([])
       const sidebarCollapsed = ref(false)
       const mobileMenuOpen = ref(false)
+
+      // ── Splash screen ──────────────────────────────────────────────
+      const splashVisible = ref(true)
+      setTimeout(() => { splashVisible.value = false }, 1800)
+
+      // ── Dashboard expand drawers ────────────────────────────────────
+      const dbDrawer = reactive({ show: false, panel: null }) // panel: 'oncall' | 'rotations'
+      const openDbDrawer = (panel) => { dbDrawer.panel = panel; dbDrawer.show = true }
+      const closeDbDrawer = () => { dbDrawer.show = false }
       const userMenuOpen = ref(false)
       const statsSidebarOpen = ref(false)
       const searchResultsOpen = ref(false)
@@ -1219,13 +1236,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // keyboard toggle
       if (typeof window !== 'undefined') {
+        // Global keyboard shortcuts
+        let _gKeyPending = false, _gKeyTimer = null
         window.addEventListener('keydown', (e) => {
+          // ⌘K / Ctrl+K — command palette
           if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
             e.preventDefault()
             cmdPaletteOpen.value = !cmdPaletteOpen.value
+            return
           }
           if (e.key === 'Escape' && cmdPaletteOpen.value) {
             cmdPaletteOpen.value = false
+            return
+          }
+          // Skip if typing in an input, textarea, or select
+          const tag = e.target?.tagName?.toLowerCase()
+          if (['input', 'textarea', 'select'].includes(tag) || e.target?.isContentEditable) return
+          if (e.metaKey || e.ctrlKey || e.altKey) return
+
+          // G + key navigation (like Gmail)
+          if (_gKeyPending) {
+            clearTimeout(_gKeyTimer)
+            _gKeyPending = false
+            const navMap = {
+              'd': 'dashboard',
+              's': 'medical_staff',
+              'o': 'oncall_schedule',
+              'r': 'resident_rotations',
+              'u': 'training_units',
+              'a': 'staff_absence',
+              'h': 'research_hub',
+              'n': 'news',
+              ',': 'system_settings',
+            }
+            if (navMap[e.key]) {
+              e.preventDefault()
+              switchView(navMap[e.key])
+            }
+            return
+          }
+          // G = start of G+key combo
+          if (e.key === 'g' || e.key === 'G') {
+            _gKeyPending = true
+            _gKeyTimer = setTimeout(() => { _gKeyPending = false }, 1000)
+          }
+          // ? — show keyboard shortcut help (quick toast)
+          if (e.key === '?') {
+            showToast('Keyboard shortcuts',
+              'G+D Dashboard · G+S Staff · G+O On-call · G+R Rotations · G+U Units · G+A Absence · G+H Research · G+N News · ⌘K Search',
+              'info', 8000)
           }
         })
       }
@@ -1248,6 +1307,7 @@ document.addEventListener('DOMContentLoaded', () => {
         confirmationModal, showConfirmation, confirmAction, cancelConfirmation,
         userProfileModal, systemAlerts, activeAlertsCount, dismissAlert,
         sidebarCollapsed, mobileMenuOpen, userMenuOpen, statsSidebarOpen, searchResultsOpen,
+        splashVisible, dbDrawer, openDbDrawer, closeDbDrawer,
         globalSearchQuery, currentView, sidebarLiveStatus,
         cmdPaletteOpen,
         isOffline,
@@ -1737,9 +1797,161 @@ document.addEventListener('DOMContentLoaded', () => {
             const todaysOnCall = ref([])
       const loadingSchedule = ref(false)
       const onCallFilters = reactive({ date: '', shiftType: '', physician: '', coverageArea: '', search: '' })
+      // ── Bulk On-call Scheduler ───────────────────────────────────
+      const bulkOncall = Vue.reactive({
+        show:     false,
+        step:     1,         // 1=who/area/role  2=dates  3=review
+        // Current block being configured
+        current: {
+          physician_id:   '',
+          coverage_area_id: '',
+          shift_type:     'primary_call',
+          start_time:     '15:00',
+          end_time:       '08:00',
+        },
+        // Calendar nav
+        calYear:  new Date().getFullYear(),
+        calMonth: new Date().getMonth(),   // 0-indexed
+        // Queue: array of { physician_id, coverage_area_id, shift_type, start_time, end_time, dates[], conflicts[] }
+        queue:    [],
+        saving:   false,
+        // Clone target
+        cloneSource: null,  // queue index to clone dates from
+      })
+
+      // Calendar days for bulk picker
+      const bulkCalDays = Vue.computed(() => {
+        const year  = bulkOncall.calYear
+        const month = bulkOncall.calMonth
+        const firstDay = new Date(year, month, 1)
+        const lastDay  = new Date(year, month + 1, 0)
+        const startDow = (firstDay.getDay() + 6) % 7  // Mon=0
+        const days = []
+        // Pad start
+        for (let i = startDow - 1; i >= 0; i--) {
+          const d = new Date(year, month, -i)
+          days.push({ date: Utils.normalizeDate(d), day: d.getDate(), otherMonth: true, selected: false, hasConflict: false })
+        }
+        // Real days
+        for (let d = 1; d <= lastDay.getDate(); d++) {
+          const dt   = new Date(year, month, d)
+          const dateStr = Utils.normalizeDate(dt)
+          const physId  = bulkOncall.current.physician_id
+          // Check absence conflict
+          const hasAbs = physId ? (absences?.value || []).some(a => {
+            if (a.staff_member_id !== physId) return false
+            const s = Utils.normalizeDate(a.start_date)
+            const e = Utils.normalizeDate(a.end_date)
+            return dateStr >= s && dateStr <= e && !['cancelled','returned_to_duty'].includes(a.current_status)
+          }) : false
+          // Is this date already selected in current block?
+          const curBlock = bulkOncall.current._dates || []
+          const selected = curBlock.includes(dateStr)
+          days.push({ date: dateStr, day: d, otherMonth: false, selected, hasConflict: selected && hasAbs, isAbsent: hasAbs, isToday: dateStr === Utils.normalizeDate(new Date()) })
+        }
+        // Pad end
+        const remaining = 42 - days.length
+        for (let d = 1; d <= remaining; d++) {
+          const dt = new Date(year, month + 1, d)
+          days.push({ date: Utils.normalizeDate(dt), day: d, otherMonth: true, selected: false, hasConflict: false })
+        }
+        return days
+      })
+
+      const bulkToggleDate = (day) => {
+        if (day.otherMonth) return
+        if (!bulkOncall.current._dates) Vue.set ? Vue.set(bulkOncall.current, '_dates', []) : (bulkOncall.current._dates = [])
+        const idx = bulkOncall.current._dates.indexOf(day.date)
+        if (idx >= 0) bulkOncall.current._dates.splice(idx, 1)
+        else bulkOncall.current._dates.push(day.date)
+      }
+
+      const bulkAddToQueue = () => {
+        const cur = bulkOncall.current
+        if (!cur.physician_id) { showToast('Validation', 'Select a clinician', 'warning'); return }
+        if (!cur._dates || cur._dates.length === 0) { showToast('Validation', 'Select at least one date', 'warning'); return }
+        const physId = cur.physician_id
+        const absList = absences?.value || []
+        const dates = [...(cur._dates || [])].sort()
+        const conflicts = dates.filter(dateStr => absList.some(a => {
+          if (a.staff_member_id !== physId) return false
+          const s = Utils.normalizeDate(a.start_date)
+          const e = Utils.normalizeDate(a.end_date)
+          return dateStr >= s && dateStr <= e && !['cancelled','returned_to_duty'].includes(a.current_status)
+        }))
+        bulkOncall.queue.push({
+          physician_id:     cur.physician_id,
+          coverage_area_id: cur.coverage_area_id || null,
+          shift_type:       cur.shift_type,
+          start_time:       cur.start_time,
+          end_time:         cur.end_time,
+          dates,
+          conflicts,
+        })
+        // Reset current for next clinician
+        Object.assign(bulkOncall.current, { physician_id: '', coverage_area_id: '', shift_type: 'primary_call', start_time: '15:00', end_time: '08:00', _dates: [] })
+        bulkOncall.step = 1
+      }
+
+      const bulkClone = (sourceIdx) => {
+        const source = bulkOncall.queue[sourceIdx]
+        if (!source) return
+        bulkOncall.current._dates = [...source.dates]
+        bulkOncall.current.coverage_area_id = source.coverage_area_id
+        bulkOncall.current.shift_type = source.shift_type
+        bulkOncall.current.start_time = source.start_time
+        bulkOncall.current.end_time   = source.end_time
+        bulkOncall.step = 1
+      }
+
+      const bulkTotalShifts = Vue.computed(() => bulkOncall.queue.reduce((sum, b) => sum + b.dates.length, 0))
+      const bulkTotalConflicts = Vue.computed(() => bulkOncall.queue.reduce((sum, b) => sum + b.conflicts.length, 0))
+
+      const bulkSave = async () => {
+        if (bulkOncall.queue.length === 0) { showToast('Empty', 'Add at least one block to the queue', 'warning'); return }
+        bulkOncall.saving = true
+        try {
+          const shifts = []
+          bulkOncall.queue.forEach(block => {
+            block.dates.forEach(dateStr => {
+              shifts.push({
+                duty_date:            dateStr,
+                shift_type:           block.shift_type,
+                coverage_area_id:     block.coverage_area_id,
+                primary_physician_id: block.physician_id,
+                start_time:           block.start_time,
+                end_time:             block.end_time,
+                has_conflict:         block.conflicts.includes(dateStr),
+              })
+            })
+          })
+          await API.batchCreateOnCall(shifts)
+          showToast('Saved', `${shifts.length} on-call shifts created`, 'success')
+          bulkOncall.show = false
+          bulkOncall.queue = []
+          bulkOncall.step = 1
+          await loadOnCallSchedule()
+        } catch(e) {
+          if (e.message?.includes('Duplicate')) {
+            showToast('Conflict', 'Some dates already have a primary for that area. Review and retry.', 'error')
+          } else {
+            showToast('Error', e.message || 'Batch save failed', 'error')
+          }
+        } finally { bulkOncall.saving = false }
+      }
+
+      const openBulkOncall = () => {
+        bulkOncall.show  = true
+        bulkOncall.step  = 1
+        bulkOncall.queue = []
+        Object.assign(bulkOncall.current, { physician_id: '', coverage_area_id: '', shift_type: 'primary_call', start_time: '15:00', end_time: '08:00', _dates: [] })
+        bulkOncall.calYear  = new Date().getFullYear()
+        bulkOncall.calMonth = new Date().getMonth()
+      }
+
       const onCallModal = reactive({
         show: false, mode: 'add',
-        // M6 FIX: removed coverage_area (not a real DB column — DB has coverage_notes)
+        showBackup: false,  // progressive disclosure — expands when user clicks "+ Assign backup"
         form: { duty_date: Utils.normalizeDate(new Date()), shift_type: 'primary_call', coverage_area_id: '', start_time: '15:00', end_time: '08:00', primary_physician_id: '', backup_physician_id: '', coverage_notes: '' }
       })
 
@@ -1760,24 +1972,25 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const checkExistingSchedule = async (date, shiftType, excludeId = null, coverageAreaId = null) => {
-        // Per-area uniqueness: one primary per coverage area per day (not one primary globally).
-        // If no coverage area is set, falls back to one primary per day (original behaviour).
+        // Uniqueness rules:
+        // • primary_call WITH area  → one per area per day
+        // • primary_call WITHOUT area → one per day (no area assigned, global slot)
+        // • backup_call / float → no global uniqueness enforced client-side
         try {
           const normalizedDate = Utils.normalizeDate(date)
-          if (shiftType === 'primary_call' && coverageAreaId) {
-            return onCallSchedule.value.some(s =>
-              Utils.normalizeDate(s.duty_date) === normalizedDate &&
-              s.shift_type === 'primary_call' &&
-              (s.coverage_area_id === coverageAreaId || s.coverage_area?.id === coverageAreaId) &&
-              (!excludeId || s.id !== excludeId)
-            )
+          if (shiftType === 'primary_call') {
+            return onCallSchedule.value.some(s => {
+              if (Utils.normalizeDate(s.duty_date) !== normalizedDate) return false
+              if (s.shift_type !== 'primary_call') return false
+              if (excludeId && s.id === excludeId) return false
+              const sArea = s.coverage_area_id || s.coverage_area?.id || null
+              // Same area (both set + matching) OR both have no area
+              return coverageAreaId
+                ? sArea === coverageAreaId
+                : !sArea
+            })
           }
-          return onCallSchedule.value.some(s =>
-            Utils.normalizeDate(s.duty_date) === normalizedDate &&
-            s.shift_type === shiftType &&
-            (!coverageAreaId || (s.coverage_area_id === coverageAreaId || s.coverage_area?.id === coverageAreaId)) &&
-            (!excludeId || s.id !== excludeId)
-          )
+          return false // backup/float: no client-side duplicate block
         } catch (error) { console.error('Failed to check existing schedule:', error); return false }
       }
 
@@ -1815,30 +2028,44 @@ document.addEventListener('DOMContentLoaded', () => {
       // Groups ALL on-call schedules by physician for the compact orb view
       const staffWithOnCallOrbs = computed(() => {
         const today = Utils.normalizeDate(new Date())
-        // Show shifts from 7 days ago onward (so recent past is visible, ancient history is not)
-        const cutoff = Utils.normalizeDate(new Date(Date.now() - 7 * 86400000))
+        // Respect same filters as detailed view
+        let shifts = onCallSchedule.value || []
+        // Default: hide past shifts unless date filter or search is active
+        if (!onCallFilters.date && !onCallFilters.search) {
+          shifts = shifts.filter(s => Utils.normalizeDate(s.duty_date) >= today)
+        }
+        if (onCallFilters.date)       shifts = shifts.filter(s => Utils.normalizeDate(s.duty_date) === onCallFilters.date)
+        if (onCallFilters.shiftType)  shifts = shifts.filter(s => s.shift_type === onCallFilters.shiftType)
+        if (onCallFilters.coverageArea) shifts = shifts.filter(s => s.coverage_area_id === onCallFilters.coverageArea || s.coverage_area?.id === onCallFilters.coverageArea)
+        if (onCallFilters.physician)  shifts = shifts.filter(s => s.primary_physician_id === onCallFilters.physician || s.backup_physician_id === onCallFilters.physician)
+        if (onCallFilters.search) {
+          const q = onCallFilters.search.toLowerCase()
+          shifts = shifts.filter(s => getPhysicianName(s.primary_physician_id).toLowerCase().includes(q) || (s.coverage_notes || '').toLowerCase().includes(q))
+        }
         const map = {}
-        ;(onCallSchedule.value || []).forEach(shift => {
+        shifts.forEach(shift => {
           const dutyDate = Utils.normalizeDate(shift.duty_date)
-          if (dutyDate < cutoff) return // skip very old shifts
           const id = shift.primary_physician_id
           if (!id) return
           const staff = allStaffLookup?.value?.find(s => s.id === id) || medicalStaff.value.find(s => s.id === id)
           if (!staff) return
-          if (!map[id]) map[id] = { id, name: staff.full_name, staffType: staff.staff_type,
-            // V1 FIX: viewStaffDetails/editMedicalStaff expect full_name and staff_type
-            // without these, editing from the on-call compact view fails silent validation
+          if (!map[id]) map[id] = {
+            id, name: staff.full_name, staffType: staff.staff_type,
             full_name: staff.full_name, staff_type: staff.staff_type,
             professional_email: staff.professional_email || '',
             department_id: staff.department_id || null,
             employment_status: staff.employment_status,
-            shifts: [] }
+            shifts: []
+          }
+          const areaObj = shift.coverage_area || (coverageAreas?.value || []).find(a => a.id === shift.coverage_area_id) || null
           map[id].shifts.push({
             ...shift, dutyDate,
             isToday: dutyDate === today,
             isPast:  dutyDate < today,
             dayLabel:  new Date(dutyDate + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' }),
             dateLabel: new Date(dutyDate + 'T12:00:00').toLocaleDateString('en', { day: 'numeric', month: 'short' }),
+            areaName:  areaObj?.name  || null,
+            areaColor: areaObj?.color || null,
             backupName: shift.backup_physician_id ? ((allStaffLookup?.value?.find(s => s.id === shift.backup_physician_id) || medicalStaff.value.find(s => s.id === shift.backup_physician_id))?.full_name || null) : null
           })
         })
@@ -1852,6 +2079,48 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!onCallModal.form.duty_date) return [];
         return onCallSchedule.value.filter(s => Utils.normalizeDate(s.duty_date) === Utils.normalizeDate(onCallModal.form.duty_date));
       })
+
+      // ── Moment A: on-call modal — physician has an absence on the selected date ──
+      const onCallAbsenceConflict = computed(() => {
+        const pid  = onCallModal.form.primary_physician_id
+        const date = onCallModal.form.duty_date
+        if (!pid || !date) return null
+        const normalised = Utils.normalizeDate(date)
+        const hit = (absences?.value || []).find(a => {
+          if (a.staff_member_id !== pid) return false
+          if (['cancelled', 'returned_to_duty'].includes(a.current_status)) return false
+          const s = Utils.normalizeDate(a.start_date)
+          const e = Utils.normalizeDate(a.end_date || a.start_date)
+          return normalised >= s && normalised <= e
+        })
+        if (!hit) return null
+        const reasonMap = { vacation: 'Vacation', sick_leave: 'Sick leave', conference: 'Conference', training: 'Training', personal: 'Personal leave', other: 'Absence' }
+        const reason = reasonMap[hit.absence_reason] || 'Absence'
+        const from   = new Date(hit.start_date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+        const to     = new Date(hit.end_date   + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+        return { reason, from, to, status: hit.current_status }
+      })
+
+      // ── Moment B: absence modal — physician has on-call shifts during the absence period ──
+      const absenceOnCallConflict = computed(() => {
+        const pid   = absenceModal?.form?.staff_member_id
+        const start = absenceModal?.form?.start_date
+        const end   = absenceModal?.form?.end_date
+        if (!pid || !start || !end) return []
+        const s = Utils.normalizeDate(start)
+        const e = Utils.normalizeDate(end)
+        return (onCallSchedule?.value || []).filter(shift => {
+          const d = Utils.normalizeDate(shift.duty_date)
+          return d >= s && d <= e &&
+            (shift.primary_physician_id === pid || shift.backup_physician_id === pid)
+        }).map(shift => ({
+          date:  new Date(shift.duty_date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }),
+          role:  shift.primary_physician_id === pid ? 'Primary' : 'Backup',
+          area:  shift.coverage_area?.name || (coverageAreas?.value || []).find(a => a.id === shift.coverage_area_id)?.name || null,
+          time:  `${(shift.start_time||'').slice(0,5)} → ${(shift.end_time||'').slice(0,5)}`
+        }))
+      })
+
 
       const loadOnCallSchedule = async () => {
         loadingSchedule.value = true
@@ -1888,13 +2157,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const showAddOnCallModal = (physician = null) => {
         clearAll('oncall')
         onCallModal.mode = 'add'
+        onCallModal.showBackup = false  // collapsed by default for new shifts
         Object.assign(onCallModal.form, {
           duty_date: Utils.normalizeDate(new Date()), shift_type: 'primary_call',
           coverage_area_id: '',
           start_time: '15:00', end_time: '08:00',
           primary_physician_id: physician?.id || '',
-          backup_physician_id: '', coverage_notes: '',
-          schedule_id: `SCH-${Date.now().toString().slice(-6)}`
+          backup_physician_id: '', coverage_notes: ''
+          // schedule_id is generated server-side — do not set here
         })
         onCallModal.show = true
       }
@@ -1909,6 +2179,8 @@ document.addEventListener('DOMContentLoaded', () => {
           coverage_area_id: schedule.coverage_area_id || schedule.coverage_area?.id || '',
           coverage_notes: schedule.coverage_notes || ''
         }
+        // Auto-expand backup field if one is already assigned
+        onCallModal.showBackup = !!(schedule.backup_physician_id)
         onCallModal.show = true
       }
 
@@ -1955,27 +2227,17 @@ document.addEventListener('DOMContentLoaded', () => {
             duty_date: Utils.normalizeDate(f.duty_date), shift_type: f.shift_type || 'primary_call',
             start_time: f.start_time || '15:00', end_time: f.end_time || '08:00',
             primary_physician_id: f.primary_physician_id, backup_physician_id: f.backup_physician_id || null,
-            coverage_notes: f.coverage_notes || '', schedule_id: f.schedule_id || Utils.generateId('SCH'),
+            coverage_notes: f.coverage_notes || '',
             coverage_area_id: f.coverage_area_id || null
+            // schedule_id omitted — backend always generates a collision-safe ID
           }
-          const coverageAreaId = data.coverage_area_id
           if (onCallModal.mode === 'add') {
-            const exists = await checkExistingSchedule(data.duty_date, data.shift_type, null, coverageAreaId)
-            if (exists) {
-              const areaName = coverageAreas.value.find(a => a.id === coverageAreaId)?.name
-              const areaLabel = areaName ? ` for ${areaName}` : ''
-              showToast('Duplicate Schedule', `A ${data.shift_type === 'primary_call' ? 'primary' : data.shift_type.replace('_',' ')} shift already exists${areaLabel} on this date.`, 'warning')
-              saving.value = false; return
-            }
+            const exists = await checkExistingSchedule(data.duty_date, data.shift_type, null, data.coverage_area_id);
+            if (exists) { showToast('Duplicate', `A ${data.shift_type === 'primary_call' ? 'Primary Call' : data.shift_type === 'backup_call' ? 'Backup Call' : 'Float'} shift already exists for this date${data.coverage_area_id ? ' and area' : ''}.`, 'warning'); saving.value = false; return; }
           }
           if (onCallModal.mode === 'edit') {
-            const exists = await checkExistingSchedule(data.duty_date, data.shift_type, f.id, coverageAreaId)
-            if (exists) {
-              const areaName = coverageAreas.value.find(a => a.id === coverageAreaId)?.name
-              const areaLabel = areaName ? ` for ${areaName}` : ''
-              showToast('Duplicate Schedule', `Another ${data.shift_type === 'primary_call' ? 'primary' : data.shift_type.replace('_',' ')} shift already exists${areaLabel} on this date.`, 'warning')
-              saving.value = false; return
-            }
+            const exists = await checkExistingSchedule(data.duty_date, data.shift_type, f.id, data.coverage_area_id);
+            if (exists) { showToast('Duplicate Schedule', `Another ${data.shift_type === 'primary_call' ? 'primary' : 'backup'} shift already exists for this date.`, 'warning'); saving.value = false; return; }
           }
           if (onCallModal.mode === 'add') {
             const result = await API.createOnCall(data);
@@ -2073,22 +2335,128 @@ document.addEventListener('DOMContentLoaded', () => {
           if (d === tomorrow) return 'Tomorrow'
           return fmt(d)
         }
+
+        // ── Helpers ───────────────────────────────────────────────────────
+        // Check if a physician is on absence for a given date
+        const isOnAbsence = (physicianId, dateStr) => {
+          if (!physicianId) return false
+          return (absences?.value || []).some(a => {
+            if (a.staff_member_id !== physicianId) return false
+            if (['cancelled','returned_to_duty'].includes(a.current_status)) return false
+            const s = Utils.normalizeDate(a.start_date)
+            const e = Utils.normalizeDate(a.end_date || a.start_date)
+            return dateStr >= s && dateStr <= e
+          })
+        }
+
+        // Count how many of the last N days this physician has a primary call
+        const consecutiveNights = (physicianId, dateStr) => {
+          if (!physicianId) return 0
+          let count = 0
+          for (let i = 1; i <= 6; i++) {
+            const d = Utils.normalizeDate(new Date(new Date(dateStr + 'T12:00:00').getTime() - i * 86400000))
+            const hadCall = (onCallSchedule.value || []).some(s =>
+              Utils.normalizeDate(s.duty_date) === d &&
+              s.primary_physician_id === physicianId &&
+              ['primary_call','primary'].includes(s.shift_type)
+            )
+            if (hadCall) count++
+            else break
+          }
+          return count
+        }
+
+        // Count calls this month for a physician
+        const callsThisMonth = (physicianId) => {
+          if (!physicianId) return 0
+          const now = new Date()
+          const monthStart = Utils.normalizeDate(new Date(now.getFullYear(), now.getMonth(), 1))
+          const monthEnd   = Utils.normalizeDate(new Date(now.getFullYear(), now.getMonth() + 1, 0))
+          return (onCallSchedule.value || []).filter(s =>
+            s.primary_physician_id === physicianId &&
+            ['primary_call','primary'].includes(s.shift_type) &&
+            Utils.normalizeDate(s.duty_date) >= monthStart &&
+            Utils.normalizeDate(s.duty_date) <= monthEnd
+          ).length
+        }
+
+        // Enrich a schedule slot with intelligence flags
+        const enrich = (s, dateStr) => {
+          if (!s) return s
+          const pid = s.primary_physician_id
+          const consec = consecutiveNights(pid, dateStr)
+          return {
+            ...s,
+            _onAbsence:  isOnAbsence(pid, dateStr),
+            _consecutive: consec,           // nights in a row BEFORE this one
+            _callsMonth:  callsThisMonth(pid)
+          }
+        }
+
+        // ── Build map ─────────────────────────────────────────────────────
         const map = {}
         ;(onCallSchedule.value || []).forEach(s => {
           const d = Utils.normalizeDate(s.duty_date)
           if (d < today || d > cutoff) return
-          if (!map[d]) map[d] = { date: d, label: dayLabel(d), isToday: d === today, primary: null, backup: null }
-          if (['primary_call','primary'].includes(s.shift_type)) map[d].primary = s
-          else map[d].backup = s
+          if (!map[d]) map[d] = { date: d, label: dayLabel(d), isToday: d === today, areas: [], noArea: { primary: null, backup: null } }
+          const areaId    = s.coverage_area_id || null
+          const areaObj   = s.coverage_area || (coverageAreas?.value || []).find(a => a.id === areaId) || null
+          const areaName  = areaObj?.name  || null
+          const areaColor = areaObj?.color || '#00b3b3'
+          if (areaId) {
+            let slot = map[d].areas.find(a => a.id === areaId)
+            if (!slot) { slot = { id: areaId, name: areaName, color: areaColor, primary: null, backup: null }; map[d].areas.push(slot) }
+            if (['primary_call','primary'].includes(s.shift_type)) slot.primary = enrich(s, d)
+            else if (s.shift_type === 'backup_call') slot.backup = s
+          } else {
+            if (['primary_call','primary'].includes(s.shift_type)) map[d].noArea.primary = enrich(s, d)
+            else if (s.shift_type === 'backup_call') map[d].noArea.backup = s
+          }
         })
+
+        // ── Inject gap rows — only for areas marked as requiring daily coverage ──
+        const requiredAreas = (coverageAreas?.value || []).filter(a => a.is_active && a.requires_coverage)
+        Object.keys(map).forEach(dateStr => {
+          const day = map[dateStr]
+          requiredAreas.forEach(area => {
+            const covered = day.areas.some(a => a.id === area.id)
+            if (!covered) {
+              day.areas.push({
+                id: area.id, name: area.name, color: area.color,
+                primary: null, backup: null, _gap: true
+              })
+            }
+          })
+          // Sort: covered areas first, gaps last; within each group alphabetical
+          day.areas.sort((a, b) => {
+            if (a._gap && !b._gap) return 1
+            if (!a._gap && b._gap) return -1
+            return (a.name || '').localeCompare(b.name || '')
+          })
+        })
+
         return Object.values(map).sort((a,b) => a.date.localeCompare(b.date))
       })
 
-      // ── Coverage Areas ────────────────────────────────────────────────
+      // ── Coverage Areas ──────────────────────────────────────────────────
       const coverageAreas = ref([])
+
+      // Filtered by applies_weekends when scheduling on a weekend date
+      const filteredCoverageAreas = computed(() => {
+        const date = onCallModal.form.duty_date
+        if (!date) return coverageAreas.value.filter(a => a.is_active !== false)
+        const dow = new Date(date + 'T12:00:00').getDay() // 0=Sun, 6=Sat
+        const isWeekend = dow === 0 || dow === 6
+        return coverageAreas.value.filter(a => {
+          if (a.is_active === false) return false
+          if (isWeekend && a.applies_weekends === false) return false
+          return true
+        })
+      })
+
       const coverageAreaModal = reactive({
         show: false, mode: 'add',
-        form: { id: null, name: '', code: '', color: '#00b3b3', applies_weekends: true, display_order: 0 }
+        form: { id: null, name: '', code: '', color: '#00b3b3', applies_weekends: true, requires_coverage: false, is_active: true, display_order: 0 }
       })
 
       const loadCoverageAreas = async () => {
@@ -2100,7 +2468,6 @@ document.addEventListener('DOMContentLoaded', () => {
             coverageAreas.value = data.data
           }
         } catch (e) {
-          // Table may not exist yet — migration hasn't been run
           if (e.message?.includes('not found') || e.message?.includes('42P01')) {
             coverageAreas.value = []
           }
@@ -2110,46 +2477,49 @@ document.addEventListener('DOMContentLoaded', () => {
       const showAddCoverageAreaModal = () => {
         coverageAreaModal.mode = 'add'
         Object.assign(coverageAreaModal.form, {
-          id: null, name: '', code: '', color: '#00b3b3', applies_weekends: true, display_order: 0
+          id: null, name: '', code: '', color: '#00b3b3', applies_weekends: true, requires_coverage: false, is_active: true, display_order: 0
         })
         coverageAreaModal.show = true
       }
 
       const editCoverageArea = (area) => {
         coverageAreaModal.mode = 'edit'
-        Object.assign(coverageAreaModal.form, { ...area })
+        Object.assign(coverageAreaModal.form, {
+          ...area,
+          is_active: area.is_active !== false  // default true if undefined
+        })
         coverageAreaModal.show = true
       }
 
       const saveCoverageArea = async () => {
         const f = coverageAreaModal.form
         if (!f.name?.trim()) { showToast('Validation', 'Area name is required', 'error'); return }
-        // Auto-generate code from name if not set
         if (!f.code?.trim()) {
           f.code = f.name.toUpperCase().replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').slice(0, 10)
         }
         try {
           const payload = {
-            name:             f.name.trim(),
-            code:             f.code.trim().toUpperCase(),
-            color:            f.color || '#00b3b3',
-            applies_weekends: f.applies_weekends !== false,
-            display_order:    parseInt(f.display_order) || 0
+            name: f.name.trim(), code: f.code.trim().toUpperCase(),
+            color: f.color || '#00b3b3', applies_weekends: f.applies_weekends !== false,
+            requires_coverage: f.requires_coverage === true,
+            is_active: f.is_active !== false,
+            display_order: parseInt(f.display_order) || 0
           }
           if (coverageAreaModal.mode === 'add') {
             const result = await API.createCoverageArea(payload)
             const newArea = result?.data || result
             if (newArea?.id) coverageAreas.value.push(newArea)
             else await loadCoverageAreas()
+            showToast('Success', 'Coverage area added', 'success')
           } else {
             const result = await API.updateCoverageArea(f.id, payload)
             const updated = result?.data || result
             const idx = coverageAreas.value.findIndex(a => a.id === f.id)
             if (idx !== -1 && updated?.id) coverageAreas.value[idx] = updated
             else await loadCoverageAreas()
+            showToast('Success', 'Coverage area updated', 'success')
           }
           coverageAreaModal.show = false
-          showToast('Success', coverageAreaModal.mode === 'add' ? 'Coverage area added' : 'Coverage area updated', 'success')
         } catch (e) {
           showToast('Error', e.message || 'Failed to save coverage area', 'error')
         }
@@ -2157,12 +2527,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const deleteCoverageArea = (area) => {
         showConfirmation({
-          title:              'Delete Coverage Area',
-          message:            `Delete "${area.name}"?`,
-          icon:               'fa-trash',
-          confirmButtonText:  'Delete',
-          confirmButtonClass: 'btn-danger',
-          details:            'Existing on-call shifts using this area will have their area cleared.',
+          title: 'Delete Coverage Area', message: `Delete "${area.name}"?`,
+          icon: 'fa-trash', confirmButtonText: 'Delete', confirmButtonClass: 'btn-danger',
+          details: 'Existing on-call shifts using this area will have their area cleared.',
           onConfirm: async () => {
             try {
               await API.deleteCoverageArea(area.id)
@@ -2178,8 +2545,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return {
         onCallSchedule, todaysOnCall, loadingSchedule, onCallFilters, onCallModal,
         filteredOnCallSchedules, filteredOnCallAll, oncallTotalPages, todaysOnCallCount,
-        loadOnCallSchedule, loadCoverageAreas, coverageAreas, coverageAreaModal, showAddCoverageAreaModal, editCoverageArea, saveCoverageArea, deleteCoverageArea, loadTodaysOnCall, showAddOnCallModal,
-        editOnCallSchedule, saveOnCallSchedule, deleteOnCallSchedule, contactPhysician,
+        loadOnCallSchedule, loadCoverageAreas, coverageAreas, filteredCoverageAreas, coverageAreaModal, showAddCoverageAreaModal, editCoverageArea, saveCoverageArea, deleteCoverageArea, loadTodaysOnCall, showAddOnCallModal,
+        editOnCallSchedule, saveOnCallSchedule, bulkOncall, bulkCalDays, bulkToggleDate, bulkAddToQueue, bulkClone, bulkTotalShifts, bulkTotalConflicts, bulkSave, openBulkOncall, deleteOnCallSchedule, contactPhysician,
+        onCallAbsenceConflict, absenceOnCallConflict,
         // NEW compact view properties
         groupedOnCallSchedules,
         isShiftActive,
@@ -2433,6 +2801,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (startStr > todayStr)       rotationModal.form.rotation_status = 'scheduled'
         else if (endStr < todayStr)    rotationModal.form.rotation_status = 'completed'
         else                           rotationModal.form.rotation_status = 'active'
+        // Trigger availability check when dates change
+        checkRotationAvailability()
       })
 
       // Auto-fill supervisor when unit is selected — reads supervisor_id from the unit
@@ -2445,6 +2815,8 @@ document.addEventListener('DOMContentLoaded', () => {
             rotationModal.form.supervising_attending_id = unit.supervisor_id || unit.default_supervisor_id
           }
         }
+        // Trigger availability check when unit changes
+        checkRotationAvailability()
       })
 
       const loadRotations = async () => {
@@ -2554,13 +2926,25 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           const normalize = r => ({ ...r, start_date: Utils.normalizeDate(r.start_date), end_date: Utils.normalizeDate(r.end_date) })
           if (rotationModal.mode === 'add') {
+            const rName = (medicalStaff.value || []).find(s => s.id === data.resident_id)?.full_name || 'Resident'
+            const uName = (trainingUnits.value || []).find(u => u.id === data.training_unit_id)?.unit_name || 'unit'
             rotations.value.unshift(normalize(await API.createRotation(data)))
-            showToast('Success', 'Rotation scheduled', 'success')
+            showToast('Rotation scheduled', `${rName.split(' ')[0]} → ${uName} · ${data.start_date} – ${data.end_date}`, 'success')
           } else {
+            const prev = rotations.value.find(r => r.id === f.id)
             const result = normalize(await API.updateRotation(f.id, data))
             const idx = rotations.value.findIndex(r => r.id === result.id)
             if (idx !== -1) rotations.value[idx] = result
-            showToast('Success', 'Rotation updated', 'success')
+            // Build diff summary
+            const changes = []
+            if (prev && prev.start_date !== data.start_date) changes.push(`Start ${prev.start_date} → ${data.start_date}`)
+            if (prev && prev.end_date !== data.end_date) changes.push(`End ${prev.end_date} → ${data.end_date}`)
+            if (prev && prev.training_unit_id !== data.training_unit_id) {
+              const uName = (trainingUnits.value || []).find(u => u.id === data.training_unit_id)?.unit_name || 'new unit'
+              changes.push(`Unit → ${uName}`)
+            }
+            if (prev && prev.supervising_attending_id !== data.supervising_attending_id) changes.push('Supervisor changed')
+            showToast('Rotation updated', changes.length ? changes.join(' · ') : 'No changes detected', 'success')
           }
           rotationModal.show = false; clearAll('rotation')
         } catch (e) {
@@ -2786,6 +3170,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // ── Resident gap warnings ─────────────────────────────────────────────
       // Residents who have no rotation scheduled for any of the next 3 months
+      const rgwCollapsed = ref(false)
       const residentGapWarnings = computed(() => {
         const today    = new Date(); today.setHours(0,0,0,0)
         const warnings = []
@@ -2847,7 +3232,7 @@ document.addEventListener('DOMContentLoaded', () => {
         getRotationBarStyle,
         rotationStartsInHorizon,
         rotationEndsInHorizon,
-        residentGapWarnings,
+        residentGapWarnings, rgwCollapsed,
         getResidentName,
         getTrainingUnitName
       }
@@ -3113,13 +3498,21 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           const normalize = a => ({ ...(a?.data || a), start_date: Utils.normalizeDate((a?.data || a).start_date), end_date: Utils.normalizeDate((a?.data || a).end_date) })
           if (absenceModal.mode === 'add') {
+            const sName = (medicalStaff.value || []).find(s => s.id === f.staff_member_id)?.full_name?.split(' ')[0] || 'Staff'
+            const reason = (f.absence_reason || '').replace(/_/g, ' ')
             absences.value.unshift(normalize(await API.createAbsence(data)))
-            showToast('Success', 'Absence recorded', 'success')
+            showToast('Absence recorded', `${sName} · ${reason} · ${f.start_date} – ${f.end_date}`, 'success')
           } else {
+            const prevAbs = absences.value.find(a => a.id === f.id)
             const record = normalize(await API.updateAbsence(f.id, data))
             const idx = absences.value.findIndex(a => a.id === (record.id || f.id))
             if (idx !== -1) absences.value[idx] = record
-            showToast('Success', 'Absence updated', 'success')
+            const absChanges = []
+            if (prevAbs && prevAbs.start_date !== f.start_date) absChanges.push(`Start → ${f.start_date}`)
+            if (prevAbs && prevAbs.end_date !== f.end_date) absChanges.push(`End → ${f.end_date}`)
+            if (prevAbs && prevAbs.absence_reason !== f.absence_reason) absChanges.push(`Reason → ${(f.absence_reason||'').replace(/_/g,' ')}`)
+            if (prevAbs && prevAbs.coverage_arranged !== f.coverage_arranged) absChanges.push(f.coverage_arranged ? 'Coverage arranged ✓' : 'Coverage removed')
+            showToast('Absence updated', absChanges.length ? absChanges.join(' · ') : 'Saved', 'success')
           }
           absenceModal.show = false; clearAll('absence'); await loadAbsences()
         } catch (e) { showToast('Error', e.message || 'Failed to save absence', 'error') }
@@ -3443,6 +3836,51 @@ document.addEventListener('DOMContentLoaded', () => {
     function useTrainingUnits({ showToast, showConfirmation, rotations, trainingUnits, allStaffLookup, allDepartmentsLookup }) {
       // trainingUnits is a shared ref hoisted in main setup — do not redeclare
       const trainingUnitFilters = reactive({ search: '', department: '', status: '' })
+      
+      // ── Unit staff (attendings who work in each unit) ─────────────────────
+      const unitStaffCache  = ref({})   // { [unitId]: [{ id, role, staff: {...} }] }
+      const unitStaffLoading = ref({})  // { [unitId]: true/false }
+
+      const loadUnitStaff = async (unitId) => {
+        if (unitStaffLoading.value[unitId]) return
+        unitStaffLoading.value[unitId] = true
+        try {
+          const res = await API.request(`/api/training-units/${unitId}/staff`)
+          unitStaffCache.value = { ...unitStaffCache.value, [unitId]: res?.data || [] }
+        } catch { unitStaffCache.value[unitId] = [] }
+        finally { unitStaffLoading.value[unitId] = false }
+      }
+
+      const getUnitAttendingCount = (unitId) => (unitStaffCache.value[unitId] || []).length
+
+
+      const addStaffToUnit = async (unitId, staffId, role = 'primary') => {
+        try {
+          const res = await API.request(`/api/training-units/${unitId}/staff`, {
+            method: 'POST', body: JSON.stringify({ staff_id: staffId, role })
+          })
+          const updated = [...(unitStaffCache.value[unitId] || []), res.data]
+          unitStaffCache.value = { ...unitStaffCache.value, [unitId]: updated }
+          showToast('Clinician assigned', `Added to unit team`, 'success')
+          return res.data
+        } catch (e) {
+          showToast('Error', e?.message || 'Failed to assign', 'error')
+          throw e
+        }
+      }
+
+      const removeStaffFromUnit = async (unitId, staffId) => {
+        try {
+          await API.request(`/api/training-units/${unitId}/staff/${staffId}`, { method: 'DELETE' })
+          unitStaffCache.value = {
+            ...unitStaffCache.value,
+            [unitId]: (unitStaffCache.value[unitId] || []).filter(m => m.staff?.id !== staffId)
+          }
+          showToast('Removed', 'Clinician removed from unit team', 'info')
+        } catch (e) {
+          showToast('Error', e?.message || 'Failed to remove', 'error')
+        }
+      }
       const trainingUnitModal = reactive({ show: false, mode: 'add', form: { unit_name: '', unit_code: '', department_id: '', maximum_residents: 2, unit_status: 'active', unit_type: 'clinical_unit', supervising_attending_id: '', unit_description: '', specialty: '', location_building: '', location_floor: '' } })
       const unitResidentsModal = reactive({ show: false, unit: null, rotations: [] })
       const unitCliniciansModal = reactive({ show: false, unit: null, clinicians: [], supervisorId: '', allStaff: [] })
@@ -3466,7 +3904,15 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         if (trainingUnitFilters.search) { const q = trainingUnitFilters.search.toLowerCase(); f = f.filter(u => u.unit_name?.toLowerCase().includes(q)) }
         if (trainingUnitFilters.department) f = f.filter(u => u.department_id === trainingUnitFilters.department)
-        if (trainingUnitFilters.status) f = f.filter(u => u.unit_status === trainingUnitFilters.status)
+        if (trainingUnitFilters.status) {
+          if (trainingUnitFilters.status === 'available') {
+            f = f.filter(u => getUnitActiveRotationCount(u.id) < u.maximum_residents)
+          } else if (trainingUnitFilters.status === 'full') {
+            f = f.filter(u => getUnitActiveRotationCount(u.id) >= u.maximum_residents)
+          } else {
+            f = f.filter(u => u.unit_status === trainingUnitFilters.status)
+          }
+        }
         // Sort by urgency: overlap > full > partial > available
         return [...f].sort((a, b) => {
           const score = (u) => {
@@ -3840,7 +4286,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const loadTrainingUnits = async () => {
-        try { trainingUnits.value = await API.getTrainingUnits() }
+        try {
+          trainingUnits.value = await API.getTrainingUnits()
+          // Pre-load attending staff for all active units (non-blocking, fills unitStaffCache)
+          trainingUnits.value
+            .filter(u => u.unit_status !== 'inactive')
+            .forEach(u => loadUnitStaff(u.id))
+        }
         catch { showToast('Error', 'Failed to load training units', 'error') }
       }
 
@@ -3894,7 +4346,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const openUnitClinicians = (unit, allStaff) => {
         unitCliniciansModal.unit = unit
-        unitCliniciansModal.clinicians = (unit.clinician_ids || []).slice()
+        // Pre-populate from unitStaffCache (the new source of truth)
+        const cachedStaff = unitStaffCache.value[unit.id] || []
+        unitCliniciansModal.clinicians = cachedStaff.map(m => m.staff?.id).filter(Boolean)
         unitCliniciansModal.supervisorId = unit.supervisor_id || unit.supervising_attending_id || ''
         // Filter to same-department attendings/fellows only
         // If unit has a department_id, only show staff from that department
@@ -3925,7 +4379,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const targetUnit = currentUnit || deptUnits[0]
         // Pre-select this attending
         unitCliniciansModal.unit = targetUnit
-        unitCliniciansModal.clinicians = (targetUnit.clinician_ids || []).slice()
+        unitCliniciansModal.clinicians = (unitStaffCache.value[targetUnit.id] || []).map(m => m.staff?.id).filter(Boolean)
         unitCliniciansModal.supervisorId = staff.id  // pre-select this attending
         const deptFilter = targetUnit.department_id
           ? s => s.department_id === targetUnit.department_id
@@ -3943,30 +4397,52 @@ document.addEventListener('DOMContentLoaded', () => {
         const u = unitCliniciansModal.unit
         if (!u?.id) { showToast('Error', 'No unit selected', 'error'); return }
         try {
-        // Backend Joi schema: unit_name, unit_code, department_id (req), supervising_attending_id (opt uuid),
-        // maximum_residents, unit_status, specialty/location_building/location_floor (opt — no empty strings).
-        // stripUnknown:true drops anything else silently.
-        const payload = {
-          unit_name: u.unit_name, unit_code: u.unit_code, department_id: u.department_id,
-          maximum_residents: u.maximum_residents || 5, unit_status: u.unit_status || 'active',
-        }
-        if (unitCliniciansModal.supervisorId) payload.supervising_attending_id = unitCliniciansModal.supervisorId
-        if (u.specialty)         payload.specialty         = u.specialty
-        if (u.location_building) payload.location_building = u.location_building
-        if (u.location_floor)    payload.location_floor    = u.location_floor
-
-        await API.updateTrainingUnit(u.id, payload)
-        const idx = trainingUnits.value.findIndex(x => x.id === u.id)
-        if (idx !== -1) {
-          trainingUnits.value[idx] = {
-            ...trainingUnits.value[idx],
-            supervising_attending_id: unitCliniciansModal.supervisorId || null,
-            supervisor_id: unitCliniciansModal.supervisorId || null,
+          // 1. Update the unit's designated supervisor (backward compat field)
+          const payload = {
+            unit_name: u.unit_name, unit_code: u.unit_code, department_id: u.department_id,
+            maximum_residents: u.maximum_residents || 5, unit_status: u.unit_status || 'active',
           }
-        }
-        unitCliniciansModal.show = false
-        showToast('Saved', 'Supervisor assignment updated', 'success')
-        } catch(e) { showToast('Error', e.message || 'Failed to save unit staff', 'error') }
+          if (unitCliniciansModal.supervisorId) payload.supervising_attending_id = unitCliniciansModal.supervisorId
+          if (u.specialty)         payload.specialty         = u.specialty
+          if (u.location_building) payload.location_building = u.location_building
+          if (u.location_floor)    payload.location_floor    = u.location_floor
+          await API.updateTrainingUnit(u.id, payload)
+
+          // 2. Sync clinical team to unit_staff table
+          const selectedIds  = unitCliniciansModal.clinicians || []
+          const currentStaff = unitStaffCache.value[u.id] || []
+          const currentIds   = currentStaff.map(m => m.staff?.id).filter(Boolean)
+
+          // Add newly selected clinicians
+          const toAdd = selectedIds.filter(id => !currentIds.includes(id))
+          await Promise.all(toAdd.map(staffId =>
+            API.request(`/api/training-units/${u.id}/staff`, {
+              method: 'POST',
+              body: JSON.stringify({ staff_id: staffId, role: staffId === unitCliniciansModal.supervisorId ? 'primary' : 'secondary' })
+            }).catch(() => null)  // ignore 409 duplicates
+          ))
+
+          // Remove deselected clinicians
+          const toRemove = currentIds.filter(id => !selectedIds.includes(id))
+          await Promise.all(toRemove.map(staffId =>
+            API.request(`/api/training-units/${u.id}/staff/${staffId}`, { method: 'DELETE' }).catch(() => null)
+          ))
+
+          // Refresh cache for this unit
+          await loadUnitStaff(u.id)
+
+          // Update local trainingUnits record
+          const idx = trainingUnits.value.findIndex(x => x.id === u.id)
+          if (idx !== -1) {
+            trainingUnits.value[idx] = {
+              ...trainingUnits.value[idx],
+              supervising_attending_id: unitCliniciansModal.supervisorId || null,
+              supervisor_id: unitCliniciansModal.supervisorId || null,
+            }
+          }
+          unitCliniciansModal.show = false
+          showToast('Saved', `Clinical team updated · ${selectedIds.length} clinician${selectedIds.length !== 1 ? 's' : ''}`, 'success')
+        } catch(e) { showToast('Error', e?.message || 'Failed to save unit staff', 'error') }
       }
 
       const viewUnitResidents = (unit, allRotations) => {
@@ -4008,7 +4484,7 @@ document.addEventListener('DOMContentLoaded', () => {
         finally { saving.value = false }
       }
 
-      return { trainingUnits, trainingUnitFilters, trainingUnitModal, unitsByDepartment, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits, getUnitActiveRotationCount, getUnitRotations, getUnitScheduledCount, getUnitOverlapWarning, getResidentShortName, loadTrainingUnits, showAddTrainingUnitModal, editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians, assignAttendingToUnit, viewUnitResidents, saveTrainingUnit, trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree, tlPopover, openCellPopover, closeCellPopover,
+      return { trainingUnits, trainingUnitFilters, trainingUnitModal, unitsByDepartment, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits, getUnitActiveRotationCount, getUnitRotations, getUnitScheduledCount, getUnitOverlapWarning, getResidentShortName, loadTrainingUnits, showAddTrainingUnitModal, editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians, assignAttendingToUnit, viewUnitResidents, saveTrainingUnit, trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree, tlPopover, openCellPopover, closeCellPopover, unitStaffCache, loadUnitStaff, getUnitAttendingCount, addStaffToUnit, removeStaffFromUnit,
         occupancyPanel, unitDetailDrawer, occupancyHeatmap, occupancyPanelUnits, getUnitMonthOccupancy, getNextFreeMonth, openUnitDetail }
     }
 
@@ -5321,6 +5797,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const absenceOps = useAbsences({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup, onCallSchedule: ref([]) })
         const { absences } = absenceOps
+
+        // ── Unit staff absence impact (needs absences in scope) ──────────────
+        const getUnitAbsentAttendingCount = (unitId) => {
+          const staff = unitStaffCache.value[unitId] || []
+          const today = new Date().toISOString().slice(0, 10)
+          return staff.filter(a => {
+            if (!a.staff?.id) return false
+            return absences.value.some(ab =>
+              ab.staff_member_id === a.staff.id &&
+              !['cancelled','returned_to_duty'].includes(ab.current_status) &&
+              ab.start_date <= today && ab.end_date >= today
+            )
+          }).length
+        }
+        const getUnitPresentAttendingCount = (unitId) =>
+          (unitStaffCache.value[unitId] || []).length - getUnitAbsentAttendingCount(unitId)
+        const isUnitUnderstaffed = (unitId) => {
+          const total = (unitStaffCache.value[unitId] || []).length
+          if (total === 0) return false
+          const absent = getUnitAbsentAttendingCount(unitId)
+          return absent > 0 && (absent / total) >= 0.5
+        }
+        const isStaffAbsentToday = (staffId) => {
+          const today = new Date().toISOString().slice(0, 10)
+          return absences.value.some(ab =>
+            ab.staff_member_id === staffId &&
+            !['cancelled','returned_to_duty'].includes(ab.current_status) &&
+            ab.start_date <= today && ab.end_date >= today
+          )
+        }
+
+        const getAbsenceUnitImpact = (staffId) => {
+          return Object.entries(unitStaffCache.value)
+            .filter(([, members]) => members.some(m => m.staff?.id === staffId))
+            .map(([unitId]) => {
+              const unit = trainingUnits.value.find(u => u.id === unitId)
+              const total = (unitStaffCache.value[unitId] || []).length
+              const absent = getUnitAbsentAttendingCount(unitId)
+              return { unitId, unitName: unit?.unit_name || 'Unit', total, absent,
+                       remaining: total - absent - 1 }
+            })
+            .filter(u => u.total > 0)
+        }
+
         const onCallOps = useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup, absences })
         const { onCallSchedule } = onCallOps
 
@@ -5462,8 +5982,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const calloutPeriod   = reactive({ year: new Date().getFullYear(), month: new Date().getMonth() + 1 })
         const calloutModal    = reactive({
           show: false, mode: 'add',
-          form: { id: null, staff_id: '', called_at: '', end_time: '', reason_category: 'respiratory_emergency', time_type: 'night', notes: '' }
+          form: { id: null, staff_id: '', called_at: '', end_time: '', reason_category: 'respiratory_emergency', time_type: 'night', notes: '', coverage_area_id: '' }
         })
+        const suggestCalloutArea = (staffId) => {
+          if (!staffId) return
+          const today = Utils.normalizeDate(new Date())
+          // Find the shift this physician is on tonight
+          const shift = (onCallSchedule?.value || []).find(s =>
+            s.primary_physician_id === staffId &&
+            Utils.normalizeDate(s.duty_date) === today &&
+            s.coverage_area_id
+          )
+          if (shift?.coverage_area_id && !calloutModal.form.coverage_area_id) {
+            calloutModal.form.coverage_area_id = shift.coverage_area_id
+          }
+        }
+
         const calloutReasonLabels = {
           respiratory_emergency: 'Respiratory emergency',
           bronchospasm:          'Bronchospasm',
@@ -5502,7 +6036,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const openLogCalloutModal = () => {
           const now = new Date()
           const pad = n => String(n).padStart(2,'0')
-          Object.assign(calloutModal.form, { id:null, staff_id:'', called_at:`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`, end_time:'', reason_category:'respiratory_emergency', time_type: now.getHours() >= 22 || now.getHours() < 7 ? 'night' : now.getDay() === 0 || now.getDay() === 6 ? 'weekend' : 'daytime', notes:'' })
+          Object.assign(calloutModal.form, { id:null, staff_id:'', called_at:`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`, end_time:'', reason_category:'respiratory_emergency', time_type: now.getHours() >= 22 || now.getHours() < 7 ? 'night' : now.getDay() === 0 || now.getDay() === 6 ? 'weekend' : 'daytime', notes:'', coverage_area_id:'' })
           calloutModal.mode = 'add'; calloutModal.show = true
         }
 
@@ -5539,6 +6073,25 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           })
         }
+
+        // ── Callout analytics computeds (moved from template to avoid block-body) ──
+        const calloutsByArea = Vue.computed(() => {
+          const cas = coverageAreas?.value || []
+          const acc = {}
+          ;(callouts.value || []).filter(c => c.coverage_area_id).forEach(c => {
+            const name = cas.find(a => a.id === c.coverage_area_id)?.name || c.coverage_area_id
+            acc[name] = (acc[name] || 0) + 1
+          })
+          return Object.entries(acc).sort((a,b) => b[1]-a[1]).slice(0, 6)
+        })
+        const calloutsByReason = Vue.computed(() => {
+          const acc = {}
+          ;(callouts.value || []).forEach(c => {
+            const k = c.reason_category || 'other'
+            acc[k] = (acc[k] || 0) + 1
+          })
+          return Object.entries(acc).sort((a,b) => b[1]-a[1]).slice(0, 6)
+        })
 
         const calloutKPIs = computed(() => {
           const c = callouts.value
@@ -5669,6 +6222,49 @@ document.addEventListener('DOMContentLoaded', () => {
         const rotationView = ref('detailed') // 'compact', 'detailed', 'month'
         const onCallView = ref('detailed')
         const oncallTab  = ref('schedule')
+        const oncallMonthOffset = ref(0)  // 0 = current month, -1 = prev, +1 = next
+
+        // ── Monthly view computed helpers ─────────────────────────────────
+        const _ocmDate = Vue.computed(() =>
+          new Date(new Date().getFullYear(), new Date().getMonth() + oncallMonthOffset.value, 1)
+        )
+        const oncallMonthEmptyCells = Vue.computed(() => {
+          const dow = _ocmDate.value.getDay()
+          const blanks = dow === 0 ? 6 : dow - 1
+          return Array.from({ length: blanks }, (_, i) => i)
+        })
+        const oncallMonthDays = Vue.computed(() => {
+          const d = _ocmDate.value
+          const n = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+          return Array.from({ length: n }, (_, i) => i + 1)
+        })
+        const getOncallShiftsForDay = (day) => {
+          const d = _ocmDate.value
+          const yr = d.getFullYear()
+          const mo = String(d.getMonth() + 1).padStart(2, '0')
+          const dy = String(day).padStart(2, '0')
+          const iso = `${yr}-${mo}-${dy}`
+          return (onCallOps.onCallSchedule?.value || []).filter(s => (s.duty_date || '').slice(0, 10) === iso)
+        }
+        const isOncallCellToday = (day) => {
+          const d = _ocmDate.value
+          const t = new Date()
+          return d.getFullYear() === t.getFullYear() &&
+                 d.getMonth() === t.getMonth() &&
+                 day === t.getDate()
+        }
+        const oncallMonthSummary = Vue.computed(() => {
+          const d = _ocmDate.value
+          const yr = d.getFullYear()
+          const mo = String(d.getMonth() + 1).padStart(2, '0')
+          const covered = [...new Set(
+            (onCallOps.onCallSchedule?.value || [])
+              .filter(s => (s.duty_date || '').startsWith(`${yr}-${mo}`))
+              .map(s => s.duty_date)
+          )]
+          const daysInMonth = new Date(yr, d.getMonth() + 1, 0).getDate()
+          return `${covered.length}/${daysInMonth} days scheduled`
+        })
 
         // ============ EXISTING COMPUTED PROPERTIES ============
         // Name lookups — canonical versions live in their composables and are
@@ -5756,24 +6352,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const viewStaffDetails = async (staff) => {
-          // Guard: staff might be undefined if medicalStaff.find() returned nothing
           if (!staff || !staff.id) { console.warn('viewStaffDetails: staff object is undefined or missing id'); return; }
           staffOps.staffProfileModal.staff = staff; staffOps.staffProfileModal.activeTab = 'activity'; staffOps.staffProfileModal.show = true
           // Instant local profile from refs — shown immediately with no loading state
           const quickProfile = researchOps.getStaffResearchQuick(staff.id)
           if (quickProfile) staffOps.staffProfileModal.researchProfile = quickProfile
-          // Then enrich with full API data asynchronously
-          if (hasPermission('analytics', 'read')) await analyticsOps.loadStaffResearchProfile(staffOps.staffProfileModal, staff.id)
+          // Prefetch ALL tab data in parallel — no waiting for tab clicks
+          const prefetchAll = [
+            // Certificates — previously only loaded on tab click
+            loadStaffCertificates(staff.id),
+            // Research profile
+            hasPermission('analytics', 'read') ? analyticsOps.loadStaffResearchProfile(staffOps.staffProfileModal, staff.id) : Promise.resolve(),
+            // Leave balance
+            API.getLeaveBalance(staff.id).then(b => { staffOps.staffProfileModal.leaveBalance = b }).catch(() => { staffOps.staffProfileModal.leaveBalance = null }),
+          ]
+          // Supervision (attending/supervisors only)
           if (staff.staff_type === 'attending_physician' || staffTypeMap.value[staff.staff_type]?.can_supervise) {
             staffOps.staffProfileModal.loadingSupervision = true
-            try { staffOps.staffProfileModal.supervisionData = await API.getSupervisedResidents(staff.id) }
-            catch { staffOps.staffProfileModal.supervisionData = { current: [], currentCount: 0, pastCount: 0, totalDaysSupervised: 0 } }
-            finally { staffOps.staffProfileModal.loadingSupervision = false }
+            prefetchAll.push(
+              API.getSupervisedResidents(staff.id)
+                .then(d => { staffOps.staffProfileModal.supervisionData = d })
+                .catch(() => { staffOps.staffProfileModal.supervisionData = { current: [], currentCount: 0, pastCount: 0, totalDaysSupervised: 0 } })
+                .finally(() => { staffOps.staffProfileModal.loadingSupervision = false })
+            )
           }
-          staffOps.staffProfileModal.loadingLeave = true
-          try { staffOps.staffProfileModal.leaveBalance = await API.getLeaveBalance(staff.id) }
-          catch { staffOps.staffProfileModal.leaveBalance = null }
-          finally { staffOps.staffProfileModal.loadingLeave = false }
+          // Fire all in parallel — no sequential waiting
+          await Promise.allSettled(prefetchAll)
         }
 
         const formatStaffType = (t) => formatStaffTypeGlobal(t)  // single definition — composable copies removed
@@ -5798,11 +6402,96 @@ document.addEventListener('DOMContentLoaded', () => {
           'Reclutando': 'Recruiting', 'Activo': 'Active',
           'Completado': 'Completed', 'En preparación': 'In preparation'
         }[s] || s)
-        const getCurrentViewTitle = () => VIEW_TITLES[currentView.value] || 'NeumoCare Dashboard'
-        const getCurrentViewSubtitle = () => VIEW_SUBTITLES[currentView.value] || 'Hospital Management System'
+        const getCurrentViewTitle = () => VIEW_TITLES[currentView.value] || 'neumDesk'
+        const getCurrentViewSubtitle = () => {
+          const v = currentView.value
+          try {
+            // ── Medical Staff ──────────────────────────────────────────────
+            if (v === 'medical_staff') {
+              const staff = medicalStaff.value || []
+              const active = staff.filter(s => s.employment_status === 'active').length
+              const residents = staff.filter(s => s.employment_status === 'active' && isResidentType(s.staff_type)).length
+              const attendings = active - residents
+              if (!active) return 'No active staff'
+              return `${attendings} attending${attendings !== 1 ? 's' : ''} · ${residents} resident${residents !== 1 ? 's' : ''}`
+            }
+            // ── On-call ────────────────────────────────────────────────────
+            if (v === 'oncall_schedule') {
+              const today = Utils.normalizeDate(new Date())
+              const todayShifts = (onCallOps.onCallSchedule?.value || []).filter(s =>
+                Utils.normalizeDate(s.duty_date) === today
+              )
+              if (!todayShifts.length) return 'No shifts scheduled today'
+              const areas = [...new Set(todayShifts.map(s =>
+                s.coverage_area?.name || (onCallOps.coverageAreas?.value || []).find(a => a.id === s.coverage_area_id)?.name
+              ).filter(Boolean))]
+              return areas.length
+                ? `Tonight: ${areas.slice(0,3).join(', ')}${areas.length > 3 ? ` +${areas.length - 3}` : ''}`
+                : `${todayShifts.length} shift${todayShifts.length !== 1 ? 's' : ''} scheduled today`
+            }
+            // ── Rotations ──────────────────────────────────────────────────
+            if (v === 'resident_rotations') {
+              const rots = rotations.value || []
+              const active = rots.filter(r => r.rotation_status === 'active').length
+              const endingSoon = rots.filter(r => r.rotation_status === 'active' && getDaysRemaining(r.end_date) >= 0 && getDaysRemaining(r.end_date) <= 7).length
+              if (!active) return 'No active rotations'
+              const end = endingSoon ? ` · ${endingSoon} ending this week` : ''
+              return `${active} active${end}`
+            }
+            // ── Training Units ─────────────────────────────────────────────
+            if (v === 'training_units') {
+              const units = trainingUnits.value || []
+              const active = units.filter(u => u.unit_status === 'active').length
+              const withSlots = units.filter(u => {
+                const cur = (rotations.value || []).filter(r => r.training_unit_id === u.id && r.rotation_status === 'active').length
+                return u.unit_status === 'active' && cur < (u.maximum_residents || 999)
+              }).length
+              if (!active) return 'No active units'
+              return `${active} unit${active !== 1 ? 's' : ''} · ${withSlots} with open slot${withSlots !== 1 ? 's' : ''}`
+            }
+            // ── Staff Absence ──────────────────────────────────────────────
+            if (v === 'staff_absence') {
+              const kpis = absenceOps.absenceKPIs?.value
+              if (!kpis) return 'Loading…'
+              if (kpis.absentNow === 0 && kpis.upcoming === 0) return 'All staff present · No planned leave'
+              const parts = []
+              if (kpis.absentNow > 0) parts.push(`${kpis.absentNow} absent today`)
+              if (kpis.noCoverage > 0) parts.push(`${kpis.noCoverage} need cover`)
+              else if (kpis.upcoming > 0) parts.push(`${kpis.upcoming} planned`)
+              return parts.join(' · ')
+            }
+            // ── Research ──────────────────────────────────────────────────
+            if (['research_hub','research_lines','clinical_trials','innovation_projects','analytics_dashboard','analytics_performance','analytics_partners'].includes(v)) {
+              const lines = researchOps.researchLines?.value?.length || 0
+              const trials = researchOps.clinicalTrials?.value?.filter(t => t.study_status === 'Reclutando' || t.study_status === 'Activo').length || 0
+              const projects = researchOps.innovationProjects?.value?.length || 0
+              if (!lines && !trials) return 'No research data loaded yet'
+              return `${lines} line${lines !== 1 ? 's' : ''} · ${trials} active stud${trials !== 1 ? 'ies' : 'y'} · ${projects} project${projects !== 1 ? 's' : ''}`
+            }
+            // ── News ──────────────────────────────────────────────────────
+            if (v === 'news') {
+              const posts = newsOps.newsPosts?.value || []
+              const published = posts.filter(p => p.status === 'published').length
+              const drafts = posts.filter(p => p.status === 'draft').length
+              if (!posts.length) return 'No posts yet'
+              return `${published} published${drafts ? ` · ${drafts} draft${drafts !== 1 ? 's' : ''}` : ''}`
+            }
+            // ── Dashboard ─────────────────────────────────────────────────
+            if (v === 'dashboard') {
+              const hour = new Date().getHours()
+              const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+              const name = currentUser.value?.full_name?.split(' ')[0] || ''
+              return name ? `${greeting}, ${name}` : greeting
+            }
+          } catch { /* fallback below */ }
+          return ''
+        }
         const getSearchPlaceholder = () => 'Search...'
 
         const getStaffTypeIcon = (t) => ({ attending_physician: 'fa-user-md', medical_resident: 'fa-user-graduate', fellow: 'fa-user-tie', nurse_practitioner: 'fa-user-nurse' }[t] || 'fa-user')
+        // ── Unified avatar helpers ────────────────────────────────────────────
+        const nmAv = (name, staffType, size = 'md') => Utils.avatarClass(staffType || '', name || '', size)
+        const nmAvI = (name) => Utils.getInitials(name || '')
         const getAbsenceReasonIcon = (r) => ({ vacation: 'fa-umbrella-beach', sick_leave: 'fa-procedures', conference: 'fa-chalkboard-teacher', training: 'fa-graduation-cap', personal: 'fa-user-clock', other: 'fa-question-circle' }[r] || 'fa-clock')
         const calculateCapacityPercent = (cur, max) => (!cur || !max) ? 0 : Math.round((cur / max) * 100)
         const getPreviewCardClass = () => absenceOps.absenceModal.form.absence_type === 'planned' ? 'planned' : 'unplanned'
@@ -6003,28 +6692,98 @@ document.addEventListener('DOMContentLoaded', () => {
           const q = (ui.globalSearchQuery.value || '').toLowerCase().trim()
           if (!q || q.length < 2) return {}
           const results = {}
-          // Staff
+          const close = () => { ui.searchResultsOpen.value = false; ui.globalSearchQuery.value = '' }
+
+          // ── Staff ──────────────────────────────────────────────────────
           const staff = (staffOps.medicalStaff.value || []).filter(s =>
             (s.full_name || '').toLowerCase().includes(q) ||
             (s.professional_email || '').toLowerCase().includes(q) ||
             (s.staff_id || '').toLowerCase().includes(q)
           ).slice(0, 4)
-          if (staff.length) results.staff = staff.map(s => ({ id: s.id, name: s.full_name, meta: rotationOps.formatStaffType ? rotationOps.formatStaffType(s.staff_type) : s.staff_type, icon: 'fa-user-md', action: () => { staffOps.viewStaffDetails(s); ui.searchResultsOpen.value = false; ui.globalSearchQuery.value = '' } }))
-          // Rotations
+          if (staff.length) results.staff = staff.map(s => ({
+            id: s.id, name: s.full_name,
+            meta: rotationOps.formatStaffType ? rotationOps.formatStaffType(s.staff_type) : s.staff_type,
+            icon: 'fa-user-md', action: () => { staffOps.viewStaffDetails(s); close() }
+          }))
+
+          // ── Rotations ──────────────────────────────────────────────────
           const rots = (rotationOps.rotations.value || []).filter(r => {
             const rn = (staffOps.medicalStaff.value || []).find(s => s.id === r.resident_id)
-            return rn && (rn.full_name || '').toLowerCase().includes(q)
+            const un = (trainingUnits.value || []).find(u => u.id === r.training_unit_id)
+            return (rn && (rn.full_name || '').toLowerCase().includes(q)) ||
+                   (un && (un.unit_name || '').toLowerCase().includes(q))
           }).slice(0, 3)
           if (rots.length) results.rotations = rots.map(r => {
             const rn = (staffOps.medicalStaff.value || []).find(s => s.id === r.resident_id)
-            return { id: r.id, name: rn ? rn.full_name : 'Resident', meta: `Rotation · ${r.rotation_status}`, icon: 'fa-calendar-check', action: () => { switchView('resident_rotations'); ui.searchResultsOpen.value = false; ui.globalSearchQuery.value = '' } }
+            const un = (trainingUnits.value || []).find(u => u.id === r.training_unit_id)
+            return { id: r.id, name: rn ? rn.full_name : 'Resident',
+              meta: `${un?.unit_name || 'Rotation'} · ${r.rotation_status}`,
+              icon: 'fa-calendar-check', action: () => { switchView('resident_rotations'); close() } }
           })
-          // Research lines
+
+          // ── On-call shifts ─────────────────────────────────────────────
+          const today = Utils.normalizeDate(new Date())
+          const oncall = (onCallOps.onCallSchedule?.value || []).filter(s => {
+            const d = Utils.normalizeDate(s.duty_date)
+            if (d < today) return false
+            const pName = (staffOps.medicalStaff.value || []).find(x => x.id === s.primary_physician_id)?.full_name || ''
+            const aName = s.coverage_area?.name || (onCallOps.coverageAreas?.value || []).find(a => a.id === s.coverage_area_id)?.name || ''
+            return pName.toLowerCase().includes(q) || aName.toLowerCase().includes(q)
+          }).slice(0, 3)
+          if (oncall.length) results.oncall = oncall.map(s => {
+            const pName = (staffOps.medicalStaff.value || []).find(x => x.id === s.primary_physician_id)?.full_name || '—'
+            const aName = s.coverage_area?.name || (onCallOps.coverageAreas?.value || []).find(a => a.id === s.coverage_area_id)?.name || ''
+            return { id: s.id, name: pName,
+              meta: `On-call · ${aName || 'No area'} · ${Utils.normalizeDate(s.duty_date)}`,
+              icon: 'fa-phone', action: () => { switchView('oncall_schedule'); close() } }
+          })
+
+          // ── Absences ───────────────────────────────────────────────────
+          const abs = (absenceOps.absences?.value || []).filter(a => {
+            if (['cancelled','returned_to_duty'].includes(a.current_status)) return false
+            const sName = (staffOps.medicalStaff.value || []).find(x => x.id === a.staff_member_id)?.full_name || ''
+            return sName.toLowerCase().includes(q)
+          }).slice(0, 3)
+          if (abs.length) results.absences = abs.map(a => {
+            const sName = (staffOps.medicalStaff.value || []).find(x => x.id === a.staff_member_id)?.full_name || '—'
+            const reason = a.absence_reason?.replace(/_/g, ' ') || 'Absence'
+            return { id: a.id, name: sName,
+              meta: `${reason} · ${Utils.normalizeDate(a.start_date)} → ${Utils.normalizeDate(a.end_date || a.start_date)}`,
+              icon: 'fa-user-clock', action: () => { switchView('staff_absence'); close() } }
+          })
+
+          // ── Coverage areas ─────────────────────────────────────────────
+          const areas = (onCallOps.coverageAreas?.value || []).filter(a =>
+            (a.name || '').toLowerCase().includes(q) || (a.code || '').toLowerCase().includes(q)
+          ).slice(0, 2)
+          if (areas.length) results.areas = areas.map(a => ({
+            id: a.id, name: a.name,
+            meta: `Coverage area · ${a.code}${a.requires_coverage ? ' · Required' : ''}`,
+            icon: 'fa-map-marker-alt', action: () => { switchView('oncall_schedule'); close() }
+          }))
+
+          // ── Training units ─────────────────────────────────────────────
+          const units = (trainingUnits.value || []).filter(u =>
+            (u.unit_name || '').toLowerCase().includes(q) ||
+            (u.unit_code || '').toLowerCase().includes(q)
+          ).slice(0, 2)
+          if (units.length) results.units = units.map(u => ({
+            id: u.id, name: u.unit_name,
+            meta: `Training unit · ${u.unit_status}`,
+            icon: 'fa-hospital', action: () => { switchView('training_units'); close() }
+          }))
+
+          // ── Research ───────────────────────────────────────────────────
           const lines = (researchOps.researchLines.value || []).filter(l =>
             (l.research_line_name || l.name || '').toLowerCase().includes(q) ||
             (l.description || '').toLowerCase().includes(q)
-          ).slice(0, 3)
-          if (lines.length) results.research = lines.map(l => ({ id: l.id, name: l.research_line_name || l.name, meta: `Research Line`, icon: 'fa-flask', action: () => { switchView('research_lines'); ui.searchResultsOpen.value = false; ui.globalSearchQuery.value = '' } }))
+          ).slice(0, 2)
+          if (lines.length) results.research = lines.map(l => ({
+            id: l.id, name: l.research_line_name || l.name,
+            meta: 'Research line', icon: 'fa-flask',
+            action: () => { switchView('research_lines'); close() }
+          }))
+
           return results
         })
 
@@ -6168,7 +6927,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const loadAcademicDegrees = async () => {
           try {
             const data = await API.getAcademicDegrees()
-            academicDegrees.value = data.length ? data : ACADEMIC_DEGREES_FALLBACK
+            const sorted = (data.length ? data : ACADEMIC_DEGREES_FALLBACK)
+              .slice().sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+            academicDegrees.value = sorted
           } catch {
             academicDegrees.value = ACADEMIC_DEGREES_FALLBACK
           }
@@ -6240,7 +7001,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // ── Core system settings ────────────────────────────────────────────
         const activeSvcId = ref(null)
         const systemSettings = reactive({
-          hospital_name: 'NeumoCare Hospital',
+          hospital_name: 'neumDesk Hospital',
           max_residents_per_unit: 10,
           default_rotation_duration: 12,
           enable_audit_logging: true,
@@ -7153,7 +7914,7 @@ document.addEventListener('DOMContentLoaded', () => {
           formatTimeAgo: (d) => Utils.formatRelativeTime(d),
           getInitials: (n) => Utils.getInitials(n),
           getTomorrow: () => Utils.getTomorrow(),
-          getStaffTypeIcon, getAbsenceReasonIcon, calculateCapacityPercent, getUnitFillColor,
+          getStaffTypeIcon, getAbsenceReasonIcon, nmAv, nmAvI, getAbsenceUnitImpact, getUnitAbsentAttendingCount, getUnitPresentAttendingCount, isUnitUnderstaffed, isStaffAbsentToday, calculateCapacityPercent, getUnitFillColor,
           getPreviewCardClass, getPreviewIcon, getPreviewReasonText,
           getPreviewStatusClass, getPreviewStatusText, updatePreview, requestFullDossier,
           getPhaseColor: Utils.getPhaseColor, getPartnerTypeColor: Utils.getPartnerTypeColor, getStageColor: Utils.getStageColor, getStageConfig: Utils.getStageConfig, PROJECT_STAGES: PROJECT_STAGES_DATA, formatPercentage: Utils.formatPercentage,
@@ -7193,7 +7954,8 @@ document.addEventListener('DOMContentLoaded', () => {
           
           // NEW: Compact view properties - now coming from composables
           rotationView,
-          onCallView, oncallTab,
+          onCallView, oncallTab, oncallMonthOffset, calloutsByArea, calloutsByReason,
+          oncallMonthEmptyCells, oncallMonthDays, getOncallShiftsForDay, isOncallCellToday, oncallMonthSummary,
           residentsWithRotations: rotationOps.residentsWithRotations,
           groupedOnCallSchedules: onCallOps.groupedOnCallSchedules,
           staffWithOnCallOrbs: onCallOps.staffWithOnCallOrbs,
@@ -7212,12 +7974,13 @@ document.addEventListener('DOMContentLoaded', () => {
           isShiftActive: onCallOps.isShiftActive,
           viewRotationDetails: rotationOps.viewRotationDetails,
           residentGapWarnings: rotationOps.residentGapWarnings,
+          rgwCollapsed: rotationOps.rgwCollapsed,
           cmdQuery, cmdSelectedIdx, cmdItems, executeCmdItem,
           isOffline: ui.isOffline, isMaintenanceMode: ui.isMaintenanceMode,
           callouts, calloutsLoading, calloutSummary, calloutPeriod, calloutModal,
           calloutFairnessAlert,
           calloutKPIs, calloutDistribution, calloutFairnessAlert, calloutReasonLabels, calloutTimeTypes,
-          openLogCalloutModal, editCallout, saveCallout, deleteCallout,
+          openLogCalloutModal, suggestCalloutArea, editCallout, saveCallout, deleteCallout,
           loadCallouts, loadCalloutSummary,
         }    
       }
