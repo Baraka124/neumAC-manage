@@ -10509,7 +10509,7 @@ tr.staff-table-row .tbl-btn {
                                                 <span class="tuc-team-label">Clinical team</span>
                                                 <span class="tuc-team-count"
                                                       :class="isUnitUnderstaffed(unit.id) ? 'tuc-team-count--warn' : ''"
-                                                      :title="(unitStaffCache[unit.id]||[]).map(m => (isStaffAbsentToday(m.staff.id) ? '✗ ' : '✓ ') + m.staff.full_name).join('&#10;')">
+                                                      :title="(unitStaffCache[unit.id]||[]).map(m => (isStaffAbsentToday(m.staff.id) ? '✗ ' : '✓ ') + m.staff.full_name).join('\n')">
                                                     {{ getUnitPresentAttendingCount(unit.id) }}/{{ getUnitAttendingCount(unit.id) }} present
                                                     <span v-if="getUnitAbsentAttendingCount(unit.id) > 0" style="margin-left:2px">
                                                         · {{ getUnitAbsentAttendingCount(unit.id) }} absent
