@@ -1079,196 +1079,27 @@
       #app .nm-empty-sub   { font-size:13px; color:var(--nm-text3); max-width:300px; line-height:1.6; }
 
       /* ── ⌘K COMMAND PALETTE ── */
-      /* ════════════════════════════════════════
-         ⌘K COMMAND PALETTE — dark, precision UI
-         Consistent with nd-sidebar language
-      ════════════════════════════════════════ */
-      #app .cmd-backdrop {
-        position:fixed; inset:0; z-index:2000;
-        display:flex; align-items:flex-start; justify-content:center;
-        padding-top:12vh;
-        background:rgba(4,6,14,.72);
-        backdrop-filter:blur(6px);
-        animation:cmd-fade-in .14s ease both;
-      }
-      @keyframes cmd-fade-in { from{opacity:0} to{opacity:1} }
-      #app .cmd-panel {
-        width:min(600px,92vw);
-        background:linear-gradient(175deg, #0d1526 0%, #080d1c 60%, #060912 100%);
-        border-radius:14px;
-        border:1px solid rgba(180,210,255,.10);
-        overflow:hidden;
-        box-shadow:
-          0 0 0 1px rgba(255,255,255,.04),
-          0 -1px 0 rgba(255,255,255,.07),
-          0 32px 80px rgba(0,0,0,.85),
-          0 0 80px rgba(79,163,245,.04);
-        animation:cmd-slide-in .18s cubic-bezier(.16,1,.3,1) both;
-        position:relative;
-      }
-      /* blueprint grid inside panel */
-      #app .cmd-panel::before {
-        content:''; position:absolute; inset:0; z-index:0; pointer-events:none;
-        background-image:
-          linear-gradient(rgba(79,163,245,.009) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(79,163,245,.009) 1px, transparent 1px);
-        background-size:28px 28px;
-        mask-image:linear-gradient(to bottom, black 0%, transparent 100%);
-      }
-      #app .cmd-panel > * { position:relative; z-index:1; }
-      @keyframes cmd-slide-in {
-        from{opacity:0;transform:translateY(-12px) scale(.97)}
-        to  {opacity:1;transform:translateY(0) scale(1)}
-      }
-      /* ── Input row ── */
-      #app .cmd-input-row {
-        display:flex; align-items:center; gap:14px;
-        padding:18px 20px;
-        border-bottom:1px solid rgba(180,210,255,.07);
-        background:rgba(79,163,245,.025);
-      }
-      #app .cmd-input-row svg { color:#48597a; flex-shrink:0; }
-      #app .cmd-input-row input {
-        flex:1; border:none; outline:none;
-        font-size:16px; font-family:'Epilogue',inherit;
-        background:transparent; color:#cdd8f0; font-weight:300;
-        letter-spacing:.01em;
-      }
-      #app .cmd-input-row input::placeholder { color:#1e2a40; }
-      #app .cmd-input-row kbd {
-        font-size:11px; color:#1e2a40;
-        background:rgba(255,255,255,.04);
-        border:1px solid rgba(180,210,255,.08);
-        padding:3px 9px; border-radius:5px;
-        font-family:'DM Mono',monospace; cursor:pointer; flex-shrink:0;
-        transition:color .15s, border-color .15s;
-      }
-      #app .cmd-input-row kbd:hover { color:#48597a; border-color:rgba(79,163,245,.2); }
-      /* ── Results ── */
-      #app .cmd-results {
-        max-height:360px; overflow-y:auto; padding:6px;
-        scrollbar-width:thin;
-        scrollbar-color:rgba(79,163,245,.25) transparent;
-      }
-      #app .cmd-results::-webkit-scrollbar { width:3px; }
-      #app .cmd-results::-webkit-scrollbar-thumb { background:rgba(79,163,245,.25); border-radius:3px; }
-      #app .cmd-section-label {
-        font-family:'DM Mono',monospace;
-        font-size:9px; font-weight:500;
-        text-transform:uppercase; letter-spacing:1.8px;
-        color:rgba(79,163,245,.3);
-        padding:10px 12px 4px;
-      }
-      #app .cmd-item {
-        display:flex; align-items:center; gap:12px;
-        padding:9px 10px; border-radius:9px; cursor:pointer;
-        transition:background .08s; position:relative;
-        margin:1px 0;
-      }
-      #app .cmd-item:hover { background:rgba(79,163,245,.06); }
-      #app .cmd-item.selected {
-        background:rgba(79,163,245,.10);
-        outline:1px solid rgba(79,163,245,.18);
-      }
-      /* top highlight on selected — matches sidebar .nd-row.nd-on */
-      #app .cmd-item.selected::after {
-        content:''; position:absolute;
-        top:0; left:12%; right:12%; height:1px;
-        background:linear-gradient(90deg,transparent,rgba(79,163,245,.25),transparent);
-        border-radius:1px;
-      }
-      #app .cmd-item-icon {
-        width:32px; height:32px; border-radius:8px;
-        background:rgba(255,255,255,.04);
-        border:1px solid rgba(180,210,255,.07);
-        display:flex; align-items:center; justify-content:center;
-        flex-shrink:0; color:#48597a;
-        transition:background .1s, color .1s;
-      }
-      #app .cmd-item:hover .cmd-item-icon { background:rgba(79,163,245,.08); color:#4fa3f5; }
-      #app .cmd-item.selected .cmd-item-icon { background:rgba(79,163,245,.14); color:#4fa3f5; border-color:rgba(79,163,245,.2); }
-      #app .cmd-item--action .cmd-item-icon { background:rgba(34,201,160,.08); color:#22c9a0; border-color:rgba(34,201,160,.15); }
-      #app .cmd-item--action:hover .cmd-item-icon,
-      #app .cmd-item--action.selected .cmd-item-icon { background:rgba(34,201,160,.14); color:#22c9a0; }
+      #app .cmd-backdrop { position:fixed; inset:0; background:rgba(7,17,31,.45); z-index:400; display:flex; align-items:flex-start; justify-content:center; padding-top:14vh; }
+      #app .cmd-panel { width:min(580px,90vw); background:var(--nm-surface); border-radius:14px; border:1px solid rgba(0,0,0,.12); overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,.2); }
+      #app .cmd-input-row { display:flex; align-items:center; gap:12px; padding:16px 18px; border-bottom:1px solid var(--nm-border); }
+      #app .cmd-input-row svg { color:var(--nm-text3); flex-shrink:0; }
+      #app .cmd-input-row input { flex:1; border:none; outline:none; font-size:16px; background:transparent; color:var(--nm-text1); font-family:inherit; }
+      #app .cmd-input-row input::placeholder { color:var(--nm-text3); }
+      #app .cmd-input-row kbd { font-size:12px; color:var(--nm-text3); background:var(--nm-surface2); padding:3px 8px; border-radius:5px; font-family:monospace; cursor:pointer; flex-shrink:0; }
+      #app .cmd-results { max-height:380px; overflow-y:auto; padding:6px; }
+      #app .cmd-section-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:var(--nm-text3); padding:8px 12px 4px; }
+      #app .cmd-item { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:8px; cursor:pointer; transition:background .08s; }
+      #app .cmd-item:hover, #app .cmd-item.selected { background:var(--nm-surface2); }
+      #app .cmd-item.selected { background:rgba(0,179,179,.08); outline:1px solid rgba(0,179,179,.2); }
+      #app .cmd-item-icon { width:34px; height:34px; border-radius:8px; background:var(--nm-surface2); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--nm-text2); }
+      #app .cmd-item.selected .cmd-item-icon { background:rgba(0,179,179,.12); color:var(--nm-teal); }
       #app .cmd-item-info { flex:1; min-width:0; }
-      #app .cmd-item-label {
-        font-size:13.5px; font-weight:400;
-        color:#cdd8f0; white-space:nowrap;
-        overflow:hidden; text-overflow:ellipsis;
-      }
-      #app .cmd-item-sub { font-size:11px; color:#1e2a40; margin-top:2px; font-family:'DM Mono',monospace; letter-spacing:.1px; }
-      #app .cmd-item.selected .cmd-item-label { color:#e8f0ff; }
-      #app .cmd-item--action .cmd-item-label { color:#cdd8f0; }
-      #app .cmd-item-type {
-        font-family:'DM Mono',monospace;
-        font-size:9px; font-weight:500;
-        color:#1e2a40; letter-spacing:.3px;
-        padding:2px 7px; border-radius:4px;
-        flex-shrink:0;
-        border:1px solid rgba(180,210,255,.06);
-      }
-      #app .cmd-item-type::before { content:'['; opacity:.4; margin-right:1px; }
-      #app .cmd-item-type::after  { content:']'; opacity:.4; margin-left:1px; }
-      #app .cmd-item--action .cmd-item-type { color:#22c9a0; border-color:rgba(34,201,160,.15); }
-      /* no results */
-      #app .cmd-no-results {
-        padding:40px 20px; text-align:center;
-        font-family:'DM Mono',monospace; font-size:12px; color:#1e2a40;
-      }
-      /* ── Footer ── */
-      #app .cmd-footer {
-        display:flex; align-items:center; gap:14px;
-        padding:10px 18px;
-        border-top:1px solid rgba(180,210,255,.06);
-        background:rgba(4,6,14,.4);
-      }
-      #app .cmd-foot-item { display:flex; align-items:center; gap:5px; font-family:'DM Mono',monospace; font-size:10px; color:#1e2a40; }
-      #app .cmd-foot-item kbd {
-        background:rgba(255,255,255,.04);
-        border:1px solid rgba(180,210,255,.08);
-        border-radius:4px; padding:2px 6px;
-        font-family:'DM Mono',monospace; font-size:10px; color:#48597a;
-      }
-      /* ── Topbar ⌘K button ── */
-      #app .topbar-cmd-btn {
-        display:flex; align-items:center; gap:8px;
-        background:rgba(255,255,255,.04);
-        border:1px solid rgba(180,210,255,.08);
-        border-radius:8px; padding:6px 12px;
-        cursor:pointer; color:#909399;
-        transition:background .14s, border-color .14s, color .14s, box-shadow .14s;
-        font-family:inherit; white-space:nowrap;
-      }
-      #app .topbar-cmd-btn:hover {
-        background:rgba(79,163,245,.07);
-        border-color:rgba(79,163,245,.25);
-        color:#cdd8f0;
-        box-shadow:0 0 0 3px rgba(79,163,245,.06);
-      }
-      #app .topbar-cmd-hint { font-size:12px; color:inherit; }
-      #app .topbar-cmd-kbd {
-        font-family:'DM Mono',monospace; font-size:10px;
-        background:rgba(255,255,255,.06);
-        border:1px solid rgba(180,210,255,.1);
-        padding:1px 6px; border-radius:4px; color:#48597a;
-        flex-shrink:0;
-      }
-      /* ── Sidebar ⌘K pill ── */
-      #app .nd-cmd-pill {
-        margin:2px 12px 8px; padding:7px 12px;
-        display:flex; align-items:center; gap:8px;
-        background:rgba(255,255,255,.025);
-        border:1px solid rgba(180,210,255,.06);
-        border-radius:8px; cursor:pointer;
-        transition:background .14s, border-color .14s;
-      }
-      #app .nd-cmd-pill:hover { background:rgba(79,163,245,.06); border-color:rgba(79,163,245,.2); }
-      #app .nd-cmd-pill svg { color:#48597a; flex-shrink:0; opacity:.5; }
-      #app .nd-cmd-pill-lbl { flex:1; font-family:'Epilogue',inherit; font-size:12px; color:#1e2a40; }
-      #app .nd-skbd {
-        font-family:'DM Mono',monospace; font-size:8px; color:#1e2a40;
-        border:1px solid rgba(180,210,255,.07); padding:1.5px 6px; border-radius:3px; opacity:.38; flex-shrink:0;
-      }
+      #app .cmd-item-label { font-size:14px; font-weight:400; color:var(--nm-text1); }
+      #app .cmd-item-sub   { font-size:12px; color:var(--nm-text3); margin-top:1px; }
+      #app .cmd-item-type  { font-size:11px; color:var(--nm-text3); background:var(--nm-surface3); padding:2px 7px; border-radius:4px; flex-shrink:0; font-family:monospace; }
+      #app .cmd-footer { display:flex; align-items:center; gap:14px; padding:10px 18px; border-top:1px solid var(--nm-border); background:var(--nm-surface2); }
+      #app .cmd-foot-item { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--nm-text3); }
+      #app .cmd-foot-item kbd { background:var(--nm-surface); border:1px solid rgba(0,0,0,.1); border-radius:4px; padding:2px 6px; font-family:monospace; font-size:11px; color:var(--nm-text2); }
 
       /* ── DASHBOARD: alert hierarchy ── */
       #app .dbh-alert--danger { background:rgba(226,75,74,.12) !important; border-color:rgba(226,75,74,.25) !important; }
@@ -7903,53 +7734,27 @@ tr.staff-table-row .tbl-btn {
                 </div>
                 <div class="cmd-results">
                     <template v-if="cmdItems.length > 0">
-                        <!-- Section label for actions -->
-                        <div v-if="cmdItems.some(i => i.type === 'action')" class="cmd-section-label">Quick actions</div>
-                        <div v-for="(item, idx) in cmdItems" :key="String(item.id) + item.type">
-                            <!-- Section separator before first non-action item -->
-                            <div v-if="idx > 0 && item.type !== 'action' && cmdItems[idx-1].type === 'action'" class="cmd-section-label">
-                                {{ item.type === 'staff' ? 'Medical staff' : item.type === 'unit' ? 'Clinical units' : 'Navigation' }}
+                        <div v-for="(item, idx) in cmdItems" :key="String(item.id) + item.type"
+                             class="cmd-item"
+                             :class="{ selected: cmdSelectedIdx === idx, 'cmd-item--action': item.type === 'action' }"
+                             @click="executeCmdItem(item)">
+                            <div class="cmd-item-icon" :style="item.type === 'action' ? 'background:rgba(0,179,179,.1);color:#00b3b3;' : ''">
+                                <i v-if="item.icon" :class="['fa', item.icon]" style="font-size:13px;"></i>
+                                <svg v-else-if="item.type === 'staff'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                <svg v-else-if="item.type === 'unit'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></svg>
                             </div>
-                            <div v-if="idx > 0 && item.type === 'view' && cmdItems[idx-1].type !== 'view' && cmdItems[idx-1].type !== 'action'" class="cmd-section-label">Navigation</div>
-                            <div class="cmd-item"
-                                 :class="{ selected: cmdSelectedIdx === idx, 'cmd-item--action': item.type === 'action' }"
-                                 @click="executeCmdItem(item)">
-                                <div class="cmd-item-icon">
-                                    <!-- Action icons -->
-                                    <svg v-if="item.type === 'action' && item.id === 'add_rotation'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                                    <svg v-else-if="item.type === 'action' && item.id === 'add_absence'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                    <svg v-else-if="item.type === 'action'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                                    <!-- Staff -->
-                                    <svg v-else-if="item.type === 'staff'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                    <!-- Unit -->
-                                    <svg v-else-if="item.type === 'unit'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                                    <!-- View/navigation -->
-                                    <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></svg>
-                                </div>
-                                <div class="cmd-item-info">
-                                    <div class="cmd-item-label">{{ item.label }}</div>
-                                    <div class="cmd-item-sub">{{ item.sub }}</div>
-                                </div>
-                                <span class="cmd-item-type">
-                                    {{ item.type === 'action' ? 'action' : item.type === 'staff' ? 'staff' : item.type === 'unit' ? 'unit' : 'view' }}
-                                </span>
+                            <div class="cmd-item-info">
+                                <div class="cmd-item-label">{{ item.label }}</div>
+                                <div class="cmd-item-sub">{{ item.sub }}</div>
                             </div>
+                            <span class="cmd-item-type" :style="item.type === 'action' ? 'background:rgba(0,179,179,.1);color:#00b3b3;border-color:rgba(0,179,179,.2);' : ''">
+                                {{ item.type === 'action' ? 'Action' : item.type === 'staff' ? 'Staff' : item.type === 'unit' ? 'Unit' : 'View' }}
+                            </span>
                         </div>
                     </template>
-                    <div v-else-if="cmdQuery.length >= 2" class="cmd-no-results">
+                    <div v-else style="padding:32px;text-align:center;font-size:13px;color:var(--nm-text3);">
                         No results for "{{ cmdQuery }}"
-                    </div>
-                    <div v-else class="cmd-no-results" style="padding:28px 20px;">
-                        <div style="font-size:11px;margin-bottom:6px;color:#48597a;">Try searching for</div>
-                        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
-                            <span style="color:#4fa3f5;cursor:pointer;" @click="cmdQuery='García'">a doctor's name</span>
-                            <span style="color:#1e2a40">·</span>
-                            <span style="color:#22c9a0;cursor:pointer;" @click="cmdQuery='add absence'">add absence</span>
-                            <span style="color:#1e2a40">·</span>
-                            <span style="color:#22c9a0;cursor:pointer;" @click="cmdQuery='new rotation'">new rotation</span>
-                            <span style="color:#1e2a40">·</span>
-                            <span style="color:#9870f0;cursor:pointer;" @click="cmdQuery='research'">research</span>
-                        </div>
                     </div>
                 </div>
                 <div class="cmd-footer">
@@ -7994,7 +7799,7 @@ tr.staff-table-row .tbl-btn {
               <div class="nd-ustatus nd-hc"></div>
             </div>
 
-            <!-- ⌘K trigger pill (sidebar) -->
+            <!-- ⌘K trigger pill -->
             <div class="nd-cmd-pill nd-hc" @click="cmdPaletteOpen = true">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
               <span class="nd-cmd-pill-lbl">Search or jump to…</span>
@@ -8345,12 +8150,44 @@ tr.staff-table-row .tbl-btn {
                     </div>
                 </div>
                 <div class="navbar-right">
-                    <!-- ⌘K trigger in topbar -->
-                    <button class="topbar-cmd-btn" @click="cmdPaletteOpen = true" title="Search (⌘K)">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                      <span class="topbar-cmd-hint">Search…</span>
-                      <kbd class="topbar-cmd-kbd">⌘K</kbd>
-                    </button>
+                    <div class="search-container" style="position:relative;">
+                        <div class="search-box">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg>
+                            <input type="text" class="search-input" :placeholder="getSearchPlaceholder()"
+                                   v-model="globalSearchQuery"
+                                   @keyup="handleGlobalSearch"
+                                   @keyup.escape="clearSearch"
+                                   @blur="window.setTimeout(() => { searchResultsOpen = false }, 200)"
+                                   aria-label="Search across system">
+                        </div>
+                        <!-- Live results dropdown -->
+                        <div v-if="searchResultsOpen && globalSearchQuery.length >= 2" class="search-results-dropdown">
+                            <template v-if="Object.keys(globalSearchResults).length">
+                                <div v-for="(items, group) in globalSearchResults" :key="group" class="search-results-group">
+                                    <div class="search-group-label">{{
+                                      group === 'staff' ? 'Medical Staff' :
+                                      group === 'rotations' ? 'Rotations' :
+                                      group === 'oncall' ? 'On-call Shifts' :
+                                      group === 'absences' ? 'Absences' :
+                                      group === 'areas' ? 'Coverage Areas' :
+                                      group === 'units' ? 'Training Units' :
+                                      group === 'research' ? 'Research' : group
+                                    }}</div>
+                                    <div v-for="item in items" :key="item.id" class="search-result-item" @mousedown="item.action">
+                                        <i class="fas" :class="item.icon"></i>
+                                        <div class="search-result-text">
+                                            <div class="search-result-name">{{ item.name }}</div>
+                                            <div class="search-result-meta">{{ item.meta }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                            <div v-else class="search-no-results">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg>
+                                No results for "{{ globalSearchQuery }}"
+                            </div>
+                        </div>
+                    </div>
                     <div style="display:flex;align-items:center;gap:12px;">
                         <button class="btn btn-icon btn-secondary" @click="showCommunicationsModal"
                                 v-if="hasPermission('communications', 'create')" aria-label="New announcement">
