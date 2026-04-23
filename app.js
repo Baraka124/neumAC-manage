@@ -2102,7 +2102,25 @@ document.addEventListener('DOMContentLoaded', () => {
         return { reason, from, to, status: hit.current_status }
       })
 
-      // absenceOnCallConflict moved to main setup() — needs absenceModal + onCallSchedule both in scope
+      // ── Moment B: absence modal — physician has on-call shifts during the absence period ──
+      const absenceOnCallConflict = computed(() => {
+        const pid   = absenceModal?.form?.staff_member_id
+        const start = absenceModal?.form?.start_date
+        const end   = absenceModal?.form?.end_date
+        if (!pid || !start || !end) return []
+        const s = Utils.normalizeDate(start)
+        const e = Utils.normalizeDate(end)
+        return (onCallSchedule?.value || []).filter(shift => {
+          const d = Utils.normalizeDate(shift.duty_date)
+          return d >= s && d <= e &&
+            (shift.primary_physician_id === pid || shift.backup_physician_id === pid)
+        }).map(shift => ({
+          date:  new Date(shift.duty_date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }),
+          role:  shift.primary_physician_id === pid ? 'Primary' : 'Backup',
+          area:  shift.coverage_area?.name || (coverageAreas?.value || []).find(a => a.id === shift.coverage_area_id)?.name || null,
+          time:  `${(shift.start_time||'').slice(0,5)} → ${(shift.end_time||'').slice(0,5)}`
+        }))
+      })
 
 
       const loadOnCallSchedule = async () => {
@@ -5887,28 +5905,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const onCallOps = useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup, absences })
         const { onCallSchedule } = onCallOps
 
-        // ── absenceOnCallConflict: needs absenceModal (useAbsences) + onCallSchedule (useOnCall) ──
-        const absenceOnCallConflict = Vue.computed(() => {
-          const absModal = absenceOps.absenceModal
-          const pid   = absModal?.form?.staff_member_id
-          const start = absModal?.form?.start_date
-          const end   = absModal?.form?.end_date
-          if (!pid || !start || !end) return []
-          const s = Utils.normalizeDate(start)
-          const e = Utils.normalizeDate(end)
-          const areas = onCallOps.coverageAreas?.value || []
-          return (onCallSchedule?.value || []).filter(shift => {
-            const d = Utils.normalizeDate(shift.duty_date)
-            return d >= s && d <= e &&
-              (shift.primary_physician_id === pid || shift.backup_physician_id === pid)
-          }).map(shift => ({
-            date: new Date(shift.duty_date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }),
-            role: shift.primary_physician_id === pid ? 'Primary' : 'Backup',
-            area: shift.coverage_area?.name || areas.find(a => a.id === shift.coverage_area_id)?.name || null,
-            time: `${(shift.start_time||'').slice(0,5)} → ${(shift.end_time||'').slice(0,5)}`
-          }))
-        })
-
         
         // ============ STAFF DEACTIVATION WORKFLOW ============
         // Professional reassignment flow: scan future records before deactivating
@@ -7819,10 +7815,7 @@ document.addEventListener('DOMContentLoaded', () => {
           reassignmentModal, confirmReassignAndDeactivate,
           ...onCallOps,
           ...rotationOps,
-          ...absenceOps, absenceOnCallConflict,
-          getUnitAbsentAttendingCount, getUnitPresentAttendingCount, isUnitUnderstaffed,
-          isStaffAbsentToday, getAbsenceUnitImpact, understaffedUnitAlerts,
-          weeklyStaffingGrid, weeklyGridOffset,
+          ...absenceOps,
           formatTrainingYear: Utils.formatTrainingYear, formatStudyStatus, formatSpecialization: Utils.formatSpecialization, effectiveResidentYear: Utils.effectiveResidentYear,
           formatPhone: Utils.formatPhone, formatLicense: Utils.formatLicense,
           getResidentCategoryInfo: Utils.getResidentCategoryInfo, formatResidentCategorySimple: Utils.formatResidentCategorySimple,
