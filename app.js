@@ -6691,6 +6691,20 @@ document.addEventListener('DOMContentLoaded', () => {
           // Trigger entrance animation on content area
           const ca = document.querySelector('.content-area')
           if (ca) { ca.classList.remove('content-view-enter'); void ca.offsetWidth; ca.classList.add('content-view-enter') }
+          if (view === 'research_hub') {
+            currentView.value = 'research_hub'
+            if (!researchOps.researchLines.value.length && !researchOps.researchLoading.value) {
+              researchOps.loadAllResearch().then(() => {
+                // Auto-select first line if none selected
+                if (!selectedResearchLine.value && researchOps.researchLines.value.length) {
+                  researchOps.openLineDetail(researchOps.researchLines.value[0])
+                }
+              })
+            } else if (!selectedResearchLine.value && researchOps.researchLines.value.length) {
+              researchOps.openLineDetail(researchOps.researchLines.value[0])
+            }
+            return
+          }
           if (view === 'news') {
             currentView.value = 'news'
             // FIX Bug4: use newsLoaded flag, not length — empty result shouldn't trigger refetch
