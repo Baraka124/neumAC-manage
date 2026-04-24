@@ -115,6 +115,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // staffTypeMap    → { type_key: { display_name, badge_class, is_resident_type } }
     const staffTypesList = ref([])
     const staffTypeMap   = ref({})
+
+        const absCalendarStats = Vue.computed(() => [
+          { label: 'Total absences',   val: absCalendarDays.value.filter(d=>!d.otherMonth).reduce((s,d)=>s+d.absences.length,0), color: 'var(--nm-teal)', icon: '📅' },
+          { label: 'High-risk days',   val: absCalendarDays.value.filter(d=>!d.otherMonth && d.risk==='high').length,   color: '#dc2626', icon: '🔴' },
+          { label: 'Medium-risk days', val: absCalendarDays.value.filter(d=>!d.otherMonth && d.risk==='medium').length, color: '#d97706', icon: '🟡' },
+          { label: 'Clear days',       val: absCalendarDays.value.filter(d=>!d.otherMonth && d.risk==='none').length,   color: 'var(--nm-teal)', icon: '✅' },
+        ])
     const academicDegrees = ref([])   // loaded from /api/academic-degrees
     const rotationServices = ref([])  // loaded from /api/rotation-services (departments with service_type='rotation_service')
 
@@ -2102,25 +2109,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return { reason, from, to, status: hit.current_status }
       })
 
-      // ── Moment B: absence modal — physician has on-call shifts during the absence period ──
-      const absenceOnCallConflict = computed(() => {
-        const pid   = absenceModal?.form?.staff_member_id
-        const start = absenceModal?.form?.start_date
-        const end   = absenceModal?.form?.end_date
-        if (!pid || !start || !end) return []
-        const s = Utils.normalizeDate(start)
-        const e = Utils.normalizeDate(end)
-        return (onCallSchedule?.value || []).filter(shift => {
-          const d = Utils.normalizeDate(shift.duty_date)
-          return d >= s && d <= e &&
-            (shift.primary_physician_id === pid || shift.backup_physician_id === pid)
-        }).map(shift => ({
-          date:  new Date(shift.duty_date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }),
-          role:  shift.primary_physician_id === pid ? 'Primary' : 'Backup',
-          area:  shift.coverage_area?.name || (coverageAreas?.value || []).find(a => a.id === shift.coverage_area_id)?.name || null,
-          time:  `${(shift.start_time||'').slice(0,5)} → ${(shift.end_time||'').slice(0,5)}`
-        }))
-      })
+      // absenceOnCallConflict moved to main setup() — needs absenceModal + onCallSchedule both in scope
 
 
       const loadOnCallSchedule = async () => {
@@ -2548,7 +2537,7 @@ document.addEventListener('DOMContentLoaded', () => {
         filteredOnCallSchedules, filteredOnCallAll, oncallTotalPages, todaysOnCallCount,
         loadOnCallSchedule, loadCoverageAreas, coverageAreas, filteredCoverageAreas, coverageAreaModal, showAddCoverageAreaModal, editCoverageArea, saveCoverageArea, deleteCoverageArea, loadTodaysOnCall, showAddOnCallModal,
         editOnCallSchedule, saveOnCallSchedule, bulkOncall, bulkCalDays, bulkToggleDate, bulkAddToQueue, bulkClone, bulkTotalShifts, bulkTotalConflicts, bulkSave, openBulkOncall, deleteOnCallSchedule, contactPhysician,
-        onCallAbsenceConflict, absenceOnCallConflict,
+        onCallAbsenceConflict,
         // NEW compact view properties
         groupedOnCallSchedules,
         isShiftActive,
@@ -5905,6 +5894,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const onCallOps = useOnCall({ showToast, showConfirmation, paginate, totalPages, resetPage, applySort, setErr, clearAll, medicalStaff, allStaffLookup, absences })
         const { onCallSchedule } = onCallOps
 
+        // ── absenceOnCallConflict: needs absenceModal (useAbsences) + onCallSchedule (useOnCall) ──
+        const absenceOnCallConflict = Vue.computed(() => {
+          const absModal = absenceOps.absenceModal
+          const pid   = absModal?.form?.staff_member_id
+          const start = absModal?.form?.start_date
+          const end   = absModal?.form?.end_date
+          if (!pid || !start || !end) return []
+          const s = Utils.normalizeDate(start)
+          const e = Utils.normalizeDate(end)
+          const areas = onCallOps.coverageAreas?.value || []
+          return (onCallSchedule?.value || []).filter(shift => {
+            const d = Utils.normalizeDate(shift.duty_date)
+            return d >= s && d <= e &&
+              (shift.primary_physician_id === pid || shift.backup_physician_id === pid)
+          }).map(shift => ({
+            date: new Date(shift.duty_date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }),
+            role: shift.primary_physician_id === pid ? 'Primary' : 'Backup',
+            area: shift.coverage_area?.name || areas.find(a => a.id === shift.coverage_area_id)?.name || null,
+            time: `${(shift.start_time||'').slice(0,5)} → ${(shift.end_time||'').slice(0,5)}`
+          }))
+        })
+
         
         // ============ STAFF DEACTIVATION WORKFLOW ============
         // Professional reassignment flow: scan future records before deactivating
@@ -7815,7 +7826,10 @@ document.addEventListener('DOMContentLoaded', () => {
           reassignmentModal, confirmReassignAndDeactivate,
           ...onCallOps,
           ...rotationOps,
-          ...absenceOps,
+          ...absenceOps, absenceOnCallConflict,
+          getUnitAbsentAttendingCount, getUnitPresentAttendingCount, isUnitUnderstaffed,
+          isStaffAbsentToday, getAbsenceUnitImpact, understaffedUnitAlerts,
+          weeklyStaffingGrid, weeklyGridOffset,
           formatTrainingYear: Utils.formatTrainingYear, formatStudyStatus, formatSpecialization: Utils.formatSpecialization, effectiveResidentYear: Utils.effectiveResidentYear,
           formatPhone: Utils.formatPhone, formatLicense: Utils.formatLicense,
           getResidentCategoryInfo: Utils.getResidentCategoryInfo, formatResidentCategorySimple: Utils.formatResidentCategorySimple,
@@ -7859,7 +7873,7 @@ document.addEventListener('DOMContentLoaded', () => {
           absenceCalendarOffset, absenceCalendarCells, absenceCalendarTitle, absenceMoveMonth,
           hoverPopover, showIntelPopover, hideIntelPopover,
           getStaffPulseState, getStaffNextEvent,
-          absCalendarDays, absCalendarTitle, absCalendarMonth, absCalendarYear,
+          absCalendarDays, absCalendarStats, absCalendarTitle, absCalendarMonth, absCalendarYear,
           absCalPrevMonth, absCalNextMonth, absenceViewMode, absTimelineHorizon, absTimelineOffset, absTimelinePlanning, absTimelineStaff, getStaffAbsencesInHorizon, getAbsenceBarStyle, absTimelineCoverage, absTimelineTodayPct, getAbsHorizonLabel, ABS_COLOURS,
           absCoverage30, getUnit30DayTimeline, deptPulseStats, handleGlobalSearch, globalSearchResults, clearSearch, isOnline,
           getPhaseColor: (p) => Utils.getPhaseColor(p),
