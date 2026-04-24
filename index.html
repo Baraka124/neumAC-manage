@@ -450,7 +450,7 @@
 
       /* Grid */
       .rh-grid { flex:1; display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:20px; overflow-y:auto; align-content:start; transition:all .25s; }
-      .rh-grid--narrow { grid-template-columns:1fr 1fr; }
+      .rh-grid--narrow { grid-template-columns:1fr; }
       .rh-loading, .rh-empty { grid-column:1/-1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:48px; gap:8px; color:var(--nm-text3); font-size:13px; }
 
       /* Line card */
@@ -11834,7 +11834,7 @@ tr.staff-table-row .tbl-btn {
                                         </div>
                                     </div>
                                     <div class="rh-lcard-tags" v-if="line.keywords && line.keywords.length">
-                                        <span v-for="kw in line.keywords.slice(0,3)" :key="kw" class="rh-lcard-tag">{{ kw }}</span>
+                                        <span v-for="kw in (line.keywords || []).slice(0,3)" :key="kw" class="rh-lcard-tag">{{ kw }}</span>
                                     </div>
                                 </div>
                             </div>
