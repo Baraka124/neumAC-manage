@@ -445,17 +445,17 @@
       .rh-kpi-search { flex:1; display:flex; align-items:center; gap:8px; padding:0 16px; min-width:180px; }
 
       /* Main body */
-      .rh-body { flex:1; display:grid; grid-template-columns:1fr 0px; overflow:hidden; transition:grid-template-columns .25s cubic-bezier(.16,1,.3,1); }
+      .rh-body { flex:1; display:grid; grid-template-columns:1fr 0px; overflow:hidden; transition:grid-template-columns .25s cubic-bezier(.16,1,.3,1); min-height:0; }
       .rh-body--drawer { grid-template-columns:1fr 300px; }
       .rh-panel { flex:1; display:flex; flex-direction:column; overflow:hidden; background:var(--nm-surface2,#f5f4f0); }
 
       /* Grid */
-      .rh-grid { flex:1; display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:20px; overflow-y:auto; align-content:start; transition:all .25s; }
+      .rh-grid { display:grid; grid-template-columns:1fr 1fr; grid-auto-rows:min-content; gap:12px; padding:20px; overflow-y:auto; align-content:start; height:100%; }
       .rh-grid--narrow { grid-template-columns:1fr 1fr; }
       .rh-loading, .rh-empty { grid-column:1/-1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:48px; gap:8px; color:var(--nm-text3); font-size:13px; }
 
       /* Line card */
-      .rh-lcard { background:#fff; border:1px solid var(--nm-border,#e3dfd6); border-radius:12px; cursor:pointer; transition:border-color .15s, box-shadow .15s; overflow:hidden; align-self:start; }
+      .rh-lcard { background:#fff; border:1px solid var(--nm-border,#e3dfd6); border-radius:12px; cursor:pointer; transition:border-color .15s, box-shadow .15s; overflow:hidden; }
       .rh-lcard:hover { border-color:#85B7EB; box-shadow:0 2px 12px rgba(55,138,221,.08); }
       .rh-lcard--on { border-color:#4fa3f5; border-width:1.5px; }
       .rh-lcard-bar { height:3px; background:var(--nm-border,#e3dfd6); transition:background .15s; }
@@ -11813,7 +11813,7 @@ tr.staff-table-row .tbl-btn {
                                             {{ line.active !== false ? 'Active' : 'Inactive' }}
                                         </div>
                                     </div>
-                                    <div class="rh-lcard-name">{{ line.name }}</div>
+                                    <div class="rh-lcard-name">{{ line.research_line_name || line.name }}</div>
                                     <div class="rh-lcard-coord">
                                         <span v-if="line.coordinator_id">
                                             {{ allStaffLookup.find(s=>s.id===line.coordinator_id)?.full_name?.split(' ').slice(-1)[0] || '—' }}
@@ -11847,7 +11847,7 @@ tr.staff-table-row .tbl-btn {
                                 <div class="rh-drawer-hdr">
                                     <div class="rh-drawer-num">L{{ selectedResearchLine.line_number }}</div>
                                     <div class="rh-drawer-info">
-                                        <div class="rh-drawer-name">{{ selectedResearchLine.name }}</div>
+                                        <div class="rh-drawer-name">{{ selectedResearchLine.research_line_name || selectedResearchLine.name }}</div>
                                         <div class="rh-drawer-meta">
                                             <span v-if="selectedResearchLine.coordinator_id">
                                                 Coord. {{ allStaffLookup.find(s=>s.id===selectedResearchLine.coordinator_id)?.full_name?.split(' ').slice(-1)[0] }}
