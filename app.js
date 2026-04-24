@@ -7600,6 +7600,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return days
       })
 
+      const absCalendarStats = Vue.computed(() => [
+        { label: 'Total absences',   val: absCalendarDays.value.filter(d=>!d.otherMonth).reduce((s,d)=>s+d.absences.length,0), color: 'var(--nm-teal)', icon: '📅' },
+        { label: 'High-risk days',   val: absCalendarDays.value.filter(d=>!d.otherMonth && d.risk==='high').length,   color: '#dc2626', icon: '🔴' },
+        { label: 'Medium-risk days', val: absCalendarDays.value.filter(d=>!d.otherMonth && d.risk==='medium').length, color: '#d97706', icon: '🟡' },
+        { label: 'Clear days',       val: absCalendarDays.value.filter(d=>!d.otherMonth && d.risk==='none').length,   color: 'var(--nm-teal)', icon: '✅' },
+      ])
+
       const absCalendarTitle = Vue.computed(() => {
         return new Date(absCalendarYear.value, absCalendarMonth.value, 1)
           .toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
@@ -8083,10 +8090,3 @@ document.addEventListener('DOMContentLoaded', () => {
     throw error;    
   }
 })
-
-        const absCalendarStats = Vue.computed(() => [
-          { label: 'Total absences',   val: absCalendarDays.value.filter(d=>!d.otherMonth).reduce((s,d)=>s+d.absences.length,0), color: 'var(--nm-teal)', icon: '📅' },
-          { label: 'High-risk days',   val: absCalendarDays.value.filter(d=>!d.otherMonth && d.risk==='high').length,   color: '#dc2626', icon: '🔴' },
-          { label: 'Medium-risk days', val: absCalendarDays.value.filter(d=>!d.otherMonth && d.risk==='medium').length, color: '#d97706', icon: '🟡' },
-          { label: 'Clear days',       val: absCalendarDays.value.filter(d=>!d.otherMonth && d.risk==='none').length,   color: 'var(--nm-teal)', icon: '✅' },
-        ]);
