@@ -116,12 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const staffTypesList = ref([])
     const staffTypeMap   = ref({})
 
-        const absCalendarStats = Vue.computed(() => [
-          { label: 'Total absences',   val: absCalendarDays.value.filter(d=>!d.otherMonth).reduce((s,d)=>s+d.absences.length,0), color: 'var(--nm-teal)', icon: '📅' },
-          { label: 'High-risk days',   val: absCalendarDays.value.filter(d=>!d.otherMonth && d.risk==='high').length,   color: '#dc2626', icon: '🔴' },
-          { label: 'Medium-risk days', val: absCalendarDays.value.filter(d=>!d.otherMonth && d.risk==='medium').length, color: '#d97706', icon: '🟡' },
-          { label: 'Clear days',       val: absCalendarDays.value.filter(d=>!d.otherMonth && d.risk==='none').length,   color: 'var(--nm-teal)', icon: '✅' },
-        ])
     const academicDegrees = ref([])   // loaded from /api/academic-degrees
     const rotationServices = ref([])  // loaded from /api/rotation-services (departments with service_type='rotation_service')
 
@@ -6684,14 +6678,14 @@ document.addEventListener('DOMContentLoaded', () => {
           currentView.value = view; ui.mobileMenuOpen.value = false
           // Apply pre-filters if provided (cross-view navigation)
           if (filters.department) {
-            if (staffFilters && staffFilters.department !== undefined) staffFilters.department = filters.department
+            if (staffOps.staffFilters && staffOps.staffFilters.department !== undefined) staffOps.staffFilters.department = filters.department
             if (trainingUnitFilters && trainingUnitFilters.department !== undefined) trainingUnitFilters.department = filters.department
           }
-          if (filters.residentCategory && staffFilters) { staffFilters.staffType = 'medical_resident'; staffFilters.residentCategory = filters.residentCategory }
-          if (filters.status && staffFilters) staffFilters.status = filters.status
-          if (filters.staffType && staffFilters) staffFilters.staffType = filters.staffType
-          if (filters.rotationStatus && rotationFilters) rotationFilters.status = filters.rotationStatus
-          if (filters.trainingUnit && rotationFilters) rotationFilters.trainingUnit = filters.trainingUnit
+          if (filters.residentCategory && staffOps.staffFilters) { staffOps.staffFilters.staffType = 'medical_resident'; staffOps.staffFilters.residentCategory = filters.residentCategory }
+          if (filters.status && staffOps.staffFilters) staffOps.staffFilters.status = filters.status
+          if (filters.staffType && staffOps.staffFilters) staffOps.staffFilters.staffType = filters.staffType
+          if (filters.rotationStatus && rotationOps.rotationFilters) rotationOps.rotationFilters.status = filters.rotationStatus
+          if (filters.trainingUnit && rotationOps.rotationFilters) rotationOps.rotationFilters.trainingUnit = filters.trainingUnit
           ui.searchResultsOpen.value = false
           if (pagination[view]) pagination[view].page = 1
           // Trigger entrance animation on content area
@@ -7869,6 +7863,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ...dashOps,
           handleLogin, handleLogout,
           switchView, situationItems, dailyBriefing, systemSummary, toggleStatsSidebar,
+          cmdItems, cmdQuery, cmdSelectedIdx, executeCmdItem,
           popover, showPopover, hidePopover,
           absenceCalendarOffset, absenceCalendarCells, absenceCalendarTitle, absenceMoveMonth,
           hoverPopover, showIntelPopover, hideIntelPopover,
@@ -8087,4 +8082,11 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>`;
     throw error;    
   }
-});
+})
+
+        const absCalendarStats = Vue.computed(() => [
+          { label: 'Total absences',   val: absCalendarDays.value.filter(d=>!d.otherMonth).reduce((s,d)=>s+d.absences.length,0), color: 'var(--nm-teal)', icon: '📅' },
+          { label: 'High-risk days',   val: absCalendarDays.value.filter(d=>!d.otherMonth && d.risk==='high').length,   color: '#dc2626', icon: '🔴' },
+          { label: 'Medium-risk days', val: absCalendarDays.value.filter(d=>!d.otherMonth && d.risk==='medium').length, color: '#d97706', icon: '🟡' },
+          { label: 'Clear days',       val: absCalendarDays.value.filter(d=>!d.otherMonth && d.risk==='none').length,   color: 'var(--nm-teal)', icon: '✅' },
+        ]);
