@@ -8126,7 +8126,7 @@ document.addEventListener('DOMContentLoaded', () => {
           isOffline: ui.isOffline, isMaintenanceMode: ui.isMaintenanceMode,
           callouts, calloutsLoading, calloutSummary, calloutPeriod, calloutModal,
           calloutFairnessAlert,
-          calloutKPIs, calloutDistribution, calloutFairnessAlert, calloutReasonLabels, calloutTimeTypes,
+          calloutKPIs, calloutDistribution, calloutFairnessAlert, calloutReasonLabels, calloutTimeTypes,  
           openLogCalloutModal, suggestCalloutArea, editCallout, saveCallout, deleteCallout,
           loadCallouts, loadCalloutSummary,
         }    
