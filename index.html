@@ -1508,6 +1508,100 @@
          Kills all sub-11px and rem-fraction fonts in modals/forms
          ══════════════════════════════════════════════════════════════ */
 
+
+      /* ══════════════════════════════════════════════════════
+         TU-MODAL — Clinical Unit add/edit modal
+      ══════════════════════════════════════════════════════ */
+      .tu-modal {
+        background:#fff; border-radius:14px;
+        box-shadow:0 20px 60px rgba(0,0,0,.18);
+        width:min(640px, calc(100vw - 32px));
+        display:flex; flex-direction:column;
+        max-height:90vh; overflow:hidden;
+        font-family:'Epilogue',sans-serif;
+      }
+
+      /* Header */
+      .tu-modal-hdr { display:flex; align-items:center; justify-content:space-between; padding:18px 22px 16px; border-bottom:1px solid #e8e6e1; flex-shrink:0; }
+      .tu-modal-hdr-left { display:flex; align-items:center; gap:12px; }
+      .tu-modal-icon { width:36px; height:36px; border-radius:9px; background:#07111f; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+      .tu-modal-title { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; color:#07111f; letter-spacing:-.2px; }
+      .tu-modal-sub { font-size:12px; color:#909399; margin-top:2px; }
+      .tu-modal-close { width:30px; height:30px; border-radius:7px; border:1px solid #e0ddd8; background:transparent; color:#909399; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .1s; }
+      .tu-modal-close:hover { border-color:#07111f; color:#07111f; }
+
+      /* Live preview strip */
+      .tu-modal-preview { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 22px; background:#f8f7f4; border-bottom:1px solid #e8e6e1; flex-shrink:0; }
+      .tu-preview-name { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:#07111f; }
+      .tu-preview-type { font-family:'DM Mono',monospace; font-size:10px; padding:2px 8px; border-radius:4px; background:#e8e6e1; color:#5f5e5a; }
+      .tu-preview-cap { font-family:'DM Mono',monospace; font-size:10px; padding:2px 8px; border-radius:4px; background:#E1F5EE; color:#085041; }
+      .tu-preview-context-badge { font-family:'DM Mono',monospace; font-size:10px; padding:2px 8px; border-radius:4px; background:#E6F1FB; color:#0C447C; margin-left:auto; }
+
+      /* Body */
+      .tu-modal-body { padding:20px 22px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:4px; }
+
+      /* Section labels */
+      .tu-section-label { font-family:'DM Mono',monospace; font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:.1em; color:#b4b2a9; margin-top:14px; margin-bottom:8px; }
+      .tu-section-label:first-child { margin-top:0; }
+      .tu-optional { font-size:9px; color:#c8c3bb; text-transform:none; letter-spacing:0; font-weight:400; margin-left:4px; }
+
+      /* Row + field layout */
+      .tu-row { display:flex; gap:10px; align-items:flex-end; }
+      .tu-row--align-top { align-items:flex-start; }
+      .tu-field { display:flex; flex-direction:column; gap:5px; }
+      .tu-field--grow { flex:1; min-width:0; }
+      .tu-field--xs { width:90px; flex-shrink:0; }
+      .tu-field--sm { width:160px; flex-shrink:0; }
+      .tu-field--md { width:200px; flex-shrink:0; }
+      .tu-field--error .tu-input,
+      .tu-field--error .tu-select { border-color:#e24b4a !important; }
+
+      /* Labels */
+      .tu-label { font-family:'DM Mono',monospace; font-size:10px; font-weight:500; color:#5f5e5a; }
+      .tu-req { color:#e24b4a; }
+      .tu-hint { color:#b4b2a9; font-weight:400; font-size:9px; }
+      .tu-field-err { font-size:10px; color:#e24b4a; }
+
+      /* Inputs */
+      .tu-input {
+        height:36px; border:1px solid #e0ddd8; border-radius:7px;
+        padding:0 11px; font-family:'Epilogue',sans-serif; font-size:13px;
+        color:#07111f; background:#fafaf8; outline:none; width:100%;
+        transition:border-color .1s;
+      }
+      .tu-input:focus { border-color:#00b3b3; background:#fff; }
+      .tu-input::placeholder { color:#c8c3bb; }
+      .tu-input--num { text-align:center; font-family:'Fraunces',Georgia,serif; font-style:italic; font-size:20px; font-weight:300; padding:0 8px; }
+      .tu-input--mono { font-family:'DM Mono',monospace; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+
+      .tu-select {
+        height:36px; border:1px solid #e0ddd8; border-radius:7px;
+        padding:0 28px 0 11px; font-family:'Epilogue',sans-serif; font-size:13px;
+        color:#07111f; background:#fafaf8 url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23b4b2a9' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+        outline:none; appearance:none; cursor:pointer; width:100%;
+        transition:border-color .1s;
+      }
+      .tu-select:focus { border-color:#00b3b3; background-color:#fff; }
+
+      .tu-textarea {
+        border:1px solid #e0ddd8; border-radius:7px;
+        padding:10px 11px; font-family:'Epilogue',sans-serif; font-size:13px;
+        color:#07111f; background:#fafaf8; outline:none; width:100%; resize:vertical;
+        transition:border-color .1s; line-height:1.5;
+      }
+      .tu-textarea:focus { border-color:#00b3b3; background:#fff; }
+      .tu-textarea::placeholder { color:#c8c3bb; }
+
+      /* Footer */
+      .tu-modal-footer { display:flex; align-items:center; gap:8px; padding:14px 22px; border-top:1px solid #e8e6e1; flex-shrink:0; }
+      .tu-btn-primary { padding:8px 20px; background:#07111f; color:#fff; border:none; border-radius:7px; font-family:'DM Mono',monospace; font-size:12px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:7px; transition:background .1s; }
+      .tu-btn-primary:hover:not(:disabled) { background:#162438; }
+      .tu-btn-primary:disabled { opacity:.5; cursor:not-allowed; }
+      .tu-btn-ghost { padding:7px 16px; background:transparent; color:#909399; border:1px solid #e0ddd8; border-radius:7px; font-family:'DM Mono',monospace; font-size:12px; cursor:pointer; transition:all .1s; }
+      .tu-btn-ghost:hover { border-color:#5f5e5a; color:#07111f; }
+      .tu-btn-danger { padding:7px 14px; background:transparent; color:#e24b4a; border:1px solid rgba(226,75,74,.3); border-radius:7px; font-family:'DM Mono',monospace; font-size:12px; cursor:pointer; transition:all .1s; }
+      .tu-btn-danger:hover { background:#FCEBEB; border-color:#e24b4a; }
+
       /* ── sm-modal form fields: match design system ── */
       #app .sm-label {
         font-size:12px !important; font-weight:500 !important;
@@ -14941,199 +15035,143 @@ tr.staff-table-row .tbl-btn {
         </div>
 
         <!-- ============ ADD/EDIT TRAINING UNIT MODAL ============ -->
-        <div v-if="trainingUnitModal.show" class="modal-overlay">
-            <div class="sm-modal" style="max-width:min(760px,calc(100vw - 32px));">
+        <div v-if="trainingUnitModal.show" class="modal-overlay" @click.self="trainingUnitModal.show=false">
+                <div class="tu-modal">
 
-                <!-- LEFT: unit preview -->
-                <div class="sm-left">
-                    <div class="sm-preview">
-                        <!-- Unit type icon -->
-                        <div style="width:60px;height:60px;border-radius:14px;display:flex;align-items:center;justify-content:center;transition:all .3s;"
-                             :style="trainingUnitModal.form.unit_name ? 'background:linear-gradient(135deg,#00B3B3,#0e7490);box-shadow:0 0 0 2.5px rgba(0,179,179,.2),0 0 0 5px rgba(0,179,179,.06)' : 'background:rgba(255,255,255,.05);border:1.5px dashed rgba(255,255,255,.12)'">
-                            <svg v-if="trainingUnitModal.form.unit_type === 'research'" width="24" height="24" viewBox="0 0 24 24" fill="none" :stroke="trainingUnitModal.form.unit_name ? '#fff' : 'rgba(255,255,255,.2)'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg>
-                            <svg v-else-if="trainingUnitModal.form.unit_type === 'icu'" width="24" height="24" viewBox="0 0 24 24" fill="none" :stroke="trainingUnitModal.form.unit_name ? '#fff' : 'rgba(255,255,255,.2)'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12H7L9 6L13 18L15 12H21"/></svg>
-                            <svg v-else-if="trainingUnitModal.form.unit_type === 'outpatient'" width="24" height="24" viewBox="0 0 24 24" fill="none" :stroke="trainingUnitModal.form.unit_name ? '#fff' : 'rgba(255,255,255,.2)'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                            <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" :stroke="trainingUnitModal.form.unit_name ? '#fff' : 'rgba(255,255,255,.2)'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21M12 8V11M10.5 9.5H13.5"/></svg>
-                        </div>
-
-                        <div class="sm-preview-name" :class="{'sm-preview-name--empty': !trainingUnitModal.form.unit_name}">
-                            {{ trainingUnitModal.form.unit_name || 'Unit name…' }}
-                        </div>
-                        <div class="sm-preview-role" v-if="trainingUnitModal.form.unit_code">
-                            {{ trainingUnitModal.form.unit_code }}
-                        </div>
-                        <div class="sm-preview-chips">
-                            <span v-if="trainingUnitModal.form.unit_type" class="sm-preview-chip">
-                                {{ {'training_unit':'Unidad','clinical_unit':'Sala','icu':'UCI','outpatient':'Consultas','surgical':'Procedimientos','research':'Investigación'}[trainingUnitModal.form.unit_type] || trainingUnitModal.form.unit_type }}
-                            </span>
-                            <span v-if="trainingUnitModal.form.unit_status && trainingUnitModal.form.unit_status !== 'active'" class="sm-preview-chip" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.2);color:#f59e0b;">
-                                {{ trainingUnitModal.form.unit_status === 'under_renovation' ? 'Renovation' : 'Inactive' }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Unit details preview -->
-                    <div style="padding:12px 16px;flex:1;display:flex;flex-direction:column;gap:10px;">
-                        <div v-if="trainingUnitModal.form.maximum_residents">
-                            <div style="font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:5px;">Capacity</div>
-                            <div style="display:flex;align-items:baseline;gap:4px;">
-                                <span style="font-size:1.5rem;font-weight:700;color:#00B3B3;line-height:1;">{{ trainingUnitModal.form.maximum_residents }}</span>
-                                <span style="font-size:11px;font-family:monospace;color:rgba(255,255,255,.3);">max residents</span>
+                    <!-- Header -->
+                    <div class="tu-modal-hdr">
+                        <div class="tu-modal-hdr-left">
+                            <div class="tu-modal-icon">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4fa3f5" stroke-width="1.8" stroke-linecap="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21"/></svg>
+                            </div>
+                            <div>
+                                <div class="tu-modal-title">{{ trainingUnitModal.mode === 'edit' ? 'Edit unit' : 'New clinical unit' }}</div>
+                                <div class="tu-modal-sub" v-if="trainingUnitModal.mode === 'edit' && trainingUnitModal.form.unit_name">{{ trainingUnitModal.form.unit_name }}</div>
                             </div>
                         </div>
-
-                        <div v-if="trainingUnitModal.form.supervising_attending_id">
-                            <div style="font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:5px;">Supervisor</div>
-                            <div style="display:flex;align-items:center;gap:7px;">
-                                <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#00B3B3,#4A9EE8);display:flex;align-items:center;justify-content:center;font-size:.5rem;font-weight:700;color:#fff;flex-shrink:0;">
-                                    {{ (availableAttendings.find(a=>a.id===trainingUnitModal.form.supervising_attending_id)?.full_name||'').split(' ').slice(0,2).map(n=>n[0]).join('') }}
-                                </div>
-                                <span style="font-size:12px;color:rgba(255,255,255,.83);font-weight:500;">
-                                    {{ availableAttendings.find(a=>a.id===trainingUnitModal.form.supervising_attending_id)?.full_name }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div v-if="trainingUnitModal.form.department_id">
-                            <div style="font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:4px;">Departamento</div>
-                            <div style="font-size:12px;color:rgba(255,255,255,.73);">{{ departments.find(d=>d.id===trainingUnitModal.form.department_id)?.name || '—' }}</div>
-                        </div>
-                    </div>
-
-                    <!-- Delete button in edit mode -->
-                    <div v-if="trainingUnitModal.mode==='edit'" style="padding:0 12px 8px;">
-                        <button class="btn btn-sm btn-secondary" style="width:100%;font-size:12px;justify-content:center;display:flex;align-items:center;gap:6px;"
-                                v-if="hasPermission('training_units','delete')"
-                                @click="deleteTrainingUnit(trainingUnitModal.form); trainingUnitModal.show=false">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-                            Delete Unit
+                        <button class="tu-modal-close" @click="trainingUnitModal.show=false">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
                         </button>
                     </div>
 
-                    <div class="sm-req-note"><div class="sm-req-dot"></div> Required fields</div>
-                </div>
-
-                <!-- RIGHT: form -->
-                <div class="sm-right">
-                    <div class="sm-form-header">
-                        <div class="sm-form-title">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21M12 8V11M10.5 9.5H13.5"/></svg>
-                            {{ trainingUnitModal.mode === 'add' ? 'New Clinical Unit' : 'Edit Clinical Unit' }}
-                        </div>
-                        <button class="sm-form-close" @click="trainingUnitModal.show = false">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg>
-                        </button>
+                    <!-- Live name preview strip -->
+                    <div class="tu-modal-preview" v-if="trainingUnitModal.form.unit_name || trainingUnitModal.form.unit_type">
+                        <span class="tu-preview-name">{{ trainingUnitModal.form.unit_name || 'Unit name…' }}</span>
+                        <span class="tu-preview-type" v-if="trainingUnitModal.form.unit_type">
+                            {{ {'clinical_unit':'Ward','icu':'UCI / Critical','outpatient':'Outpatient','surgical':'Surgery / Procedures','research':'Research','training_unit':'External rotation'}[trainingUnitModal.form.unit_type] || trainingUnitModal.form.unit_type }}
+                        </span>
+                        <span class="tu-preview-cap" v-if="trainingUnitModal.form.maximum_residents">
+                            {{ trainingUnitModal.form.maximum_residents }} resident{{ trainingUnitModal.form.maximum_residents != 1 ? 's' : '' }} max
+                        </span>
+                        <span class="tu-preview-context-badge" v-if="trainingUnitModal.mode === 'edit' && getUnitActiveRotationCount(trainingUnitModal.form?.id || '')">
+                            {{ getUnitActiveRotationCount(trainingUnitModal.form?.id || '') }}/{{ trainingUnitModal.form.maximum_residents }} currently occupied
+                        </span>
                     </div>
-                    <div class="sm-form-body">
 
-                        <!-- Unit Name + auto-generated Code -->
-                        <div class="sm-row">
-                            <div class="sm-field" :class="{'has-error': fieldErrors.trainingUnit?.unit_name}">
-                                <div class="sm-label">Unit Name <span class="req">·</span></div>
-                                <input type="text" class="sm-input" :class="{filled: trainingUnitModal.form.unit_name}"
+                    <!-- Form body -->
+                    <div class="tu-modal-body">
+
+                        <!-- Section 1: Identity -->
+                        <div class="tu-section-label">Identity</div>
+                        <div class="tu-row">
+                            <div class="tu-field tu-field--grow" :class="{'tu-field--error': fieldErrors.trainingUnit?.unit_name}">
+                                <label class="tu-label">Unit name <span class="tu-req">*</span></label>
+                                <input class="tu-input" type="text"
                                        v-model="trainingUnitModal.form.unit_name"
                                        @input="onUnitNameInput()"
-                                       placeholder="e.g. UCI Respiratoria" required>
+                                       placeholder="e.g. UCI Respiratoria">
+                                <span class="tu-field-err" v-if="fieldErrors.trainingUnit?.unit_name">Required</span>
                             </div>
-                            <div class="sm-field">
-                                <div class="sm-label">Unit Code <span class="req">·</span> <span style="font-size:9.5px;color:var(--text-4);font-weight:400">auto-generated</span></div>
-                                <input type="text" class="sm-input" :class="{filled: trainingUnitModal.form.unit_code}"
-                                       v-model="trainingUnitModal.form.unit_code"
-                                       placeholder="UCIR" style="font-family:monospace;letter-spacing:.05em;text-transform:uppercase" required>
-                            </div>
-                        </div>
-
-                        <!-- Department (replaces Specialty) -->
-                        <div class="sm-field">
-                            <div class="sm-label">Department / Service <span class="req">·</span></div>
-                            <select class="sm-select" v-model="trainingUnitModal.form.department_id" required>
-                                <option value="">Select department…</option>
-                                <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
-                            </select>
-                        </div>
-
-                        <!-- Unit Type + Status -->
-                        <div class="sm-row">
-                            <div class="sm-field">
-                                <div class="sm-label">Unit Type <span class="req">·</span></div>
-                                <select class="sm-select" v-model="trainingUnitModal.form.unit_type" required>
-                                    <option value="clinical_unit">Sala de Hospitalización</option>
-                                    <option value="icu">UCI / Críticos</option>
-                                    <option value="outpatient">Consultas Externas</option>
-                                    <option value="surgical">Procedimientos / Cirugía</option>
-                                    <option value="research">Bloque de Investigación</option>
-                                    <option value="training_unit">Rotación Externa</option>
-                                </select>
-                            </div>
-                            <div class="sm-field">
-                                <div class="sm-label">Status <span class="req">·</span></div>
-                                <select class="sm-select" v-model="trainingUnitModal.form.unit_status" required>
-                                    <option value="active">Active</option>
-                                    <option value="under_renovation">Under Renovation</option>
-                                    <option value="inactive">Inactive</option>
+                            <div class="tu-field tu-field--sm">
+                                <label class="tu-label">
+                                    Type <span class="tu-req">*</span>
+                                </label>
+                                <select class="tu-select" v-model="trainingUnitModal.form.unit_type">
+                                    <option value="clinical_unit">Ward</option>
+                                    <option value="icu">UCI / Critical</option>
+                                    <option value="outpatient">Outpatient</option>
+                                    <option value="surgical">Surgery / Procedures</option>
+                                    <option value="research">Research</option>
+                                    <option value="training_unit">External rotation</option>
                                 </select>
                             </div>
                         </div>
 
-                        <!-- Max Residents + Supervising Attending -->
-                        <div class="sm-row">
-                            <div class="sm-field">
-                                <div class="sm-label">Max Residents <span class="req">·</span></div>
-                                <input type="number" class="sm-input" :class="{filled: trainingUnitModal.form.maximum_residents}"
-                                       v-model="trainingUnitModal.form.maximum_residents" min="1" max="50" required>
+                        <!-- Section 2: Organisation -->
+                        <div class="tu-section-label">Organisation</div>
+                        <div class="tu-row">
+                            <div class="tu-field tu-field--grow" :class="{'tu-field--error': fieldErrors.trainingUnit?.department_id}">
+                                <label class="tu-label">Department / Service <span class="tu-req">*</span></label>
+                                <select class="tu-select" v-model="trainingUnitModal.form.department_id">
+                                    <option value="">Select department…</option>
+                                    <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+                                </select>
+                                <span class="tu-field-err" v-if="fieldErrors.trainingUnit?.department_id">Required</span>
                             </div>
-                            <div class="sm-field">
-                                <div class="sm-label">Supervising Attending</div>
-                                <select class="sm-select" v-model="trainingUnitModal.form.supervising_attending_id">
-                                    <option value="">None assigned</option>
+                            <div class="tu-field tu-field--md">
+                                <label class="tu-label">
+                                    Supervisor
+                                </label>
+                                <select class="tu-select" v-model="trainingUnitModal.form.supervising_attending_id">
+                                    <option value="">No supervisor assigned</option>
                                     <option v-for="a in availableAttendings" :key="a.id" :value="a.id">{{ a.full_name }}</option>
                                 </select>
                             </div>
                         </div>
 
-                        <!-- Specialty -->
-                        <div class="sm-field">
-                            <div class="sm-label">Specialty <span class="hint">— optional</span></div>
-                            <input type="text" class="sm-input" :class="{filled: trainingUnitModal.form.specialty}"
-                                   v-model="trainingUnitModal.form.specialty"
-                                   placeholder="e.g. Pulmonología, Críticos…">
+                        <!-- Section 3: Capacity -->
+                        <div class="tu-section-label">Capacity</div>
+                        <div class="tu-row tu-row--align-top">
+                            <div class="tu-field tu-field--xs">
+                                <label class="tu-label">Max residents <span class="tu-req">*</span></label>
+                                <input class="tu-input tu-input--num" type="number"
+                                       v-model.number="trainingUnitModal.form.maximum_residents"
+                                       min="1" max="20">
+                            </div>
+                            <div class="tu-field tu-field--sm">
+                                <label class="tu-label">Status</label>
+                                <select class="tu-select" v-model="trainingUnitModal.form.unit_status">
+                                    <option value="active">Active</option>
+                                    <option value="under_renovation">Under renovation</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                            <div class="tu-field tu-field--sm">
+                                <label class="tu-label">Unit code <span class="tu-hint">(auto)</span></label>
+                                <input class="tu-input tu-input--mono" type="text"
+                                       v-model="trainingUnitModal.form.unit_code"
+                                       placeholder="UCIR">
+                            </div>
                         </div>
 
-                        <!-- Location -->
-                        <div class="sm-row">
-                            <div class="sm-field">
-                                <div class="sm-label">Building <span class="hint">— optional</span></div>
-                                <input type="text" class="sm-input" :class="{filled: trainingUnitModal.form.location_building}"
-                                       v-model="trainingUnitModal.form.location_building"
-                                       placeholder="e.g. Bloque C">
-                            </div>
-                            <div class="sm-field">
-                                <div class="sm-label">Floor <span class="hint">— optional</span></div>
-                                <input type="text" class="sm-input" :class="{filled: trainingUnitModal.form.location_floor}"
-                                       v-model="trainingUnitModal.form.location_floor"
-                                       placeholder="e.g. Planta 3">
-                            </div>
-                        </div>
-
-                        <!-- Description -->
-                        <div class="sm-field">
-                            <div class="sm-label">Description <span class="hint">— optional</span></div>
-                            <textarea class="sm-input" v-model="trainingUnitModal.form.unit_description"
-                                      rows="2" style="height:auto;resize:none;padding-top:8px;padding-bottom:8px;"
-                                      placeholder="Brief description of this unit's scope…"></textarea>
+                        <!-- Section 4: Description (optional) -->
+                        <div class="tu-section-label">Description <span class="tu-optional">optional</span></div>
+                        <div class="tu-field">
+                            <textarea class="tu-textarea"
+                                      v-model="trainingUnitModal.form.unit_description"
+                                      placeholder="What will residents see and do in this unit? Any prerequisites or notes for programme coordinators…"
+                                      rows="3"></textarea>
                         </div>
 
                     </div>
-                    <div class="sm-form-footer">
-                        <button class="sm-btn-back" @click="trainingUnitModal.show = false">Cancel</button>
-                        <button class="sm-btn-save" @click="saveTrainingUnit" :disabled="saving">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v13a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                            {{ saving ? 'Saving…' : trainingUnitModal.mode === 'add' ? 'Add Unit' : 'Save Changes' }}
+
+                    <!-- Footer -->
+                    <div class="tu-modal-footer">
+                        <button class="tu-btn-danger" v-if="trainingUnitModal.mode === 'edit' && hasPermission('training_units','delete')"
+                                @click="deleteTrainingUnit(trainingUnitModal.form.id)">
+                            Delete unit
+                        </button>
+                        <div style="flex:1"></div>
+                        <button class="tu-btn-ghost" @click="trainingUnitModal.show=false">Cancel</button>
+                        <button class="tu-btn-primary" @click="saveTrainingUnit(saving, departments)"
+                                :disabled="saving">
+                            <svg v-if="saving" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0"/></svg>
+                            {{ trainingUnitModal.mode === 'edit' ? 'Save changes' : 'Create unit' }}
                         </button>
                     </div>
+
                 </div>
             </div>
-        </div>
 
 
         
