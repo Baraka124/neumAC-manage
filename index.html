@@ -8545,6 +8545,7 @@ tr.staff-table-row .tbl-btn {
                             </div>
                         </div>
                     </div>
+                    </div>
                     <div class="timeline-item" v-for="status in recentStatuses" :key="status.id">
                         <div class="timeline-marker">
                             <div class="marker-dot dot-recent"></div>
@@ -8648,7 +8649,6 @@ tr.staff-table-row .tbl-btn {
                             <div class="availability-count">{{ systemStats.onLeaveStaff || 0 }}</div>
                             <div class="availability-status">off-duty</div>
                         </div>
-                    </div>
                 </div>
             </div>
             <div class="status-actions">
@@ -9161,25 +9161,19 @@ tr.staff-table-row .tbl-btn {
                         </div>
 
                         <div class="mod-kpis">
-                            <div class="mod-kpi"
-                                 :class="{ 'mod-kpi--active': staffFilters.status === 'active' }"
-                                 @click="staffFilters.status = staffFilters.status === 'active' ? '' : 'active'">
+                            <div class="mod-kpi" :class="{ 'mod-kpi--active': staffFilters.status === 'active' }" @click="staffFilters.status = staffFilters.status === 'active' ? '' : 'active'">
                                 <div class="mod-kpi-num" style="color:#0F6E56">{{ deptPulseStats.active }}</div>
                                 <div class="mod-kpi-label">Available</div>
                             </div>
-                            <div class="mod-kpi"
-                                 @click="switchView('oncall_schedule')">
+                            <div class="mod-kpi" @click="switchView('oncall_schedule')">
                                 <div class="mod-kpi-num" :style="deptPulseStats.onCallToday === 0 ? 'color:#854F0B' : 'color:#07111f'">{{ deptPulseStats.onCallToday }}</div>
                                 <div class="mod-kpi-label">On call today</div>
                             </div>
-                            <div class="mod-kpi"
-                                 :class="{ 'mod-kpi--active': staffFilters.status === 'on_leave' }"
-                                 @click="staffFilters.status = staffFilters.status === 'on_leave' ? '' : 'on_leave'">
+                            <div class="mod-kpi" :class="{ 'mod-kpi--active': staffFilters.status === 'on_leave' }" @click="staffFilters.status = staffFilters.status === 'on_leave' ? '' : 'on_leave'">
                                 <div class="mod-kpi-num" :style="deptPulseStats.onLeave > 0 ? 'color:#e24b4a' : 'color:#b4b2a9'">{{ deptPulseStats.onLeave }}</div>
                                 <div class="mod-kpi-label">On leave</div>
                             </div>
-                            <div class="mod-kpi"
-                                 @click="switchView('resident_rotations', { rotationStatus: 'active' })">
+                            <div class="mod-kpi" @click="switchView('resident_rotations', { rotationStatus: 'active' })">
                                 <div class="mod-kpi-num">{{ deptPulseStats.rotationCount }}</div>
                                 <div class="mod-kpi-label">Active rotations</div>
                             </div>
@@ -9205,7 +9199,7 @@ tr.staff-table-row .tbl-btn {
                                 <option value="">All types</option>
                                 <option v-for="st in staffTypesList" :key="st.type_key" :value="st.type_key">{{ st.display_name }}</option>
                             </select>
-                            <select v-if="staffFilters.staffType === 'medical_resident'" class="mod-select" v-model="staffFilters.residentCategory">
+                            <select class="mod-select" v-if="staffFilters.staffType === 'medical_resident'" v-model="staffFilters.residentCategory">
                                 <option value="">All residents</option>
                                 <option value="department_internal">Internal</option>
                                 <option value="rotating_other_dept">Rotating</option>
@@ -9235,7 +9229,7 @@ tr.staff-table-row .tbl-btn {
                         </div>
                     </div>
 
-                </div><!-- end mod-header -->
+                </div>
 
 
                         <!-- ══════════════════════════════════════════════
