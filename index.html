@@ -670,7 +670,16 @@
       ══════════════════════════════════════════════════════ */
 
       /* Status stripe */
-      .tuc-stripe { height:4px; width:100%; flex-shrink:0; }
+      
+
+
+      /* tuc2 status badge — replaces colour stripe */
+      .tuc2-status-row { padding:8px 14px 0; }
+      .tuc2-status-badge { display:inline-flex; align-items:center; font-family:'DM Mono',monospace; font-size:10px; font-weight:500; padding:2px 8px; border-radius:4px; }
+      .tuc2-status-badge--ok   { background:#E1F5EE; color:#085041; }
+      .tuc2-status-badge--full { background:#FCEBEB; color:#791F1F; }
+      .tuc2-status-badge--warn { background:#FEF3C7; color:#854F0B; }
+      .tuc2-status-badge--empty{ background:#f2f0eb; color:#909399; }
 
       /* Header */
       .tuc2-hdr { display:flex; align-items:flex-start; gap:10px; padding:12px 14px 6px; }
@@ -691,12 +700,12 @@
       .tuc2-bar-sched { position:absolute; top:0; height:100%; background:rgba(79,163,245,.35); border-radius:2px; transition:all .3s; }
 
       /* Slot pip visual */
-      .tuc2-slots-visual { display:flex; align-items:center; gap:5px; padding:0 14px 8px; }
-      .tuc2-slot-pip { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
-      .tuc2-slot-pip--active { background:currentColor; }
-      .tuc2-slot-pip--sched { background:rgba(79,163,245,.35); border:1.5px solid #4fa3f5; }
-      .tuc2-slot-pip--open { background:var(--nm-surface3,#e8e6df); border:1px dashed #c8c3bb; }
-      .tuc2-slot-legend { font-family:'DM Mono',monospace; font-size:10px; color:var(--nm-text2,#5f5e5a); margin-left:4px; white-space:nowrap; }
+      
+      
+      
+      
+      
+      
 
       /* Clinical team row */
       .tuc2-team { display:flex; align-items:center; gap:8px; padding:6px 14px 7px; border-top:1px solid var(--nm-border,#f0ede8); border-bottom:1px solid var(--nm-border,#f0ede8); cursor:pointer; transition:background .1s; min-height:36px; }
@@ -725,11 +734,11 @@
       .tuc2-res-row--open:hover .tuc2-assign-hint { opacity:1; }
 
       /* 14-day sparkline */
-      .tuc2-spark { display:flex; gap:1.5px; padding:7px 14px 9px; align-items:flex-end; height:26px; background:var(--nm-surface2,#f8f7f4); border-top:1px solid var(--nm-border,#f0ede8); }
-      .tuc2-spark-bar { flex:1; border-radius:1.5px; min-height:3px; background:var(--nm-border,#e0ddd8); }
-      .tuc2-spark-bar--partial { background:#10b981; min-height:10px; }
-      .tuc2-spark-bar--full { background:#e24b4a; min-height:16px; }
-      .tuc2-spark-bar--today { outline:2px solid #4fa3f5; outline-offset:1px; border-radius:1px; }
+      
+      
+      
+      
+      
 
       /* ── Rotation rows compact ── */
       .rot-row{padding:8px 18px;min-height:44px;}
@@ -7909,9 +7918,9 @@ tr.staff-table-row .tbl-btn {
       .mod-search {
         display:flex; align-items:center; gap:8px;
         padding:0 14px; border-right:1px solid #e8e6e1;
-        flex:1; max-width:260px;
+        flex:1; max-width:260px; background:#fafaf8;
       }
-      .mod-search svg { flex-shrink:0; }
+      .mod-search svg { flex-shrink:0; color:#c8c3bb; }
       .mod-search input {
         border:none; outline:none;
         font-family:'Epilogue',sans-serif; font-size:12px;
@@ -10645,9 +10654,16 @@ tr.staff-table-row .tbl-btn {
                                 </template><template v-else>
                                     <div class="tuc-card-body">
 
-                                        <!-- ── Status stripe (4px, colour-coded) ── -->
-                                        <div class="tuc-stripe"
-                                             :style="{ background: getUnitActiveRotationCount(unit.id) >= unit.maximum_residents ? 'linear-gradient(90deg,#e24b4a,#f87171)' : isUnitUnderstaffed(unit.id) ? 'linear-gradient(90deg,#ef9f27,#fbbf24)' : getUnitActiveRotationCount(unit.id) / unit.maximum_residents > 0.5 ? 'linear-gradient(90deg,#ef9f27,#fbbf24)' : getUnitActiveRotationCount(unit.id) > 0 ? 'linear-gradient(90deg,#10b981,#22c9a0)' : 'var(--nm-border,#e0ddd8)' }">
+                                        <!-- ── Status badge row ── -->
+                                        <div class="tuc2-status-row">
+                                            <span v-if="getUnitActiveRotationCount(unit.id) >= unit.maximum_residents"
+                                                  class="tuc2-status-badge tuc2-status-badge--full">Full</span>
+                                            <span v-else-if="isUnitUnderstaffed(unit.id)"
+                                                  class="tuc2-status-badge tuc2-status-badge--warn">Understaffed</span>
+                                            <span v-else-if="getUnitActiveRotationCount(unit.id) > 0"
+                                                  class="tuc2-status-badge tuc2-status-badge--ok">{{ unit.maximum_residents - getUnitActiveRotationCount(unit.id) }} slot{{ unit.maximum_residents - getUnitActiveRotationCount(unit.id) !== 1 ? 's' : '' }} open</span>
+                                            <span v-else
+                                                  class="tuc2-status-badge tuc2-status-badge--empty">No residents</span>
                                         </div>
 
                                         <!-- ── Card header: name + cap badge ── -->
@@ -10683,19 +10699,7 @@ tr.staff-table-row .tbl-btn {
                                             </div>
                                         </div>
 
-                                        <!-- ── Slot state visual ── -->
-                                        <div class="tuc2-slots-visual">
-                                            <template v-for="n in unit.maximum_residents" :key="n">
-                                                <div class="tuc2-slot-pip"
-                                                     :class="n <= getUnitActiveRotationCount(unit.id) ? 'tuc2-slot-pip--active' : n <= getUnitActiveRotationCount(unit.id) + getUnitScheduledCount(unit.id) ? 'tuc2-slot-pip--sched' : 'tuc2-slot-pip--open'">
-                                                </div>
-                                            </template>
-                                            <span class="tuc2-slot-legend">
-                                                <span v-if="getUnitActiveRotationCount(unit.id) > 0">{{ getUnitActiveRotationCount(unit.id) }} active</span>
-                                                <span v-if="getUnitScheduledCount(unit.id) > 0" style="color:#4fa3f5"> · {{ getUnitScheduledCount(unit.id) }} incoming</span>
-                                                <span v-if="unit.maximum_residents - getUnitActiveRotationCount(unit.id) - getUnitScheduledCount(unit.id) > 0" style="color:var(--nm-text3)"> · {{ unit.maximum_residents - getUnitActiveRotationCount(unit.id) - getUnitScheduledCount(unit.id) }} open</span>
-                                            </span>
-                                        </div>
+
 
                                         <!-- ── Clinical team row ── -->
                                         <div class="tuc2-team" @click.stop="openUnitClinicians(unit, medicalStaff)">
@@ -10766,14 +10770,7 @@ tr.staff-table-row .tbl-btn {
                                             </div>
                                         </div>
 
-                                        <!-- ── 7-day sparkline ── -->
-                                        <div class="tuc2-spark">
-                                            <div v-for="(day, i) in getUnit30DayTimeline(unit.id).slice(0,14)" :key="i"
-                                                 class="tuc2-spark-bar"
-                                                 :class="{ 'tuc2-spark-bar--full': day.full, 'tuc2-spark-bar--partial': day.active > 0 && !day.full, 'tuc2-spark-bar--today': day.isToday }"
-                                                 :title="(day.isToday ? 'Today · ' : (i===0?'Tomorrow · ':'Day +'+(i+1)+' · ')) + day.active + ' resident' + (day.active!==1?'s':'')">
-                                            </div>
-                                        </div>
+
 
                                     </div>
                                 </template>
