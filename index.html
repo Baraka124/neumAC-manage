@@ -1536,6 +1536,10 @@
       .tu-preview-type { font-family:'DM Mono',monospace; font-size:10px; padding:2px 8px; border-radius:4px; background:#e8e6e1; color:#5f5e5a; }
       .tu-preview-cap { font-family:'DM Mono',monospace; font-size:10px; padding:2px 8px; border-radius:4px; background:#E1F5EE; color:#085041; }
       .tu-preview-context-badge { font-family:'DM Mono',monospace; font-size:10px; padding:2px 8px; border-radius:4px; background:#E6F1FB; color:#0C447C; margin-left:auto; }
+      .tu-preview-sep { color:#c8c3bb; font-size:11px; }
+      .tu-preview-proj { font-family:'DM Mono',monospace; font-size:10px; padding:2px 7px; border-radius:4px; background:#f2f0eb; color:#5f5e5a; }
+      .tu-preview-proj--full { background:#FEF3C7; color:#854F0B; }
+      .tu-preview-proj--over { background:#FCEBEB; color:#791F1F; font-weight:500; }
 
       /* Body */
       .tu-modal-body { padding:20px 22px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:4px; }
@@ -15061,11 +15065,18 @@ tr.staff-table-row .tbl-btn {
                             {{ {'clinical_unit':'Ward','icu':'UCI / Critical','outpatient':'Outpatient','surgical':'Surgery / Procedures','research':'Research','training_unit':'External rotation'}[trainingUnitModal.form.unit_type] || trainingUnitModal.form.unit_type }}
                         </span>
                         <span class="tu-preview-cap" v-if="trainingUnitModal.form.maximum_residents">
-                            {{ trainingUnitModal.form.maximum_residents }} resident{{ trainingUnitModal.form.maximum_residents != 1 ? 's' : '' }} max
+                            {{ trainingUnitModal.form.maximum_residents }} max
                         </span>
-                        <span class="tu-preview-context-badge" v-if="trainingUnitModal.mode === 'edit' && getUnitActiveRotationCount(trainingUnitModal.form?.id || '')">
-                            {{ getUnitActiveRotationCount(trainingUnitModal.form?.id || '') }}/{{ trainingUnitModal.form.maximum_residents }} currently occupied
-                        </span>
+                        <!-- GAP 3 UI: Date-aware projection when editing -->
+                        <template v-if="trainingUnitModal.mode === 'edit' && trainingUnitModal.form.id">
+                            <span class="tu-preview-sep">·</span>
+                            <template v-for="proj in getUnitCapacityProjection(trainingUnitModal.form.id, trainingUnitModal.form.maximum_residents)" :key="proj.monthOffset">
+                                <span class="tu-preview-proj" :class="proj.over ? 'tu-preview-proj--over' : proj.count === trainingUnitModal.form.maximum_residents ? 'tu-preview-proj--full' : ''">
+                                    {{ proj.label }}: {{ proj.count }}/{{ trainingUnitModal.form.maximum_residents }}
+                                    <span v-if="proj.over"> ⚠</span>
+                                </span>
+                            </template>
+                        </template>
                     </div>
 
                     <!-- Form body -->
