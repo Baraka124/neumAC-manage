@@ -7923,7 +7923,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
         const getShiftChipStyle = (coverageAreaId) => {
-          const c = (coverageAreas?.value || []).find(a => a.id === coverageAreaId)?.color || '#00b3b3'
+          const areas = onCallOps?.coverageAreas?.value || []
+          const c = areas.find(a => a.id === coverageAreaId)?.color || '#00b3b3'
           const r = parseInt(c.slice(1,3) || '00', 16)
           const g = parseInt(c.slice(3,5) || 'b3', 16)
           const b = parseInt(c.slice(5,7) || 'b3', 16)
@@ -8201,4 +8202,4 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>`;
     throw error;    
   }
-})
+})   
