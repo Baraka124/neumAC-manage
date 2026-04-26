@@ -7828,6 +7828,57 @@ tr.staff-table-row .tbl-btn {
 .db-oc-slot-row--warn-absence {
   background: rgba(245,158,11,.04) !important;
 }
+
+      /* ══════════════════════════════════════════════════════
+         MOD-HEADER — universal module header pattern
+         Clinical Units (first), then Medical Staff, Absence, On-call
+      ══════════════════════════════════════════════════════ */
+      .mod-header { background:#fff; border-bottom:1px solid #e0ddd8; display:flex; flex-direction:column; }
+
+      /* Row 1 */
+      .mod-header-top { display:flex; align-items:stretch; min-height:62px; border-bottom:1px solid #e8e6e1; }
+
+      .mod-title-cell { display:flex; align-items:center; gap:10px; padding:0 20px; border-right:1px solid #e8e6e1; flex-shrink:0; min-width:210px; }
+      .mod-title-icon { width:32px; height:32px; border-radius:8px; background:#07111f; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+      .mod-title-icon svg { color:#4fa3f5; }
+      .mod-title-text { display:flex; flex-direction:column; gap:2px; }
+      .mod-title-name { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; color:#07111f; letter-spacing:-.2px; }
+      .mod-title-sub { font-family:'DM Mono',monospace; font-size:9px; color:#b4b2a9; letter-spacing:.04em; }
+
+      .mod-kpis { display:flex; align-items:stretch; flex:1; }
+      .mod-kpi { display:flex; align-items:center; gap:10px; padding:0 18px; border-right:1px solid #e8e6e1; cursor:pointer; transition:background .1s; position:relative; user-select:none; }
+      .mod-kpi:last-child { border-right:none; }
+      .mod-kpi:hover { background:#fafaf8; }
+      .mod-kpi--active { background:rgba(0,179,179,.04); }
+      .mod-kpi--active::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:#00b3b3; border-radius:2px 2px 0 0; }
+      .mod-kpi-num { font-family:'Fraunces',Georgia,serif; font-style:italic; font-size:28px; font-weight:300; line-height:1; letter-spacing:-.03em; flex-shrink:0; }
+      .mod-kpi-label { font-family:'DM Mono',monospace; font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:.09em; color:#909399; }
+      .mod-kpi-sub { font-size:11px; color:#b4b2a9; margin-top:1px; }
+
+      .mod-action-cell { display:flex; align-items:center; gap:8px; padding:0 18px; flex-shrink:0; }
+      .mod-btn-primary { padding:7px 14px; background:#07111f; color:#fff; border:none; border-radius:7px; font-family:'DM Mono',monospace; font-size:11px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:6px; transition:background .1s; white-space:nowrap; }
+      .mod-btn-primary:hover { background:#0f2038; }
+      .mod-btn-ghost { padding:6px 12px; background:transparent; color:#909399; border:1px solid #e0ddd8; border-radius:7px; font-family:'DM Mono',monospace; font-size:11px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all .1s; white-space:nowrap; }
+      .mod-btn-ghost:hover { border-color:#00b3b3; color:#00b3b3; }
+
+      /* Row 2 */
+      .mod-header-bottom { display:flex; align-items:stretch; min-height:42px; }
+      .mod-filter-group { display:flex; align-items:center; flex:1; }
+      .mod-search { display:flex; align-items:center; gap:7px; padding:0 14px; border-right:1px solid #e8e6e1; flex:1; max-width:260px; }
+      .mod-search svg { color:#c8c3bb; flex-shrink:0; }
+      .mod-search input { border:none; outline:none; font-family:'Epilogue',sans-serif; font-size:12px; color:#07111f; background:transparent; width:100%; }
+      .mod-search input::placeholder { color:#c8c3bb; }
+      .mod-select { padding:0 28px 0 12px; border:none; border-right:1px solid #e8e6e1; background:transparent url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23b4b2a9' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center; font-family:'DM Mono',monospace; font-size:11px; color:#5f5e5a; cursor:pointer; height:42px; outline:none; appearance:none; transition:background-color .1s; }
+      .mod-select:hover { background-color:#fafaf8; }
+      .mod-active-chip { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; background:#E6F1FB; color:#185FA5; border-radius:10px; font-family:'DM Mono',monospace; font-size:10px; font-weight:500; cursor:pointer; margin:0 8px; flex-shrink:0; transition:background .1s; }
+      .mod-active-chip:hover { background:#dbeafe; }
+      .mod-view-toggle { display:flex; align-items:stretch; border-left:1px solid #e8e6e1; flex-shrink:0; }
+      .mod-view-btn { width:42px; height:42px; border:none; border-left:1px solid #e8e6e1; background:transparent; color:#c8c3bb; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .1s, color .1s; }
+      .mod-view-btn:first-child { border-left:none; }
+      .mod-view-btn:hover { background:#fafaf8; color:#5f5e5a; }
+      .mod-view-btn.active { background:#07111f; color:#fff; }
+      .mod-view-btn.active svg { color:#4fa3f5; }
+
 </style>
 </head>
 <body>
@@ -10315,153 +10366,106 @@ tr.staff-table-row .tbl-btn {
                 <!-- ============ TRAINING UNITS VIEW ============ -->
                 <div v-if="currentView === 'training_units'">
 
-                    <div class="card mb-6">
-                        <div class="card-header">
-                            <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21M12 8V11M10.5 9.5H13.5"/></svg> Training Units</div>
-                            <div style="display:flex;gap:8px;align-items:center">
-                                <button class="btn btn-primary" @click="showAddTrainingUnitModal" v-if="hasPermission('training_units', 'create')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add Unit</button>
+                                    <div class="mod-header">
+
+                    <!-- ROW 1: Title | KPIs | Primary action -->
+                    <div class="mod-header-top">
+
+                        <div class="mod-title-cell">
+                            <div class="mod-title-icon">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 21H21M5 21V8L12 4L19 8V21M9 21V15H15V21"/></svg>
+                            </div>
+                            <div class="mod-title-text">
+                                <div class="mod-title-name">Clinical Units</div>
+                                <div class="mod-title-sub">{{ filteredTrainingUnits.length }} UNITS · {{ filteredTrainingUnits.filter(u => getUnitActiveRotationCount(u.id) < u.maximum_residents).length }} WITH OPEN SLOTS</div>
                             </div>
                         </div>
-                        <!-- ── Always-visible KPI strip ── -->
-                        <div class="tu-kpi-strip">
-                            <div class="tu-kpi tu-kpi--ok tu-kpi--clickable" @click="trainingUnitFilters.status = trainingUnitFilters.status === 'available' ? '' : 'available'" :class="{ 'tu-kpi--active': trainingUnitFilters.status === 'available' }">
-                                <div class="tu-kpi-num">{{ filteredTrainingUnits.filter(u => getUnitActiveRotationCount(u.id) < u.maximum_residents).length }}</div>
-                                <div class="tu-kpi-label">Available</div>
-                                <div class="tu-kpi-sub">slots open now</div>
+
+                        <div class="mod-kpis">
+                            <div class="mod-kpi"
+                                 :class="{ 'mod-kpi--active': trainingUnitFilters.status === 'available' }"
+                                 @click="trainingUnitFilters.status = trainingUnitFilters.status === 'available' ? '' : 'available'">
+                                <div class="mod-kpi-num" style="color:#0F6E56">{{ filteredTrainingUnits.filter(u => getUnitActiveRotationCount(u.id) < u.maximum_residents).length }}</div>
+                                <div class="mod-kpi-text">
+                                    <div class="mod-kpi-label">Available</div>
+                                    <div class="mod-kpi-sub">slots open now</div>
+                                </div>
                             </div>
-                            <div class="tu-kpi-div"></div>
-                            <div class="tu-kpi tu-kpi--warn">
-                                <div class="tu-kpi-num">{{ filteredTrainingUnits.filter(u => getUnitActiveRotationCount(u.id) > 0 && getUnitActiveRotationCount(u.id) < u.maximum_residents && getUnitActiveRotationCount(u.id) / u.maximum_residents > 0.5).length }}</div>
-                                <div class="tu-kpi-label">Filling up</div>
-                                <div class="tu-kpi-sub">&gt;50% occupied</div>
+                            <div class="mod-kpi">
+                                <div class="mod-kpi-num" style="color:#854F0B">{{ filteredTrainingUnits.filter(u => getUnitActiveRotationCount(u.id) > 0 && getUnitActiveRotationCount(u.id) < u.maximum_residents && getUnitActiveRotationCount(u.id) / u.maximum_residents > 0.5).length }}</div>
+                                <div class="mod-kpi-text">
+                                    <div class="mod-kpi-label">Filling up</div>
+                                    <div class="mod-kpi-sub">&gt;50% occupied</div>
+                                </div>
                             </div>
-                            <div class="tu-kpi-div"></div>
-                            <div class="tu-kpi tu-kpi--full tu-kpi--clickable" @click="trainingUnitFilters.status = trainingUnitFilters.status === 'full' ? '' : 'full'" :class="{ 'tu-kpi--active': trainingUnitFilters.status === 'full' }">
-                                <div class="tu-kpi-num">{{ filteredTrainingUnits.filter(u => getUnitActiveRotationCount(u.id) >= u.maximum_residents).length }}</div>
-                                <div class="tu-kpi-label">Full</div>
-                                <div class="tu-kpi-sub">no slots now</div>
+                            <div class="mod-kpi"
+                                 :class="{ 'mod-kpi--active': trainingUnitFilters.status === 'full' }"
+                                 @click="trainingUnitFilters.status = trainingUnitFilters.status === 'full' ? '' : 'full'">
+                                <div class="mod-kpi-num" style="color:#e24b4a">{{ filteredTrainingUnits.filter(u => getUnitActiveRotationCount(u.id) >= u.maximum_residents).length }}</div>
+                                <div class="mod-kpi-text">
+                                    <div class="mod-kpi-label">Full</div>
+                                    <div class="mod-kpi-sub">no slots now</div>
+                                </div>
                             </div>
-                            <div class="tu-kpi-div"></div>
-                            <div class="tu-kpi tu-kpi--danger">
-                                <div class="tu-kpi-num">{{ filteredTrainingUnits.filter(u => !!getUnitOverlapWarning(u.id)).length }}</div>
-                                <div class="tu-kpi-label">Overlap alert</div>
-                                <div class="tu-kpi-sub">scheduled conflict</div>
-                            </div>
-                            <div style="margin-left:auto;align-self:center">
-                                <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" @click="occupancyPanel.show = true">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2L2 7L12 12L22 7L12 2Z"/><path d="M2 17L12 22L22 17"/><path d="M2 12L12 17L22 12"/></svg> Full overview
-                                </button>
+                            <div class="mod-kpi">
+                                <div class="mod-kpi-num" style="color:#b4b2a9">{{ filteredTrainingUnits.filter(u => !!getUnitOverlapWarning(u.id)).length }}</div>
+                                <div class="mod-kpi-text">
+                                    <div class="mod-kpi-label">Overlap alert</div>
+                                    <div class="mod-kpi-sub">scheduled conflict</div>
+                                </div>
                             </div>
                         </div>
-                        <div class="filter-bar">
-                            <input type="text" class="form-control" v-model="trainingUnitFilters.search" placeholder="Search units...">
-                            <!-- Clear dept filter chip if navigated from dept -->
-                            <span v-if="trainingUnitFilters.department" class="nav-context-chip"
-                                  @click="trainingUnitFilters.department = ''">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="8" y="2" width="8" height="4" rx="1"/><rect x="2" y="14" width="8" height="4" rx="1"/><rect x="14" y="14" width="8" height="4" rx="1"/><path d="M12 6v4M6 14v-2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/></svg>
-                                {{ departments.find(d => d.id === trainingUnitFilters.department)?.name || 'Department' }}
-                                <span style="margin-left:4px;opacity:.6">×</span>
+
+                        <div class="mod-action-cell">
+                            <button class="mod-btn-ghost" @click="occupancyPanel.show = true">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2L2 7L12 12L22 7L12 2Z"/><path d="M2 17L12 22L22 17"/><path d="M2 12L12 17L22 12"/></svg>
+                                Overview
+                            </button>
+                            <button class="mod-btn-primary" @click="showAddTrainingUnitModal" v-if="hasPermission('training_units', 'create')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                                Add unit
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <!-- ROW 2: Search | Filters | View toggle -->
+                    <div class="mod-header-bottom">
+                        <div class="mod-filter-group">
+                            <div class="mod-search">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                                <input type="text" v-model="trainingUnitFilters.search" placeholder="Search units…">
+                            </div>
+                            <span v-if="trainingUnitFilters.department" class="mod-active-chip" @click="trainingUnitFilters.department = ''">
+                                {{ departments.find(d => d.id === trainingUnitFilters.department)?.name || 'Dept' }} ×
                             </span>
-                            <select class="form-select" v-model="trainingUnitFilters.department">
-                                <option value="">All Departments</option>
+                            <select class="mod-select" v-model="trainingUnitFilters.department">
+                                <option value="">All departments</option>
                                 <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
                             </select>
-                            <select class="form-select" v-model="trainingUnitFilters.status">
-                                <option value="">All Status</option>
+                            <select class="mod-select" v-model="trainingUnitFilters.status">
+                                <option value="">All status</option>
                                 <option value="available">Has open slots</option>
                                 <option value="full">Full</option>
-                                <option value="active">Active (unit)</option>
+                                <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </select>
-                            <!-- View mode toggle -->
-                            <div class="tuc-view-toggle">
-                                <button class="tuc-view-btn" :class="{ active: trainingUnitView === 'timeline' }"
-                                        @click="trainingUnitView = 'timeline'" title="Timeline view">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6H20M4 12H20M4 18H14"/></svg>
-                                </button>
-                                <button class="tuc-view-btn" :class="{ active: trainingUnitView === 'weekly' }"
-                                        @click="trainingUnitView = 'weekly'" title="Weekly staffing view">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                                </button>
-                                <button class="tuc-view-btn" :class="{ active: trainingUnitView === 'detail' }"
-                                        @click="trainingUnitView = 'detail'" title="Detail view">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-                                </button>
-                            </div>
-                            <!-- Horizon selector for timeline view -->
-                            <!-- ══ WEEKLY STAFFING GRID ══ -->
-                            <div v-if="trainingUnitView === 'weekly'" class="tuc-weekly-view">
-                                <!-- Header: nav + week label -->
-                                <div class="tuc-weekly-nav">
-                                    <button class="tuc-weekly-nav-btn" @click="weeklyGridOffset--">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
-                                    </button>
-                                    <span class="tuc-weekly-nav-label">
-                                        {{ weeklyStaffingGrid.monday?.toLocaleDateString('es-ES',{day:'2-digit',month:'short'}) }}
-                                        — {{ new Date(weeklyStaffingGrid.monday?.getTime() + 6*86400000).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) }}
-                                    </span>
-                                    <button class="tuc-weekly-nav-btn" @click="weeklyGridOffset++">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
-                                    </button>
-                                    <button v-if="weeklyGridOffset !== 0" class="tuc-weekly-today-btn" @click="weeklyGridOffset = 0">Today</button>
-                                </div>
-
-                                <!-- Grid -->
-                                <div class="tuc-weekly-grid">
-                                    <!-- Column headers: day names -->
-                                    <div class="tuc-wg-unit-col"></div>
-                                    <div v-for="day in weeklyStaffingGrid.days" :key="day.iso"
-                                         class="tuc-wg-day-hdr"
-                                         :class="{ 'tuc-wg-day-hdr--today': day.isToday, 'tuc-wg-day-hdr--weekend': day.isWeekend }">
-                                        {{ day.label }}
-                                    </div>
-
-                                    <!-- Empty state -->
-                                    <template v-if="weeklyStaffingGrid.rows.length === 0">
-                                        <div class="tuc-wg-empty" :style="{ gridColumn: '1 / ' + (weeklyStaffingGrid.days.length + 2) }">
-                                            No units with assigned clinical teams yet
-                                        </div>
-                                    </template>
-
-                                    <!-- Unit rows -->
-                                    <template v-for="row in weeklyStaffingGrid.rows" :key="row.unitId">
-                                        <!-- Unit name -->
-                                        <div class="tuc-wg-unit-label">
-                                            <span class="tuc-wg-unit-name">{{ row.unitName }}</span>
-                                            <span class="tuc-wg-unit-total">{{ row.team.length }} attending</span>
-                                        </div>
-                                        <!-- Day cells -->
-                                        <div v-for="(cell, ci) in row.cells" :key="ci"
-                                             class="tuc-wg-cell"
-                                             :class="{
-                                               'tuc-wg-cell--full': cell.present === cell.total,
-                                               'tuc-wg-cell--warn': cell.warn,
-                                               'tuc-wg-cell--critical': cell.critical,
-                                               'tuc-wg-cell--today': weeklyStaffingGrid.days[ci].isToday,
-                                               'tuc-wg-cell--weekend': weeklyStaffingGrid.days[ci].isWeekend
-                                             }"
-                                             :title="cell.present + '/' + cell.total + ' present' + (cell.absent > 0 ? ' · ' + cell.absent + ' absent' : '')">
-                                            <span class="tuc-wg-cell-num">{{ cell.present }}</span>
-                                            <span class="tuc-wg-cell-den">/{{ cell.total }}</span>
-                                        </div>
-                                    </template>
-                                </div>
-
-                                <div class="tuc-weekly-legend">
-                                    <span class="tuc-wl-item tuc-wl-item--full">Full team</span>
-                                    <span class="tuc-wl-item tuc-wl-item--warn">Under 50%</span>
-                                    <span class="tuc-wl-item tuc-wl-item--critical">No cover</span>
-                                </div>
-                            </div>
-
-                                                        <div v-if="trainingUnitView === 'timeline'" class="tuc-horizon-row">
-                                <span class="tuc-horizon-label">Showing</span>
-                                <button v-for="m in [3,6,12]" :key="m"
-                                        class="tuc-horizon-btn"
-                                        :class="{ active: trainingUnitHorizon === m }"
-                                        @click="trainingUnitHorizon = m">{{ m }}mo</button>
-                            </div>
                         </div>
+                        <div class="mod-view-toggle">
+                            <button class="mod-view-btn" :class="{ active: trainingUnitView === 'timeline' }" @click="trainingUnitView = 'timeline'" title="Timeline view">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6H20M4 12H20M4 18H14"/></svg>
+                            </button>
+                            <button class="mod-view-btn" :class="{ active: trainingUnitView === 'weekly' }" @click="trainingUnitView = 'weekly'" title="Weekly staffing view">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                            </button>
+                            <button class="mod-view-btn" :class="{ active: trainingUnitView === 'detail' }" @click="trainingUnitView = 'detail'" title="Card view">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                </div><!-- end mod-header -->
+
                         <!-- Skeleton loading -->
                         <div v-if="loading" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px 24px;">
                             <div v-for="i in 6" :key="i" class="nm-skel-card nm-skeleton" style="height:160px;"></div>
