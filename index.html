@@ -7836,7 +7836,7 @@ tr.staff-table-row .tbl-btn {
       .mod-header { background:#fff; border-bottom:1px solid #e0ddd8; display:flex; flex-direction:column; }
 
       /* Row 1 */
-      .mod-header-top { display:flex; align-items:stretch; min-height:66px; border-bottom:1px solid #e8e6e1; overflow:hidden; }
+      .mod-header-top { display:flex; align-items:stretch; min-height:70px; border-bottom:1px solid #e8e6e1; }
 
       .mod-title-cell { display:flex; align-items:center; gap:10px; padding:0 18px; border-right:1px solid #e8e6e1; flex-shrink:0; }
       .mod-title-icon { width:32px; height:32px; border-radius:8px; background:#07111f; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -7846,15 +7846,15 @@ tr.staff-table-row .tbl-btn {
       .mod-title-sub { font-family:'DM Mono',monospace; font-size:9px; color:#b4b2a9; letter-spacing:.04em; }
 
       .mod-kpis { display:flex; align-items:stretch; flex:1; min-width:0; overflow:hidden; }
-      .mod-kpi { display:flex; align-items:center; gap:10px; padding:0 14px; border-right:1px solid #e8e6e1; cursor:pointer; transition:background .1s; position:relative; user-select:none; min-width:0; flex:1; }
+      .mod-kpi { display:flex; flex-direction:column; justify-content:center; gap:3px; padding:0 18px; border-right:1px solid #e8e6e1; cursor:pointer; transition:background .1s; position:relative; user-select:none; flex:1; min-width:110px; }
       .mod-kpi:last-child { border-right:none; }
       .mod-kpi:hover { background:#fafaf8; }
       .mod-kpi--active { background:rgba(0,179,179,.04); }
       .mod-kpi--active::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:#00b3b3; border-radius:2px 2px 0 0; }
-      .mod-kpi-num { font-family:'Fraunces',Georgia,serif; font-style:italic; font-size:32px; font-weight:300; line-height:1; letter-spacing:-.03em; flex-shrink:0; min-width:28px; }
-      .mod-kpi-text { min-width:0; }
+      .mod-kpi-num { font-family:'Fraunces',Georgia,serif; font-style:italic; font-size:26px; font-weight:300; line-height:1; letter-spacing:-.03em; }
+      .mod-kpi-text { display:flex; flex-direction:column; gap:1px; }
       .mod-kpi-label { font-family:'DM Mono',monospace; font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:.07em; color:#909399; white-space:nowrap; }
-      .mod-kpi-sub { font-size:10px; color:#b4b2a9; margin-top:2px; white-space:nowrap; }
+      .mod-kpi-sub { font-size:10px; color:#b4b2a9; white-space:nowrap; }
 
       .mod-action-cell { display:flex; align-items:center; gap:8px; padding:0 16px; flex-shrink:0; }
       .mod-btn-primary { padding:7px 14px; background:#07111f; color:#fff; border:none; border-radius:7px; font-family:'DM Mono',monospace; font-size:11px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:6px; transition:background .1s; white-space:nowrap; }
