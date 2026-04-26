@@ -4016,6 +4016,28 @@ document.addEventListener('DOMContentLoaded', () => {
         .filter(r => r.training_unit_id === id && ['active', 'scheduled'].includes(r.rotation_status))
         .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
 
+      // GAP 3 FIX: Date-aware capacity projection for next 3 months
+      const getUnitCapacityProjection = (unitId, maxResidents) => {
+        const now = new Date()
+        const unitRots = rotations.value.filter(r =>
+          r.training_unit_id === unitId &&
+          ['active', 'scheduled'].includes(r.rotation_status)
+        )
+        return [0, 1, 2].map(monthOffset => {
+          const d = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1)
+          const y = d.getFullYear(), m = d.getMonth()
+          const monthStart = new Date(y, m, 1)
+          const monthEnd   = new Date(y, m + 1, 0)
+          const count = unitRots.filter(r => {
+            const s = new Date(r.start_date + 'T00:00:00')
+            const e = new Date(r.end_date   + 'T00:00:00')
+            return s <= monthEnd && e >= monthStart
+          }).length
+          const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+          return { label: monthOffset === 0 ? 'Now' : months[m], count, over: count > maxResidents, monthOffset }
+        })
+      }
+
       const getResidentShortName = (id) => {
         const s = allStaffLookup.value.find(x => x.id === id)
                || medicalStaff.value.find(x => x.id === id)
@@ -4328,7 +4350,15 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         trainingUnitModal.show = true
       }
-      const editTrainingUnit = (u) => { trainingUnitModal.mode = 'edit'; trainingUnitModal.form = { ...u }; trainingUnitModal.show = true }
+      const editTrainingUnit = (u) => {
+        trainingUnitModal.mode = 'edit'
+        trainingUnitModal.form = {
+          ...u,
+          // GAP 7 FIX: API returns supervisor_id but form expects supervising_attending_id
+          supervising_attending_id: u.supervisor_id || u.supervising_attending_id || u.default_supervisor_id || ''
+        }
+        trainingUnitModal.show = true
+      }
 
       const deleteTrainingUnit = (unit) => {
         const activeRotations = rotations.value.filter(r =>
@@ -4479,6 +4509,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const f = trainingUnitModal.form
         if (!f.unit_name?.trim()) { showToast('Validation Error', 'Unit name is required', 'error'); return }
         if (!f.unit_code?.trim()) { showToast('Validation Error', 'Unit code is required', 'error'); return }
+        // GAP 4 FIX: Check unit code uniqueness (skip current unit when editing)
+        const codeConflict = trainingUnits.value.find(u =>
+          u.unit_code?.toUpperCase() === f.unit_code?.trim().toUpperCase() &&
+          u.id !== f.id
+        )
+        if (codeConflict) {
+          showToast('Validation Error', `Unit code "${f.unit_code.trim().toUpperCase()}" is already used by "${codeConflict.unit_name}"`, 'error')
+          return
+        }
         if (!f.department_id) { showToast('Validation Error', 'Please select a department / service', 'error'); return }
         if (!f.maximum_residents || f.maximum_residents < 1) { showToast('Validation Error', 'Maximum residents must be at least 1', 'error'); return }
         saving.value = true
@@ -4486,29 +4525,44 @@ document.addEventListener('DOMContentLoaded', () => {
           // Exact fields from backend Joi trainingUnit schema — nothing more, nothing less
           // department_name is NOT NULL in schema — derive from departments list
           const deptRecord = deptLookup?.value?.find(d => d.id === f.department_id) || null
+          if (!deptRecord && f.department_id) {
+            showToast('Error', 'Selected department not found. Please try again.', 'error')
+            saving.value = false
+            return
+          }
           const data = {
             unit_name: f.unit_name.trim(),
             unit_code: f.unit_code.trim().toUpperCase(),
             department_id: f.department_id || null,
-            department_name: deptRecord?.name || f.department_name || 'Pulmonology',
+            department_name: deptRecord?.name || 'Unknown Department',
             maximum_residents: parseInt(f.maximum_residents) || 5,
             unit_status: f.unit_status || 'active',
             unit_type: f.unit_type || 'training_unit',
             unit_description: f.unit_description || '',
             specialty: f.specialty || '',
-            location_building: f.location_building || '',
-            location_floor: f.location_floor || '',
+            location_building: '',
+            location_floor: '',
             supervisor_id: f.supervising_attending_id || null,
             supervising_attending_id: f.supervising_attending_id || null,
           }
           if (trainingUnitModal.mode === 'add') { trainingUnits.value.unshift(await API.createTrainingUnit(data)); showToast('Success', 'Training unit created', 'success') }
           else { const result = await API.updateTrainingUnit(f.id, data); const idx = trainingUnits.value.findIndex(u => u.id === result.id); if (idx !== -1) trainingUnits.value[idx] = result; showToast('Success', 'Training unit updated', 'success') }
           trainingUnitModal.show = false
-        } catch (e) { showToast('Error', e?.message || 'An unexpected error occurred', 'error') }
+        } catch (e) {
+          // Surface specific backend errors clearly
+          const msg = e?.response?.message || e?.message || 'An unexpected error occurred'
+          if (msg.includes('capacity') || msg.includes('Capacity') || msg.includes('full')) {
+            showToast('Capacity Conflict', msg, 'warning')
+          } else if (msg.includes('unit_code') || msg.includes('unique') || msg.includes('duplicate')) {
+            showToast('Duplicate Code', 'This unit code is already in use. Please choose a different code.', 'error')
+          } else {
+            showToast('Error', msg, 'error')
+          }
+        }
         finally { saving.value = false }
       }
 
-      return { trainingUnits, trainingUnitFilters, trainingUnitModal, unitsByDepartment, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits, getUnitActiveRotationCount, getUnitRotations, getUnitScheduledCount, getUnitOverlapWarning, getResidentShortName, loadTrainingUnits, showAddTrainingUnitModal, editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians, assignAttendingToUnit, viewUnitResidents, saveTrainingUnit, trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree, tlPopover, openCellPopover, closeCellPopover, unitStaffCache, loadUnitStaff, getUnitAttendingCount, addStaffToUnit, removeStaffFromUnit,
+      return { trainingUnits, trainingUnitFilters, trainingUnitModal, unitsByDepartment, unitResidentsModal, unitCliniciansModal, filteredTrainingUnits, getUnitActiveRotationCount, getUnitRotations, getUnitCapacityProjection, getUnitScheduledCount, getUnitOverlapWarning, getResidentShortName, loadTrainingUnits, showAddTrainingUnitModal, editTrainingUnit, deleteTrainingUnit, openUnitClinicians, saveUnitClinicians, assignAttendingToUnit, viewUnitResidents, saveTrainingUnit, trainingUnitView, trainingUnitHorizon, getTimelineMonths, getUnitSlots, getDaysUntilFree, tlPopover, openCellPopover, closeCellPopover, unitStaffCache, loadUnitStaff, getUnitAttendingCount, addStaffToUnit, removeStaffFromUnit,
         occupancyPanel, unitDetailDrawer, occupancyHeatmap, occupancyPanelUnits, getUnitMonthOccupancy, getNextFreeMonth, openUnitDetail }
     }
 
