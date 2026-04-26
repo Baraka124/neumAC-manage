@@ -9148,82 +9148,97 @@ tr.staff-table-row .tbl-btn {
                             Clear filter ×
                         </button>
                     </nav>
-                    <div class="card mb-6">
-                        <div class="card-header">
-                            <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 4C7 4 5 4 5 7V13C5 17 9 19 12 19C15 19 19 17 19 13"/><circle cx="19" cy="11" r="2"/><path d="M5 9H9"/></svg> Medical Staff</div>
-                            <div class="header-actions" style="display:flex;gap:12px;align-items:center">
-                                <div class="view-toggle">
-                                    <button class="btn-pill" :class="{ active: staffView === 'table' }" @click="staffView = 'table'">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01"/></svg> Table
-                                    </button>
-                                    <button class="btn-pill" :class="{ active: staffView === 'people' }" @click="staffView = 'people'">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="3" width="8" height="8" rx="2"/><rect x="14" y="3" width="8" height="8" rx="2"/><rect x="2" y="13" width="8" height="8" rx="2"/><rect x="14" y="13" width="8" height="8" rx="2"/></svg> People
-                                    </button>
-                                    <button class="btn-pill" :class="{ active: staffView === 'compact' }" @click="staffView = 'compact'">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg> Compact
-                                    </button>
-                                </div>
-                                <button class="btn btn-primary" @click="showAddMedicalStaffModal" v-if="hasPermission('medical_staff', 'create')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add Staff</button>
+                                    <div class="mod-header">
+
+                    <!-- ROW 1: Title | KPIs | Action -->
+                    <div class="mod-header-top">
+
+                        <div class="mod-title-cell">
+                            <div class="mod-title-icon">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                             </div>
-                        </div>
-                        <!-- ── Department Pulse Bar — live availability intelligence ── -->
-                        <div class="dept-pulse-bar" style="margin-bottom:16px;">
-                            <div class="dpb-item" @click="switchView('medical_staff', { status: 'active' })">
-                                <div class="dpb-num dpb-num--teal">{{ deptPulseStats.active }}</div>
-                                <div class="dpb-label">Available</div>
-                                <div class="dpb-sub">active staff</div>
-                            </div>
-                            <div class="dpb-item" @click="switchView('oncall_schedule')">
-                                <div class="dpb-num dpb-num--amber">{{ deptPulseStats.onCallToday }}</div>
-                                <div class="dpb-label">On call today</div>
-                                <div class="dpb-sub">{{ deptPulseStats.onCallToday === 0 ? '⚠ no coverage' : 'physicians' }}</div>
-                            </div>
-                            <div class="dpb-item" @click="switchView('staff_absence')">
-                                <div class="dpb-num" :class="deptPulseStats.onLeave > 2 ? 'dpb-num--red' : deptPulseStats.onLeave > 0 ? 'dpb-num--amber' : ''">{{ deptPulseStats.onLeave }}</div>
-                                <div class="dpb-label">On leave</div>
-                                <div class="dpb-sub">right now</div>
-                            </div>
-                            <div class="dpb-item" @click="switchView('resident_rotations', { rotationStatus: 'active' })">
-                                <div class="dpb-num">{{ deptPulseStats.rotationCount }}</div>
-                                <div class="dpb-label">Rotations</div>
-                                <div class="dpb-sub">active</div>
+                            <div class="mod-title-text">
+                                <div class="mod-title-name">Medical Staff</div>
                             </div>
                         </div>
 
-                        <div class="filter-bar">
-                            <input type="text" class="form-control" v-model="staffFilters.search" placeholder="Search name…" aria-label="Search staff">
-                            <!-- Active category filter chip from dept cross-nav -->
-                            <span v-if="staffFilters.residentCategory" class="nav-context-chip"
-                                  @click="staffFilters.residentCategory = ''"
-                                  :style="{background: staffFilters.residentCategory === 'external_resident' ? 'var(--violet-lt)' : staffFilters.residentCategory === 'rotating_other_dept' ? 'var(--partial-lt)' : 'var(--ok-lt)', borderColor: 'transparent', color: staffFilters.residentCategory === 'external_resident' ? 'var(--cat-external)' : staffFilters.residentCategory === 'rotating_other_dept' ? 'var(--cat-rotating)' : 'var(--cat-internal)'}">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-                                {{ staffFilters.residentCategory === 'external_resident' ? 'External Residents' : staffFilters.residentCategory === 'rotating_other_dept' ? 'Rotating Residents' : 'Internal Residents' }}
-                                &nbsp;×
-                            </span>
-                            <select class="form-select" v-model="staffFilters.staffType">
-                                <option value="">All Types</option>
+                        <div class="mod-kpis">
+                            <div class="mod-kpi"
+                                 :class="{ 'mod-kpi--active': staffFilters.status === 'active' }"
+                                 @click="staffFilters.status = staffFilters.status === 'active' ? '' : 'active'">
+                                <div class="mod-kpi-num" style="color:#0F6E56">{{ deptPulseStats.active }}</div>
+                                <div class="mod-kpi-label">Available</div>
+                            </div>
+                            <div class="mod-kpi"
+                                 @click="switchView('oncall_schedule')">
+                                <div class="mod-kpi-num" :style="deptPulseStats.onCallToday === 0 ? 'color:#854F0B' : 'color:#07111f'">{{ deptPulseStats.onCallToday }}</div>
+                                <div class="mod-kpi-label">On call today</div>
+                            </div>
+                            <div class="mod-kpi"
+                                 :class="{ 'mod-kpi--active': staffFilters.status === 'on_leave' }"
+                                 @click="staffFilters.status = staffFilters.status === 'on_leave' ? '' : 'on_leave'">
+                                <div class="mod-kpi-num" :style="deptPulseStats.onLeave > 0 ? 'color:#e24b4a' : 'color:#b4b2a9'">{{ deptPulseStats.onLeave }}</div>
+                                <div class="mod-kpi-label">On leave</div>
+                            </div>
+                            <div class="mod-kpi"
+                                 @click="switchView('resident_rotations', { rotationStatus: 'active' })">
+                                <div class="mod-kpi-num">{{ deptPulseStats.rotationCount }}</div>
+                                <div class="mod-kpi-label">Active rotations</div>
+                            </div>
+                        </div>
+
+                        <div class="mod-action-cell">
+                            <button class="mod-btn-primary" @click="showAddMedicalStaffModal" v-if="hasPermission('medical_staff', 'create')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                                Add staff
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <!-- ROW 2: Search | Filters | View toggle -->
+                    <div class="mod-header-bottom">
+                        <div class="mod-filter-group">
+                            <div class="mod-search">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c8c3bb" stroke-width="1.8" stroke-linecap="round" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                                <input type="text" v-model="staffFilters.search" placeholder="Search name…">
+                            </div>
+                            <select class="mod-select" v-model="staffFilters.staffType">
+                                <option value="">All types</option>
                                 <option v-for="st in staffTypesList" :key="st.type_key" :value="st.type_key">{{ st.display_name }}</option>
                             </select>
-                            <select v-if="staffFilters.staffType === 'medical_resident'" class="form-select" v-model="staffFilters.residentCategory">
-                                <option value="">All Residents</option>
+                            <select v-if="staffFilters.staffType === 'medical_resident'" class="mod-select" v-model="staffFilters.residentCategory">
+                                <option value="">All residents</option>
                                 <option value="department_internal">Internal</option>
                                 <option value="rotating_other_dept">Rotating</option>
                                 <option value="external_resident">External</option>
                             </select>
-                            <select class="form-select" v-model="staffFilters.department">
-                                <option value="">All Departments</option>
+                            <select class="mod-select" v-model="staffFilters.department">
+                                <option value="">All departments</option>
                                 <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
                             </select>
-                            <select class="form-select" v-model="staffFilters.status">
-                                <option value="">All Status</option>
+                            <select class="mod-select" v-model="staffFilters.status">
+                                <option value="">All status</option>
                                 <option value="active">Active</option>
                                 <option value="on_leave">On Leave</option>
                                 <option value="inactive">Inactive</option>
                             </select>
-                            <button v-if="hasActiveStaffFilters" class="btn-pill btn-pill--clear" @click="clearStaffFilters" title="Clear all filters">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 7L17 17M17 7L7 17"/></svg> Clear
+                        </div>
+                        <div class="mod-view-toggle">
+                            <button class="mod-view-btn" :class="{ active: staffView === 'table' }" @click="staffView = 'table'" title="Table view">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6H20M4 12H20M4 18H20"/></svg>
+                            </button>
+                            <button class="mod-view-btn" :class="{ active: staffView === 'people' }" @click="staffView = 'people'" title="People view">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                            </button>
+                            <button class="mod-view-btn" :class="{ active: staffView === 'compact' }" @click="staffView = 'compact'" title="Compact view">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6H20M4 10H20M4 14H20M4 18H20"/></svg>
                             </button>
                         </div>
+                    </div>
+
+                </div><!-- end mod-header -->
+
 
                         <!-- ══════════════════════════════════════════════
                              COMPACT VIEW — card grid, same language as on-call/rotations
