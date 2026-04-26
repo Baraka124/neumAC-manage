@@ -9265,11 +9265,7 @@ tr.staff-table-row .tbl-btn {
                                         <!-- People card -->
                                         <div v-else
                                              class="pig-card"
-                                             :class="{
-                                                 'oncall':   isOnCallToday(item.id),
-                                                 'leave':    item.employment_status === 'on_leave',
-                                                 'inactive': item.employment_status === 'inactive'
-                                             }"
+                                             :class="{ 'oncall':   isOnCallToday(item.id), 'leave':    item.employment_status === 'on_leave', 'inactive': item.employment_status === 'inactive' }"
                                              @click="viewStaffDetails(item)"
                                              @mouseenter="showIntelPopover(item, $event)"
                                              @mouseleave="hideIntelPopover()"
@@ -9349,17 +9345,12 @@ tr.staff-table-row .tbl-btn {
                                 <div v-if="item._divider" class="scc-section-divider">{{ item._divider }}</div>
                                 <div v-else
                                  class="scc"
-                                 :class="{
-                                     'scc--leave':    item.employment_status === 'on_leave',
-                                     'scc--inactive': item.employment_status === 'inactive'
-                                 }"
+                                 :class="{ 'scc--leave':    item.employment_status === 'on_leave', 'scc--inactive': item.employment_status === 'inactive' }"
                                  @click="viewStaffDetails(item)">
 
                                 <!-- Left: avatar with initials -->
                                 <div class="scc-avatar"
-                                     :class="item.employment_status === 'on_leave'    ? 'scc-avatar--leave'
-                                           : isResidentType(item.staff_type)           ? 'scc-avatar--resident'
-                                           : 'scc-avatar--attending'">
+                                     :class="item.employment_status === 'on_leave'    ? 'scc-avatar--leave' : isResidentType(item.staff_type)           ? 'scc-avatar--resident' : 'scc-avatar--attending'">
                                     <span class="scc-initials">{{ (item.full_name || '').split(' ').filter(Boolean).map(w => w[0]).slice(0,2).join('') }}</span>
                                     <span class="scc-dot" :class="'scc-dot--' + item.employment_status"
                                           :title="formatEmploymentStatus(item.employment_status)"></span>
@@ -9633,13 +9624,7 @@ tr.staff-table-row .tbl-btn {
                                 <div class="rot-track">
                                     <div v-for="shift in physician.shifts" :key="shift.id"
                                          class="rot-orb"
-                                         :class="{
-                                             'rot-orb--active':    shift.isToday,
-                                             'rot-orb--scheduled': !shift.isToday && !shift.isPast && shift.shift_type === 'primary_call',
-                                             'rot-orb--backup-oc': !shift.isToday && !shift.isPast && shift.shift_type === 'backup_call',
-                                             'rot-orb--float':      !shift.isToday && !shift.isPast && shift.shift_type === 'float_physician',
-                                             'rot-orb--done':       shift.isPast && !shift.isToday,
-                                         }"
+                                         :class="{ 'rot-orb--active':    shift.isToday, 'rot-orb--scheduled': !shift.isToday && !shift.isPast && shift.shift_type === 'primary_call', 'rot-orb--backup-oc': !shift.isToday && !shift.isPast && shift.shift_type === 'backup_call', 'rot-orb--float':      !shift.isToday && !shift.isPast && shift.shift_type === 'float_physician', 'rot-orb--done':       shift.isPast && !shift.isToday, }"
                                          @click.stop="editOnCallSchedule(shift)">
                                         <span class="rot-orb-label">
                                             {{ shift.dayLabel }} {{ shift.dateLabel }}
@@ -9756,12 +9741,7 @@ tr.staff-table-row .tbl-btn {
                                         </td>
                                         <td :data-label="'Type'"><span class="oc-type-badge" :class="'oc-type-badge--' + schedule.shift_type">{{ {'primary_call':'Primary','backup_call':'Backup','weekend_coverage':'Weekend','float_physician':'Float'}[schedule.shift_type] || schedule.shift_type }}</span></td>
                                         <td :data-label="'Status'">
-                                            <span :class="[
-                                              'oc-status-pill',
-                                              new Date(schedule.duty_date + 'T' + (schedule.start_time||'00:00')) > new Date() ? 'oc-status-pill--upcoming' :
-                                              isToday(schedule.duty_date) ? 'oc-status-pill--live' :
-                                              'oc-status-pill--done'
-                                            ]">
+                                            <span :class="[ 'oc-status-pill', new Date(schedule.duty_date + 'T' + (schedule.start_time||'00:00')) > new Date() ? 'oc-status-pill--upcoming' : isToday(schedule.duty_date) ? 'oc-status-pill--live' : 'oc-status-pill--done' ]">
                                               <span class="oc-status-dot"></span>
                                               {{ new Date(schedule.duty_date + 'T' + (schedule.start_time||'00:00')) > new Date() ? 'Upcoming' : isToday(schedule.duty_date) ? 'Live' : 'Done' }}
                                             </span>
@@ -10680,12 +10660,7 @@ tr.staff-table-row .tbl-btn {
                                 <div class="training-units-grid" style="margin-bottom:8px">
                             <div v-for="unit in deptGroup.units" :key="unit.id"
                                  class="tuc"
-                                 :class="{
-                                   'tuc--full':   getUnitActiveRotationCount(unit.id) >= unit.maximum_residents,
-                                   'tuc--warn':   getUnitActiveRotationCount(unit.id) > 0 && getUnitActiveRotationCount(unit.id) / unit.maximum_residents > 0.5,
-                                   'tuc--active': getUnitActiveRotationCount(unit.id) > 0 && getUnitActiveRotationCount(unit.id) / unit.maximum_residents <= 0.5,
-                                   'tuc--timeline-mode': trainingUnitView === 'timeline'
-                                 }"
+                                 :class="{ 'tuc--full':   getUnitActiveRotationCount(unit.id) >= unit.maximum_residents, 'tuc--warn':   getUnitActiveRotationCount(unit.id) > 0 && getUnitActiveRotationCount(unit.id) / unit.maximum_residents > 0.5, 'tuc--active': getUnitActiveRotationCount(unit.id) > 0 && getUnitActiveRotationCount(unit.id) / unit.maximum_residents <= 0.5, 'tuc--timeline-mode': trainingUnitView === 'timeline' }"
                                  @click="openUnitDetail(unit)"
                                  style="cursor:pointer">
 
@@ -10754,11 +10729,7 @@ tr.staff-table-row .tbl-btn {
                                             <div class="tuc-tl-months">
                                                 <div v-for="m in slot.months" :key="m.key"
                                                      class="tuc-tl-cell"
-                                                     :class="{
-                                                       'tuc-tl-cell-name':      m.status === 'occupied',
-                                                       'tuc-tl-cell-scheduled': m.status === 'partial',
-                                                       'tuc-tl-cell-free':      m.status === 'free'
-                                                     }"
+                                                     :class="{ 'tuc-tl-cell-name':      m.status === 'occupied', 'tuc-tl-cell-scheduled': m.status === 'partial', 'tuc-tl-cell-free':      m.status === 'free' }"
                                                      :title="m.tooltip">
                                                     <span v-if="m.showName" class="tuc-tl-cell-label">{{ m.initials }}</span>
                                                 </div>
@@ -11018,12 +10989,7 @@ tr.staff-table-row .tbl-btn {
                                 <tbody>
                                     <tr v-for="absence in filteredAbsences" :key="absence.id"
                                         class="staff-table-row"
-                                        :class="{
-                                            'row-currently_absent': absence.current_status === 'currently_absent',
-                                            'row-planned_leave':    absence.current_status === 'planned_leave',
-                                            'row-returned':         absence.current_status === 'returned_to_duty',
-                                            'row-cancelled':        absence.current_status === 'cancelled',
-                                        }"
+                                        :class="{ 'row-currently_absent': absence.current_status === 'currently_absent', 'row-planned_leave':    absence.current_status === 'planned_leave', 'row-returned':         absence.current_status === 'returned_to_duty', 'row-cancelled':        absence.current_status === 'cancelled', }"
                                         @click="hasPermission('staff_absence', 'update') && editAbsence(absence)">
                                         <td>
                                             <div class="staff-name-cell"
@@ -11089,11 +11055,7 @@ tr.staff-table-row .tbl-btn {
                             <div class="abs-coverage-strip">
                                 <div v-for="day in absCoverage30" :key="day.date"
                                      class="abs-cov-day"
-                                     :style="{
-                                       height: Math.max(8, Math.round(day.pct * 44)) + 'px',
-                                       background: day.pct >= 0.85 ? 'var(--nm-teal)' : day.pct >= 0.7 ? '#f59e0b' : '#ef4444',
-                                       opacity: day.isToday ? 1 : 0.5 + day.pct * 0.5
-                                     }">
+                                     :style="{ height: Math.max(8, Math.round(day.pct * 44)) + 'px', background: day.pct >= 0.85 ? 'var(--nm-teal)' : day.pct >= 0.7 ? '#f59e0b' : '#ef4444', opacity: day.isToday ? 1 : 0.5 + day.pct * 0.5 }">
                                     <div class="abs-cov-day-tooltip">
                                         {{ day.label }}<br>{{ day.available }}/{{ day.available + day.absent }} available
                                     </div>
@@ -11134,12 +11096,7 @@ tr.staff-table-row .tbl-btn {
                                     <div class="abs-cal-dow" v-for="dow in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']" :key="dow">{{ dow }}</div>
                                     <div v-for="day in absCalendarDays" :key="day.date || day.day"
                                          class="abs-cal-day"
-                                         :class="{
-                                           'other-month': day.otherMonth,
-                                           'is-today':    day.isToday,
-                                           'risk-high':   day.risk === 'high'   && !day.otherMonth,
-                                           'risk-medium': day.risk === 'medium' && !day.otherMonth
-                                         }"
+                                         :class="{ 'other-month': day.otherMonth, 'is-today':    day.isToday, 'risk-high':   day.risk === 'high'   && !day.otherMonth, 'risk-medium': day.risk === 'medium' && !day.otherMonth }"
                                          @click="!day.otherMonth && (absenceFilters.startDate = day.date, absenceViewMode = 'table')">
                                         <div v-if="day.isToday" class="abs-cal-day-num-wrap">
                                             <span class="abs-cal-day-num">{{ day.day }}</span>
@@ -12520,9 +12477,7 @@ tr.staff-table-row .tbl-btn {
                             </div>
                             <div class="nm-header-right">
                                 <span class="nm-status-badge"
-                                      :style="newsModal.form.status==='published' ? 'background:rgba(16,185,129,.12);color:#10b981;border-color:rgba(16,185,129,.22);'
-                                            : newsModal.form.status==='archived'  ? 'background:rgba(107,114,128,.1);color:rgba(255,255,255,.4);border-color:rgba(107,114,128,.2);'
-                                            : 'background:rgba(245,158,11,.1);color:#f59e0b;border-color:rgba(245,158,11,.2);'">
+                                      :style="newsModal.form.status==='published' ? 'background:rgba(16,185,129,.12);color:#10b981;border-color:rgba(16,185,129,.22);' : newsModal.form.status==='archived' ? 'background:rgba(107,114,128,.1);color:rgba(255,255,255,.4);border-color:rgba(107,114,128,.2);' : 'background:rgba(245,158,11,.1);color:#f59e0b;border-color:rgba(245,158,11,.2);'"
                                     {{ newsModal.form.status || 'draft' }}
                                 </span>
                                 <button class="sm-form-close" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1);" @click="newsModal.show = false">
@@ -13459,13 +13414,7 @@ tr.staff-table-row .tbl-btn {
                                     <!-- FIX 2: Show all roles if staff holds multiple -->
                                     <div class="pd-line-roles">
                                         <span v-for="role in line.roles" :key="role" class="pd-badge pd-badge--sm"
-                                              :class="{
-                                                'pd-badge--purple': role === 'Coordinator',
-                                                'pd-badge--gold': role === 'Principal Investigator',
-                                                'pd-badge--blue': role === 'Co-Investigator',
-                                                'pd-badge--warn': role === 'Sub-Investigator',
-                                                'pd-badge--teal': role === 'Project Lead'
-                                              }">{{ role }}</span>
+                                              :class="{ 'pd-badge--purple': role === 'Coordinator', 'pd-badge--gold': role === 'Principal Investigator', 'pd-badge--blue': role === 'Co-Investigator', 'pd-badge--warn': role === 'Sub-Investigator', 'pd-badge--teal': role === 'Project Lead' }">{{ role }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -13919,11 +13868,7 @@ tr.staff-table-row .tbl-btn {
                 <div class="sm-left">
                     <div class="sm-preview">
                         <div class="sm-preview-avatar"
-                             :class="{
-                                 'sm-preview-avatar--attending': medicalStaffModal.form.full_name && !isResidentType(medicalStaffModal.form.staff_type),
-                                 'sm-preview-avatar--resident':  medicalStaffModal.form.full_name && isResidentType(medicalStaffModal.form.staff_type),
-                                 'sm-preview-avatar--empty':     !medicalStaffModal.form.full_name
-                             }">
+                             :class="{ 'sm-preview-avatar--attending': medicalStaffModal.form.full_name && !isResidentType(medicalStaffModal.form.staff_type), 'sm-preview-avatar--resident':  medicalStaffModal.form.full_name && isResidentType(medicalStaffModal.form.staff_type), 'sm-preview-avatar--empty':     !medicalStaffModal.form.full_name }">
                             <span v-if="medicalStaffModal.form.full_name">{{ medicalStaffModal.form.full_name.split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}</span>
                             <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         </div>
@@ -14748,12 +14693,7 @@ tr.staff-table-row .tbl-btn {
 
                 <!-- Status + category row -->
                 <div class="rds-meta-row">
-                    <span class="rds-badge" :class="{
-                        'rds-badge--active':    rotationViewModal.rotation.rotation_status === 'active',
-                        'rds-badge--scheduled': rotationViewModal.rotation.rotation_status === 'scheduled',
-                        'rds-badge--done':      rotationViewModal.rotation.rotation_status === 'completed',
-                        'rds-badge--cancelled': rotationViewModal.rotation.rotation_status === 'cancelled',
-                    }">
+                    <span class="rds-badge" :class="{ 'rds-badge--active':    rotationViewModal.rotation.rotation_status === 'active', 'rds-badge--scheduled': rotationViewModal.rotation.rotation_status === 'scheduled', 'rds-badge--done':      rotationViewModal.rotation.rotation_status === 'completed', 'rds-badge--cancelled': rotationViewModal.rotation.rotation_status === 'cancelled', }">
                         <span class="rds-badge-dot"></span>
                         {{ rotationViewModal.rotation.rotation_status }}
                     </span>
@@ -14925,11 +14865,7 @@ tr.staff-table-row .tbl-btn {
                                 <div class="uap-grid">
                                     <div v-for="u in trainingUnits" :key="u.id"
                                          class="uap-card"
-                                         :class="{
-                                           'uap-card--selected': rotationModal.form.training_unit_id === u.id,
-                                           'uap-card--full': getUnitActiveRotationCount(u.id) >= u.maximum_residents,
-                                           'uap-card--overlap': !!getUnitOverlapWarning(u.id)
-                                         }"
+                                         :class="{ 'uap-card--selected': rotationModal.form.training_unit_id === u.id, 'uap-card--full': getUnitActiveRotationCount(u.id) >= u.maximum_residents, 'uap-card--overlap': !!getUnitOverlapWarning(u.id) }"
                                          @click="rotationModal.form.training_unit_id = u.id; clearFieldError('rotation','training_unit_id')">
                                         <div class="uap-card-top">
                                             <div class="uap-name">{{ u.unit_name }}</div>
@@ -14940,10 +14876,7 @@ tr.staff-table-row .tbl-btn {
                                         </div>
                                         <div class="uap-bar">
                                             <div class="uap-bar-fill"
-                                                 :style="{
-                                                   width: u.maximum_residents ? Math.round((getUnitActiveRotationCount(u.id)/u.maximum_residents)*100)+'%' : '0%',
-                                                   background: getUnitActiveRotationCount(u.id) >= u.maximum_residents ? '#e24b4a' : getUnitActiveRotationCount(u.id)/u.maximum_residents > 0.5 ? '#ef9f27' : '#10b981'
-                                                 }">
+                                                 :style="{ width: u.maximum_residents ? Math.round((getUnitActiveRotationCount(u.id)/u.maximum_residents)*100)+'%' : '0%', background: getUnitActiveRotationCount(u.id) >= u.maximum_residents ? '#e24b4a' : getUnitActiveRotationCount(u.id)/u.maximum_residents > 0.5 ? '#ef9f27' : '#10b981' }">
                                             </div>
                                         </div>
                                         <div class="uap-meta">
@@ -14974,11 +14907,7 @@ tr.staff-table-row .tbl-btn {
                         <!-- Availability panel — fires when unit + dates are set -->
                         <div v-if="rotationModal.form.training_unit_id && rotationModal.form.start_date && rotationModal.form.end_date"
                              class="rot-avail-panel"
-                             :class="{
-                               'rot-avail-panel--checking': rotationModal.checkingAvailability,
-                               'rot-avail-panel--full':     !rotationModal.checkingAvailability && rotationModal.availability?.is_full,
-                               'rot-avail-panel--ok':       !rotationModal.checkingAvailability && rotationModal.availability && !rotationModal.availability.is_full,
-                             }">
+                             :class="{ 'rot-avail-panel--checking': rotationModal.checkingAvailability, 'rot-avail-panel--full':     !rotationModal.checkingAvailability && rotationModal.availability?.is_full, 'rot-avail-panel--ok':       !rotationModal.checkingAvailability && rotationModal.availability && !rotationModal.availability.is_full, }">
                             <template v-if="rotationModal.checkingAvailability">
                                 <svg class="rot-avail-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                                 <span style="font-size:11px;color:var(--nm-text3)">Checking unit capacity…</span>
@@ -15285,19 +15214,10 @@ tr.staff-table-row .tbl-btn {
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @click="absenceResolutionModal.show = false">Cancel</button>
                     <button class="btn"
-                            :class="{
-                                'btn-primary':  absenceResolutionModal.action === 'confirm_return',
-                                'btn-warning':  absenceResolutionModal.action === 'extend',
-                                'btn-secondary': absenceResolutionModal.action === 'archive'
-                            }"
+                            :class="{ 'btn-primary':  absenceResolutionModal.action === 'confirm_return', 'btn-warning':  absenceResolutionModal.action === 'extend', 'btn-secondary': absenceResolutionModal.action === 'archive' }"
                             @click="resolveAbsence()"
                             :disabled="absenceResolutionModal.saving">
-                        <i class="fas" :class="{
-                            'fa-check':        absenceResolutionModal.action === 'confirm_return',
-                            'fa-calendar-plus': absenceResolutionModal.action === 'extend',
-                            'fa-archive':      absenceResolutionModal.action === 'archive',
-                            'fa-spinner fa-spin': absenceResolutionModal.saving
-                        }"></i>
+                        <i class="fas" :class="{ 'fa-check':        absenceResolutionModal.action === 'confirm_return', 'fa-calendar-plus': absenceResolutionModal.action === 'extend', 'fa-archive':      absenceResolutionModal.action === 'archive', 'fa-spinner fa-spin': absenceResolutionModal.saving }"></i>
                         <span v-if="!absenceResolutionModal.saving">
                             {{ absenceResolutionModal.action === 'confirm_return' ? 'Confirm Return' : absenceResolutionModal.action === 'extend' ? 'Extend Absence' : 'Archive Record' }}
                         </span>
@@ -15316,9 +15236,7 @@ tr.staff-table-row .tbl-btn {
                     <div class="sm-preview">
                         <!-- Avatar — teal for attending, blue for resident -->
                         <div class="sm-preview-avatar"
-                             :class="absenceModal.form.staff_member_id
-                                ? (isResidentType(allStaffLookup.find(s=>s.id===absenceModal.form.staff_member_id)?.staff_type) ? 'sm-preview-avatar--resident' : 'sm-preview-avatar--attending')
-                                : 'sm-preview-avatar--empty'">
+                             :class="absenceModal.form.staff_member_id ? (isResidentType(allStaffLookup.find(s=>s.id===absenceModal.form.staff_member_id)?.staff_type) ? 'sm-preview-avatar--resident' : 'sm-preview-avatar--attending') : 'sm-preview-avatar--empty'">
                             <span v-if="absenceModal.form.staff_member_id">
                                 {{ (allStaffLookup.find(s=>s.id===absenceModal.form.staff_member_id)?.full_name||'').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase() }}
                             </span>
@@ -16301,9 +16219,7 @@ tr.staff-table-row .tbl-btn {
                                 {{ clinicalTrialModal.form.phase }}
                             </span>
                             <span v-if="clinicalTrialModal.form.status" class="sm-preview-chip"
-                                  :style="clinicalTrialModal.form.status === 'Reclutando' ? 'background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.2);color:#10b981;'
-                                        : clinicalTrialModal.form.status === 'Completado'  ? 'background:rgba(107,114,128,.1);border-color:rgba(107,114,128,.2);color:rgba(255,255,255,.45);'
-                                        : 'background:rgba(0,179,179,.1);border-color:rgba(0,179,179,.2);color:#00B3B3;'">
+                                  :style="clinicalTrialModal.form.status === 'Reclutando' ? 'background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.2);color:#10b981;' : clinicalTrialModal.form.status === 'Completado'  ? 'background:rgba(107,114,128,.1);border-color:rgba(107,114,128,.2);color:rgba(255,255,255,.45);' : 'background:rgba(0,179,179,.1);border-color:rgba(0,179,179,.2);color:#00B3B3;'">
                                 {{ clinicalTrialModal.form.status }}
                             </span>
                         </div>
@@ -16889,12 +16805,7 @@ tr.staff-table-row .tbl-btn {
                     <h2 class="tdm-title" v-if="trialDetailModal.trial">{{ trialDetailModal.trial.title }}</h2>
                     <div class="tdm-meta-strip" v-if="trialDetailModal.trial">
                         <span class="status-indicator"
-                              :class="{
-                                'status-recruiting': trialDetailModal.trial.status === 'Reclutando',
-                                'status-active':     trialDetailModal.trial.status === 'Activo',
-                                'status-completed':  trialDetailModal.trial.status === 'Completado',
-                                'status-suspended':  trialDetailModal.trial.status === 'Suspendido'
-                              }">{{ formatStudyStatus(trialDetailModal.trial.status) }}</span>
+                              :class="{ 'status-recruiting': trialDetailModal.trial.status === 'Reclutando', 'status-active':     trialDetailModal.trial.status === 'Activo', 'status-completed':  trialDetailModal.trial.status === 'Completado', 'status-suspended':  trialDetailModal.trial.status === 'Suspendido' }">{{ formatStudyStatus(trialDetailModal.trial.status) }}</span>
                         <span class="tdm-meta-sep">·</span>
                         <span class="tdm-line"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H15M10 4V10L5 19H19L14 10V4"/></svg> {{ getResearchLineName(trialDetailModal.trial.research_line_id) }}</span>
                         <span class="tdm-meta-sep" v-if="trialDetailModal.trial.start_date">·</span>
@@ -16919,8 +16830,7 @@ tr.staff-table-row .tbl-btn {
                             </div>
                             <div class="tdm-kpi-bar">
                                 <div class="tdm-kpi-fill"
-                                     :style="{ width: Math.min(100, Math.round(((trialDetailModal.trial.actual_enrollment||0)/trialDetailModal.trial.enrollment_target)*100)) + '%',
-                                               background: trialDetailModal.trial.status === 'Completado' ? 'var(--teal)' : 'var(--blue)' }"></div>
+                                     :style="{ width: Math.min(100, Math.round(((trialDetailModal.trial.actual_enrollment||0)/trialDetailModal.trial.enrollment_target)*100)) + '%', background: trialDetailModal.trial.status === 'Completado' ? 'var(--teal)' : 'var(--blue)' }"></div>
                             </div>
                             <div class="tdm-kpi-pct">{{ Math.min(100, Math.round(((trialDetailModal.trial.actual_enrollment||0)/trialDetailModal.trial.enrollment_target)*100)) }}% reclutado</div>
                         </div>
@@ -17114,11 +17024,7 @@ tr.staff-table-row .tbl-btn {
                                     <div class="dp-staff-name">{{ s.full_name }}</div>
                                     <div class="dp-staff-meta">
                                         {{ s.training_year || s.residency_year_calc || '—' }}
-                                        <span class="dp-cat-badge" :class="{
-                                            'dp-cat--int': s.resident_category==='department_internal',
-                                            'dp-cat--rot': s.resident_category==='rotating_other_dept',
-                                            'dp-cat--ext': s.resident_category==='external_resident'
-                                        }">
+                                        <span class="dp-cat-badge" :class="{ 'dp-cat--int': s.resident_category==='department_internal', 'dp-cat--rot': s.resident_category==='rotating_other_dept', 'dp-cat--ext': s.resident_category==='external_resident' }">
                                             {{ s.resident_category==='department_internal' ? 'Internal' : s.resident_category==='rotating_other_dept' ? 'Rotating' : 'External' }}
                                         </span>
                                     </div>
@@ -17168,11 +17074,7 @@ tr.staff-table-row .tbl-btn {
                                     <div class="dp-occ-track">
                                         <div class="dp-occ-fill"
                                              :style="{width: Math.min(100, (getUnitActiveRotationCount(unit.id)/unit.maximum_residents)*100) + '%'}"
-                                             :class="{
-                                               'dp-occ-fill--full':    getUnitActiveRotationCount(unit.id) >= unit.maximum_residents,
-                                               'dp-occ-fill--partial': getUnitActiveRotationCount(unit.id) > 0 && getUnitActiveRotationCount(unit.id) < unit.maximum_residents,
-                                               'dp-occ-fill--free':    getUnitActiveRotationCount(unit.id) === 0
-                                             }">
+                                             :class="{ 'dp-occ-fill--full':    getUnitActiveRotationCount(unit.id) >= unit.maximum_residents, 'dp-occ-fill--partial': getUnitActiveRotationCount(unit.id) > 0 && getUnitActiveRotationCount(unit.id) < unit.maximum_residents, 'dp-occ-fill--free':    getUnitActiveRotationCount(unit.id) === 0 }">
                                         </div>
                                     </div>
                                     <span class="dp-occ-label">{{ getUnitActiveRotationCount(unit.id) }}/{{ unit.maximum_residents }}</span>
@@ -17190,10 +17092,7 @@ tr.staff-table-row .tbl-btn {
                             </div>
                             <div v-if="deptPanelRotations.length === 0" class="dp-empty">No active rotations in this department</div>
                             <div v-for="r in deptPanelRotations" :key="r.id" class="dp-rot-row">
-                                <div class="dp-rot-status-bar" :class="{
-                                    'dp-rot-bar--active':    r.rotation_status === 'active',
-                                    'dp-rot-bar--scheduled': r.rotation_status === 'scheduled'
-                                }"></div>
+                                <div class="dp-rot-status-bar" :class="{ 'dp-rot-bar--active':    r.rotation_status === 'active', 'dp-rot-bar--scheduled': r.rotation_status === 'scheduled' }"></div>
                                 <div class="dp-rot-info">
                                     <div class="dp-rot-resident">{{ r.resident?.full_name || '—' }}</div>
                                     <div class="dp-rot-unit">
@@ -17374,13 +17273,7 @@ tr.staff-table-row .tbl-btn {
                 <div class="udd-mini-timeline">
                     <div v-for="m in getTimelineMonths(6)" :key="m.key" class="udd-mt-col">
                         <div class="udd-mt-cell"
-                             :class="{
-                               'udd-mt-cell--free':     getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).status === 'free',
-                               'udd-mt-cell--partial':  getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).status === 'partial',
-                               'udd-mt-cell--closing':  getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).status === 'closing',
-                               'udd-mt-cell--occupied': getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).status === 'occupied',
-                               'udd-mt-cell--current':  m.isCurrent
-                             }">
+                             :class="{ 'udd-mt-cell--free':     getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).status === 'free', 'udd-mt-cell--partial':  getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).status === 'partial', 'udd-mt-cell--closing':  getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).status === 'closing', 'udd-mt-cell--occupied': getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).status === 'occupied', 'udd-mt-cell--current':  m.isCurrent }">
                             {{ getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).occupied }}/{{ getUnitMonthOccupancy(unitDetailDrawer.unit.id, m.year, m.month).total }}
                         </div>
                         <div class="udd-mt-label" :class="{ 'udd-mt-label--current': m.isCurrent }">{{ m.label }}</div>
@@ -17622,9 +17515,7 @@ tr.staff-table-row .tbl-btn {
                   <!-- Active/Inactive toggle — edit mode only -->
                   <div class="sm-field" v-if="coverageAreaModal.mode === 'edit'"
                        style="padding:10px 12px;border-radius:8px;border:1px solid;transition:border-color .15s,background .15s"
-                       :style="coverageAreaModal.form.is_active
-                         ? 'border-color:rgba(16,185,129,.2);background:rgba(16,185,129,.04)'
-                         : 'border-color:rgba(239,68,68,.2);background:rgba(239,68,68,.04)'">
+                       :style="coverageAreaModal.form.is_active ? 'border-color:rgba(16,185,129,.2);background:rgba(16,185,129,.04)' : 'border-color:rgba(239,68,68,.2);background:rgba(239,68,68,.04)'">
                       <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
                           <label class="nm-toggle">
                               <input type="checkbox" v-model="coverageAreaModal.form.is_active">
@@ -17962,13 +17853,7 @@ tr.staff-table-row .tbl-btn {
               <div class="boc-cal-grid">
                 <div v-for="day in bulkCalDays" :key="day.date"
                      class="boc-cal-day"
-                     :class="{
-                       'boc-day--other':    day.otherMonth,
-                       'boc-day--today':    day.isToday,
-                       'boc-day--selected': day.selected && !day.isAbsent,
-                       'boc-day--conflict': day.selected && day.isAbsent,
-                       'boc-day--absent':   !day.selected && day.isAbsent,
-                     }"
+                     :class="{ 'boc-day--other':    day.otherMonth, 'boc-day--today':    day.isToday, 'boc-day--selected': day.selected && !day.isAbsent, 'boc-day--conflict': day.selected && day.isAbsent, 'boc-day--absent':   !day.selected && day.isAbsent, }"
                      @click="bulkToggleDate(day)">
                   {{ day.day }}
                   <span v-if="day.selected && day.isAbsent" class="boc-day-warn">!</span>
