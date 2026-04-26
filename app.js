@@ -7877,7 +7877,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return {
           // Existing returns
-          loading, saving, currentUser, loginForm, loginLoading, hasPermission,
+          loading, saving, currentUser, loginForm, loginLoading, hasPermission, getShiftChipStyle,
           ...Object.fromEntries(Object.entries(ui).filter(([k]) => k !== 'showToast')),
           showToast, showConfirmation, ui,
           ...staffOps,  // medicalStaff, allStaffLookup, hospitalsList (clinicalUnits removed — unused)
@@ -8126,7 +8126,7 @@ document.addEventListener('DOMContentLoaded', () => {
           isOffline: ui.isOffline, isMaintenanceMode: ui.isMaintenanceMode,
           callouts, calloutsLoading, calloutSummary, calloutPeriod, calloutModal,
           calloutFairnessAlert,
-          calloutKPIs, calloutDistribution, calloutFairnessAlert, calloutReasonLabels, calloutTimeTypes,  
+          calloutKPIs, calloutDistribution, calloutFairnessAlert, calloutReasonLabels, calloutTimeTypes,
           openLogCalloutModal, suggestCalloutArea, editCallout, saveCallout, deleteCallout,
           loadCallouts, loadCalloutSummary,
         }    
