@@ -7831,54 +7831,127 @@ tr.staff-table-row .tbl-btn {
 
       /* ══════════════════════════════════════════════════════
          MOD-HEADER — universal module header pattern
-         Clinical Units (first), then Medical Staff, Absence, On-call
+         Clinical Units · Medical Staff · Absence · On-call
       ══════════════════════════════════════════════════════ */
       .mod-header { background:#fff; border-bottom:1px solid #e0ddd8; display:flex; flex-direction:column; }
 
-      /* Row 1 */
-      .mod-header-top { display:flex; align-items:stretch; min-height:70px; border-bottom:1px solid #e8e6e1; }
+      /* ── Row 1: Title | KPIs | Action ── */
+      .mod-header-top { display:flex; align-items:stretch; min-height:68px; border-bottom:1px solid #e8e6e1; }
 
-      .mod-title-cell { display:flex; align-items:center; gap:10px; padding:0 18px; border-right:1px solid #e8e6e1; flex-shrink:0; }
-      .mod-title-icon { width:32px; height:32px; border-radius:8px; background:#07111f; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+      /* Title cell */
+      .mod-title-cell { display:flex; align-items:center; gap:11px; padding:0 20px; border-right:1px solid #e8e6e1; flex-shrink:0; }
+      .mod-title-icon { width:34px; height:34px; border-radius:9px; background:#07111f; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
       .mod-title-icon svg { color:#4fa3f5; }
-      .mod-title-text { display:flex; flex-direction:column; gap:2px; }
-      .mod-title-name { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; color:#07111f; letter-spacing:-.2px; }
-      .mod-title-sub { font-family:'DM Mono',monospace; font-size:9px; color:#b4b2a9; letter-spacing:.04em; }
+      .mod-title-text { display:flex; flex-direction:column; gap:3px; }
+      .mod-title-name { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; color:#07111f; letter-spacing:-.3px; white-space:nowrap; }
+      /* subtitle removed — the KPIs tell that story better */
 
-      .mod-kpis { display:flex; align-items:stretch; flex:1; min-width:0; overflow:hidden; }
-      .mod-kpi { display:flex; flex-direction:column; justify-content:center; gap:3px; padding:0 18px; border-right:1px solid #e8e6e1; cursor:pointer; transition:background .1s; position:relative; user-select:none; flex:1; min-width:110px; }
+      /* KPI strip */
+      .mod-kpis { display:flex; align-items:stretch; flex:1; min-width:0; }
+      .mod-kpi {
+        display:flex; flex-direction:column; justify-content:center; gap:4px;
+        padding:0 20px; border-right:1px solid #e8e6e1;
+        cursor:pointer; transition:background .12s; position:relative;
+        user-select:none; flex:1; min-width:100px;
+      }
       .mod-kpi:last-child { border-right:none; }
       .mod-kpi:hover { background:#fafaf8; }
-      .mod-kpi--active { background:rgba(0,179,179,.04); }
-      .mod-kpi--active::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:#00b3b3; border-radius:2px 2px 0 0; }
-      .mod-kpi-num { font-family:'Fraunces',Georgia,serif; font-style:italic; font-size:26px; font-weight:300; line-height:1; letter-spacing:-.03em; }
-      .mod-kpi-text { display:flex; flex-direction:column; gap:1px; }
-      .mod-kpi-label { font-family:'DM Mono',monospace; font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:.07em; color:#909399; white-space:nowrap; }
-      .mod-kpi-sub { font-size:10px; color:#b4b2a9; white-space:nowrap; }
 
-      .mod-action-cell { display:flex; align-items:center; gap:8px; padding:0 16px; flex-shrink:0; }
-      .mod-btn-primary { padding:7px 14px; background:#07111f; color:#fff; border:none; border-radius:7px; font-family:'DM Mono',monospace; font-size:11px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:6px; transition:background .1s; white-space:nowrap; }
-      .mod-btn-primary:hover { background:#0f2038; }
-      .mod-btn-ghost { padding:6px 12px; background:transparent; color:#909399; border:1px solid #e0ddd8; border-radius:7px; font-family:'DM Mono',monospace; font-size:11px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all .1s; white-space:nowrap; }
+      /* Active KPI — teal left bar (same language as sidebar + card stripes) */
+      .mod-kpi--active { background:rgba(0,179,179,.05); }
+      .mod-kpi--active::before {
+        content:''; position:absolute;
+        left:0; top:20%; bottom:20%;
+        width:3px; background:#00b3b3;
+        border-radius:0 3px 3px 0;
+      }
+
+      /* Number — dominant, Fraunces italic */
+      .mod-kpi-num {
+        font-family:'Fraunces',Georgia,serif; font-style:italic;
+        font-size:28px; font-weight:300; line-height:1; letter-spacing:-.03em;
+        transition:font-weight .12s;
+      }
+      .mod-kpi--active .mod-kpi-num { font-weight:400; }
+
+      /* Label — only one line, no sub-label */
+      .mod-kpi-label {
+        font-family:'DM Mono',monospace; font-size:9px; font-weight:500;
+        text-transform:uppercase; letter-spacing:.08em;
+        color:#b4b2a9; white-space:nowrap;
+        transition:color .12s;
+      }
+      .mod-kpi--active .mod-kpi-label { color:#00b3b3; }
+
+      /* Action cell */
+      .mod-action-cell { display:flex; align-items:center; gap:8px; padding:0 18px; flex-shrink:0; border-left:1px solid #e8e6e1; }
+      .mod-btn-primary {
+        padding:7px 16px; background:#07111f; color:#fff;
+        border:none; border-radius:7px;
+        font-family:'DM Mono',monospace; font-size:11px; font-weight:500;
+        cursor:pointer; display:flex; align-items:center; gap:6px;
+        transition:background .12s; white-space:nowrap;
+      }
+      .mod-btn-primary:hover { background:#162438; }
+      .mod-btn-ghost {
+        padding:6px 12px; background:transparent; color:#909399;
+        border:1px solid #e0ddd8; border-radius:7px;
+        font-family:'DM Mono',monospace; font-size:11px;
+        cursor:pointer; display:flex; align-items:center; gap:5px;
+        transition:border-color .12s, color .12s; white-space:nowrap;
+      }
       .mod-btn-ghost:hover { border-color:#00b3b3; color:#00b3b3; }
 
-      /* Row 2 */
-      .mod-header-bottom { display:flex; align-items:stretch; min-height:42px; }
+      /* ── Row 2: Search | Filters | View toggle ── */
+      .mod-header-bottom { display:flex; align-items:stretch; min-height:38px; background:#fafaf8; }
       .mod-filter-group { display:flex; align-items:center; flex:1; }
-      .mod-search { display:flex; align-items:center; gap:8px; padding:0 14px; border-right:1px solid #e8e6e1; flex:1; max-width:280px; }
-      .mod-search svg { color:#c8c3bb; flex-shrink:0; }
-      .mod-search input { border:none; outline:none; font-family:'Epilogue',sans-serif; font-size:12px; color:#07111f; background:transparent; width:100%; }
+
+      .mod-search {
+        display:flex; align-items:center; gap:8px;
+        padding:0 14px; border-right:1px solid #e8e6e1;
+        flex:1; max-width:260px;
+      }
+      .mod-search svg { flex-shrink:0; }
+      .mod-search input {
+        border:none; outline:none;
+        font-family:'Epilogue',sans-serif; font-size:12px;
+        color:#07111f; background:transparent; width:100%;
+      }
       .mod-search input::placeholder { color:#c8c3bb; }
-      .mod-select { padding:0 28px 0 12px; border:none; border-right:1px solid #e8e6e1; background:transparent url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23b4b2a9' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center; font-family:'DM Mono',monospace; font-size:11px; color:#5f5e5a; cursor:pointer; height:42px; outline:none; appearance:none; transition:background-color .1s; }
-      .mod-select:hover { background-color:#fafaf8; }
-      .mod-active-chip { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; background:#E6F1FB; color:#185FA5; border-radius:10px; font-family:'DM Mono',monospace; font-size:10px; font-weight:500; cursor:pointer; margin:0 8px; flex-shrink:0; transition:background .1s; }
-      .mod-active-chip:hover { background:#dbeafe; }
-      .mod-view-toggle { display:flex; align-items:stretch; border-left:1px solid #e8e6e1; flex-shrink:0; }
-      .mod-view-btn { width:42px; height:42px; border:none; border-left:1px solid #e8e6e1; background:transparent; color:#c8c3bb; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .1s, color .1s; }
+
+      .mod-select {
+        padding:0 28px 0 12px; border:none; border-right:1px solid #e8e6e1;
+        background:#fafaf8 url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23c8c3bb' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+        font-family:'DM Mono',monospace; font-size:11px; color:#5f5e5a;
+        cursor:pointer; height:38px; outline:none; appearance:none;
+        transition:background-color .1s;
+      }
+      .mod-select:hover { background-color:#f2f0eb; }
+
+      .mod-active-chip {
+        display:inline-flex; align-items:center; gap:4px;
+        padding:2px 8px; background:rgba(0,179,179,.1); color:#00b3b3;
+        border-radius:10px; font-family:'DM Mono',monospace; font-size:10px;
+        font-weight:500; cursor:pointer; margin:0 8px; flex-shrink:0;
+        transition:background .1s;
+      }
+      .mod-active-chip:hover { background:rgba(0,179,179,.18); }
+
+      /* View toggle — unified group with outer border */
+      .mod-view-toggle {
+        display:flex; align-items:stretch;
+        border-left:1px solid #e8e6e1; flex-shrink:0;
+      }
+      .mod-view-btn {
+        width:38px; height:38px; border:none;
+        border-left:1px solid #e8e6e1;
+        background:transparent; color:#c8c3bb;
+        cursor:pointer; display:flex; align-items:center; justify-content:center;
+        transition:background .1s, color .1s;
+      }
       .mod-view-btn:first-child { border-left:none; }
-      .mod-view-btn:hover { background:#fafaf8; color:#5f5e5a; }
-      .mod-view-btn.active { background:#07111f; color:#fff; }
-      .mod-view-btn.active svg { color:#4fa3f5; }
+      .mod-view-btn:hover { background:#f2f0eb; color:#5f5e5a; }
+      .mod-view-btn.active { background:#07111f; color:#4fa3f5; }
 
 </style>
 </head>
@@ -10378,7 +10451,6 @@ tr.staff-table-row .tbl-btn {
                             </div>
                             <div class="mod-title-text">
                                 <div class="mod-title-name">Clinical Units</div>
-                                <div class="mod-title-sub">{{ filteredTrainingUnits.length }} UNITS · {{ filteredTrainingUnits.filter(u => getUnitActiveRotationCount(u.id) < u.maximum_residents).length }} WITH OPEN SLOTS</div>
                             </div>
                         </div>
 
@@ -10387,33 +10459,21 @@ tr.staff-table-row .tbl-btn {
                                  :class="{ 'mod-kpi--active': trainingUnitFilters.status === 'available' }"
                                  @click="trainingUnitFilters.status = trainingUnitFilters.status === 'available' ? '' : 'available'">
                                 <div class="mod-kpi-num" style="color:#0F6E56">{{ filteredTrainingUnits.filter(u => getUnitActiveRotationCount(u.id) < u.maximum_residents).length }}</div>
-                                <div class="mod-kpi-text">
-                                    <div class="mod-kpi-label">Available</div>
-                                    <div class="mod-kpi-sub">slots open now</div>
-                                </div>
+                                <div class="mod-kpi-label">Available</div>
                             </div>
                             <div class="mod-kpi">
                                 <div class="mod-kpi-num" style="color:#854F0B">{{ filteredTrainingUnits.filter(u => getUnitActiveRotationCount(u.id) > 0 && getUnitActiveRotationCount(u.id) < u.maximum_residents && getUnitActiveRotationCount(u.id) / u.maximum_residents > 0.5).length }}</div>
-                                <div class="mod-kpi-text">
-                                    <div class="mod-kpi-label">Filling up</div>
-                                    <div class="mod-kpi-sub">&gt;50% occupied</div>
-                                </div>
+                                <div class="mod-kpi-label">Filling up</div>
                             </div>
                             <div class="mod-kpi"
                                  :class="{ 'mod-kpi--active': trainingUnitFilters.status === 'full' }"
                                  @click="trainingUnitFilters.status = trainingUnitFilters.status === 'full' ? '' : 'full'">
                                 <div class="mod-kpi-num" style="color:#e24b4a">{{ filteredTrainingUnits.filter(u => getUnitActiveRotationCount(u.id) >= u.maximum_residents).length }}</div>
-                                <div class="mod-kpi-text">
-                                    <div class="mod-kpi-label">Full</div>
-                                    <div class="mod-kpi-sub">no slots now</div>
-                                </div>
+                                <div class="mod-kpi-label">Full</div>
                             </div>
                             <div class="mod-kpi">
                                 <div class="mod-kpi-num" style="color:#b4b2a9">{{ filteredTrainingUnits.filter(u => !!getUnitOverlapWarning(u.id)).length }}</div>
-                                <div class="mod-kpi-text">
-                                    <div class="mod-kpi-label">Overlap alert</div>
-                                    <div class="mod-kpi-sub">scheduled conflict</div>
-                                </div>
+                                <div class="mod-kpi-label">Overlap alert</div>
                             </div>
                         </div>
 
