@@ -8237,6 +8237,7 @@ tr.staff-table-row .tbl-btn {
 
         </div><!-- /login-card -->
     </div>
+    </div>
 
     <!-- ============ MAIN APPLICATION ============ -->
     <div v-else class="app-layout">
@@ -9506,7 +9507,6 @@ tr.staff-table-row .tbl-btn {
                                 <button class="btn-pill" @click="goToPage('medical_staff', pagination.medical_staff.page + 1)" :disabled="pagination.medical_staff.page === staffTotalPages"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></button>
                             </div>
                         </div>
-                    </div>
                 </div>
 
                 <!-- ============ ON-CALL SCHEDULE VIEW (ENHANCED) ============ -->
@@ -10865,7 +10865,6 @@ tr.staff-table-row .tbl-btn {
                                 </button>
                             </div>
                         </div><!-- end grouped view -->
-                    </div>
                 </div><!-- /training_units -->
                 <!-- ============ STAFF ABSENCE VIEW ============ -->
                 <div v-if="currentView === 'staff_absence'">
@@ -12469,7 +12468,7 @@ tr.staff-table-row .tbl-btn {
                             </div>
                             <div class="nm-header-right">
                                 <span class="nm-status-badge"
-                                      :style="newsModal.form.status==='published' ? 'background:rgba(16,185,129,.12);color:#10b981;border-color:rgba(16,185,129,.22);' : newsModal.form.status==='archived' ? 'background:rgba(107,114,128,.1);color:rgba(255,255,255,.4);border-color:rgba(107,114,128,.2);' : 'background:rgba(245,158,11,.1);color:#f59e0b;border-color:rgba(245,158,11,.2);'"
+                                      :style="newsModal.form.status==='published' ? 'background:rgba(16,185,129,.12);color:#10b981;border-color:rgba(16,185,129,.22);' : newsModal.form.status==='archived' ? 'background:rgba(107,114,128,.1);color:rgba(255,255,255,.4);border-color:rgba(107,114,128,.2);' : 'background:rgba(245,158,11,.1);color:#f59e0b;border-color:rgba(245,158,11,.2);'">
                                     {{ newsModal.form.status || 'draft' }}
                                 </span>
                                 <button class="sm-form-close" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1);" @click="newsModal.show = false">
@@ -17923,9 +17922,10 @@ tr.staff-table-row .tbl-btn {
 
 </teleport>
 
+    </div>
     </div><!-- end app-layout -->
 </div><!-- end #app -->
-    <script src="app.js?v=13"></script>
+    <script src="app.js?v=14"></script>
 
     <script>
     /* ── Login page — anatomical bronchial tree ── */
