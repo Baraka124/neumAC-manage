@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="style.css?v=7">
 
     <style id="neumac-layout">
+      [v-cloak] { display: none !important; }
       /* ── Monthly rotation view ── */
       .mv-view { display:flex; flex-direction:column; gap:0; width:100%; }
       .mv-nav  { display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid #e3dfd6; background:#f5f4f0; flex-shrink:0; flex-wrap:wrap; }
@@ -8061,7 +8062,14 @@ tr.staff-table-row .tbl-btn {
       .mod-view-btn:hover { background:#f2f0eb; color:#5f5e5a; }
       .mod-view-btn.active { background:#07111f; color:#4fa3f5; }
 
-</style>
+
+      /* ── LOGIN CARD LAYOUT ── */
+      .login-container { display:flex !important; align-items:center !important; justify-content:center !important; min-height:100vh !important; padding:20px !important; box-sizing:border-box !important; }
+      .login-card { display:flex !important; width:min(780px, 100%) !important; min-height:460px !important; border-radius:20px !important; overflow:hidden !important; background:#fff !important; box-shadow:0 24px 80px rgba(0,0,0,.18) !important; }
+      .lc-brand { flex:0 0 280px !important; background:linear-gradient(145deg,#07111f 0%,#0a1628 60%,#0d1f3c 100%) !important; display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:center !important; padding:40px 32px !important; gap:20px !important; }
+      .lc-form { flex:1 !important; padding:40px !important; display:flex !important; flex-direction:column !important; justify-content:center !important; overflow-y:auto !important; }
+
+      </style>
 </head>
 <body>
 <div id="app" v-cloak>
