@@ -8069,7 +8069,32 @@ tr.staff-table-row .tbl-btn {
       .lc-brand { flex:0 0 280px !important; background:linear-gradient(145deg,#07111f 0%,#0a1628 60%,#0d1f3c 100%) !important; display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:center !important; padding:40px 32px !important; gap:20px !important; }
       .lc-form { flex:1 !important; padding:40px !important; display:flex !important; flex-direction:column !important; justify-content:center !important; overflow-y:auto !important; }
 
-      </style>
+      
+      /* ── Live Stats Sidebar: hidden by default, slide in when .open ── */
+      #app .live-stats-sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        right: 0 !important;
+        height: 100vh !important;
+        width: 320px !important;
+        z-index: 200 !important;
+        transform: translateX(100%) !important;
+        transition: transform .3s cubic-bezier(.16,1,.3,1) !important;
+        overflow-y: auto !important;
+        background: var(--nm-navy, #07111f) !important;
+      }
+      #app .live-stats-sidebar.open {
+        transform: translateX(0) !important;
+      }
+      /* Stats toggle button: fixed on right edge */
+      #app .stats-toggle-btn {
+        position: fixed !important;
+        right: 0 !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        z-index: 201 !important;
+      }
+</style>
 </head>
 <body>
 <div id="app" v-cloak>
