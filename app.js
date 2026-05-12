@@ -8186,7 +8186,7 @@ document.addEventListener('DOMContentLoaded', () => {
           loadCallouts, loadCalloutSummary,
         }    
       }
-    })
+    })     
 
     app.mount('#app')
 
